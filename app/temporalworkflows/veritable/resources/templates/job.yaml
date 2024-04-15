@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+metadata:
+  name: {{job_name}}
+  namespace: {{tenant}}
+  labels:
+    app: veritable
+    jobKind: {{job_kind}}
+  annotations:
+    app: veritable
+    jobKind: {{job_kind}}
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: registrycred
+      containers:
+        name: {{job_name}}
+        env:
+          - name: POSTGRES__PASSWORD
+            value: {{postgres_password}}
+          - name: POSTGRES__USER
+            value: {{postgres_user}}
+          - name: RELEASE_VERSION
+            value: {{image_tag}}
+          - name: PROVISIONING_CONFIG
+            value: /provisioningConfig/provisioning-config.json
+        volumeMounts:
+          - name: veritable-provisioning-config
+            mountPath: /provisioningConfig
+            readOnly: true
+        image: registry.314ecorp.tech/veritable-server:{{image_tag}}
+        command: ["/bin/sh", "-c"]
+        args: "cd /app && python3 /app/provisioning/{job_type}_.py --config /provisioningConfig/provisioning-config.json"
+        volume:
+            - name: veritable-provisioning-config
+              configMap:
+                name: veritable-provisioning-config
+                items:
+                    - key: provisioning-config.json
+                      path: provisioning-config.json
+                restartPolicy: Never

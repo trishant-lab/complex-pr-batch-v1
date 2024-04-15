@@ -1,0 +1,1 @@
+CREATE ROLE {{ username | sqlsafe }} NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN PASSWORD '{{ password | sqlsafe }}'

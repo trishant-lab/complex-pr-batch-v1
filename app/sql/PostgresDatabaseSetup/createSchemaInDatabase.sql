@@ -1,0 +1,1 @@
+CREATE SCHEMA IF NOT EXISTS {{schema_name | sqlsafe }} AUTHORIZATION {{username | sqlsafe }};

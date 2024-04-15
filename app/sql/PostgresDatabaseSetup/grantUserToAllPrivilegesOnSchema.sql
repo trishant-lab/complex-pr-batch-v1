@@ -1,0 +1,1 @@
+GRANT ALL ON SCHEMA {{schema_name | sqlsafe }} TO {{username | sqlsafe}}

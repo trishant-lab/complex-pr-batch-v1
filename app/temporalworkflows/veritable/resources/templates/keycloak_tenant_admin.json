@@ -1,0 +1,24 @@
+{
+  "username": "{{username}}",
+  "enabled": true,
+  "totp": false,
+  "emailVerified": true,
+  "firstName": "{{username}}",
+  "lastName": "",
+  "email": "support@veritable.app",
+  "access": {
+    "manageGroupMembership": true,
+    "view": true,
+    "mapRoles": true,
+    "impersonate": true,
+    "manage": true
+  },
+  "credentials": [
+    {
+      "type": "password",
+      "temporary": true,
+      "value": "{{password}}"
+    }
+  ],
+  "groups": ["vt-internal-admin"]
+}
