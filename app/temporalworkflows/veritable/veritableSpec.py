@@ -1,14 +1,16 @@
 from dataclasses import dataclass
+from uuid import UUID
 
 
+@dataclass
 class ResourceSpec:
     """
     ResourceSpec dataclass
     """
-    request_memory: str = "500Mi"
-    request_cpu: str = "500m"
-    limit_memory: str = "3000Mi"
-    limit_cpu: str = "3000m"
+    request_memory: str
+    request_cpu: str
+    limit_memory: str
+    limit_cpu: str
 
 
 @dataclass
@@ -18,12 +20,11 @@ class VeritableSpec:
     """
     tenant: str
     imageTag: str
-    newImageTag: str
     environment: str
-    customerId: str
+    customerId: UUID
     customerUserName: str
     customerEmail: str
     customerRealmRoles: list[str]
     orgName: str
-    serverSpec: ResourceSpec = ResourceSpec()
-    cliSpec: ResourceSpec = ResourceSpec()
+    serverSpec: ResourceSpec
+    cliSpec: ResourceSpec

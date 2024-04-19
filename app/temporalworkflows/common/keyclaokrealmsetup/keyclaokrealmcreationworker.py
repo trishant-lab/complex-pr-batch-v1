@@ -3,10 +3,10 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from app.core.settings import AppSettings, get_settings
-from app.temporalworkflows.commonworkflows.keyclaokrealmsetup.keyclaokrealmcreationworkflow import (
+from app.temporalworkflows.common.keyclaokrealmsetup.keyclaokrealmcreationworkflow import (
     KeyclaokRealmCreationWorkflow,
 )
-from app.temporalworkflows.commonworkflows.keyclaokrealmsetup.keyclaokrealmcreationactivity import (
+from app.temporalworkflows.common.keyclaokrealmsetup.keyclaokrealmcreationactivity import (
     create_keycloak_realm_activity,
 )
 

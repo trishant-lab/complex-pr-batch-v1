@@ -6,7 +6,7 @@ from loguru import logger
 from temporalio import activity
 
 from app.common import generate_password
-from app.core.settings import KeycloakSettings, get_settings, ProductConfig
+from app.core.settings import KeycloakSettings, get_settings, ProductConfig, AppSettings
 from app.temporalworkflows.common.keyclaokrealmsetup.keycloakutils import KeycloakAdminClient
 from app.temporalworkflows.onepasswordutil import OnePasswordUtil
 from app.temporalworkflows.template_env import get_env
@@ -61,7 +61,7 @@ class CreateKeycloakRealmActivityInput:
     product: str
     customerRealmRoles: list[str]
     tenant: str
-    domain_org: str
+    tenant_url: str
     customer_username: str
     customer_email: str
     admin_user: str
@@ -73,12 +73,11 @@ async def create_keycloak_realm_activity(activity_input: CreateKeycloakRealmActi
     """
     :return:
     """
-    keycloak_config: KeycloakSettings = get_settings().keycloak
+    config: AppSettings = get_settings()
+    product_config: ProductConfig = get_settings().product_config.get(activity_input.product.lower())
+    keycloak_config: KeycloakSettings = config.keycloak
+
     keycloak_client = KeycloakAdminClient(keycloak_config)
-    sendgrid_api_key = ""
-
-    product_config: ProductConfig = get_settings().product_config.get(activity_input.product)
-
     if check_keycloak_realm_exists(keycloak_client=keycloak_client, realm_name=activity_input.realm_name):
         logger.info("Realm already exists")
         return
@@ -93,8 +92,8 @@ async def create_keycloak_realm_activity(activity_input: CreateKeycloakRealmActi
         realm_name=activity_input.realm_name,
         customerRealmRoles=customer_roles,
         tenant=activity_input.tenant,
-        sendgrid_api_key=sendgrid_api_key,
-        domain_org=activity_input.domain_org,
+        sendgrid_api_key=config.sendgrid_api_key,
+        tenant_url=activity_input.tenant_url,
     )
 
     keycloak_client.create_realm(orjson.loads(realm_config))
@@ -115,6 +114,7 @@ async def create_keycloak_realm_activity(activity_input: CreateKeycloakRealmActi
         customer_details=custom_details,
         realm_name=activity_input.realm_name
     )
+    logger.info(f"Customer Password: {customer_password}")
     logger.info("Tenant admin customer user created successfully")
 
     admin_password = generate_password(20)

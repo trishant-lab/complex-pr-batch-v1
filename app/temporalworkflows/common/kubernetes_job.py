@@ -30,7 +30,7 @@ class KubernetesJob:
             logger.error(f"Error while getting job: {e}")
             raise e
 
-    async def create_or_replace_job(self, body: str):
+    async def create_or_replace_job(self, body: client.V1Job):
         """
         Create or replace kubernetes job
         :return:
@@ -42,14 +42,12 @@ class KubernetesJob:
                 api_instance = client.BatchV1Api(api_client)
 
                 # Check if the job already exists
-                response = self.get_current_job()
-                if response.items():
+                response = await self.get_current_job()
+                if response.items:
                     logger.info(f"{self.job_name} Job already exists for {self.namespace}")
                     return
 
                 # Create a new job
-                body = client.V1Job(metadata=client.V1ObjectMeta(name=self.job_name), spec=body)
-
                 api_instance.create_namespaced_job(namespace=self.namespace, body=body)
                 logger.info(f"{self.job_name} Job created for {self.namespace}")
 
@@ -67,6 +65,12 @@ class KubernetesJob:
         try:
             with client.ApiClient() as api_client:
                 api_instance = client.BatchV1Api(api_client)
+
+                # Check if the job exists
+                response = await self.get_current_job()
+                if not response.items:
+                    logger.info(f"{self.job_name} Job does not exist for {self.namespace}")
+                    return
 
                 api_instance.delete_namespaced_job(
                     name=self.job_name,

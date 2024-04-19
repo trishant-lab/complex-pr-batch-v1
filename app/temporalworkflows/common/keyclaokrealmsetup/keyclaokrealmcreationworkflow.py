@@ -4,7 +4,6 @@ from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
-from app.core.settings import AppSettings, get_settings
 from app.temporalworkflows.common.keyclaokrealmsetup.keyclaokrealmcreationactivity import \
     create_keycloak_realm_activity, CreateKeycloakRealmActivityInput
 
@@ -13,6 +12,7 @@ from app.temporalworkflows.common.keyclaokrealmsetup.keyclaokrealmcreationactivi
 class KeyclaokRealmCreationWorkflowInput:
     product: str
     tenant: str
+    tenant_url: str
     realm_name: str
     domain_org: str
     customer_username: str
@@ -38,7 +38,7 @@ class KeyclaokRealmCreationWorkflow:
                 product=workflow_input.product,
                 customerRealmRoles=workflow_input.customer_realm_roles,
                 tenant=workflow_input.tenant,
-                domain_org=workflow_input.domain_org,
+                tenant_url=workflow_input.tenant_url,
                 customer_username=workflow_input.customer_username,
                 customer_email=workflow_input.customer_email,
                 admin_user=workflow_input.admin_user,

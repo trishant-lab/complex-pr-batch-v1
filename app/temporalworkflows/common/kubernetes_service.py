@@ -7,12 +7,11 @@ class KubernetesService:
     Class to handle Kubernetes service setup
     """
 
-    def __init__(self, namespace: str, product_name: str, port: int):
+    def __init__(self, namespace: str, product_name: str):
         self.namespace: str = namespace
         self.product_name: str = product_name
-        self.port: int = port
 
-    async def create_or_replace(self) -> dict:
+    async def create_or_replace(self, port: int) -> dict:
         """
         Create or replace a service in a namespace
         """
@@ -33,18 +32,18 @@ class KubernetesService:
                 ports=[
                     client.V1ServicePort(
                         name="http",
-                        port=self.port,
+                        port=port,
                     )
                 ]
             )
         )
 
-        current_service = (
-            v1.connect_get_namespaced_service_proxy(namespace=self.namespace, name=self.product_name).get()
+        current_service = v1.list_namespaced_service(
+            namespace=self.namespace, field_selector=f"metadata.name={self.product_name}"
         )
 
         # If the service already exists, update it
-        if current_service:
+        if current_service.items:
             response = v1.replace_namespaced_service(namespace=self.namespace, name=self.product_name, body=body)
             return response.to_dict()
 
@@ -60,9 +59,11 @@ class KubernetesService:
         config.load_kube_config()
         v1 = client.CoreV1Api()
 
-        current_service = v1.connect_get_namespaced_service_proxy(namespace=self.namespace, name=self.product_name).get()
+        current_service = v1.list_namespaced_service(
+            namespace=self.namespace, field_selector=f"metadata.name={self.product_name}"
+        )
 
-        if current_service:
+        if current_service.items:
             logger.info("Deleting service")
             v1.delete_namespaced_service(namespace=self.namespace, name=self.product_name)
         else:

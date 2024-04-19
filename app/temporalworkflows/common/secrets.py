@@ -9,12 +9,11 @@ class KubernetesSecretService:
 
     """
 
-    def __init__(self, namespace: str, secret_name: str, data: dict):
+    def __init__(self, namespace: str, secret_name: str):
         self.namespace: str = namespace
         self.secret_name: str = secret_name
-        self.data: dict = data
 
-    async def create_or_replace(self):
+    async def create_or_replace(self, data):
         """
         Create a secret in a namespace
         """
@@ -23,16 +22,16 @@ class KubernetesSecretService:
             v1 = client.CoreV1Api()
 
             # get the secret
-            response = v1.list_namespaced_secret(
+            response: client.V1SecretList = v1.list_namespaced_secret(
                 namespace=self.namespace,
                 field_selector=f"metadata.name={self.secret_name}"
             )
             # update the secret
             if response.items:
-                response.data = self.data
-                v1.replace_namespaced_secret(namespace=self.namespace, name=self.secret_name, body=response)
-
-                logger.info(f"Secret {self.secret_name} updated")
+                body: client.V1Secret = response.items[0]
+                body.data = data
+                v1.replace_namespaced_secret(namespace=self.namespace, name=self.secret_name, body=body)
+                logger.info(f"Secret {self.secret_name} updated for namespace {self.namespace}")
                 return
 
             body = client.V1Secret(
@@ -40,7 +39,7 @@ class KubernetesSecretService:
                 kind="Secret",
                 metadata=client.V1ObjectMeta(name=self.secret_name),
                 type="kubernetes.io/dockerconfigjson",
-                data=self.data,
+                data=data,
             )
             v1.create_namespaced_secret(namespace=self.namespace, body=body)
 

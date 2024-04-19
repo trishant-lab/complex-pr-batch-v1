@@ -42,14 +42,25 @@ class PostgresSettings(BaseModel):
     schema_name: str = ""
 
 
+class GrafanaSettings(BaseModel):
+    """
+    Grafana Settings
+    """
+    dashboard_uid: str = ""
+    datasource_uid: str = ""
+    folder_uid: str = ""
+    alert_folder_uid: str = ""
+
+
 class ProductConfig(BaseModel):
     """
     Product Config
     """
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = ""
-    vault_name: str = ""
-    one_password_server_item: str = ""
+    domain_name: str = ""  # Domain name for the product e.g. int.veritable.app or jeeves.314ecorp.tech
+    vault_name: str = ""  # OnePassword vault name for the product
+    one_password_server_item: str = ""  # OnePassword server item for the product
+    grafana: GrafanaSettings = GrafanaSettings()
 
 
 class AppSettings(BaseSettings):
@@ -64,9 +75,22 @@ class AppSettings(BaseSettings):
     temporal_namespace: str = "onboarding"
     temporal_postgres_database_setup_task_queue: str = "temporal_postgres_database_setup_task_queue"
     temporal_keycloak_realm_creation_task_queue: str = "temporal_keycloak_realm_creation_task_queue"
+    temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
+    temporal_veritable_deprovisioning_task_queue: str = "temporal_veritable_deprovisioning_task_queue"
 
     docker_image_pull_secret: str = ""
-    google_dns_cname: str = ""
+    google_dns_cname: str = "k8s.314ecorp.tech"
+
+    s3_endpoint: str = ""
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+    s3_use_ssl: bool = False
+    s3_bucket_name: str = ""
+
+    sendgrid_api_key: str = ""
+
+    grafana_url: str = ""
+    grafana_token: str = ""
 
     model_config = ConfigDict(extra="ignore")
 

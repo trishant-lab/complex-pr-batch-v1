@@ -50,12 +50,31 @@ def download_file_from_storage(
         client = get_storage_client(config=config)
     Path(base_dir).mkdir(parents=True, exist_ok=True)
     try:
-        client.download_file(Bucket=config.s3_media_bucket_name, Key=object_name, Filename=file_path)
+        logger.info(f"getting objects from s3: {object_name}")
+        client.download_file(Bucket=config.s3_bucket_name, Key=object_name, Filename=file_path)
         logger.info(f"getting objects from s3: {object_name}")
         return object_name
     except ClientError as e:
         logger.error(f"failed to get file from s3 object name: {object_name} to file path: {file_path}, error: {e}")
         return None
+
+
+def list_files_in_s3_folder(folder_path: str, config: AppSettings) -> list[str]:
+    """
+    List all files in the given s3 folder path
+    :param folder_path:
+    :param config:
+    :return:
+    """
+    client = get_storage_client(config=config)
+    try:
+        response = client.list_objects_v2(Bucket=config.s3_bucket_name, Prefix=folder_path)
+        if "Contents" in response:
+            return [obj["Key"] for obj in response["Contents"]]
+        return []
+    except ClientError as e:
+        logger.error(f"failed to list files in s3 folder path: {folder_path}, error: {e}")
+        return []
 
 
 def copy_files_to_s3(folder_path: str, s3_path: str, config: AppSettings) -> None:

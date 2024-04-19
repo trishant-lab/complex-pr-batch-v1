@@ -1,4 +1,3 @@
-import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -19,7 +18,7 @@ class PostgresDatabaseSetupWorkflowInput:
     tenant: str
     env: str
     database_name: str
-    vault_name: str
+    schema_name: str
 
 
 @workflow.defn(name="postgresdatabasesetup_workflow", sandboxed=False)
@@ -36,7 +35,7 @@ class PostgresDatabaseSetupWorkflow:
             maximum_interval=timedelta(seconds=60),
         )
 
-        config: AppSettings = get_settings()
+        # config: AppSettings = get_settings()
 
         # product_config: ProductConfig = config.product_config[workflow_input.product.lower()]
 
@@ -51,7 +50,7 @@ class PostgresDatabaseSetupWorkflow:
             start_to_close_timeout=timedelta(seconds=30)
         )
 
-        db_username = f"{workflow_input.product}_{workflow_input.tenant}"
+        db_username = f"{workflow_input.product.lower()}_{workflow_input.tenant.lower()}"
 
         # Create a new user in the database
         await workflow.execute_activity(
@@ -70,7 +69,7 @@ class PostgresDatabaseSetupWorkflow:
             create_schema_activity,
             CreateDatabaseSchemaActivityInput(
                 db_username=db_username,
-                tenant_name=workflow_input.tenant,
+                schema_name=workflow_input.schema_name,
                 database_name=workflow_input.database_name,
                 product=workflow_input.product
             ),
@@ -83,7 +82,7 @@ class PostgresDatabaseSetupWorkflow:
             grant_permissions_activity,
             GrantPermissionsActivityInput(
                 db_username=db_username,
-                tenant_name=workflow_input.tenant,
+                schema_name=workflow_input.schema_name,
                 database_name=workflow_input.database_name,
                 product=workflow_input.product
             ),

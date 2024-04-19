@@ -8,12 +8,11 @@ class PVC:
     Class to handle PVC setup
     """
 
-    def __init__(self, namespace: str, pvc_name: str, storage: str):
+    def __init__(self, namespace: str, pvc_name: str):
         self.namespace: str = namespace
         self.pvc_name: str = pvc_name
-        self.storage: str = storage
 
-    async def create(self):
+    async def create(self, storage: str):
         """
         Create a PVC in a namespace
         """
@@ -43,7 +42,7 @@ class PVC:
                         storage_class_name="topolvm-provisioner",
                         access_modes=["ReadWriteOnce"],
                         resources=client.V1ResourceRequirements(
-                            requests={"storage": self.storage}
+                            requests={"storage": storage}
                         ),
                     ),
                 )

@@ -21,7 +21,7 @@ async def trigger_keycloak_realm_creation_workflow(payload: dict, workflow_id: s
     result = await client.start_workflow(
         KeyclaokRealmCreationWorkflow.run,
         KeyclaokRealmCreationWorkflowInput(**payload),
-        id=f"keycloak_realm_creation_workflow_{workflow_id}",
+        id=workflow_id,
         task_queue=config.temporal_keycloak_realm_creation_task_queue,
     )
     logger.info(

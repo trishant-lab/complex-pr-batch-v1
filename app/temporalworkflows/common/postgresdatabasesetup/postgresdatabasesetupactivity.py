@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from loguru import logger
 from temporalio import activity
 
+from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
 from app.core.settings import get_settings, ProductConfig
 from app.temporalworkflows.onepasswordutil import OnePasswordUtil
@@ -23,13 +24,13 @@ async def generate_random_password(activity_input: GenerateRandomPasswordActivit
     product_config: ProductConfig = get_settings().product_config[activity_input.product.lower()]
 
     # generate a random password
-    password = uuid.uuid4().hex.replace("-", "")[20]
+    password = generate_password(length=20)
 
     # store the password in 1password
     OnePasswordUtil(
         tenant=activity_input.tenant,
         vault=product_config.vault_name,
-        server_item=product_config.server_item
+        server_item=product_config.one_password_server_item
     ).insert_if_not_exists(
         key="postgres_database_password",
         value=password
@@ -50,7 +51,13 @@ async def create_user_activity(activity_input: CreateDatabaseUserActivityInput) 
     """
     product_config: ProductConfig = get_settings().product_config[activity_input.product.lower()]
 
-    db: DBManager = await get_db_manager(dsn=product_config.postgres_dsn)
+    password = OnePasswordUtil(
+        tenant=activity_input.tenant,
+        vault=product_config.vault_name,
+        server_item=product_config.one_password_server_item
+    ).get_key("postgres_database_password")
+
+    db: DBManager = await get_db_manager(dsn=product_config.postgres.dsn)
 
     # Check if the user already exists
     try:
@@ -58,26 +65,27 @@ async def create_user_activity(activity_input: CreateDatabaseUserActivityInput) 
             "PostgresDatabaseSetup/checkIfUserExitInDatabase.sql",
             username=f"{activity_input.username}"
         )
+        logger.info(f"User {activity_input.username} exists: {response}")
     except Exception as e:
         logger.error(f"Error while checking if user exists: {e}")
         raise e
 
+    parameters = {
+        "username": activity_input.username,
+        "password": password
+    }
+
+    # Update the user if it already exists
     if response:
         logger.info(f"User {activity_input.username} already exists")
+        await db.execute(
+            "PostgresDatabaseSetup/updateUserInDatabase.sql",
+            **parameters
+        )
         return
 
-    # get the password from 1password
-    password = OnePasswordUtil(
-        tenant=activity_input.tenant,
-        vault=product_config.vault_name,
-        server_item=product_config.one_password_server_item
-    ).get_key("postgres_database_password")
-
+    # Create a new user
     try:
-        parameters = {
-            "username": activity_input.username,
-            "password": password
-        }
         # Create a new user
         await db.execute(
             "PostgresDatabaseSetup/createUserInDatabase.sql",
@@ -94,7 +102,7 @@ async def create_user_activity(activity_input: CreateDatabaseUserActivityInput) 
 class CreateDatabaseSchemaActivityInput:
     product: str
     db_username: str
-    tenant_name: str
+    schema_name: str
     database_name: str
 
 
@@ -105,12 +113,12 @@ async def create_schema_activity(activity_input: CreateDatabaseSchemaActivityInp
     """
     product_config: ProductConfig = get_settings().product_config[activity_input.product.lower()]
 
-    db: DBManager = await get_db_manager(dsn=product_config.postgres_dsn)
+    db: DBManager = await get_db_manager(dsn=product_config.postgres.dsn)
     try:
         # Create a new schema
         parameters = {
             "username": activity_input.db_username,
-            "schema_name": activity_input.tenant_name,
+            "schema_name": activity_input.schema_name,
             "database": activity_input.database_name
         }
         await db.execute(
@@ -163,7 +171,7 @@ async def grant_user_to_all_privileges_on_schema(db: DBManager, user_name: str, 
 @dataclass
 class GrantPermissionsActivityInput:
     db_username: str
-    tenant_name: str
+    schema_name: str
     database_name: str
     product: str
 
@@ -174,13 +182,13 @@ async def grant_permissions_activity(activity_input: GrantPermissionsActivityInp
     :return:
     """
     product_config: ProductConfig = get_settings().product_config[activity_input.product.lower()]
-    db: DBManager = await get_db_manager(dsn=activity_input.product)
+    db: DBManager = await get_db_manager(dsn=product_config.postgres.dsn)
 
     # Grant user to connect and create on database
     await grant_user_to_connect_and_create_on_database(db, activity_input.db_username, activity_input.database_name)
 
     # Grant ALL privileges on tenant schema
-    await grant_user_to_all_privileges_on_schema(db, activity_input.db_username, activity_input.tenant_name)
+    await grant_user_to_all_privileges_on_schema(db, activity_input.db_username, activity_input.schema_name)
 
     # Grant ALL privileges on public schema
     await grant_user_to_all_privileges_on_schema(db, activity_input.db_username, "public")

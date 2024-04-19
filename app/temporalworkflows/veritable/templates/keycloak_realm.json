@@ -598,19 +598,19 @@
       "clientId": "app",
       "name": "Veritable application client",
       "description": "",
-      "rootUrl": "https://{{tenant}}.veritable.{{domain_org}}",
-      "adminUrl": "https://{{tenant}}.veritable.{{domain_org}}",
+      "rootUrl": "https://{{tenant_url}}",
+      "adminUrl": "https://{{tenant_url}}",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://{{tenant}}.veritable.{{domain_org}}/*",
-        "https://{{tenant}}.veritable.{{domain_org}}/*"
+        "http://{{tenant_url}}/*",
+        "https://{{tenant_url}}/*"
       ],
       "webOrigins": [
-        "https://{{tenant}}.veritable.{{domain_org}}",
-        "http://{{tenant}}.veritable.{{domain_org}}"
+        "https://{{tenant_url}}",
+        "http://{{tenant_url}}"
       ],
       "notBefore": 0,
       "bearerOnly": false,

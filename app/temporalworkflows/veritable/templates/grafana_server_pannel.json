@@ -1,0 +1,139 @@
+{
+  "alert": {
+    "alertRuleTags": {},
+    "conditions": [
+      {
+        "evaluator": {
+          "params": [
+            1
+          ],
+          "type": "lt"
+        },
+        "operator": {
+          "type": "and"
+        },
+        "query": {
+          "params": [
+            "A",
+            "5m",
+            "now"
+          ]
+        },
+        "reducer": {
+          "params": [],
+          "type": "last"
+        },
+        "type": "query"
+      }
+    ],
+    "executionErrorState": "alerting",
+    "for": "5m",
+    "frequency": "1m",
+    "handler": 1,
+    "message": "Integration veritable-server {{ tenant }} Down",
+    "name": "veritable-server {{ tenant }} alert",
+    "noDataState": "no_data",
+    "notifications": []
+  },
+  "datasource": {
+    "type": "prometheus",
+    "uid": "{{ DatasourceUID }}"
+  },
+  "fieldConfig": {
+    "defaults": {
+      "color": {
+        "mode": "palette-classic"
+      },
+      "custom": {
+        "axisCenteredZero": false,
+        "axisColorMode": "text",
+        "axisLabel": "",
+        "axisPlacement": "auto",
+        "barAlignment": 0,
+        "drawStyle": "line",
+        "fillOpacity": 10,
+        "gradientMode": "none",
+        "hideFrom": {
+          "legend": false,
+          "tooltip": false,
+          "viz": false
+        },
+        "lineInterpolation": "linear",
+        "lineWidth": 1,
+        "pointSize": 5,
+        "scaleDistribution": {
+          "type": "linear"
+        },
+        "showPoints": "never",
+        "spanNulls": true,
+        "stacking": {
+          "group": "A",
+          "mode": "none"
+        },
+        "thresholdsStyle": {
+          "mode": "off"
+        }
+      },
+      "mappings": [],
+      "min": 0,
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          {
+            "color": "green"
+          },
+          {
+            "color": "red",
+            "value": 80
+          }
+        ]
+      },
+      "unit": "none"
+    },
+    "overrides": []
+  },
+  "gridPos": {
+    "h": 6,
+    "w": 4,
+    "x": 0,
+    "y": 62
+  },
+  "id": {{ PanelID }},
+  "options": {
+    "legend": {
+      "calcs": [],
+      "displayMode": "list",
+      "placement": "bottom",
+      "showLegend": true
+    },
+    "tooltip": {
+      "mode": "single",
+      "sort": "none"
+    }
+  },
+  "pluginVersion": "8.1.1",
+  "targets": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "{{ DatasourceUID }}"
+      },
+      "exemplar": true,
+      "expr": "sum(up{job=\"{{ tenant }}/veritable-metrics\",namespace=\"{{ tenant }}\"})",
+      "instant": false,
+      "interval": "",
+      "legendFormat": "{{ open_brackets }}instance{{ close_brackets }}",
+      "refId": "A"
+    }
+  ],
+  "thresholds": [
+    {
+      "colorMode": "critical",
+      "op": "lt",
+      "value": 1,
+      "visible": true
+    }
+  ],
+  "title": "veritable-server {{ tenant }}",
+  "type": "timeseries"
+}

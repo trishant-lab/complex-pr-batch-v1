@@ -1,30 +1,31 @@
-from dataclasses import dataclass
 from datetime import timedelta
 
-from loguru import logger
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
-from app.temporalworkflows.veritable.onboardingactivity import (
+from loguru import logger
+
+from app.temporalworkflows.veritable.onboarding.onboardingactivity import (
     postgres_database_setup_activity, create_namespace_activity, create_pvc_activity, secret_setup_activity,
     deploy_veritable_ui_activity, create_realm_activity, create_dns_activity, provisioning_job_activity,
-    create_k8s_service_activity, create_virtual_service_activity, create_configmap_activity, create_deployment_activity
+    create_k8s_service_activity, create_virtual_service_activity, create_configmap_activity, create_deployment_activity,
+    vm_pod_scraper_activity, create_grafana_alerts_activity
 )
 from app.temporalworkflows.veritable.veritableSpec import VeritableSpec
 
 
-@workflow.defn
+@workflow.defn(name="onboarding_workflow", sandboxed=False)
 class OnboardingWorkflow:
     @workflow.run
     async def run(self, veritable_spec: VeritableSpec) -> None:
         """
         Onboarding workflow
         """
-        workflow.logger.info(f"Starting Onboarding Workflow for Veritable tenant: {veritable_spec.tenant}")
+        logger.info(f"Starting Onboarding Workflow for Veritable tenant: {veritable_spec.tenant}")
 
         retry_policy: RetryPolicy = RetryPolicy(
             backoff_coefficient=2.0,
-            maximum_attempts=5,
+            maximum_attempts=1,
             initial_interval=timedelta(seconds=1),
             maximum_interval=timedelta(seconds=60),
         )
@@ -50,7 +51,7 @@ class OnboardingWorkflow:
             create_configmap_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         # create PVC in k8s for namespace
@@ -58,7 +59,7 @@ class OnboardingWorkflow:
             create_pvc_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         # create secret in k8s for namespace
@@ -66,7 +67,7 @@ class OnboardingWorkflow:
             secret_setup_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         # Create DNS
@@ -74,7 +75,7 @@ class OnboardingWorkflow:
             create_dns_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         # Deploy ui
@@ -82,7 +83,7 @@ class OnboardingWorkflow:
             deploy_veritable_ui_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         # Create keycloak realm
@@ -90,7 +91,7 @@ class OnboardingWorkflow:
             create_realm_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         # Provisioning job
@@ -106,7 +107,7 @@ class OnboardingWorkflow:
             create_k8s_service_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         # Create virtual service in k8s for namespace (Istio)
@@ -114,7 +115,7 @@ class OnboardingWorkflow:
             create_virtual_service_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         # Create deployment in k8s for namespace
@@ -122,7 +123,23 @@ class OnboardingWorkflow:
             create_deployment_activity,
             veritable_spec,
             retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(seconds=120),
+            start_to_close_timeout=timedelta(seconds=300),
+        )
+
+        # Create VMPod Scrapper for Grafana metrics
+        await workflow.execute_activity(
+            vm_pod_scraper_activity,
+            veritable_spec,
+            retry_policy=retry_policy,
+            start_to_close_timeout=timedelta(seconds=300),
+        )
+
+        # Create Grafana Alerts
+        await workflow.execute_activity(
+            create_grafana_alerts_activity,
+            veritable_spec,
+            retry_policy=retry_policy,
+            start_to_close_timeout=timedelta(seconds=300),
         )
 
         logger.info(f"Finished Onboarding Workflow for Veritable tenant: {veritable_spec.tenant}")

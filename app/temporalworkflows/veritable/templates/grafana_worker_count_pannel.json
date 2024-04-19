@@ -1,0 +1,167 @@
+{
+  "alert": {
+    "alertRuleTags": {},
+    "conditions": [
+      {
+        "evaluator": {
+          "params": [
+            5
+          ],
+          "type": "lt"
+        },
+        "operator": {
+          "type": "and"
+        },
+        "query": {
+          "params": [
+            "A",
+            "2m",
+            "now"
+          ]
+        },
+        "reducer": {
+          "params": [],
+          "type": "last"
+        },
+        "type": "query"
+      }
+    ],
+    "executionErrorState": "alerting",
+    "for": "2m",
+    "frequency": "30s",
+    "handler": 1,
+    "id": 1,
+    "message": "veritable {{ tenant }} celery workers down",
+    "name": "veritable {{ tenant }} celery workers down alert",
+    "noDataState": "no_data",
+    "notifications": []
+  },
+  "datasource": {
+    "type": "prometheus",
+    "uid": "{{ DatasourceUID }}"
+  },
+  "fieldConfig": {
+    "defaults": {
+      "color": {
+        "mode": "palette-classic"
+      },
+      "custom": {
+        "axisCenteredZero": false,
+        "axisColorMode": "text",
+        "axisLabel": "",
+        "axisPlacement": "auto",
+        "barAlignment": 0,
+        "drawStyle": "line",
+        "fillOpacity": 10,
+        "gradientMode": "none",
+        "hideFrom": {
+          "legend": false,
+          "tooltip": false,
+          "viz": false
+        },
+        "lineInterpolation": "linear",
+        "lineWidth": 1,
+        "pointSize": 5,
+        "scaleDistribution": {
+          "type": "linear"
+        },
+        "showPoints": "never",
+        "spanNulls": true,
+        "stacking": {
+          "group": "A",
+          "mode": "none"
+        },
+        "thresholdsStyle": {
+          "mode": "off"
+        }
+      },
+      "mappings": [],
+      "min": 0,
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "red",
+            "value": 80
+          }
+        ]
+      },
+      "unit": "none"
+    },
+    "overrides": [
+      {
+        "__systemRef": "hideSeriesFrom",
+        "matcher": {
+          "id": "byNames",
+          "options": {
+            "mode": "exclude",
+            "names": [
+              "No. of pods"
+            ],
+            "prefix": "All except:",
+            "readOnly": true
+          }
+        },
+        "properties": [
+          {
+            "id": "custom.hideFrom",
+            "value": {
+              "legend": false,
+              "tooltip": false,
+              "viz": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "gridPos": {
+    "h": 6,
+    "w": 4,
+    "x": 16,
+    "y": 0
+  },
+  "id": {{ PanelID }},
+  "options": {
+    "legend": {
+      "calcs": [],
+      "displayMode": "list",
+      "placement": "bottom",
+      "showLegend": true
+    },
+    "tooltip": {
+      "mode": "single",
+      "sort": "none"
+    }
+  },
+  "pluginVersion": "8.3.3",
+  "targets": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "{{ DatasourceUID }}"
+      },
+      "editorMode": "code",
+      "exemplar": true,
+      "expr": "celery_workers_count{job=\"{{ tenant }}/veritable-cli-metrics\"}",
+      "instant": false,
+      "interval": "",
+      "legendFormat": "No. of pods",
+      "refId": "A"
+    }
+  ],
+  "thresholds": [
+    {
+      "colorMode": "critical",
+      "op": "lt",
+      "value": 5,
+      "visible": true
+    }
+  ],
+  "title": "veritable {{ tenant }} celery workers count",
+  "type": "timeseries"
+}

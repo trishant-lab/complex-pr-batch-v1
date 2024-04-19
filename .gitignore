@@ -777,7 +777,4 @@ $RECYCLE.BIN/
 
 openapi.json
 *.env.config
-*.env.config.json
-productConfig
-
 # End of https://www.toptal.com/developers/gitignore/api/linux,osx,macos,windows,vim,visualstudiocode,intellij+all,java,maven,python,rust,node,git,yarn,reactnative

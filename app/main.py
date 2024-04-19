@@ -9,9 +9,8 @@ from starlette.responses import HTMLResponse
 from .core.settings import AppSettings, get_settings
 
 from .routes.product import product_router
-from .routes.environment import environment_router
-from .routes.tenants import tenants_router
-from .routes.schema import schema_router
+from .routes.onboarding import onboarding_router
+from .routes.deprovisioning import deprovisioning_router
 
 api_prefix = "/api/v1"
 TITLE = f"Onboarding APP"
@@ -77,6 +76,5 @@ async def redoc_html() -> HTMLResponse:
 
 # Adding application routes to FastAPI instance
 fastapi_app.include_router(product_router, prefix=f"{api_prefix}/product", tags=["Product"])
-fastapi_app.include_router(environment_router, prefix=f"{api_prefix}/environment", tags=["Environment"])
-fastapi_app.include_router(tenants_router, prefix=f"{api_prefix}/tenants", tags=["Tenants"])
-fastapi_app.include_router(schema_router, prefix=f"{api_prefix}/schema", tags=["Schema"])
+fastapi_app.include_router(onboarding_router, prefix=f"{api_prefix}/onboarding", tags=["Onboarding"])
+fastapi_app.include_router(deprovisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])

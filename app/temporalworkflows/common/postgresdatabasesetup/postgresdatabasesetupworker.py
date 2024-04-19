@@ -8,17 +8,17 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from app.core.settings import AppSettings, get_settings
-from app.temporalworkflows.commonworkflows.postgresdatabasesetup.postgresdatabasesetupworkflow import (
+from app.temporalworkflows.common.postgresdatabasesetup.postgresdatabasesetupworkflow import (
     PostgresDatabaseSetupWorkflow
 )
-from app.temporalworkflows.commonworkflows.postgresdatabasesetup.postgresdatabasesetupactivity import (
+from app.temporalworkflows.common.postgresdatabasesetup.postgresdatabasesetupactivity import (
     create_user_activity, generate_random_password, grant_permissions_activity, create_schema_activity
 )
 
 
 async def postgres_database_setup_worker() -> None:
     """
-        Workflow worker for add views
+    Workflow worker for add views
     :return:
     """
     config: AppSettings = get_settings()

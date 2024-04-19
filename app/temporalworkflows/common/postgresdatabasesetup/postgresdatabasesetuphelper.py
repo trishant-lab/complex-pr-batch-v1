@@ -21,9 +21,10 @@ async def trigger_postgres_database_setup_workflow(payload: dict, workflow_id: s
     result = await client.start_workflow(
         PostgresDatabaseSetupWorkflow.run,
         PostgresDatabaseSetupWorkflowInput(**payload),
-        id=f"postgres_database_setup_workflow_{workflow_id}",
+        id=workflow_id,
         task_queue=config.temporal_postgres_database_setup_task_queue,
     )
     logger.info(
         f" postgres databsse setup triggered for {payload.get('product')} with run_id: {result}",
     )
+    return result.result_run_id

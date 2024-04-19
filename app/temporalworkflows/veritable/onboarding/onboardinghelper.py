@@ -1,0 +1,24 @@
+from loguru import logger
+from temporalio.client import Client
+
+from app.core.settings import AppSettings, get_settings
+from app.temporalworkflows.veritable.onboarding.onboardingworkflow import OnboardingWorkflow
+from app.temporalworkflows.veritable.veritableSpec import VeritableSpec
+
+
+async def trigger_veritable_onboarding_workflow(payload: dict) -> None:
+    """
+    Trigger the veritable onboarding workflow
+    :param payload:
+    :return:
+    """
+    config: AppSettings = get_settings()
+    client = await Client.connect(config.temporal_dsn, namespace=config.temporal_namespace)
+
+    await client.start_workflow(
+        OnboardingWorkflow.run,
+        VeritableSpec(**payload),
+        id="veritable_onboarding_workflow",
+        task_queue=config.temporal_veritable_onboarding_task_queue,
+    )
+    logger.info(f"Veritable onboarding workflow triggered for tenant {payload['tenant']}")

@@ -37,16 +37,14 @@ class OnePasswordUtil:
         Create a login item in 1Password
         """
         commands = [
-            "op", "create", "item", "login", f"--title={self.server_item}", "--vault", self.vault, "--url", url,
-            f"username={username}", f"password={password}"
+            "op", "item", "create", "--category", "login", f"--title={self.server_item}", "--vault", self.vault,
+            "--url", url, f"username={username}", f"password={password}"
         ]
         logger.info(commands)
         process = subprocess.Popen(
             commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
         )
         stdout, stderr = process.communicate(timeout=10)
-
-        logger.info(f"stdout: {stdout.decode()} return_code: {process.returncode}")
 
         if process.returncode != 0:
             output = f"Error: {stderr.decode()}"
@@ -67,8 +65,6 @@ class OnePasswordUtil:
         )
         stdout, stderr = process.communicate(timeout=10)
 
-        logger.info(f"stdout: {stdout.decode()} return_code: {process.returncode}")
-
         if process.returncode != 0:
             output = f"Error: {stderr.decode()}"
             logger.error(output)
@@ -87,8 +83,6 @@ class OnePasswordUtil:
             get_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
         )
         stdout, stderr = process.communicate(timeout=10)
-
-        logger.info(f"stdout: {stderr.decode()} return_code: {process.returncode}")
 
         if process.returncode != 0:
             if f'"{self.tenant}.{key}" isn\'t a field in the "{self.server_item}" item' not in stderr.decode():

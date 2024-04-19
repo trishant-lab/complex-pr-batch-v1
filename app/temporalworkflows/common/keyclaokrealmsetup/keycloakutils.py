@@ -38,7 +38,11 @@ class KeycloakAdminClient:
         :return:
         :rtype:
         """
-        self.kc_client.delete_realm(realm_name)
+        # check if realm exists
+        realms = [row["realm"] for row in self.get_all_realms()]
+        if realm_name in realms:
+            self.kc_client.delete_realm(realm_name)
+        return
 
     def create_user(self: "KeycloakAdminClient", user_config: dict, realm_name: str) -> None:
         """

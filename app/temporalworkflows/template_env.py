@@ -14,7 +14,7 @@ def get_env(product: str) -> jinja2.Environment:
     :rtype:
     """
     template_path = path.abspath(path.join(
-        path.dirname(__file__), f"{product}/resources/templates")
+        path.dirname(__file__), f"{product}/templates")
     )
     loader: jinja2.FileSystemLoader = jinja2.FileSystemLoader(template_path)
     env: jinja2.Environment = jinja2.Environment(
