@@ -1,11 +1,11 @@
 from fastapi import APIRouter
-from ..temporalworkflows.veritable.deprovisioning.deprovisioning_helper import trigger_veritable_deprovisioning_workflow
+# from ..temporalworkflows.veritable.deprovisioning.deprovisioning_helper import trigger_veritable_deprovisioning_workflow
 
 deprovisioning_router = APIRouter()
 
 
 deprovisioning_trigger_functions = {
-    "veritable": trigger_veritable_deprovisioning_workflow,
+    "veritable": None,
     "jeeves": None
 }
 

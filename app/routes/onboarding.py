@@ -3,9 +3,11 @@ from fastapi import APIRouter
 from loguru import logger
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException
-from starlette.status import HTTP_400_BAD_REQUEST
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
-from app.temporalworkflows.veritable.onboarding.onboardinghelper import trigger_veritable_onboarding_workflow
+from app.temporal.veritable.starter import trigger_veritable_onboarding_workflow
+from ..core.db import DBManager, get_db_manager
+from ..core.settings import get_settings, AppSettings
 
 from ..models.product_schema import VeritableSchema
 
@@ -28,12 +30,34 @@ async def onboarding(product: str, schema: dict):
     Trigger onboarding workflow for the given product
     """
 
+    config: AppSettings = get_settings()
     # Validate schema
     try:
         validated_schema = product_schema[product].model_validate_json(orjson.dumps(schema).decode("utf-8"))
     except ValidationError as e:
         logger.error(f"Invalid schema: {e}")
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid schema")
+
+    # insert tenant into DB
+    try:
+        parameters = {
+            "tenant": validated_schema.tenant,
+            "product": product,
+            "status": "in-progress"
+        }
+        db: DBManager = await get_db_manager(config.postgres.dsn)
+        # await db.fetch_one(
+        #     "insertTenant.sql",
+        #     db_schema_name=config.postgres.schema_name,
+        #     **parameters
+        # )
+
+    except Exception as e:
+        logger.error(f"Error while creating tenant {validated_schema.tenant}: {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error while creating tenant {validated_schema.tenant}"
+        )
 
     # Trigger onboarding workflow
     trigger_function = onboarding_trigger_functions[product]

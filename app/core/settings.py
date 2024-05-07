@@ -13,7 +13,7 @@ class KeycloakSettings(BaseModel):
     realm: str = "onboarding"
 
     admin_realm: str = "master"
-    admin_client_id: str = "admin-cli"
+    admin_client_id: str = "admin-temporal"
     username: str = "k8s-operator"
     password: str = ""
 
@@ -58,9 +58,31 @@ class ProductConfig(BaseModel):
     """
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = ""  # Domain name for the product e.g. int.veritable.app or jeeves.314ecorp.tech
-    vault_name: str = ""  # OnePassword vault name for the product
-    one_password_server_item: str = ""  # OnePassword server item for the product
     grafana: GrafanaSettings = GrafanaSettings()
+
+
+class TemporalSettings(BaseModel):
+    """Temporal Settings"""
+
+    host: str = "localhost"
+    port: str = "7233"
+    namespace: str = "onboarding"
+
+    @property
+    def dsn(self: "TemporalSettings") -> str:
+        """Returns Temporal DSN"""
+        return f"{self.host}:{self.port}"
+
+
+class S3Settings(BaseModel):
+    """
+    S3 Settings
+    """
+    endpoint: str = ""
+    access_key: str = ""
+    secret_key: str = ""
+    use_ssl: bool = True
+    bucket_name: str = ""
 
 
 class AppSettings(BaseSettings):
@@ -71,21 +93,14 @@ class AppSettings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     product_config: dict[str, ProductConfig] = {}
 
-    temporal_dsn: str = "localhost:7233"
-    temporal_namespace: str = "onboarding"
-    temporal_postgres_database_setup_task_queue: str = "temporal_postgres_database_setup_task_queue"
-    temporal_keycloak_realm_creation_task_queue: str = "temporal_keycloak_realm_creation_task_queue"
+    temporal: TemporalSettings = TemporalSettings()
+    s3: S3Settings = S3Settings()
+
+    # Veritable Temporal Task Queues
     temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
-    temporal_veritable_deprovisioning_task_queue: str = "temporal_veritable_deprovisioning_task_queue"
 
     docker_image_pull_secret: str = ""
-    google_dns_cname: str = "k8s.314ecorp.tech"
-
-    s3_endpoint: str = ""
-    s3_access_key: str = ""
-    s3_secret_key: str = ""
-    s3_use_ssl: bool = False
-    s3_bucket_name: str = ""
+    google_dns_cname: str = "k8s.31ecorp.tech"
 
     sendgrid_api_key: str = ""
 

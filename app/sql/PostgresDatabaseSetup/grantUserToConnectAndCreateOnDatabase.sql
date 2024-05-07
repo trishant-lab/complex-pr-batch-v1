@@ -1,1 +1,0 @@
-GRANT CONNECT, CREATE ON DATABASE {{database | sqlsafe }} TO {{username | sqlsafe }};

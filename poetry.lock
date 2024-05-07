@@ -766,6 +766,24 @@ signals = ["blinker (>=1.4.0)"]
 signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 
 [[package]]
+name = "opendal"
+version = "0.40.0"
+description = "OpenDAL Python Binding"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "opendal-0.40.0-cp37-abi3-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:d51fb057437cd24542ad830c55f06c03b996e9dbe32d3c148281793a26aad2ea"},
+    {file = "opendal-0.40.0-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4b574e63ff8b2cbd683ad474b3d299f7f21363db73a2c8f518d69b45ca94912f"},
+    {file = "opendal-0.40.0-cp37-abi3-win_amd64.whl", hash = "sha256:a51f0e4d04f5b2548726379b294288895f13c67239cb51c874378d47b31fc762"},
+    {file = "opendal-0.40.0.tar.gz", hash = "sha256:7245eef9abe9c8ba0dcf81f70df9bd9c74019e645e5a7f8e400d95904fbb3a9a"},
+]
+
+[package.extras]
+benchmark = ["boto3", "boto3-stubs[essential]", "gevent", "greenify", "greenlet", "pydantic"]
+docs = ["pdoc"]
+test = ["behave"]
+
+[[package]]
 name = "orjson"
 version = "3.10.0"
 description = "Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy"
@@ -1480,4 +1498,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "3986d0cddcf9d12ffa5f00e57a6de4986bf2a436277638fae22b8f2b4f3aa0ab"
+content-hash = "01ff83a8566b0417f823cb3c4a403a8e4f49abc26af6c43a3d4093333d41d76b"

@@ -1,1 +1,0 @@
-ALTER USER {{username | sqlsafe }} WITH PASSWORD '{{password | sqlsafe }}';

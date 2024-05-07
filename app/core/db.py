@@ -54,25 +54,19 @@ class DBManager:
 
     async def execute_raw_sql(
         self,
-        sqlfile: str,
+        query: str,
         db_schema_name: str = config.schema_name,
-        # timezone: str,
         trigger_parameters: dict | None = None,
         **kwargs,
     ):
         """
         Executes raw SQL queries.
-        :param sqlfile:
+        :param query:
         :param db_schema_name:
-        :param timezone:
         :param trigger_parameters:
         :param kwargs:
         :return:
         """
-        logger.info("Executing Query: %s", sqlfile)
-        template = self.jsql.env.get_template(sqlfile)
-        assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
-        query, _values = self.jsql._prepare_query(template, data=kwargs)
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 await conn.execute(f'SET SEARCH_PATH TO "{db_schema_name}", public;')
@@ -159,8 +153,6 @@ class DBManager:
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
         mapping = {key: f"${i!s}" for i, key in enumerate(values.keys(), start=1)}
-        logger.info(f"Executing Query: {query % mapping}")
-        logger.info(f"Values: {values}")
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 await conn.execute(f'SET SEARCH_PATH TO "{db_schema_name}", public;')
