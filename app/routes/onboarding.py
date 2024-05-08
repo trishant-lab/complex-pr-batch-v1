@@ -41,16 +41,16 @@ async def onboarding(product: str, schema: dict):
     # insert tenant into DB
     try:
         parameters = {
-            "tenant": validated_schema.tenant,
+            "tenant_name": validated_schema.tenant,
             "product": product,
             "status": "in-progress"
         }
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        # await db.fetch_one(
-        #     "insertTenant.sql",
-        #     db_schema_name=config.postgres.schema_name,
-        #     **parameters
-        # )
+        await db.fetch_one(
+            "insertTenant.sql",
+            db_schema_name=config.postgres.schema_name,
+            **parameters
+        )
 
     except Exception as e:
         logger.error(f"Error while creating tenant {validated_schema.tenant}: {e}")

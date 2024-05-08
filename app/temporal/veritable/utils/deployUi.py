@@ -1,3 +1,5 @@
+import os
+
 from loguru import logger
 
 from app.core.settings import AppSettings, get_settings
@@ -15,8 +17,10 @@ async def deploy_ui_func(veritable: VeritableSpec):
     domain_name: str = config.product_config.get(ProductName).domain_name
     repo_name = "veritable-ui"
 
+    environment: str = os.getenv("DEPLOYMENT", "integration").lower()
+
     deploy_ui(
-        environment=veritable.environment,
+        environment=environment,
         tenant=veritable.tenant,
         image_tag=veritable.imageTag,
         domain_name=domain_name,

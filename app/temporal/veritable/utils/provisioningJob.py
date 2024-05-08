@@ -1,3 +1,4 @@
+import os
 import time
 
 from kubernetes import client as k8s_client, config as k8s_config
@@ -68,10 +69,11 @@ async def provisioning_job(veritable: VeritableSpec):
     """
 
     postgres_user = f"veritable_{veritable.tenant}"
+    environment = os.getenv("DEPLOYMENT", "integration").lower()
 
     postgres_password = OnePasswordUtil(
         tenant=veritable.tenant,
-        server_item=OnepasswordItemName.format(environment=veritable.environment),
+        server_item=OnepasswordItemName.format(environment=environment),
         vault=OnepasswordVaultName
     ).get_key("postgres_database_password")
 

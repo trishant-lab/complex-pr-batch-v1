@@ -12,7 +12,7 @@ from app.common import download_file_from_storage, get_storage_client, copy_file
 from app.core.settings import AppSettings, get_settings
 
 
-async def deploy_ui(environment: str, tenant: str, image_tag: str, domain_name: str, repo_name: str):
+def deploy_ui(environment: str, tenant: str, image_tag: str, domain_name: str, repo_name: str):
     """
 
     :param environment:
@@ -55,11 +55,3 @@ async def deploy_ui(environment: str, tenant: str, image_tag: str, domain_name: 
     except Exception as e:
         logger.error(f"Failed to deploy UI: {e}")
         raise e
-
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(deploy_ui(
-        "integration", "test8", "sprint",
-        "int.veritable.app", "veritable-ui"
-    ))

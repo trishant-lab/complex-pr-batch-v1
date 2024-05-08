@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import timedelta
 
 from temporalio import activity
@@ -341,3 +342,39 @@ class GrafanaAlertsActivity(Activity):
         # Setup grafana alerts
         from app.temporal.veritable.utils.grafanaAlerts import create_grafana_alerts
         await create_grafana_alerts(veritable)
+
+
+@dataclasses.dataclass
+class TenantStatus:
+    """
+    TenantStatus dataclass
+    """
+    tenant_name: str
+    status: str
+    error_msg: None | str = None
+
+
+class UpdateTenantStatusActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=1,
+        )
+
+    @staticmethod
+    @activity.defn(name="update_tenant_status_activity")
+    async def defn(activity_input: TenantStatus):
+        """
+        Callable for the activity
+        """
+        # Update tenant status
+        from app.temporal.veritable.utils.tenantStatus import update_tenant_status
+        await update_tenant_status(
+            tenant_name=activity_input.tenant_name, status=activity_input.status, error_message=activity_input.error_msg
+        )

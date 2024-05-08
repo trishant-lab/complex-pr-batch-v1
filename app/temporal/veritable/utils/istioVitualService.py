@@ -1,3 +1,5 @@
+import os
+
 from loguru import logger
 
 from app.core.settings import AppSettings, get_settings, ProductConfig
@@ -12,6 +14,8 @@ async def create_istio_virtual_service(veritable: VeritableSpec):
 
     config: AppSettings = get_settings()
     product_config: ProductConfig = config.product_config.get(ProductName)
+
+    environment: str = os.getenv("DEPLOYMENT", "integration").lower()
 
     istio_virtual_service = IstioVirtualService(
         namespace=veritable.tenant,
@@ -44,7 +48,7 @@ async def create_istio_virtual_service(veritable: VeritableSpec):
     http_list.append(http_api)
 
     # http_redirect router
-    if veritable.environment != "production":
+    if environment != "production":
         http_redirect = {
             "name": "redirect",
             "match": [{

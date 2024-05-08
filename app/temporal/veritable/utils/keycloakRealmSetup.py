@@ -1,3 +1,5 @@
+import os
+
 import jinja2
 import orjson
 from loguru import logger
@@ -86,8 +88,9 @@ async def create_realm_and_users(veritable: VeritableSpec):
     """
     Create keycloak realm and users
     """
+    environment: str = os.getenv("DEPLOYMENT", "integration").lower()
     tenant_url = f"{veritable.tenant}.veritable.app" \
-        if veritable.environment == "production" else f"{veritable.tenant}.int.veritable.app"
+        if environment == "production" else f"{veritable.tenant}.int.veritable.app"
 
     realm_name = f"veritable_{veritable.tenant}"
 

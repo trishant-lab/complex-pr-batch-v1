@@ -1,0 +1,25 @@
+FROM python:3.11.4-slim
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get -qq update && \
+  apt-get install --no-install-recommends -y apt-transport-https ca-certificates openssh-server rsync sshfs vim \
+  supervisor curl wget build-essential
+RUN curl -1sLf 'https://repositories.timber.io/public/vector/cfg/setup/bash.deb.sh' | bash
+
+RUN wget https://downloads.rclone.org/v1.61.1/rclone-v1.61.1-linux-amd64.zip
+RUN unzip rclone-v1.61.1-linux-amd64.zip
+RUN cp /rclone-v1.61.1-linux-amd64/rclone /usr/bin/
+RUN chown root:root /usr/bin/rclone
+RUN chmod 755 /usr/bin/rclone
+
+RUN apt-get install --no-install-recommends -y vector && \
+  apt-get clean
+
+RUN wget -P /tmp \
+  https://github.com/just-containers/s6-overlay/releases/download/v2.2.0.3/s6-overlay-amd64.tar.gz && \
+  mkdir /tmp/s6/ && \
+  tar xzf /tmp/s6-overlay-amd64.tar.gz -C /tmp/s6/ && \
+  rm -f /tmp/s6-overlay-amd64.tar.gz &&  \
+  rsync -aq --ignore-existing --remove-source-files /tmp/s6/ /
+

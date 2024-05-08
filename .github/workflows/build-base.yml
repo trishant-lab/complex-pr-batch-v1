@@ -1,0 +1,21 @@
+name: "Build Base Image"
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: [self-hosted, python3.9]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile.base --tag registry.314ecorp.tech/onboarding-app-base
+
+      - name: Push the Docker image
+        run: |
+          docker push registry.314ecorp.tech/onboarding-app-base
+          docker image prune -f

@@ -1,3 +1,5 @@
+import os
+
 from kubernetes import client as k8s_client
 
 from app.onepasswordutil import OnePasswordUtil
@@ -12,9 +14,11 @@ async def deploy_server_and_cli(veritable: VeritableSpec):
     # deploy server and CLI in k8s
 
     postgres_user = f"veritable_{veritable.tenant}"
+    environment: str = os.getenv("DEPLOYMENT", "integration").lower()
+
     postgres_password = OnePasswordUtil(
         tenant=veritable.tenant,
-        server_item=OnepasswordItemName.format(environment=veritable.environment),
+        server_item=OnepasswordItemName.format(environment=environment),
         vault=OnepasswordVaultName
     ).get_key("postgres_database_password")
 
@@ -80,7 +84,7 @@ async def deploy_server_and_cli(veritable: VeritableSpec):
                             env=[
                                 k8s_client.V1EnvVar(
                                     name="DEPLOYMENT",
-                                    value=veritable.environment
+                                    value=environment
                                 ),
                                 k8s_client.V1EnvVar(
                                     name="POSTGRES__PASSWORD",
@@ -212,7 +216,7 @@ async def deploy_server_and_cli(veritable: VeritableSpec):
                             env=[
                                 k8s_client.V1EnvVar(
                                     name="DEPLOYMENT",
-                                    value=veritable.environment
+                                    value=environment
                                 ),
                                 k8s_client.V1EnvVar(
                                     name="POSTGRES__PASSWORD",

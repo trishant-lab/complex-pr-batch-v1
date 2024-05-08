@@ -1,3 +1,4 @@
+import os
 from tempfile import TemporaryDirectory
 
 from cryptography.fernet import Fernet
@@ -113,9 +114,10 @@ async def create_configmap(veritable: VeritableSpec) -> None:
     :return:
     """
     # generate fernet key and insert into 1Password if not exists
+    environment: str = os.getenv("DEPLOYMENT", "integration").lower()
     OnePasswordUtil(
         tenant=veritable.tenant,
-        server_item=f"veritable-tenant-config-{veritable.environment}",
+        server_item=f"veritable-tenant-config-{environment}",
         vault=OnepasswordVaultName
     ).insert_if_not_exists("fernet_key", Fernet.generate_key().decode())
 

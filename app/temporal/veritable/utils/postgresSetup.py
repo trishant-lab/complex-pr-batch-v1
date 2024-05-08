@@ -1,3 +1,5 @@
+import os
+
 from loguru import logger
 
 from app.common import generate_password
@@ -13,8 +15,8 @@ async def setup_postgres(veritable: VeritableSpec):
     """
     Setup postgres database for veritable tenant
     """
-
-    database_name = f"{ProductName}_{veritable.environment}"
+    environment = os.getenv("DEPLOYMENT", "integration").lower()
+    database_name = f"{ProductName}_{environment}"
     schema_name = f"{ProductName}_{veritable.tenant}"
 
     product_config: ProductConfig = get_settings().product_config[ProductName]
@@ -39,7 +41,7 @@ async def setup_postgres(veritable: VeritableSpec):
             OnePasswordUtil(
                 tenant=veritable.tenant,
                 vault=OnepasswordVaultName,
-                server_item=OnepasswordItemName.format(environment=veritable.environment)
+                server_item=OnepasswordItemName.format(environment=environment)
             ).create_or_replace(key="postgres_database_password", value=password)
 
         else:
