@@ -5,17 +5,12 @@ import jinja2
 
 
 @lru_cache()
-def get_env(product: str) -> jinja2.Environment:
+def get_env(template_path: str) -> jinja2.Environment:
     """
     Sets up jinja2 environment using file loader
-    :param product:
-    :type product:
+    :param template_path:
     :return:
-    :rtype:
     """
-    template_path = path.abspath(path.join(
-        path.dirname(__file__), f"temporal/{product}/templates")
-    )
     loader: jinja2.FileSystemLoader = jinja2.FileSystemLoader(template_path)
     env: jinja2.Environment = jinja2.Environment(
         loader=loader, trim_blocks=True, autoescape=False,

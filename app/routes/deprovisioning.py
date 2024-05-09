@@ -1,16 +1,16 @@
 from fastapi import APIRouter
-# from ..temporalworkflows.veritable.deprovisioning.deprovisioning_helper import trigger_veritable_deprovisioning_workflow
+from ..cli.temporal.veritable.starter import trigger_veritable_de_provisioning_workflow
 
-deprovisioning_router = APIRouter()
+de_provisioning_router = APIRouter()
 
 
-deprovisioning_trigger_functions = {
-    "veritable": None,
+de_provisioning_trigger_functions = {
+    "veritable": trigger_veritable_de_provisioning_workflow,
     "jeeves": None
 }
 
 
-@deprovisioning_router.post(
+@de_provisioning_router.post(
     "/deprovision",
     operation_id="deprovisionTenant",
     summary="Deprovision tenant",
@@ -20,7 +20,7 @@ async def deprovision_tenant(product: str, tenant: str):
     Deprovision tenant
     """
     # Trigger deprovisioning workflow
-    trigger_function = deprovisioning_trigger_functions[product]
+    trigger_function = de_provisioning_trigger_functions[product]
     if trigger_function:
         await trigger_function(tenant)
     else:

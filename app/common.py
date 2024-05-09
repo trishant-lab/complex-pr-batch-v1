@@ -139,10 +139,10 @@ def upload_file_to_storage(
     return "success"
 
 
-def copy_files_to_s3(folder_path: str, s3_path: str, config: AppSettings) -> None:
+def copy_files_to_s3(folder_path: str, s3_path: str, bucket_name: str, config: AppSettings) -> None:
     s3_path: str = s3_path if s3_path.endswith("/") else f"{s3_path}/"
 
-    cmd: str = f"rclone copy '{folder_path}' {config.s3.rclone_remote}:'{config.s3_media_bucket_name}/{s3_path}'"
+    cmd: str = f"rclone copy '{folder_path}' {config.s3.rclone_remote}:'{bucket_name}/{s3_path}'"
     try:
         os.system(cmd)
         logger.info(f"uploaded objects to s3  path:{s3_path}")

@@ -10,7 +10,7 @@ from .core.settings import AppSettings, get_settings
 
 from .routes.product import product_router
 from .routes.onboarding import onboarding_router
-from .routes.deprovisioning import deprovisioning_router
+from .routes.deprovisioning import de_provisioning_router
 
 api_prefix = "/api/v1"
 TITLE = f"Onboarding APP"
@@ -77,4 +77,4 @@ async def redoc_html() -> HTMLResponse:
 # Adding application routes to FastAPI instance
 fastapi_app.include_router(product_router, prefix=f"{api_prefix}/product", tags=["Product"])
 fastapi_app.include_router(onboarding_router, prefix=f"{api_prefix}/onboarding", tags=["Onboarding"])
-fastapi_app.include_router(deprovisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])
+fastapi_app.include_router(de_provisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])

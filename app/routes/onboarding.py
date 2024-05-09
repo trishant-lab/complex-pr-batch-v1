@@ -5,7 +5,7 @@ from pydantic import ValidationError
 from starlette.exceptions import HTTPException
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
-from app.temporal.veritable.starter import trigger_veritable_onboarding_workflow
+from app.cli.temporal.veritable.starter import trigger_veritable_onboarding_workflow
 from ..core.db import DBManager, get_db_manager
 from ..core.settings import get_settings, AppSettings
 
@@ -40,17 +40,18 @@ async def onboarding(product: str, schema: dict):
 
     # insert tenant into DB
     try:
-        parameters = {
-            "tenant_name": validated_schema.tenant,
-            "product": product,
-            "status": "in-progress"
-        }
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        await db.fetch_one(
-            "insertTenant.sql",
-            db_schema_name=config.postgres.schema_name,
-            **parameters
-        )
+        # parameters = {
+        #     "tenant_name": validated_schema.tenant,
+        #     "product": product,
+        #     "status": "in-progress"
+        # }
+        # db: DBManager = await get_db_manager(config.postgres.dsn)
+        # await db.fetch_one(
+        #     "insertTenant.sql",
+        #     db_schema_name=config.postgres.schema_name,
+        #     **parameters
+        # )
+        pass
 
     except Exception as e:
         logger.error(f"Error while creating tenant {validated_schema.tenant}: {e}")

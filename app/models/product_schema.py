@@ -14,7 +14,6 @@ class VeritableResourceModel(BaseModel):
 class VeritableSchema(BaseModel):
     tenant: str
     imageTag: str
-    environment: str
     customerId: UUID
     customerUserName: str
     customerEmail: str

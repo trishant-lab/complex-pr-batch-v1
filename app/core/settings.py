@@ -83,6 +83,7 @@ class S3Settings(BaseModel):
     secret_key: str = ""
     use_ssl: bool = True
     bucket_name: str = ""
+    rclone_remote: str = ""
 
 
 class AppSettings(BaseSettings):
@@ -98,6 +99,8 @@ class AppSettings(BaseSettings):
 
     # Veritable Temporal Task Queues
     temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
+    temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
+    temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
 
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.31ecorp.tech"
@@ -106,6 +109,9 @@ class AppSettings(BaseSettings):
 
     grafana_url: str = ""
     grafana_token: str = ""
+
+    supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"
+    supavisor_token: str = ""
 
     model_config = ConfigDict(extra="ignore")
 
