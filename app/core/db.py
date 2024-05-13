@@ -123,7 +123,6 @@ class DBManager:
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
         mapping = {key: f"${i!s}" for i, key in enumerate(values.keys(), start=1)}
-        logger.info(f"Executing Query: {query % mapping}, {values}")
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 await conn.execute(f'SET SEARCH_PATH TO "{db_schema_name}", public;')

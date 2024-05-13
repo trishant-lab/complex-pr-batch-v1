@@ -1,7 +1,9 @@
+from functools import lru_cache
+
 from keycloak import KeycloakAdmin
 from loguru import logger
 
-from app.core.settings import KeycloakSettings
+from app.core.settings import KeycloakSettings, get_settings
 
 
 class KeycloakAdminClient:
@@ -12,7 +14,20 @@ class KeycloakAdminClient:
             username=config.username,
             password=config.password,
         )
-        self.kc_client.connection.realm_name = config.realm
+        self.realm = config.realm
+        self.kc_client.connection.realm_name = self.realm
+
+    @staticmethod
+    def _refresh_token(client: KeycloakAdmin, realm: str) -> None:
+        client.connection.realm_name = "master"
+        client.connection.refresh_token()
+        client.connection.realm_name = realm
+
+    def refresh_token(self: "KeycloakAdminClient") -> None:
+        """
+        Refresh keycloak client token
+        """
+        self._refresh_token(self.kc_client, self.realm)
 
     def get_all_realms(self: "KeycloakAdminClient") -> list:
         """
@@ -53,3 +68,12 @@ class KeycloakAdminClient:
         """
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.create_user(payload=user_config, exist_ok=True)
+
+
+@lru_cache
+def get_keycloak_manager() -> "KeycloakAdminClient":
+    """
+    Returns Keycloak client instance
+    """
+    config = get_settings().keycloak
+    return KeycloakAdminClient(config=config)

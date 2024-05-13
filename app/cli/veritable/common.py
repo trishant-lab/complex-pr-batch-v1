@@ -25,14 +25,14 @@ class VeritableSpec(IODataclass):
     VeritableSpec dataclass
     """
     tenant: str
-    imageTag: str
-    customerId: UUID
-    customerUserName: str
-    customerEmail: str
-    customerRealmRoles: list[str]
-    orgName: str
-    serverSpec: ResourceSpec
-    cliSpec: ResourceSpec
+    imageTag: None | str = None
+    customerId: None | UUID = None
+    customerUserName: None | str = None
+    customerEmail: None | str = None
+    customerRealmRoles: None | list[str] = None
+    orgName: None | str = None
+    serverSpec: None | ResourceSpec = None
+    cliSpec: None | ResourceSpec = None
 
 
 # ConfigMapBaseClass to be used as base class for all ConfigMap enums
@@ -42,7 +42,7 @@ class VectorConfigMap:
     """
     VeritableVectorConfigMap Enum
     """
-    name = "veritable-temporal-vector-config"
+    name = "veritable-cli-vector-config"
     key = "vector-config.toml"
 
 

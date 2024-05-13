@@ -42,7 +42,7 @@ class VeritableOnboardingWorkflow(Workflow):
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
         """
-        return f"onboarding_workflow_{veritable.tenant}"
+        return f"veritable_onboarding_workflow_{veritable.tenant}"
 
     @workflow.run
     async def run(self: "Workflow", veritable: VeritableSpec) -> None:
@@ -116,12 +116,12 @@ class VeritableOnboardingWorkflow(Workflow):
         )
 
         # Provisioning Job
-        # await workflow.execute_activity(
-        #     activity=ProvisioningJobActivity.defn,
-        #     arg=veritable,
-        #     retry_policy=ProvisioningJobActivity.get_retry_policy(),
-        #     start_to_close_timeout=timedelta(seconds=300),
-        # )
+        await workflow.execute_activity(
+            activity=ProvisioningJobActivity.defn,
+            arg=veritable,
+            retry_policy=ProvisioningJobActivity.get_retry_policy(),
+            start_to_close_timeout=timedelta(seconds=300),
+        )
 
         # Create Kubernetes Service
         await workflow.execute_activity(

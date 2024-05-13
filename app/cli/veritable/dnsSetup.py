@@ -6,7 +6,7 @@ from app.cli.veritable.common import VeritableSpec, ProductName
 async def dns_setup(veritable: VeritableSpec):
     config: AppSettings = get_settings()
 
-    domain_name: str = config.product_config.get(ProductName).domain_name
+    domain_name: str = config.veritable.domain_name
 
     google_dns = GoogleDNS(
         cname=f"{config.google_dns_cname}.",
@@ -24,7 +24,7 @@ async def dns_setup(veritable: VeritableSpec):
 async def dns_teardown(tenant_name: str):
     config: AppSettings = get_settings()
 
-    domain_name: str = config.product_config.get(ProductName).domain_name
+    domain_name: str = config.veritable.domain_name
 
     google_dns = GoogleDNS(
         cname=f"{config.google_dns_cname}.",

@@ -9,7 +9,7 @@ from app.cli.temporal.veritable.workflows.postgres import VeritablePostgresSetup
 from app.cli.veritable import TemplatePath
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
-from app.core.settings import ProductConfig, get_settings, AppSettings
+from app.core.settings import ProductConfig, get_settings, AppSettings, VeritableSettings
 
 from app.cli.postgresUtils import PostgresUtils
 from app.cli.veritable.common import VeritableSpec, ProductName
@@ -56,12 +56,12 @@ async def setup_postgres(veritable: VeritableSpec):
     database_name = f"{ProductName}_{environment}"
     schema_name = f"{ProductName}_{veritable.tenant}"
 
-    product_config: ProductConfig = get_settings().product_config[ProductName]
+    veritable_config: VeritableSettings = get_settings().veritable
 
     db_username = f"{ProductName}_{veritable.tenant}"
 
     try:
-        db: DBManager = await get_db_manager(dsn=product_config.postgres.dsn)
+        db: DBManager = await get_db_manager(dsn=veritable_config.postgres.dsn)
 
         postgres_utils: PostgresUtils = PostgresUtils(db)
 
@@ -108,10 +108,10 @@ async def execute_postgres_setup_workflow(veritable: VeritableSpec) -> None:
     config: AppSettings = get_settings()
     client = await Client.connect(config.temporal.dsn, namespace=config.temporal.namespace)
 
-    # await client.execute_workflow(
-    #     VeritablePostgresSetupWorkflow.__name__,
-    #     veritable,
-    #     id=VeritablePostgresSetupWorkflow.get_workflow_id(veritable=veritable),
-    #     task_queue=config.temporal_veritable_postgres_setup_task_queue,
-    # )
+    await client.execute_workflow(
+        VeritablePostgresSetupWorkflow.__name__,
+        veritable,
+        id=VeritablePostgresSetupWorkflow.get_workflow_id(veritable=veritable),
+        task_queue=config.temporal_veritable_postgres_setup_task_queue,
+    )
     logger.info(f"Veritable postgres setup workflow triggered for tenant {veritable.tenant}")

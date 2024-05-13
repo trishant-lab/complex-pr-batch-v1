@@ -20,7 +20,7 @@ async def veritable_deprovisioning_worker():
 
     worker: Worker = Worker(
         client,
-        task_queue=config.temporal_veritable_deboarding_task_queue,
+        task_queue=config.veritable.temporal_veritable_deboarding_task_queue,
         workflows=[VeritableDeProvisioningWorkflow],
         activities=VeritableDeProvisioningWorkflow.get_activities(),
         debug_mode=True

@@ -9,7 +9,7 @@ from app.common import generate_password
 from app.core.settings import AppSettings, get_settings, ProductConfig, KeycloakSettings
 from app.onepasswordutil import OnePasswordUtil
 from app.template_env import get_env
-from app.cli.common.keycloakUtils import KeycloakAdminClient
+from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.veritable.common import VeritableSpec, ProductName, OnepasswordVaultName
 
 
@@ -33,6 +33,7 @@ def create_keycloak_realm(
         tenant_url=tenant_url,
     )
 
+    keycloak_client.refresh_token()
     keycloak_client.create_realm(orjson.loads(realm_config))
     
     
@@ -47,6 +48,7 @@ def create_tenant_customer_admin_user(veritable: VeritableSpec, keycloak_client:
         customerEmail=veritable.customerEmail,
         customerPassword=customer_password,
     )
+    keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
 
 
@@ -65,9 +67,10 @@ def create_tenant_admin(
         username=username,
         password=admin_password,
     )
+    keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
 
-    domain_name: str = get_settings().product_config.get(ProductName).domain_name
+    domain_name: str = get_settings().veritable.domain_name
     op = OnePasswordUtil(
         tenant=veritable.tenant, server_item=veritable.tenant, vault=OnepasswordVaultName
     )
@@ -88,10 +91,8 @@ async def create_realm_and_users(veritable: VeritableSpec):
     realm_name = f"veritable_{veritable.tenant}"
 
     config: AppSettings = get_settings()
-    product_config: ProductConfig = get_settings().product_config.get(ProductName)
-    keycloak_config: KeycloakSettings = config.keycloak
 
-    keycloak_client = KeycloakAdminClient(keycloak_config)
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
     # create realm
     create_keycloak_realm(

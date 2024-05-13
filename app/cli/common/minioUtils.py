@@ -7,7 +7,7 @@ from pathlib import Path
 import boto3
 from loguru import logger
 
-from app.common import download_file_from_storage, get_storage_client, copy_files_to_s3, get_storage_resource, \
+from app.s3_utils import download_file_from_storage, get_storage_client, copy_files_to_s3, get_storage_resource, \
     get_storage_client_for_basic_operations, upload_file_to_storage
 from app.core.settings import AppSettings, get_settings
 

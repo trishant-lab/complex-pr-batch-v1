@@ -1,8 +1,14 @@
 import os
-from functools import lru_cache
+from functools import partial
+from typing import Final
 
+import loguru
+import orjson
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
+
+CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -86,21 +92,33 @@ class S3Settings(BaseModel):
     rclone_remote: str = ""
 
 
+class VeritableSettings(BaseModel):
+    """
+    Veritable Settings
+
+    """
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "int.veritable.app"
+    grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
+    temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
+    temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
     """
+
+    env: str = os.getenv("DEPLOYMENT", "integration").lower()
+
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
-    product_config: dict[str, ProductConfig] = {}
+    veritable: VeritableSettings = VeritableSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3: S3Settings = S3Settings()
-
-    # Veritable Temporal Task Queues
-    temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
-    temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
-    temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
 
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.31ecorp.tech"
@@ -122,8 +140,6 @@ class IntegrationSettings(AppSettings):
     """
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
-    product_config: dict[str, ProductConfig] = {}
-
     model_config = ConfigDict(extra="ignore")
 
 
@@ -133,8 +149,6 @@ class ProductionSettings(AppSettings):
     """
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
-    product_config: dict[str, ProductConfig] = {}
-
     model_config = ConfigDict(extra="ignore")
 
 
@@ -142,23 +156,38 @@ def get_settings():
     """
     This function initializes the settings object based on environment DEPLOYMENT. The order in which
     the settings are applied is as follows:
+
     DEPLOYMENT environment creates right settings object.  This is the default base object.
     If APP_CONFIG_FILE is specified it loads all the data defined from the file
     """
     deployment: str = os.getenv("DEPLOYMENT", "integration").lower()
-    settings: AppSettings = ProductionSettings() if deployment == "production" else IntegrationSettings()
-
-    # If APP_CONFIG_FILE is provided update all settings from the file
-    settings_file: str = os.getenv("APP_CONFIG_FILE")
-    if settings_file is not None and os.path.exists(settings_file) and os.path.isfile(settings_file):
-        settings = settings.model_validate_json(open(settings_file, "rb").read())
-
-    config_dir = os.getenv("PRODUCT_CONFIG_DIR", "/")
-    config_files = [x.path for x in os.scandir(config_dir)]
-    for config_file in config_files:
-        product_name = config_file.split("/")[-1].replace(".json", "").lower()
-        settings.product_config[product_name] = (
-            ProductConfig.model_validate_json(open(config_file, "rb").read())
+    config_dir = os.getenv("APP_CONFIG_DIR", "/")
+    config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES]
+    default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
+    if len(config_files) != len(CONFIG_FILE_NAMES):
+        loguru.logger.info(
+            f"found inadequate config files - {orjson.dumps(config_files)}, returning default settings!",
         )
+        return default_settings
 
+    combined_config = dict()
+    for file in CONFIG_FILE_NAMES:
+        if file in PRODUCT_FILE_NAMES:
+            product = file.split(".")[0]
+            try:
+                combined_config[product] = orjson.loads(open(os.path.join(config_dir, file)).read())
+            except Exception as e:
+                loguru.logger.error(f"Error while loading config for {product}: {e}")
+        else:
+            combined_config.update(orjson.loads(open(os.path.join(config_dir, file)).read()))
+
+    import pydash as py_
+
+    default_settings_dict = default_settings.dict()
+    default_settings_dict_partial = partial(py_.set_, default_settings_dict)
+
+    for key, val in combined_config.items():
+        default_settings_dict_partial(key, val)
+
+    settings = default_settings.model_validate(default_settings_dict)
     return settings

@@ -14,7 +14,7 @@ async def deploy_ui_func(veritable: VeritableSpec):
     # deploy UI in k8s
     config: AppSettings = get_settings()
 
-    domain_name: str = config.product_config.get(ProductName).domain_name
+    domain_name: str = config.veritable.domain_name
     repo_name = "veritable-ui"
 
     environment: str = os.getenv("DEPLOYMENT", "integration").lower()

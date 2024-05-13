@@ -2,7 +2,7 @@ from loguru import logger
 from temporalio.client import Client
 
 from app.cli.temporal.veritable.workflows.deprovisioning import (
-    VeritableDeProvisioningWorkflow, VeritableDeProvisioningIntput
+    VeritableDeProvisioningWorkflow
 )
 from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
 from app.cli.temporal.veritable.workflows.postgres import VeritablePostgresSetupWorkflow
@@ -23,7 +23,7 @@ async def trigger_veritable_onboarding_workflow(payload: dict) -> None:
         VeritableOnboardingWorkflow.__name__,
         VeritableSpec(**payload),
         id=VeritableOnboardingWorkflow.get_workflow_id(veritable=VeritableSpec(**payload)),
-        task_queue=config.temporal_veritable_onboarding_task_queue,
+        task_queue=config.veritable.temporal_veritable_onboarding_task_queue,
     )
     logger.info(f"Veritable onboarding workflow triggered for tenant {payload['tenant']}")
 
@@ -41,7 +41,7 @@ async def trigger_veritable_postgres_setup_workflow(payload: dict) -> None:
         VeritablePostgresSetupWorkflow.__name__,
         VeritableSpec(**payload),
         id=VeritablePostgresSetupWorkflow.get_workflow_id(veritable=VeritableSpec(**payload)),
-        task_queue=config.temporal_veritable_postgres_setup_task_queue,
+        task_queue=config.veritable.temporal_veritable_postgres_setup_task_queue,
     )
     logger.info(f"Veritable postgres setup workflow triggered for tenant {payload['tenant']}")
 
@@ -55,10 +55,10 @@ async def trigger_veritable_de_provisioning_workflow(tenant_name: str) -> None:
 
     await client.start_workflow(
         VeritableDeProvisioningWorkflow.__name__,
-        VeritableDeProvisioningIntput(tenant_name),
+        VeritableSpec(tenant=tenant_name),
         id=VeritableDeProvisioningWorkflow.get_workflow_id(
-            workflow_input=VeritableDeProvisioningIntput(tenant=tenant_name)
+            workflow_input=VeritableSpec(tenant=tenant_name)
         ),
-        task_queue=config.temporal_veritable_deboarding_task_queue,
+        task_queue=config.veritable.temporal_veritable_deboarding_task_queue,
     )
     logger.info(f"Veritable deprovisioning workflow triggered for tenant {tenant_name}")

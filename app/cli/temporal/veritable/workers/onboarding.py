@@ -20,7 +20,7 @@ async def veritable_onboarding_worker():
 
     worker: Worker = Worker(
         client,
-        task_queue=config.temporal_veritable_onboarding_task_queue,
+        task_queue=config.veritable.temporal_veritable_onboarding_task_queue,
         workflows=[VeritableOnboardingWorkflow],
         activities=VeritableOnboardingWorkflow.get_activities(),
         debug_mode=True

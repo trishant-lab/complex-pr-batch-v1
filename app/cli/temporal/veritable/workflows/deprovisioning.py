@@ -7,8 +7,9 @@ from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.activities.deprovisioning import (
     DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeleteProvisioningJobActivity,
     DeletePVCActivity, DeleteDeploymentActivity, DeleteConfigMapActivity, DropUIBundlesActivity, DeleteDNSActivity,
-    DeleteVMScraperActivity, VeritableDeProvisioningIntput
+    DeleteVMScraperActivity
 )
+from app.cli.veritable.common import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger
@@ -33,7 +34,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", workflow_input: VeritableDeProvisioningIntput) -> str | None:
+    def get_workflow_id(cls: "Workflow", workflow_input: VeritableSpec) -> str | None:
         """
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
@@ -41,7 +42,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
         return f"de_provisioning_{workflow_input.tenant}"
 
     @workflow.run
-    async def run(self: "Workflow", workflow_input: VeritableDeProvisioningIntput) -> None:
+    async def run(self: "Workflow", workflow_input: VeritableSpec) -> None:
         """
         Entry point for workflow
         """

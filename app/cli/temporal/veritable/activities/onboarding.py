@@ -53,8 +53,8 @@ class NamespaceSetupActivity(Activity):
         Callable for the activity
         """
         # create namespace in k8s
-        from app.cli.veritable.k8sSetup import create_namespace
-        await create_namespace(veritable=veritable)
+        from app.cli.veritable.namespaceSetup import Namespace
+        Namespace(veritable=veritable).put()
 
 
 class ConfigmapSetupActivity(Activity):
@@ -76,9 +76,26 @@ class ConfigmapSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.veritable.configMapSetup import create_configmap
-        # create configmap in k8s for namespace
-        await create_configmap(veritable=veritable)
+        from cryptography.fernet import Fernet
+
+        from app.cli.veritable.configMapSetup import ConfigMapClass
+        from app.onepasswordutil import OnePasswordUtil
+        from app.cli.veritable.common import OnepasswordVaultName
+        from app.core.settings import get_settings, AppSettings
+
+        config: AppSettings = get_settings()
+
+        # Todo need to move this to a separate activity
+        OnePasswordUtil(
+            tenant=veritable.tenant,
+            server_item=f"veritable-tenant-config-{config.env}",
+            vault=OnepasswordVaultName
+        ).insert_if_not_exists("fernet_key", Fernet.generate_key().decode())
+
+        ConfigMapClass(veritable=veritable, config_map=ConfigMapClass.TENANT_CONFIG).put()
+        ConfigMapClass(veritable=veritable, config_map=ConfigMapClass.PROVISION_CONFIG).put()
+        ConfigMapClass(veritable=veritable, config_map=ConfigMapClass.ENV_CONFIG).put()
+        ConfigMapClass(veritable=veritable, config_map=ConfigMapClass.VECTOR_CONFIG).put()
 
 
 class PVCSetupActivity(Activity):
@@ -102,8 +119,8 @@ class PVCSetupActivity(Activity):
         Callable for the activity
         """
         # create PVC in k8s for namespace
-        from app.cli.veritable.k8sSetup import create_pvc
-        await create_pvc(veritable=veritable)
+        from app.cli.veritable.pvcSetup import PVC
+        PVC(veritable=veritable).put()
 
 
 class SecretSetupActivity(Activity):
@@ -126,8 +143,8 @@ class SecretSetupActivity(Activity):
         Callable for the activity
         """
         # create secret in k8s for namespace
-        from app.cli.veritable.k8sSetup import create_secret_service
-        await create_secret_service(veritable=veritable)
+        from app.cli.veritable.secretSetup import Secret
+        Secret(veritable=veritable).put()
 
 
 class DnsSetupActivity(Activity):
@@ -222,8 +239,8 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.veritable.provisioningJob import provisioning_job
-        await provisioning_job(veritable=veritable)
+        from app.cli.veritable.provisioningJob import ProvisioningJob
+        ProvisioningJob(veritable=veritable).put()
 
 
 class KubernetesServiceActivity(Activity):
@@ -246,8 +263,8 @@ class KubernetesServiceActivity(Activity):
         Callable for the activity
         """
         # Create k8s service
-        from app.cli.veritable.k8sSetup import create_k8s_service
-        await create_k8s_service(veritable=veritable)
+        from app.cli.veritable.serviceSetup import Service
+        Service(veritable=veritable).put()
 
 
 class KubernetesVirtualServiceActivity(Activity):
@@ -270,8 +287,8 @@ class KubernetesVirtualServiceActivity(Activity):
         Callable for the activity
         """
         # Create k8s virtual service
-        from app.cli.veritable.istioVitualService import create_istio_virtual_service
-        await create_istio_virtual_service(veritable=veritable)
+        from app.cli.veritable.istioVitualService import IstioVirtualService
+        IstioVirtualService(veritable=veritable).put()
 
 
 class DeploymentActivity(Activity):
@@ -294,8 +311,9 @@ class DeploymentActivity(Activity):
         Callable for the activity
         """
         # Deploy k8s deployment
-        from app.cli.veritable.depolyment import deploy_server_and_cli
-        await deploy_server_and_cli(veritable=veritable)
+        from app.cli.veritable.depolyment import DeploymentServer, DeploymentCli
+        DeploymentServer(veritable=veritable).put()
+        DeploymentCli(veritable=veritable).put()
 
 
 class VmPodScraperActivity(Activity):
@@ -318,8 +336,9 @@ class VmPodScraperActivity(Activity):
         Callable for the activity
         """
         # Scrape pod logs
-        from app.cli.veritable.vmPodScraper import vm_pod_scraper
-        await vm_pod_scraper(veritable=veritable)
+        from app.cli.veritable.vmPodScraper import VMPodScrapperServer, VMPodScrapperCli
+        VMPodScrapperServer(veritable=veritable).put()
+        VMPodScrapperCli(veritable=veritable).put()
 
 
 class GrafanaAlertsActivity(Activity):

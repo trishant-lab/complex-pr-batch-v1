@@ -1,11 +1,11 @@
 import orjson
 from loguru import logger
 
-from app.cli.veritable import TemplatePath
-from app.core.settings import ProductConfig, get_settings
-from app.template_env import get_env
 from app.cli.common.grafanaUtils import GrafanaUtils
-from app.cli.veritable.common import VeritableSpec, ProductName
+from app.cli.veritable import TemplatePath
+from app.cli.veritable.common import VeritableSpec
+from app.core.settings import get_settings, VeritableSettings
+from app.template_env import get_env
 
 
 def convert_to_binary(input_string):
@@ -20,7 +20,8 @@ async def create_grafana_alerts(veritable: VeritableSpec):
     """
     logger.info(f"Creating Grafana alerts for {veritable.tenant}")
 
-    product_config: ProductConfig = get_settings().product_config.get(ProductName)
+    veritable_config: VeritableSettings = get_settings().veritable
+    # product_config: ProductConfig = get_settings().product_config.get(ProductName)
 
     worker_beat_panel_id = str(convert_to_binary(veritable.tenant))
     server_panel_id = "1" + worker_beat_panel_id
@@ -28,7 +29,7 @@ async def create_grafana_alerts(veritable: VeritableSpec):
 
     # create grafana panels
     grafana_utils = GrafanaUtils()
-    current_dashboard = grafana_utils.get_dashboard(dashboard_uid=product_config.grafana.dashboard_uid)
+    current_dashboard = grafana_utils.get_dashboard(dashboard_uid=veritable_config.grafana.dashboard_uid)
 
     current_panels = current_dashboard.get("dashboard", {}).get("panels", [])
 
@@ -37,21 +38,21 @@ async def create_grafana_alerts(veritable: VeritableSpec):
     # grafana worker beat panel
     worker_beat_panel_template = template_env.get_template("grafana_worker_beat_pannel.json")
     worker_beat_panel = worker_beat_panel_template.render(
-        tenant=veritable.tenant, PanelID=worker_beat_panel_id, DatasourceUID=product_config.grafana.datasource_uid
+        tenant=veritable.tenant, PanelID=worker_beat_panel_id, DatasourceUID=veritable_config.grafana.datasource_uid
     )
     modified_panels.append(orjson.loads(worker_beat_panel))
 
     # grafana worker count pannel
     worker_count_panel_template = template_env.get_template("grafana_worker_count_pannel.json")
     worker_count_panel = worker_count_panel_template.render(
-        tenant=veritable.tenant, PanelID=worker_count_panel_id, DatasourceUID=product_config.grafana.datasource_uid
+        tenant=veritable.tenant, PanelID=worker_count_panel_id, DatasourceUID=veritable_config.grafana.datasource_uid
     )
     modified_panels.append(orjson.loads(worker_count_panel))
 
     # grafana server pannel
     server_panel_template = template_env.get_template("grafana_server_pannel.json")
     server_panel = server_panel_template.render(
-        tenant=veritable.tenant, PanelID=server_panel_id, DatasourceUID=product_config.grafana.datasource_uid
+        tenant=veritable.tenant, PanelID=server_panel_id, DatasourceUID=veritable_config.grafana.datasource_uid
     )
     modified_panels.append(orjson.loads(server_panel))
 
@@ -71,24 +72,24 @@ async def create_grafana_alerts(veritable: VeritableSpec):
     # Alert for worker beat
     worker_beat_alert_template = template_env.get_template("grafana_worker_beat_alerts.json")
     worker_beat_alert = worker_beat_alert_template.render(
-        tenant=veritable.tenant, DatasourceUID=product_config.grafana.datasource_uid, PannelID=worker_beat_panel_id,
-        FolderUID=product_config.grafana.alert_folder_uid, DashboardUID=product_config.grafana.dashboard_uid
+        tenant=veritable.tenant, DatasourceUID=veritable_config.grafana.datasource_uid, PannelID=worker_beat_panel_id,
+        FolderUID=veritable_config.grafana.alert_folder_uid, DashboardUID=veritable_config.grafana.dashboard_uid
     )
     grafana_utils.create_alerts(orjson.loads(worker_beat_alert))
 
     # Alert for worker count
     worker_count_alert_template = template_env.get_template("grafana_worker_count_alerts.json")
     worker_count_alert = worker_count_alert_template.render(
-        tenant=veritable.tenant, DatasourceUID=product_config.grafana.datasource_uid, PannelID=worker_count_panel_id,
-        FolderUID=product_config.grafana.alert_folder_uid, DashboardUID=product_config.grafana.dashboard_uid
+        tenant=veritable.tenant, DatasourceUID=veritable_config.grafana.datasource_uid, PannelID=worker_count_panel_id,
+        FolderUID=veritable_config.grafana.alert_folder_uid, DashboardUID=veritable_config.grafana.dashboard_uid
     )
     grafana_utils.create_alerts(orjson.loads(worker_count_alert))
 
     # Alert for server
     server_alert_template = template_env.get_template("grafana_server_alerts.json")
     server_alert = server_alert_template.render(
-        tenant=veritable.tenant, DatasourceUID=product_config.grafana.datasource_uid, PannelID=server_panel_id,
-        FolderUID=product_config.grafana.alert_folder_uid, DashboardUID=product_config.grafana.dashboard_uid
+        tenant=veritable.tenant, DatasourceUID=veritable_config.grafana.datasource_uid, PannelID=server_panel_id,
+        FolderUID=veritable_config.grafana.alert_folder_uid, DashboardUID=veritable_config.grafana.dashboard_uid
     )
     grafana_utils.create_alerts(orjson.loads(server_alert))
 

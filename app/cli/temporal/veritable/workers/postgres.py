@@ -20,7 +20,7 @@ async def veritable_postgres_setup_worker():
 
     worker: Worker = Worker(
         client,
-        task_queue=config.temporal_veritable_postgres_setup_task_queue,
+        task_queue=config.veritable.temporal_veritable_postgres_setup_task_queue,
         workflows=[VeritablePostgresSetupWorkflow],
         activities=VeritablePostgresSetupWorkflow.get_activities(),
         debug_mode=True
