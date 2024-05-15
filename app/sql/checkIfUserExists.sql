@@ -1,0 +1,1 @@
+SELECT usename FROM pg_user WHERE usename = '{{username | sqlsafe }}'
