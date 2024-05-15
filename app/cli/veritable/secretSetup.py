@@ -11,7 +11,26 @@ class Secret(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, veritable: VeritableSpec) -> None:
+    def __init__(
+            self,
+            veritable: VeritableSpec,
+            name: str,
+            type: None | str = None,
+            data: None| dict = None,
+            string_data: None| dict = None
+    ) -> None:
+        """
+        veritable: VeritableSpec
+        name: str
+        type: str
+        data: dict: base64 encoded data
+        string_data: dict  plain text data
+        Need to send base64 encoded data or plain text data
+        """
+        self.name = name
+        self.type = type
+        self.data = data
+        self.string_data = string_data
         self.veritable: VeritableSpec = veritable
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
@@ -20,17 +39,16 @@ class Secret(K8sResourceBaseClass):
         self.config: AppSettings = get_settings()
 
     def payload(self):
-        body = V1Secret(
+        body: V1Secret = V1Secret(
             api_version="v1",
             kind=ResourceKindEnum.Secret.value,
             metadata=V1ObjectMeta(
                 namespace=self.veritable.tenant,
-                name="registrycred"
+                name=self.name
             ),
-            type="kubernetes.io/dockerconfigjson",
-            data={
-                ".dockerconfigjson": self.config.docker_image_pull_secret
-            }
+            type=self.type,
+            data=self.data,
+            string_data=self.string_data
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)

@@ -1,3 +1,4 @@
+import tempfile
 from tempfile import TemporaryDirectory
 from typing import Final
 
@@ -8,10 +9,10 @@ from loguru import logger
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.veritable import TemplatePath
-from app.cli.veritable.common import VeritableSpec, TenantConfigMap, \
-    ProvisioningConfigMap, EnvConfigMap, VectorConfigMap
-from app.core.settings import AppSettings, get_settings
+from app.cli.veritable.common import VeritableSpec
+from app.core.settings import get_settings, AppSettings
 from app.onepasswordutil import secret_inject
+from app.s3_utils import copy_files_from_s3, download_file_from_storage
 from app.template_env import get_env
 
 
@@ -35,6 +36,7 @@ class ConfigMapClass(K8sResourceBaseClass):
 
     def __init__(self, veritable: VeritableSpec, config_map: dict[str, str]) -> None:
         self.veritable: VeritableSpec = veritable
+        self.config: AppSettings = get_settings()
         self.config_map: dict[str, str] = config_map
         self.env: str = get_settings().env
         self.k8s_dynamic_client = get_dynamic_client()
@@ -43,20 +45,29 @@ class ConfigMapClass(K8sResourceBaseClass):
         )
 
     def payload(self):
-        template_env = get_env(template_path=TemplatePath)
 
         template_file_name = (
             f"{self.env}-{self.config_map['key'].replace('.json', '.tmpl.json').replace('.toml', '.tmpl.toml')}"
         )
 
-        template = template_env.get_template(template_file_name)  # todo get template from minio
-        output = template.render(
-            tenant=self.veritable.tenant,
-            customerId=self.veritable.customerId,
-            orgName=self.veritable.orgName,
-        )
-
         with TemporaryDirectory() as temp_dir:
+
+            download_file_from_storage(
+                object_name=f"new/{template_file_name}",
+                file_path=f"{temp_dir}/{template_file_name}",
+                config=self.config,
+                bucket_name="veritable-config",
+            )
+
+            template_env = get_env(template_path=temp_dir)
+
+            template = template_env.get_template(template_file_name)
+            output = template.render(
+                tenant=self.veritable.tenant,
+                customerId=self.veritable.customerDetails.customerId,
+                orgName=self.veritable.customerDetails.orgName,
+            )
+
             with open(f"{temp_dir}/{template_file_name}", "w") as f:
                 f.write(output)
 

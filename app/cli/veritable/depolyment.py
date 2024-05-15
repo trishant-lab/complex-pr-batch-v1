@@ -1,4 +1,5 @@
 from kubernetes import client as k8s_client
+from kubernetes.client import V1EnvVar, V1EnvVarSource, V1SecretKeySelector
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 
@@ -26,11 +27,7 @@ class DeploymentServer(K8sResourceBaseClass):
         self.env: str = get_settings().env
 
         # Todo change it to get kube secret
-        self.postgres_password = OnePasswordUtil(
-            tenant=veritable.tenant,
-            server_item=OnepasswordItemName.format(environment=self.env),
-            vault=OnepasswordVaultName
-        ).get_key("postgres_database_password")
+        self.postgres_password = "veritable"
 
     def payload(self):
         body = k8s_client.V1Deployment(
@@ -93,7 +90,12 @@ class DeploymentServer(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="POSTGRES__PASSWORD",
-                                        value=self.postgres_password
+                                        value_from=k8s_client.V1EnvVarSource(
+                                            secret_key_ref=k8s_client.V1SecretKeySelector(
+                                                key="POSTGRES__PASSWORD",
+                                                name="veritable-postgres-password"
+                                            )
+                                        )
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="POSTGRES__USER",
@@ -117,7 +119,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="ORG_NAME",
-                                        value=self.veritable.orgName
+                                        value=self.veritable.customerDetails.orgName
                                     )
                                 ]
                             )
@@ -155,7 +157,6 @@ class DeploymentServer(K8sResourceBaseClass):
         )
 
         deployment_body = self.k8s_dynamic_client.client.sanitize_for_serialization(body)
-        logger.info(f"Deployment payload: {deployment_body}")
         return deployment_body
 
     def put(self):
@@ -190,13 +191,6 @@ class DeploymentCli(K8sResourceBaseClass):
 
         self.postgres_user = f"veritable_{veritable.tenant}"
         self.env: str = get_settings().env
-
-        # Todo change it to get kube secret
-        self.postgres_password = OnePasswordUtil(
-            tenant=veritable.tenant,
-            server_item=OnepasswordItemName.format(environment=self.env),
-            vault=OnepasswordVaultName
-        ).get_key("postgres_database_password")
 
     def payload(self):
         body = k8s_client.V1Deployment = k8s_client.V1Deployment(
@@ -269,11 +263,11 @@ class DeploymentCli(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="POSTGRES__PASSWORD",
-                                        value=self.postgres_password
-                                    ),
-                                    k8s_client.V1EnvFromSource(
-                                        secret_ref=k8s_client.V1SecretEnvSource(
-                                            name="veritable-postgres-secret",
+                                        value_from=k8s_client.V1EnvVarSource(
+                                            secret_key_ref=k8s_client.V1SecretKeySelector(
+                                                key="POSTGRES__PASSWORD",
+                                                name="veritable-postgres-password"
+                                            )
                                         )
                                     ),
                                     k8s_client.V1EnvVar(
@@ -298,7 +292,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="ORG_NAME",
-                                        value=self.veritable.orgName
+                                        value=self.veritable.customerDetails.orgName
                                     )
                                 ]
                             )

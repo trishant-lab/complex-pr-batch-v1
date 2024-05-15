@@ -57,6 +57,29 @@ class NamespaceSetupActivity(Activity):
         Namespace(veritable=veritable).put()
 
 
+class FernetKeyGenerationActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=3,
+        )
+
+    @staticmethod
+    @activity.defn(name="fernet_key_generation_activity")
+    async def defn(veritable: VeritableSpec):
+        """
+        Callable for the activity
+        """
+        from app.cli.veritable.fernetKey import generate_fernet_key_and_store_in_1password
+        generate_fernet_key_and_store_in_1password(veritable)
+
+
 class ConfigmapSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -76,22 +99,8 @@ class ConfigmapSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from cryptography.fernet import Fernet
 
         from app.cli.veritable.configMapSetup import ConfigMapClass
-        from app.onepasswordutil import OnePasswordUtil
-        from app.cli.veritable.common import OnepasswordVaultName
-        from app.core.settings import get_settings, AppSettings
-
-        config: AppSettings = get_settings()
-
-        # Todo need to move this to a separate activity
-        OnePasswordUtil(
-            tenant=veritable.tenant,
-            server_item=f"veritable-tenant-config-{config.env}",
-            vault=OnepasswordVaultName
-        ).insert_if_not_exists("fernet_key", Fernet.generate_key().decode())
-
         ConfigMapClass(veritable=veritable, config_map=ConfigMapClass.TENANT_CONFIG).put()
         ConfigMapClass(veritable=veritable, config_map=ConfigMapClass.PROVISION_CONFIG).put()
         ConfigMapClass(veritable=veritable, config_map=ConfigMapClass.ENV_CONFIG).put()
@@ -144,7 +153,15 @@ class SecretSetupActivity(Activity):
         """
         # create secret in k8s for namespace
         from app.cli.veritable.secretSetup import Secret
-        Secret(veritable=veritable).put()
+        from app.core.settings import get_settings
+        Secret(
+            veritable=veritable,
+            name="registrycred",
+            type="kubernetes.io/dockerconfigjson",
+            data={
+                ".dockerconfigjson": get_settings().docker_image_pull_secret
+            }
+        ).put()
 
 
 class DnsSetupActivity(Activity):
@@ -191,8 +208,8 @@ class UiSetupActivity(Activity):
         Callable for the activity
         """
         # Deploy ui
-        from app.cli.veritable.deployUi import deploy_ui_func
-        await deploy_ui_func(veritable=veritable)
+        from app.cli.veritable.UISetup import UISetup
+        UISetup(veritable=veritable).deploy()
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -240,7 +257,7 @@ class ProvisioningJobActivity(Activity):
         """
         # Check provisioning status
         from app.cli.veritable.provisioningJob import ProvisioningJob
-        ProvisioningJob(veritable=veritable).put()
+        await ProvisioningJob(veritable=veritable).put()
 
 
 class KubernetesServiceActivity(Activity):

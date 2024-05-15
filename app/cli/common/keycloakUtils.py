@@ -77,3 +77,8 @@ def get_keycloak_manager() -> "KeycloakAdminClient":
     """
     config = get_settings().keycloak
     return KeycloakAdminClient(config=config)
+
+
+# if __name__ == "__main__":
+#     kc = get_keycloak_manager()
+#     print(kc.delete_realm("test9"))

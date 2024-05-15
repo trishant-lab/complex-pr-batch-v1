@@ -35,11 +35,13 @@ class IstioVirtualService(K8sResourceBaseClass):
                 "destination": {
                     "host": f"veritable.{self.veritable.tenant}.svc.cluster.local",
                     "port": {"number": 8000},
-                    # Todo "headers": {
-                    #     "response": {
-                    #         "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-                    #     }
-                    # }
+                },
+                "headers": {
+                    "response": {
+                        "add": {
+                            "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+                        }
+                    }
                 }
             }],
             "match": [

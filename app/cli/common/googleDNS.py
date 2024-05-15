@@ -1,5 +1,5 @@
+import asyncio
 import socket
-import time
 
 from google.api_core.exceptions import Conflict, NotFound
 from google.cloud import dns
@@ -37,7 +37,7 @@ class GoogleDNS:
         except Conflict:
             logger.info(f"DNS record Already Present: {self.fqdn}")
 
-    def check_dns_propagation_cf(self):
+    async def check_dns_propagation_cf(self):
         """
         Check DNS propagation using Cloudflare DNS
         :return:
@@ -52,7 +52,7 @@ class GoogleDNS:
                 if count == 61:
                     raise Exception(f"DNS propagation check timed out after [10 min]: {self.fqdn}")
                 logger.info(f"DNS not propagated yet: {self.fqdn}")
-                time.sleep(5)
+                await asyncio.sleep(10)
 
     def delete(self):
         """

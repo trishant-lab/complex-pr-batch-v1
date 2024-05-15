@@ -1,4 +1,5 @@
 import requests
+from loguru import logger
 
 from app.core.settings import AppSettings, get_settings
 
@@ -31,5 +32,9 @@ class GrafanaUtils:
         response = requests.post(
             f"{self.grafana_url}/api/v1/provisioning/alert-rules/", headers=headers, json=alert_json
         )
+
+        if response.status_code >= 300:
+            logger.error(f"Failed to create alerts: {response.text}")
+            raise Exception(f"Failed to create alerts: {response.text}")
 
         return response.json()

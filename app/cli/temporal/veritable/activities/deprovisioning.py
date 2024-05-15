@@ -169,8 +169,8 @@ class DropUIBundlesActivity(Activity):
         """
         Callable for the activity
         """
-        # Todo: Implement this
-        pass
+        from app.cli.veritable.UISetup import UISetup
+        UISetup(veritable=activity_input).delete()
 
 
 class DeleteDNSActivity(Activity):

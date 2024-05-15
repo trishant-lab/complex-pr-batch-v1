@@ -7,6 +7,7 @@ from temporalio.client import Client
 
 from app.cli.temporal.veritable.workflows.postgres import VeritablePostgresSetupWorkflow
 from app.cli.veritable import TemplatePath
+from app.cli.veritable.secretSetup import Secret
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
 from app.core.settings import ProductConfig, get_settings, AppSettings, VeritableSettings
@@ -32,20 +33,30 @@ async def setup_supavisor_poll_user(
         DB_PASSWORD=db_password
     )
 
-    response = requests.post(
+    response = requests.put(
         url=f"{config.supavisor_url}/api/tenants/{db_username}",
         headers={
             "Authorization": f"Bearer {config.supavisor_token}",
             "Content-Type": "application/json",
             "Accept": "application/json"
         },
-        data=orjson.loads(rendered_template)
+        data=rendered_template
     )
 
     if response.status_code < 200 or response.status_code >= 299:
         logger.error(f"Supavisor user creation failed with status code: {response.status_code}")
         raise Exception(f"Supavisor user creation failed with status code: {response.status_code}")
     logger.info(f"Supervisor poll user created: {db_username}")
+
+
+def create_k8s_postgres_secret(veritable: VeritableSpec, password: str):
+    Secret(
+        veritable=veritable,
+        name="veritable-postgres-password",
+        string_data={
+            "POSTGRES__PASSWORD": password
+        }
+    ).put()
 
 
 async def setup_postgres(veritable: VeritableSpec):
@@ -68,8 +79,10 @@ async def setup_postgres(veritable: VeritableSpec):
         # Check if the user already exists
         user_exists = await postgres_utils.check_if_user_exists(username=db_username)
 
-        # generate a random password # Todo: read password from k8s secret
         password = generate_password(length=20)
+
+        # Create a secret in k8s for the postgres password
+        create_k8s_postgres_secret(veritable=veritable, password=password)
 
         if not user_exists:
             # Create a new user in the database
@@ -112,6 +125,6 @@ async def execute_postgres_setup_workflow(veritable: VeritableSpec) -> None:
         VeritablePostgresSetupWorkflow.__name__,
         veritable,
         id=VeritablePostgresSetupWorkflow.get_workflow_id(veritable=veritable),
-        task_queue=config.temporal_veritable_postgres_setup_task_queue,
+        task_queue=config.veritable.temporal_veritable_postgres_setup_task_queue,
     )
     logger.info(f"Veritable postgres setup workflow triggered for tenant {veritable.tenant}")

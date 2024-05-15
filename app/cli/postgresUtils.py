@@ -42,8 +42,9 @@ class PostgresUtils:
         """
         Check if the user already exists in the database
         """
-        response = await self.db.execute_raw_sql(
-            f"SELECT usename FROM pg_user WHERE usename = '{username}'",
+        response = await self.db.fetch_one(
+            sqlfile="checkIfUserExists.sql",
+            username=username,
         )
         logger.info(f"User {username} exists: {response}")
         return response

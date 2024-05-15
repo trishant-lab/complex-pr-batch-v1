@@ -23,7 +23,7 @@ def create_keycloak_realm(
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_realm.json")
 
-    customer_roles = orjson.dumps(veritable.customerRealmRoles).decode("utf-8")
+    customer_roles = orjson.dumps(veritable.customerDetails.customerRealmRoles).decode("utf-8")
 
     realm_config = template.render(
         realm_name=realm_name,
@@ -38,46 +38,33 @@ def create_keycloak_realm(
     
     
 def create_tenant_customer_admin_user(veritable: VeritableSpec, keycloak_client: KeycloakAdminClient, realm_name: str):
-    customer_password = generate_password(20)
 
     # Create tenant admin customer user
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_tenant_customer_admin.json")
     user_config = template.render(
-        customerUserName=veritable.customerUserName,
-        customerEmail=veritable.customerEmail,
-        customerPassword=customer_password,
+        customerUserName=veritable.customerDetails.customerUserName,
+        customerEmail=veritable.customerDetails.customerEmail,
     )
     keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
 
 
 def create_tenant_admin(
-        veritable: VeritableSpec, keycloak_client: KeycloakAdminClient, realm_name: str
+        keycloak_client: KeycloakAdminClient, realm_name: str
 ):
     """
     Create tenant admin user for internal use
     """
-    admin_password = generate_password(20)
     username = "admin"
 
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_tenant_admin.json")
     user_config = template.render(
         username=username,
-        password=admin_password,
     )
     keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
-
-    domain_name: str = get_settings().veritable.domain_name
-    op = OnePasswordUtil(
-        tenant=veritable.tenant, server_item=veritable.tenant, vault=OnepasswordVaultName
-    )
-
-    op.create_login_item(
-        url=f"{veritable.tenant}.{domain_name}", username=username, password=admin_password
-    )
 
 
 async def create_realm_and_users(veritable: VeritableSpec):
@@ -105,5 +92,5 @@ async def create_realm_and_users(veritable: VeritableSpec):
 
     # Create tenant admin user for internal use
     create_tenant_admin(
-        veritable=veritable, keycloak_client=keycloak_client, realm_name=realm_name
+       keycloak_client=keycloak_client, realm_name=realm_name
     )

@@ -87,9 +87,10 @@ class S3Settings(BaseModel):
     endpoint: str = ""
     access_key: str = ""
     secret_key: str = ""
-    use_ssl: bool = True
     bucket_name: str = ""
-    rclone_remote: str = ""
+    region: str = "us-east-1"
+    use_ssl: bool = True
+    rclone_remote: str = "s3_rclone_remote"
 
 
 class VeritableSettings(BaseModel):

@@ -11,13 +11,17 @@ class VeritableResourceModel(BaseModel):
     limit_memory: str = "3000Mi"
 
 
-class VeritableSchema(BaseModel):
-    tenant: str
-    imageTag: str
+class CustomerDetails(BaseModel):
     customerId: UUID
     customerUserName: str
     customerEmail: str
     customerRealmRoles: List[str] = ["VT_CUSTOMER_ADMIN"]
     orgName: str
+
+
+class VeritableSchema(BaseModel):
+    tenant: str
+    imageTag: str
+    customerDetails: None | CustomerDetails = None
     serverSpec: VeritableResourceModel = VeritableResourceModel()
     cliSpec: VeritableResourceModel = VeritableResourceModel()

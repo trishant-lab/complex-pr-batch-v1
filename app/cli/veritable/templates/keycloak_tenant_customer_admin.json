@@ -16,12 +16,5 @@
     "impersonate": true,
     "manage": true
   },
-  "credentials": [
-    {
-      "type": "password",
-      "temporary": true,
-      "value": "{{customerPassword}}"
-    }
-  ],
   "groups": ["vt-customer-admin"]
 }

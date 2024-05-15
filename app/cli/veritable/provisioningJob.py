@@ -1,10 +1,9 @@
-import os
-import time
+import asyncio
 
 from kubernetes import client as api_client
 from kubernetes.client import V1Job, V1JobSpec, V1JobTemplateSpec, V1PodSpec, \
     V1LocalObjectReference, V1Container, V1EnvVar, V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, \
-    V1JobStatus
+    V1EnvVarSource, V1SecretKeySelector
 from kubernetes.client import V1ObjectMeta
 from kubernetes.dynamic import Resource, ResourceField
 from kubernetes.dynamic.exceptions import NotFoundError
@@ -12,10 +11,9 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.common import OnepasswordItemName, OnepasswordVaultName, ProductName
+from app.cli.veritable.common import ProductName
 from app.cli.veritable.common import VeritableSpec
 from app.core.settings import get_settings
-from app.onepasswordutil import OnePasswordUtil
 
 
 def check_pod_logs(namespace: str, job_name: str):
@@ -56,7 +54,7 @@ def get_job_status(namespace: str, job_name: str) -> ResourceField:
     return job.status
 
 
-def check_execution_status(veritable: VeritableSpec, job_name: str):
+async def check_execution_status(veritable: VeritableSpec, job_name: str):
     """
     :return:
     """
@@ -71,7 +69,7 @@ def check_execution_status(veritable: VeritableSpec, job_name: str):
             raise Exception(f"Provisioning Job execution timed out for {veritable.tenant}")
 
         logger.info("Waiting for job execution to complete")
-        time.sleep(30)
+        await asyncio.sleep(30)
         counter += 1
 
 
@@ -90,11 +88,6 @@ class ProvisioningJob(K8sResourceBaseClass):
         self.job_name = "veritable-tenant-provisioning-job"
         self.job_type = "provisioning"
         self.postgres_user = f"veritable_{veritable.tenant}"
-        self.postgres_password = OnePasswordUtil(
-            tenant=veritable.tenant,
-            server_item=OnepasswordItemName.format(environment=self.env),
-            vault=OnepasswordVaultName
-        ).get_key("postgres_database_password")
 
     def payload(self):
         body = V1Job(
@@ -114,7 +107,15 @@ class ProvisioningJob(K8sResourceBaseClass):
                             V1Container(
                                 name=self.job_name,
                                 env=[
-                                    V1EnvVar(name="POSTGRES__PASSWORD", value=self.postgres_password),
+                                    V1EnvVar(
+                                        name="POSTGRES__PASSWORD",
+                                        value_from=V1EnvVarSource(
+                                            secret_key_ref=V1SecretKeySelector(
+                                                key="POSTGRES__PASSWORD",
+                                                name="veritable-postgres-password"
+                                            )
+                                        )
+                                    ),
                                     V1EnvVar(name="POSTGRES__USER", value=self.postgres_user),
                                     V1EnvVar(name="RELEASE_VERSION", value=self.veritable.imageTag),
                                     V1EnvVar(name="PROVISIONING_CONFIG", value="/provisioningConfig/provisioning-config.json") # noqa
@@ -155,13 +156,13 @@ class ProvisioningJob(K8sResourceBaseClass):
         job_body = self.k8s_dynamic_client.client.sanitize_for_serialization(body)
         return job_body
 
-    def put(self):
+    async def put(self):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource,
             body=self.payload(),
             field_manager="kubectl-client-side-apply"
         )
-        if not check_execution_status(self.veritable, self.job_name):
+        if not await check_execution_status(self.veritable, self.job_name):
             self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.veritable.tenant)
             raise Exception(f"Provisioning Job execution failed for {self.veritable.tenant}")
 
