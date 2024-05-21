@@ -8,7 +8,7 @@ spec:
     - name: redisHost
       value: cache-new.{{tenant}}.svc.cluster.local:6379
     - name: redisPassword
-      value: {{ open_brackets }}op://Jeeves/application-config/JEEVES_SERVER_{{tenant}}/redis_password{{ close_brackets}}
+      value: {{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/redis_password{{ close_brackets}}
     - name: actorStateStore #Specifies whether the state store is being used for actor state data.
       value: "true"
     - name: keyPrefix

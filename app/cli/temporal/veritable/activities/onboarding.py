@@ -412,7 +412,11 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.veritable.tenantStatus import update_tenant_status
+        from app.cli.common.tenantStatus import update_tenant_status
+        from app.cli.veritable.common import ProductName
         await update_tenant_status(
-            tenant_name=activity_input.tenant_name, status=activity_input.status, error_message=activity_input.error_msg
+            tenant_name=activity_input.tenant_name,
+            product=ProductName,
+            status=activity_input.status,
+            error_message=activity_input.error_msg
         )

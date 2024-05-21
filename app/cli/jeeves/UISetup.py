@@ -6,26 +6,24 @@ from pathlib import Path
 import boto3
 from loguru import logger
 
-from app.cli.veritable.common import VeritableSpec
+from app.cli.jeeves.common import JeevesSpec
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(veritable: VeritableSpec):
+def deploy_ui(jeeves: JeevesSpec):
     """
 
-    :param veritable:
+    :param jeeves:
     :return:
     """
     config: AppSettings = get_settings()
 
     environment: str = config.env
-    domain_name: str = config.veritable.domain_name
-    repo_name = "veritable-ui"
-    tenant = veritable.tenant
-    image_tag = (
-        veritable.imageTag if veritable.imageTag else "veritable:latest" if environment == "production" else "sprint"
-    )
+    domain_name: str = config.jeeves.domain_name
+    repo_name = "jeeves-ui"
+    tenant = jeeves.tenant
+    image_tag = "production" if environment == "production" else "sprint"
 
     if environment == "production":
         dest_dir = f"{tenant}.{domain_name}/"
@@ -51,30 +49,35 @@ def deploy_ui(veritable: VeritableSpec):
 
             # Upload the files to S3
             copy_files_to_s3(
-                input_path=os.path.join(tmp_dir, "bundle", "dist"),
+                input_path=os.path.join(tmp_dir, "bundle", "dist", "admin"),
                 output_path=f"{config.s3.rclone_remote}:static/{dest_dir}",
                 config=config,
             )
+
+            if environment == "production":
+                copy_files_to_s3(
+                    input_path=os.path.join(tmp_dir, "bundle", "dist", "admin", "index.html"),
+                    output_path=f"{config.s3.rclone_remote}:static/{dest_dir}/custom/index.html",
+                    config=config,
+                )
 
     except Exception as e:
         logger.error(f"Failed to deploy UI: {e}")
         raise e
 
 
-def delete_ui_bundle(veritable: VeritableSpec):
+def delete_ui_bundle(jeeves: JeevesSpec):
     """
 
-    :param veritable
+    :param jeeves
     :return:
     """
     config: AppSettings = get_settings()
 
     environment: str = config.env
-    domain_name: str = config.veritable.domain_name
-    tenant = veritable.tenant
-    image_tag = (
-        veritable.imageTag if veritable.imageTag else "veritable:latest" if environment == "production" else "sprint"
-    )
+    domain_name: str = config.jeeves.domain_name
+    tenant = jeeves.tenant
+    image_tag = "production" if environment == "production" else "sprint"
 
     if environment == "production":
         bundle_path = f"{tenant}.{domain_name}/"
@@ -89,17 +92,17 @@ def delete_ui_bundle(veritable: VeritableSpec):
 
 
 class UISetup:
-    def __init__(self: "UISetup", veritable: VeritableSpec) -> None:
-        self.veritable = veritable
+    def __init__(self: "UISetup", jeeves: JeevesSpec) -> None:
+        self.jeeves = jeeves
 
     def deploy(self: "UISetup") -> None:
         """
         Deploy UI bundle to S3
         """
-        deploy_ui(veritable=self.veritable)
+        deploy_ui(jeeves=self.jeeves)
 
     def delete(self: "UISetup") -> None:
         """
         Delete UI bundle from S3
         """
-        delete_ui_bundle(veritable=self.veritable)
+        delete_ui_bundle(jeeves=self.jeeves)

@@ -1,4 +1,4 @@
-from kubernetes.client import V1Namespace, V1ObjectMeta, V1Secret
+from kubernetes.client import V1ObjectMeta, V1Secret
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
@@ -16,8 +16,8 @@ class Secret(K8sResourceBaseClass):
             veritable: VeritableSpec,
             name: str,
             type: None | str = None,
-            data: None| dict = None,
-            string_data: None| dict = None
+            data: None | dict = None,
+            string_data: None | dict = None
     ) -> None:
         """
         veritable: VeritableSpec

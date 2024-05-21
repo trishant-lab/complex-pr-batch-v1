@@ -6,21 +6,23 @@ from starlette.exceptions import HTTPException
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.cli.temporal.veritable.starter import trigger_veritable_onboarding_workflow
+from app.cli.temporal.jeeves.starter import trigger_jeeves_onboarding_workflow
 from ..core.db import DBManager, get_db_manager
 from ..core.settings import get_settings, AppSettings
 
-from ..models.product_schema import VeritableSchema
+from ..models.product_schema import VeritableSchema, JeevesSchema
 
 onboarding_router = APIRouter()
 
 
 onboarding_trigger_functions = {
     "veritable": trigger_veritable_onboarding_workflow,
-    "jeeves": None
+    "jeeves": trigger_jeeves_onboarding_workflow,
 }
 
 product_schema = {
     "veritable": VeritableSchema,
+    "jeeves": JeevesSchema
 }
 
 

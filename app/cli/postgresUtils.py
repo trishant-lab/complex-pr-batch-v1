@@ -61,3 +61,10 @@ class PostgresUtils:
         await self.db.execute_raw_sql(
             query=f"GRANT ALL ON SCHEMA {schema_name} TO {username}",
         )
+
+    async def create_user_mapping_for_keycloak(self, username, keycloak_password):
+        await self.db.execute_raw_sql(
+            query=f"CREATE USER MAPPING IF NOT EXISTS FOR {username} SERVER keycloak_server OPTIONS  "
+                  f"(user 'keyclock_fdw', password '{keycloak_password}');",
+        )
+        logger.info(f"User mapping created successfully for user {username}")

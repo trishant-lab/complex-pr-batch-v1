@@ -3,9 +3,8 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.common import ProductName
-from app.cli.veritable.common import VeritableSpec
-from app.core.settings import AppSettings, get_settings, VeritableSettings
+from app.cli.jeeves.common import ProductName, JeevesSpec
+from app.core.settings import AppSettings, get_settings, JeevesSettings
 
 
 class IstioVirtualService(K8sResourceBaseClass):
@@ -13,8 +12,8 @@ class IstioVirtualService(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, veritable: VeritableSpec) -> None:
-        self.veritable: VeritableSpec = veritable
+    def __init__(self, jeeves: JeevesSpec) -> None:
+        self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client,
@@ -22,18 +21,19 @@ class IstioVirtualService(K8sResourceBaseClass):
             api_version="networking.istio.io/v1beta1"
         )
         self.config: AppSettings = get_settings()
-        self.veritable_config: VeritableSettings = self.config.veritable
+        self.jeeves_config: JeevesSettings = self.config.jeeves
         self.env = self.config.env
+        self.image_tag = "sprint" if self.env == "integration" else "production"
 
     def payload(self):
         http_list = []
 
         # http_api router
         http_api = {
-            "name": "veritable-api",
+            "name": "jeeves-api",
             "route": [{
                 "destination": {
-                    "host": f"veritable.{self.veritable.tenant}.svc.cluster.local",
+                    "host": f"jeeves.{self.jeeves.tenant}.svc.cluster.local",
                     "port": {"number": 8000},
                 },
                 "headers": {
@@ -61,14 +61,14 @@ class IstioVirtualService(K8sResourceBaseClass):
                     "uri": {"exact": "/"},
                 }],
                 "redirect": {
-                    "uri": f"/{self.veritable.imageTag}/"
+                    "uri": f"/{self.image_tag}/"
                 }
             }
             http_list.append(http_redirect)
 
         # http_ui router
         http_ui = {
-            "name": "veritable-ui",
+            "name": "jeeves-ui",
             "route": [{
                 "destination": {
                     "host": f"varnish-svc.varnish.svc.cluster.local",
@@ -86,12 +86,12 @@ class IstioVirtualService(K8sResourceBaseClass):
             "apiVersion": "networking.istio.io/v1beta1",
             "kind": "VirtualService",
             "metadata": {
-                "name": "veritable-vs",
-                "namespace": self.veritable.tenant,
+                "name": "jeeves-vs",
+                "namespace": self.jeeves.tenant,
             },
             "spec": {
                 "hosts": [
-                    f"{self.veritable.tenant}.{self.veritable_config.domain_name}"
+                    f"{self.jeeves.tenant}.{self.jeeves_config.domain_name}"
                 ],
                 "gateways": ["istio-system/istiogateway"],
                 "http": http_list
@@ -111,7 +111,7 @@ class IstioVirtualService(K8sResourceBaseClass):
             self.k8s_dynamic_client.delete(
                 resource=self.resource,
                 name=f"{ProductName}-vs",
-                namespace=self.veritable.tenant
+                namespace=self.jeeves.tenant
             )
         except NotFoundError:
-            logger.error(f"VirtualService {ProductName}-vs not found in namespace {self.veritable.tenant}")
+            logger.error(f"VirtualService {ProductName}-vs not found in namespace {self.jeeves.tenant}")

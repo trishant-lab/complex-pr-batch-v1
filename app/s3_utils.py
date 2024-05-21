@@ -115,15 +115,14 @@ def create_rclone_remote(config: AppSettings) -> None:
         logger.error(e)
 
 
-def copy_files_to_s3(folder_path: str, s3_path: str, bucket_name: str, config: AppSettings) -> None:
-    s3_path: str = s3_path if s3_path.endswith("/") else f"{s3_path}/"
+def copy_files_to_s3(input_path: str, output_path: str, config: AppSettings) -> None:
 
     create_rclone_remote(config)
     rclone.copy(
-        in_path=folder_path,
-        out_path=f"{config.s3.rclone_remote}:{bucket_name}/{s3_path}",
+        in_path=input_path,
+        out_path=output_path,
     )
-    logger.info(f"uploaded objects to s3  path:{s3_path}")
+    logger.info(f"uploaded objects to s3  path:{output_path}")
 
 
 def copy_files_from_s3(folder_path: str, s3_path: str, bucket_name: str, config: AppSettings) -> None:

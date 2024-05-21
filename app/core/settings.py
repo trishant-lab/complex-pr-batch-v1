@@ -58,15 +58,6 @@ class GrafanaSettings(BaseModel):
     alert_folder_uid: str = ""
 
 
-class ProductConfig(BaseModel):
-    """
-    Product Config
-    """
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = ""  # Domain name for the product e.g. int.veritable.app or jeeves.314ecorp.tech
-    grafana: GrafanaSettings = GrafanaSettings()
-
-
 class TemporalSettings(BaseModel):
     """Temporal Settings"""
 
@@ -107,6 +98,31 @@ class VeritableSettings(BaseModel):
     temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
 
 
+class JeevesSettings(BaseModel):
+    """
+    Jeeves Settings
+    """
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "jeeves.314ecorp.tech"
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
+    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
+    temporal_jeeves_postgres_setup_task_queue: str = "temporal_jeeves_postgres_setup_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = "jeeves.assistant@314ecorp.com"
+    novu_admin_password: str = ""
+
+    chatwoot_base_url: str = "https://jeeves-agent.314ecorp.tech/"
+    chatwoot_platform_api_token: str = ""
+    chatwoot_default_user_password: str = ""
+
+    keycloak_db_password: str = ""
+
+    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -117,6 +133,7 @@ class AppSettings(BaseSettings):
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
     veritable: VeritableSettings = VeritableSettings()
+    jeeves: JeevesSettings = JeevesSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3: S3Settings = S3Settings()
@@ -131,6 +148,8 @@ class AppSettings(BaseSettings):
 
     supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"
     supavisor_token: str = ""
+
+    cache_admin_password: str = ""
 
     model_config = ConfigDict(extra="ignore")
 
