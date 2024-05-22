@@ -1,0 +1,18 @@
+p, PUBLIC, /docs, GET
+p, PUBLIC, /docs/oauth2-redirect, GET
+p, PUBLIC, /favicon.ico, GET
+
+p, PUBLIC, /metrics, GET
+
+p, PUBLIC, /api/v1/openapi.json, GET
+
+p, ADMINS, /api/v1/product/listAllProducts, GET
+p, ADMINS, /api/v1/product/getProduct, GET
+
+p, ADMINS, /api/v1/onboarding, POST
+
+p, ADMINS, /api/v1/deprovisioning, GET
+
+
+g, ADMINS, Admin
+g, PUBLIC, NO_AUTH

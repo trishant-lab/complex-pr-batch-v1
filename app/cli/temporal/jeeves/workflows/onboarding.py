@@ -200,13 +200,13 @@ class JeevesOnboardingWorkflow(Workflow):
         )
 
         # Update Tenant Status
-        await workflow.execute_activity(
-            activity=UpdateTenantStatusActivity.defn,
-            arg=TenantStatus(
-                tenant_name=pydash.get(jeeves, 'tenant'),
-                status="completed"
-            ),
-            retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+        # await workflow.execute_activity(
+        #     activity=UpdateTenantStatusActivity.defn,
+        #     arg=TenantStatus(
+        #         tenant_name=pydash.get(jeeves, 'tenant'),
+        #         status="completed"
+        #     ),
+        #     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
+        #     start_to_close_timeout=timedelta(seconds=120),
+        # )
 

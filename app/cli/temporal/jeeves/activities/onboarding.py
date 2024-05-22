@@ -416,8 +416,8 @@ class GrafanaAlertsActivity(Activity):
         """
         # Todo: Implement this
         # Setup grafana alerts
-        # from app.cli.veritable.grafanaAlerts import create_grafana_alerts
-        # await create_grafana_alerts(veritable)
+        # from app.cli.jeeves.grafanaAlerts import create_grafana_alerts
+        # await create_grafana_alerts(jeeves)
 
 
 @dataclasses.dataclass

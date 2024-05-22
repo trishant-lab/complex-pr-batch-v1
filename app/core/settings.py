@@ -1,9 +1,10 @@
 import os
-from functools import partial
+from functools import partial, lru_cache
 from typing import Final
 
 import loguru
 import orjson
+import requests
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
@@ -16,7 +17,7 @@ class KeycloakSettings(BaseModel):
     Keycloak Settings
     """
 
-    realm: str = "onboarding"
+    realm: str = "launchpad"
 
     admin_realm: str = "master"
     admin_client_id: str = "admin-temporal"
@@ -24,8 +25,12 @@ class KeycloakSettings(BaseModel):
     password: str = ""
 
     client_id: str = "app"
-    client_secret: str = ""
     auth_url: str = "https://auth.314ecorp.tech"
+
+    @property
+    def wellknown_url(self: "KeycloakSettings") -> str:
+        """Returns keycloak well-known url"""
+        return f"{self.auth_url}/auth/realms/{self.realm}/.well-known/openid-configuration"
 
 
 class PostgresSettings(BaseModel):
@@ -63,7 +68,7 @@ class TemporalSettings(BaseModel):
 
     host: str = "localhost"
     port: str = "7233"
-    namespace: str = "onboarding"
+    namespace: str = "launchpad"
 
     @property
     def dsn(self: "TemporalSettings") -> str:
@@ -119,6 +124,7 @@ class JeevesSettings(BaseModel):
     chatwoot_default_user_password: str = ""
 
     keycloak_db_password: str = ""
+    matomo_db_password: str = ""
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
@@ -211,3 +217,12 @@ def get_settings():
 
     settings = default_settings.model_validate(default_settings_dict)
     return settings
+
+
+@lru_cache
+def get_security_config():
+    """
+    Returns keycloak endpoints
+    """
+    settings: AppSettings = get_settings()
+    return requests.get(settings.keycloak.wellknown_url).json()

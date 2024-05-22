@@ -1,5 +1,5 @@
 import orjson
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from loguru import logger
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException
@@ -8,6 +8,7 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERRO
 from app.cli.temporal.veritable.starter import trigger_veritable_onboarding_workflow
 from app.cli.temporal.jeeves.starter import trigger_jeeves_onboarding_workflow
 from ..core.db import DBManager, get_db_manager
+from ..core.oauth2 import get_oauth_scheme
 from ..core.settings import get_settings, AppSettings
 
 from ..models.product_schema import VeritableSchema, JeevesSchema
@@ -27,7 +28,7 @@ product_schema = {
 
 
 @onboarding_router.post("")
-async def onboarding(product: str, schema: dict):
+async def onboarding(product: str, schema: dict, _: dict = Depends(get_oauth_scheme())):
     """
     Trigger onboarding workflow for the given product
     """

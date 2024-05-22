@@ -68,3 +68,16 @@ class PostgresUtils:
                   f"(user 'keyclock_fdw', password '{keycloak_password}');",
         )
         logger.info(f"User mapping created successfully for user {username}")
+
+    async def grant_user_all_privileges_on_table(self: "PostgresUtils", username: str, table: str):
+        # Grant permissions
+        await self.db.execute_raw_sql(
+            query=f"GRANT ALL PRIVILEGES ON TABLE {table} TO {username};",
+        )
+
+    async def create_user_mapping_for_matomo(self, username, matomo_password):
+        await self.db.execute_raw_sql(
+            query=f"CREATE USER MAPPING IF NOT EXISTS FOR {username} SERVER matomo_server OPTIONS  "
+                  f"(username 'matomo_fdw', password '{matomo_password}');",
+        )
+        logger.info(f"User mapping created successfully for user {username}")

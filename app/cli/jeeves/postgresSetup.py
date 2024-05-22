@@ -59,6 +59,23 @@ async def setup_postgres(jeeves: JeevesSpec):
         await postgres_utils.create_user_mapping_for_keycloak(
             username=db_username, keycloak_password=jeeves_config.keycloak_db_password
         )
+
+        await postgres_utils.grant_user_all_privileges_on_table(table="user_entity", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="keycloak_role", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="user_role_mapping", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="realm", username=db_username)
+
+        await postgres_utils.create_user_mapping_for_matomo(
+            username=db_username, matomo_password=jeeves_config.matomo_db_password
+        )
+
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_visit", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_action", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_media", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(
+            table="matomo_log_link_visit_action", username=db_username
+        )
+
         return
     except Exception as e:
         logger.error(f"Error in postgres database setup: {e}")
