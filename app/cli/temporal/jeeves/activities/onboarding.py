@@ -294,8 +294,13 @@ class ProvisioningJobActivity(Activity):
         """
         # Check provisioning status
         from app.cli.jeeves.Job import AlembicJob, VespaJob
-        AlembicJob(jeeves=jeeves).put()
-        VespaJob(jeeves=jeeves).put()
+        alembic_job = AlembicJob(jeeves=jeeves)
+        alembic_job.delete()
+        alembic_job.put()
+
+        vespa_job = VespaJob(jeeves=jeeves)
+        vespa_job.delete()
+        vespa_job.put()
 
 
 class KubernetesServiceActivity(Activity):

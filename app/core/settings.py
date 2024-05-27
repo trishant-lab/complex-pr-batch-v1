@@ -145,7 +145,7 @@ class AppSettings(BaseSettings):
     s3: S3Settings = S3Settings()
 
     docker_image_pull_secret: str = ""
-    google_dns_cname: str = "k8s.31ecorp.tech"
+    google_dns_cname: str = "k8s.314ecorp.tech"
 
     sendgrid_api_key: str = ""
 

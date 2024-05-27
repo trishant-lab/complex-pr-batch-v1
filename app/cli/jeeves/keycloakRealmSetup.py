@@ -35,7 +35,7 @@ ROLES = [
 
 
 def create_keycloak_realm(
-        jeeves: JeevesSpec, config: AppSettings, tenant_url: str, keycloak_client: KeycloakAdminClient
+        jeeves: JeevesSpec, config: AppSettings, domain: str, keycloak_client: KeycloakAdminClient
 ):
     """
     Create keycloak realm
@@ -46,7 +46,7 @@ def create_keycloak_realm(
     realm_config = template.render(
         tenant=jeeves.tenant,
         sendgrid_api_key=config.sendgrid_api_key,
-        tenant_url=tenant_url,
+        domain=domain,
     )
 
     keycloak_client.refresh_token()
@@ -94,8 +94,7 @@ async def create_realm_and_users(jeeves: JeevesSpec):
     Create keycloak realm and users
     """
     environment: str = os.getenv("DEPLOYMENT", "integration").lower()
-    tenant_url = f"{jeeves.tenant}.jeeves.314ecorp.com" \
-        if environment == "production" else f"{jeeves.tenant}.jeeves.314ecorp.tech"
+    domain = "com" if environment == "production" else "tech"
 
     realm_name = f"{jeeves.tenant}"
 
@@ -105,7 +104,7 @@ async def create_realm_and_users(jeeves: JeevesSpec):
 
     # create realm
     create_keycloak_realm(
-        jeeves=jeeves, config=config, tenant_url=tenant_url, keycloak_client=keycloak_client
+        jeeves=jeeves, config=config, domain=domain, keycloak_client=keycloak_client
     )
 
     client_uuid = keycloak_client.get_client_id(client="jeeves", realm_name=realm_name)

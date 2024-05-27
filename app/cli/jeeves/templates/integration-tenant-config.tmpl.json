@@ -65,7 +65,7 @@
   "resemble_api_key": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/resemble_api_key{{ close_brackets }}",
   "chatwoot_base_url": "https://jeeves-agent.314ecorp.tech",
   "chatwoot_api_key": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/chatwoot_api_key{{ close_brackets }}",
-  "chatwoot_account_id": "1",
+  "chatwoot_account_id": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/chatwoot_account_id{{ close_brackets }}",
   "chatwoot_bot_token": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/chatwoot_bot_token{{ close_brackets }}",
   "livekit_url": "wss://jeeves-72g8zphp.livekit.cloud",
   "livekit_api_key": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/livekit_api_key{{ close_brackets }}",

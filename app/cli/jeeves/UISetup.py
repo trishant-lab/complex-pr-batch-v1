@@ -106,3 +106,9 @@ class UISetup:
         Delete UI bundle from S3
         """
         delete_ui_bundle(jeeves=self.jeeves)
+
+
+if __name__ == "__main__":
+    jeeves_ = JeevesSpec(tenant="test9")
+    ui_setup = UISetup(jeeves=jeeves_)
+    ui_setup.deploy()

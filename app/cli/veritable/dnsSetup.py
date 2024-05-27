@@ -18,7 +18,7 @@ async def dns_setup(veritable: VeritableSpec):
     google_dns.create_dns()
 
     # check dns propagation
-    await google_dns.check_dns_propagation_cf()
+    await google_dns.check_dns_propagation()
 
 
 async def dns_teardown(tenant_name: str):

@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -6,7 +5,6 @@ import boto3
 from botocore.client import BaseClient
 from botocore.exceptions import ClientError
 from loguru import logger
-from opendal import AsyncOperator
 from rclone_python import rclone
 from rclone_python.remote_types import RemoteTypes
 

@@ -31,6 +31,6 @@ class JeevesSpec(IODataclass):
     JeevesSpec dataclass
     """
     tenant: str
-    customerDetails: None | CustomerDetails
-    serverSpec: None | ResourceSpec
-    cliSpec: None | ResourceSpec
+    customerDetails: None | CustomerDetails = None
+    serverSpec: None | ResourceSpec = None
+    cliSpec: None | ResourceSpec = None

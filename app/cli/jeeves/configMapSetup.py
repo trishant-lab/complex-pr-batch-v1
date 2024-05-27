@@ -33,7 +33,8 @@ class ConfigMapClass(K8sResourceBaseClass):
     def __init__(self, jeeves: JeevesSpec, config_map: dict[str, str]) -> None:
         self.jeeves: JeevesSpec = jeeves
         self.config_map: dict[str, str] = config_map
-        self.env: str = get_settings().env
+        self.config_ = get_settings()
+        self.env: str = self.config_.env
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1"
@@ -53,6 +54,7 @@ class ConfigMapClass(K8sResourceBaseClass):
         template = template_env.get_template(template_file_name)
         output = template.render(
             tenant=self.jeeves.tenant,
+            redis_admin_password=self.config_.cache_admin_password,
         )
 
         with TemporaryDirectory() as temp_dir:
@@ -89,4 +91,3 @@ class ConfigMapClass(K8sResourceBaseClass):
             name=self.config_map['name'],
             namespace=self.jeeves.tenant
         )
-

@@ -1,4 +1,4 @@
-FROM python:3.11.4-slim
+FROM python:3.11.7
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -13,8 +13,13 @@ RUN cp /rclone-v1.61.1-linux-amd64/rclone /usr/bin/
 RUN chown root:root /usr/bin/rclone
 RUN chmod 755 /usr/bin/rclone
 
-RUN apt-get install --no-install-recommends -y vector && \
-  apt-get clean
+RUN curl -1sLf 'https://setup.vector.dev' | bash
+RUN apt-get install --no-install-recommends -y vector && apt-get clean
+
+RUN curl -o op.zip https://cache.agilebits.com/dist/1P/op2/pkg/v2.29.0/op_linux_amd64_v2.29.0.zip && \
+  unzip -d op op.zip && \
+  mv op/op /usr/local/bin/ && \
+  rm -rf op.zip op
 
 RUN wget -P /tmp \
   https://github.com/just-containers/s6-overlay/releases/download/v2.2.0.3/s6-overlay-amd64.tar.gz && \
