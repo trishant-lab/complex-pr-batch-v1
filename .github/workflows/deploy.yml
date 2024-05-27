@@ -1,11 +1,7 @@
 name: "Deploy Launchpad App"
 
 on:
-  workflow_run:
-    workflows: [ "Build Launchpad App" ]
-    branches: [ "sprint" ]
-    types:
-      - completed
+    workflow_dispatch:
 
 jobs:
   deploy:
