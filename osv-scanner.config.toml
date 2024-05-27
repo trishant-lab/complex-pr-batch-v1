@@ -1,0 +1,7 @@
+[[IgnoredVulns]]
+id = "GHSA-6c5p-j8vq-pqhj"
+reason = "Dependency is not directly used in the project"
+
+[[IgnoredVulns]]
+id = "GHSA-cjwg-qfpm-7377"
+reason = "Dependency is not directly used in the project"

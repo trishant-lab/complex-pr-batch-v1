@@ -1,14 +1,12 @@
 from kubernetes import client as k8s_client
-from kubernetes.client import V1EnvVar, V1EnvVarSource, V1SecretKeySelector
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.common import OnepasswordItemName, OnepasswordVaultName, ProductName
+from app.cli.veritable.common import ProductName
 from app.cli.veritable.common import VeritableSpec
 from app.core.settings import get_settings
-from app.onepasswordutil import OnePasswordUtil
 
 
 class DeploymentServer(K8sResourceBaseClass):
@@ -25,9 +23,6 @@ class DeploymentServer(K8sResourceBaseClass):
 
         self.postgres_user = f"veritable_{veritable.tenant}"
         self.env: str = get_settings().env
-
-        # Todo change it to get kube secret
-        self.postgres_password = "veritable"
 
     def payload(self):
         body = k8s_client.V1Deployment(
@@ -99,7 +94,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="POSTGRES__USER",
-                                        value=self.postgres_password
+                                        value=self.postgres_user
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="RELEASE_VERSION",

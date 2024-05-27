@@ -50,6 +50,8 @@ class VeritableOnboardingWorkflow(Workflow):
         Entry point for workflow
         """
 
+        # todo vaildate customer id
+
         # postgres database setup
         try:
             await workflow.execute_activity(

@@ -1,4 +1,4 @@
-FROM registry.314ecorp.tech/onboarding-app-base as requirements-stage
+FROM registry.314ecorp.tech/launchpad-app-base as requirements-stage
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -6,12 +6,12 @@ WORKDIR /tmp
 
 COPY pyproject.toml poetry.lock /tmp/
 
-RUN pip install --upgrade pip && \
-  pip install -U poetry==1.8.2 setuptools && \
-  poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev && \
-  poetry export -f requirements.txt --output dev_requirements.txt --without-hashes --with dev
+RUN pip install --upgrade pip
+RUN pip install -U poetry==1.8.2 setuptools poetry-plugin-export
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev
+RUN poetry export -f requirements.txt --output dev_requirements.txt --without-hashes --with dev
 
-FROM registry.314ecorp.tech/onboarding-app-base
+FROM registry.314ecorp.tech/launchpad-app-base
 
 ENV DEBIAN_FRONTEND noninteractive
 

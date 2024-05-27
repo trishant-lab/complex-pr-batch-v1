@@ -25,3 +25,22 @@ class VeritableSchema(BaseModel):
     customerDetails: None | CustomerDetails = None
     serverSpec: VeritableResourceModel = VeritableResourceModel()
     cliSpec: VeritableResourceModel = VeritableResourceModel()
+
+
+class JeevesResourceModel(BaseModel):
+    request_cpu: str = "500m"
+    request_memory: str = "500Mi"
+    limit_cpu: str = "3000m"
+    limit_memory: str = "3000Mi"
+
+
+class JeevesCustomerDetails(BaseModel):
+    customerUserName: str
+    customerEmail: str
+
+
+class JeevesSchema(BaseModel):
+    tenant: str
+    customerDetails: None | JeevesCustomerDetails = None
+    serverSpec: JeevesResourceModel = JeevesResourceModel()
+    cliSpec: JeevesResourceModel = JeevesResourceModel()

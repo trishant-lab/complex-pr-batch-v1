@@ -65,7 +65,7 @@ class OnePasswordUtil:
         if process.returncode != 0:
             output = f"Error: {stderr.decode()}"
             logger.error(output)
-            raise Exception(output)
+            return None
 
         return stdout.decode().strip()
 

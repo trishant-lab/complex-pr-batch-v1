@@ -113,5 +113,5 @@ class IstioVirtualService(K8sResourceBaseClass):
                 name=f"{ProductName}-vs",
                 namespace=self.veritable.tenant
             )
-        except NotFoundError as e:
+        except NotFoundError:
             logger.error(f"VirtualService {ProductName}-vs not found in namespace {self.veritable.tenant}")

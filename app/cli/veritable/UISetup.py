@@ -51,10 +51,9 @@ def deploy_ui(veritable: VeritableSpec):
 
             # Upload the files to S3
             copy_files_to_s3(
-                folder_path=os.path.join(tmp_dir, "bundle", "dist"),
-                s3_path=dest_dir,
+                input_path=os.path.join(tmp_dir, "bundle", "dist"),
+                output_path=f"{config.s3.rclone_remote}:static/{dest_dir}",
                 config=config,
-                bucket_name="static",
             )
 
     except Exception as e:

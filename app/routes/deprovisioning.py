@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from ..cli.temporal.veritable.starter import trigger_veritable_de_provisioning_workflow
+from ..core.oauth2 import get_oauth_scheme
 
 de_provisioning_router = APIRouter()
 
@@ -11,11 +12,11 @@ de_provisioning_trigger_functions = {
 
 
 @de_provisioning_router.post(
-    "/deprovision",
+    "",
     operation_id="deprovisionTenant",
     summary="Deprovision tenant",
 )
-async def deprovision_tenant(product: str, tenant: str):
+async def de_provision_tenant(product: str, tenant: str, _: dict = Depends(get_oauth_scheme())):
     """
     Deprovision tenant
     """

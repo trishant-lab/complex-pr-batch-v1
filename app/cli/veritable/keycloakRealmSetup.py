@@ -2,15 +2,12 @@ import os
 
 import jinja2
 import orjson
-from loguru import logger
 
-from app.cli.veritable import TemplatePath
-from app.common import generate_password
-from app.core.settings import AppSettings, get_settings, ProductConfig, KeycloakSettings
-from app.onepasswordutil import OnePasswordUtil
-from app.template_env import get_env
 from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
-from app.cli.veritable.common import VeritableSpec, ProductName, OnepasswordVaultName
+from app.cli.veritable import TemplatePath
+from app.cli.veritable.common import VeritableSpec
+from app.core.settings import AppSettings, get_settings
+from app.template_env import get_env
 
 
 def create_keycloak_realm(

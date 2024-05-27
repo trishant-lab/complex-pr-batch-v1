@@ -1,4 +1,4 @@
-name: "Build Onboarding App"
+name: "Build Launchpad App"
 
 on:
   workflow_dispatch:
@@ -25,5 +25,5 @@ jobs:
 
       - name: Push the Docker image
         run: |
-          docker push registry.314ecorp.tech/onboarding-app
+          docker push registry.314ecorp.tech/launchpad-app
           docker image prune -f

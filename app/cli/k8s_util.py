@@ -15,7 +15,9 @@ class ResourceKindEnum(Enum):
     Deployment = "Deployment"
     VirtualService = "VirtualService"
     PersistentVolumeClaim = "PersistentVolumeClaim"
+    PersistentVolume = "PersistentVolume"
     VMPodScrape = "VMPodScrape"
+    StatefulSet = "StatefulSet"
 
 
 @lru_cache

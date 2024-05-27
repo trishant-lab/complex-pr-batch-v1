@@ -37,9 +37,9 @@ class GoogleDNS:
         except Conflict:
             logger.info(f"DNS record Already Present: {self.fqdn}")
 
-    async def check_dns_propagation_cf(self):
+    async def check_dns_propagation(self):
         """
-        Check DNS propagation using Cloudflare DNS
+        Check DNS propagation using Socket
         :return:
         """
         count = 0

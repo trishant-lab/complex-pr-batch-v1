@@ -1,9 +1,10 @@
 import os
-from functools import partial
+from functools import partial, lru_cache
 from typing import Final
 
 import loguru
 import orjson
+import requests
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
@@ -16,7 +17,7 @@ class KeycloakSettings(BaseModel):
     Keycloak Settings
     """
 
-    realm: str = "onboarding"
+    realm: str = "launchpad"
 
     admin_realm: str = "master"
     admin_client_id: str = "admin-temporal"
@@ -24,8 +25,12 @@ class KeycloakSettings(BaseModel):
     password: str = ""
 
     client_id: str = "app"
-    client_secret: str = ""
     auth_url: str = "https://auth.314ecorp.tech"
+
+    @property
+    def wellknown_url(self: "KeycloakSettings") -> str:
+        """Returns keycloak well-known url"""
+        return f"{self.auth_url}/auth/realms/{self.realm}/.well-known/openid-configuration"
 
 
 class PostgresSettings(BaseModel):
@@ -58,21 +63,12 @@ class GrafanaSettings(BaseModel):
     alert_folder_uid: str = ""
 
 
-class ProductConfig(BaseModel):
-    """
-    Product Config
-    """
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = ""  # Domain name for the product e.g. int.veritable.app or jeeves.314ecorp.tech
-    grafana: GrafanaSettings = GrafanaSettings()
-
-
 class TemporalSettings(BaseModel):
     """Temporal Settings"""
 
     host: str = "localhost"
     port: str = "7233"
-    namespace: str = "onboarding"
+    namespace: str = "launchpad"
 
     @property
     def dsn(self: "TemporalSettings") -> str:
@@ -107,6 +103,32 @@ class VeritableSettings(BaseModel):
     temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
 
 
+class JeevesSettings(BaseModel):
+    """
+    Jeeves Settings
+    """
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "jeeves.314ecorp.tech"
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
+    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
+    temporal_jeeves_postgres_setup_task_queue: str = "temporal_jeeves_postgres_setup_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = "jeeves.assistant@314ecorp.com"
+    novu_admin_password: str = ""
+
+    chatwoot_base_url: str = "https://jeeves-agent.314ecorp.tech/"
+    chatwoot_platform_api_token: str = ""
+    chatwoot_default_user_password: str = ""
+
+    keycloak_db_password: str = ""
+    matomo_db_password: str = ""
+
+    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -117,12 +139,13 @@ class AppSettings(BaseSettings):
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
     veritable: VeritableSettings = VeritableSettings()
+    jeeves: JeevesSettings = JeevesSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3: S3Settings = S3Settings()
 
     docker_image_pull_secret: str = ""
-    google_dns_cname: str = "k8s.31ecorp.tech"
+    google_dns_cname: str = "k8s.314ecorp.tech"
 
     sendgrid_api_key: str = ""
 
@@ -131,6 +154,8 @@ class AppSettings(BaseSettings):
 
     supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"
     supavisor_token: str = ""
+
+    cache_admin_password: str = ""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -192,3 +217,12 @@ def get_settings():
 
     settings = default_settings.model_validate(default_settings_dict)
     return settings
+
+
+@lru_cache
+def get_security_config():
+    """
+    Returns keycloak endpoints
+    """
+    settings: AppSettings = get_settings()
+    return requests.get(settings.keycloak.wellknown_url).json()

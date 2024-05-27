@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv bash
+set -e
+if [[ "$IS_CLI" == "TRUE" ]]; then
+    mkdir -p /var/log/supervisord/
+    echo "Presets complete. Starting celery supervisord in $DEPLOYMENT"
+    supervisord -c /etc/services.d/launchpadcli/supervisord.conf
+fi

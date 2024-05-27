@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv bash
+set -e
+
+if [[ "$IS_CLI" == "TRUE" ]]; then
+    echo "starting vector"
+    vector -q --config /vector/*.toml
+fi
