@@ -21,9 +21,9 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker build . --file Dockerfile
+          docker build . --file Dockerfile --tag registry.314ecorp.tech/launchpad-app:${{ github.ref_name }}
 
       - name: Push the Docker image
         run: |
-          docker push registry.314ecorp.tech/launchpad-app
+          docker push registry.314ecorp.tech/launchpad-app:${{ github.ref_name }}
           docker image prune -f
