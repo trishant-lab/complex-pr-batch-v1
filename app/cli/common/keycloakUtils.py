@@ -47,7 +47,7 @@ class KeycloakAdminClient:
         """
         try:
             self.kc_client.connection.refresh_token()
-            self.kc_client.create_realm(payload=realm_config)
+            self.kc_client.create_realm(payload=realm_config, skip_exists=True)
         except Exception as e:
             logger.error(f"Error creating realm: {e}")
             raise
