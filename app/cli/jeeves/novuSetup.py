@@ -3,7 +3,6 @@ from loguru import logger
 from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi
 from novu.dto import IntegrationDto
 
-from app.cli.jeeves import TemplatePath
 from app.cli.jeeves.common import JeevesSpec
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
@@ -189,7 +188,7 @@ def list_novu_notification_template(
     """
     :return:
     """
-    novu_client = NotificationTemplateApi(url=config.novu_url, api_key=novu_api_key)
+    novu_client = NotificationTemplateApi(url=config.jeeves.novu_url, api_key=novu_api_key)
     response = novu_client.list(page=page, limit=limit)
     template_names: list = [template.to_camel_case().get("name", "")for template in response.data if response]
     return template_names
@@ -503,7 +502,7 @@ def list_integration_provider(config: AppSettings, novu_api_key: str) -> list:
     """
     :return:
     """
-    novu_client = IntegrationApi(url=config.novu_url, api_key=novu_api_key)
+    novu_client = IntegrationApi(url=config.jeeves.novu_url, api_key=novu_api_key)
     response = novu_client.list()
     return [
         {
