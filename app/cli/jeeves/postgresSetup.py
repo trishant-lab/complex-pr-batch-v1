@@ -76,6 +76,13 @@ async def setup_postgres(jeeves: JeevesSpec):
             table="matomo_log_link_visit_action", username=db_username
         )
 
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_visit_view", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_action_view", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_media_view", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(
+            table="matomo_log_link_visit_action_view", username=db_username
+        )
+
         return
     except Exception as e:
         logger.error(f"Error in postgres database setup: {e}")
