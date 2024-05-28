@@ -874,9 +874,7 @@
         "token.response.type.bearer.lower-case": "false",
         "dpop.bound.access.tokens": "false"
       },
-      "authenticationFlowBindingOverrides": {
-        "browser": "3ebd2811-049f-4ba4-b342-d6cd41a33de4"
-      },
+      "authenticationFlowBindingOverrides": {},
       "fullScopeAllowed": true,
       "nodeReRegistrationTimeout": -1,
       "protocolMappers": [
@@ -1786,7 +1784,6 @@
     {
       "alias": "jeevesappsmartonfhir",
       "displayName": "Smart on Fhir Non Prod",
-      "internalId": "8a4c3eac-efcb-42bf-8127-cf19863d83ba",
       "providerId": "oidc",
       "enabled": true,
       "updateProfileFirstLoginMode": "on",
@@ -1823,7 +1820,6 @@
     {
       "alias": "jeevesappsmartonfhirprod",
       "displayName": "Smart on Fhir prod",
-      "internalId": "5ae795b7-d6f4-4008-ba5e-4e7b566aff68",
       "providerId": "oidc",
       "enabled": true,
       "updateProfileFirstLoginMode": "on",
@@ -1860,7 +1856,6 @@
     {
       "alias": "ehrsimulatorapp",
       "displayName": "EHR Simulator APP",
-      "internalId": "8a2c2a73-720e-473e-9a15-1e74de38f6ca",
       "providerId": "oidc",
       "enabled": true,
       "updateProfileFirstLoginMode": "on",
