@@ -1748,7 +1748,6 @@
     {
       "alias": "cernernonprod",
       "displayName": "",
-      "internalId": "5097f00c-8ed4-4727-95b0-1e527ee05c92",
       "providerId": "oidc",
       "enabled": true,
       "updateProfileFirstLoginMode": "on",
