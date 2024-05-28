@@ -14,6 +14,9 @@ async def jeeves_onboarding_worker():
     """
     config: AppSettings = get_settings()
 
+    logger.info(f"Connecting to Temporal... {config.temporal.dsn}")
+    logger.info(f"Namespace: {config.temporal.namespace}")
+
     client = await Client.connect(config.temporal.dsn, namespace=config.temporal.namespace)
 
     logger.info("Starting jeeves onboarding worker...")

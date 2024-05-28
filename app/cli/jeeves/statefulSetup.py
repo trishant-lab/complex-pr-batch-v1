@@ -1,3 +1,4 @@
+import asyncio
 import base64
 
 from kubernetes.client import (
@@ -26,7 +27,7 @@ def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
 
     resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1")
     secret = base64.b64decode(
-        k8s_dynamic_client.get(resource, namespace="test9", name="cache-secret").data.get("REDIS_PASSWORD")
+        k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
     ).decode()
 
     redis = Redis(host=redis_host, port=redis_port, password=secret)
@@ -43,6 +44,27 @@ def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
         server_item="application-config",
         vault="Jeeves",
     ).create_or_replace(key="redis_password", value=redis_tenant_password)
+
+
+def delete_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
+    """
+    """
+    redis_host = CACHE_HOST.format(tenant=jeeves.tenant)
+    redis_port = 6379
+
+    resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1")
+    secret = base64.b64decode(
+        k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
+    ).decode()
+
+    redis = Redis(host=redis_host, port=redis_port, password=secret)
+
+    response = redis.execute_command("namespace", "GET", ProductName)
+
+    if response:
+        redis.execute_command("namespace", "DEL", ProductName)
+    else:
+        logger.info(f"Namespace {ProductName} not found in redis")
 
 
 class RedisService(K8sResourceBaseClass):
@@ -89,14 +111,8 @@ class RedisService(K8sResourceBaseClass):
         )
 
     def delete(self):
-        try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name=ProductName,
-                namespace=self.jeeves.tenant
-            )
-        except NotFoundError as e:
-            logger.error(f"Service {ProductName} not found in namespace {self.jeeves.tenant}")
+        # Don't delete Service
+        pass
 
 
 class StateFullSet(K8sResourceBaseClass):
@@ -163,17 +179,11 @@ class StateFullSet(K8sResourceBaseClass):
             field_manager="kubectl-client-side-apply"
         )
         RedisService(self.jeeves).put()
-        # await asyncio.sleep(30)
-        # create_product_namespace(self.jeeves, self.k8s_dynamic_client)
+        await asyncio.sleep(30)
+        create_product_namespace(self.jeeves, self.k8s_dynamic_client)
 
     def delete(self):
         """
-        Don't delete StatefulSet
+        Don't delete StatefulSet, delete the namespace instead
         """
-        pass
-
-
-if __name__ == "__main__":
-    import asyncio
-    jeeves = JeevesSpec(tenant="test9")
-    asyncio.run(StateFullSet(jeeves).put())
+        delete_product_namespace(self.jeeves, self.k8s_dynamic_client)

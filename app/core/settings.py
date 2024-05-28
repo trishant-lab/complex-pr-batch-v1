@@ -113,7 +113,6 @@ class JeevesSettings(BaseModel):
 
     temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
     temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
-    temporal_jeeves_postgres_setup_task_queue: str = "temporal_jeeves_postgres_setup_task_queue"
 
     novu_url: str = "https://alerting.314ecorp.tech"
     novu_admin_user: str = "jeeves.assistant@314ecorp.com"
@@ -188,13 +187,13 @@ def get_settings():
     """
     deployment: str = os.getenv("DEPLOYMENT", "integration").lower()
     config_dir = os.getenv("APP_CONFIG_DIR", "/")
-    config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES]
+    # config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES]
     default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
-    if len(config_files) != len(CONFIG_FILE_NAMES):
-        loguru.logger.info(
-            f"found inadequate config files - {orjson.dumps(config_files)}, returning default settings!",
-        )
-        return default_settings
+    # if len(config_files) != len(CONFIG_FILE_NAMES):
+    #     loguru.logger.info(
+    #         f"found inadequate config files - {orjson.dumps(config_files)}, returning default settings!",
+    #     )
+    #     return default_settings
 
     combined_config = dict()
     for file in CONFIG_FILE_NAMES:

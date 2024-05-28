@@ -3,7 +3,7 @@ name: "Build Launchpad App"
 on:
   workflow_dispatch:
   push:
-    branches: ["sprint", "production"]
+    branches: ["sprint", "production", "development"]
     paths-ignore:
         - ".github/workflows/**"
 

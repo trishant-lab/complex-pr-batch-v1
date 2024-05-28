@@ -35,6 +35,7 @@ pyjwt = "^2.8.0"
 casbin = "^1.36.1"
 httpx = "^0.27.0"
 aiohttp = "^3.9.5"
+gunicorn = "^22.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.3"
