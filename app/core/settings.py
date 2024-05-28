@@ -113,7 +113,6 @@ class JeevesSettings(BaseModel):
 
     temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
     temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
-    temporal_jeeves_postgres_setup_task_queue: str = "temporal_jeeves_postgres_setup_task_queue"
 
     novu_url: str = "https://alerting.314ecorp.tech"
     novu_admin_user: str = "jeeves.assistant@314ecorp.com"

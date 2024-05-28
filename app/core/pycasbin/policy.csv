@@ -11,7 +11,7 @@ p, ADMINS, /api/v1/product/getProduct, GET
 
 p, ADMINS, /api/v1/onboarding, POST
 
-p, ADMINS, /api/v1/deprovisioning, GET
+p, ADMINS, /api/v1/deprovisioning, POST
 
 
 g, ADMINS, Admin

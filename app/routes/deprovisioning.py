@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from ..cli.temporal.veritable.starter import trigger_veritable_de_provisioning_workflow
+from ..cli.temporal.jeeves.starter import trigger_jeeves_de_provisioning_workflow
 from ..core.oauth2 import get_oauth_scheme
 
 de_provisioning_router = APIRouter()
@@ -7,7 +8,7 @@ de_provisioning_router = APIRouter()
 
 de_provisioning_trigger_functions = {
     "veritable": trigger_veritable_de_provisioning_workflow,
-    "jeeves": None
+    "jeeves": trigger_jeeves_de_provisioning_workflow
 }
 
 

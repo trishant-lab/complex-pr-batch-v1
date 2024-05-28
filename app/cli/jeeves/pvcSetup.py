@@ -1,5 +1,7 @@
 from kubernetes.client import V1ObjectMeta, V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec, \
     V1ResourceRequirements
+from kubernetes.dynamic.exceptions import NotFoundError
+from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
@@ -47,8 +49,11 @@ class PVC(K8sResourceBaseClass):
         )
 
     def delete(self):
-        self.k8s_dynamic_client.delete(
-            resource=self.resource,
-            name=self.pvc_name,
-            namespace=self.jeeves.tenant
-        )
+        try:
+            self.k8s_dynamic_client.delete(
+                resource=self.resource,
+                name=self.pvc_name,
+                namespace=self.jeeves.tenant
+            )
+        except NotFoundError:
+            logger.error(f"PVC {self.pvc_name} not found in namespace {self.jeeves.tenant}")
