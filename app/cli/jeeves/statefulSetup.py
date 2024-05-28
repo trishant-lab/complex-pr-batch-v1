@@ -5,7 +5,6 @@ from kubernetes.client import (
     V1StatefulSet, V1ObjectMeta, V1StatefulSetSpec, V1PodTemplateSpec, V1PodSpec, V1LocalObjectReference, V1Container,
     V1ContainerPort, V1EnvVar, V1EnvVarSource, V1SecretKeySelector, V1Service, V1ServiceSpec, V1ServicePort
 )
-from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 from redis import Redis
 
@@ -40,7 +39,7 @@ def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
         redis.execute_command("namespace", "ADD", ProductName, redis_tenant_password)
 
     OnePasswordUtil(
-        tenant=jeeves.tenant,
+        tenant=f"JEEVES_{jeeves.tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).create_or_replace(key="redis_password", value=redis_tenant_password)
