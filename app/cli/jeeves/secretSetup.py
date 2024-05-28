@@ -3,7 +3,6 @@ from kubernetes.client import V1ObjectMeta, V1Secret
 from app.cli.jeeves.common import JeevesSpec
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.core.settings import AppSettings, get_settings
 
 
 class Secret(K8sResourceBaseClass):
@@ -36,7 +35,6 @@ class Secret(K8sResourceBaseClass):
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1"
         )
-        self.config: AppSettings = get_settings()
 
     def payload(self):
         body: V1Secret = V1Secret(
