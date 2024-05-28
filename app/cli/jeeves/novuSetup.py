@@ -203,7 +203,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     :return:
     """
 
-    template_names: list = list_novu_notification_template(config=config)
+    template_names: list = list_novu_notification_template(config=config, novu_api_key=novu_api_key)
 
     # jeeves-assignment-created
     if "jeeves-assignment-created" in template_names:
