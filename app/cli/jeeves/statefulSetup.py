@@ -25,7 +25,10 @@ def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
     redis_tenant_password = generate_password(20)
 
     resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1")
-    secret = k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
+
+    secret = base64.b64decode(
+        k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
+    ).decode()
 
     redis = Redis(host=redis_host, port=redis_port, password=secret)
 
@@ -50,7 +53,10 @@ def delete_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
     redis_port = 6379
 
     resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1")
-    secret = k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
+
+    secret = base64.b64decode(
+        k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
+    ).decode()
 
     redis = Redis(host=redis_host, port=redis_port, password=secret)
 
