@@ -33,6 +33,7 @@ origins: list = [
     "http://localhost:3000",
     config.keycloak.auth_url,
     "https://api-definitions.314ecorp.tech",
+    "https://softwareartistry.github.io",
     "https://launchpad.314ecorp.tech",
 ]
 
