@@ -11,7 +11,7 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     PostgresSetupActivity, NamespaceSetupActivity, ConfigmapSetupActivity, PVCSetupActivity, SecretSetupActivity,
     StateFullSetSetupActivity, DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, NovuSetupActivity,
     ChatwootSetupActivity, ProvisioningJobActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity,
-    DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity, UpdateTenantStatusActivity, TenantStatus,
+    DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
     AiVoiceSetupActivity, TemporalNamespaceCreationActivity
 )
 
@@ -33,7 +33,7 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakRealmSetupActivity.defn, NovuSetupActivity.defn, ChatwootSetupActivity.defn,
             ProvisioningJobActivity.defn, KubernetesServiceActivity.defn, KubernetesVirtualServiceActivity.defn,
             DeploymentActivity.defn, VmPodScraperActivity.defn, GrafanaAlertsActivity.defn,
-            UpdateTenantStatusActivity.defn, AiVoiceSetupActivity.defn, TemporalNamespaceCreationActivity.defn
+            AiVoiceSetupActivity.defn, TemporalNamespaceCreationActivity.defn
         ]
 
     @classmethod

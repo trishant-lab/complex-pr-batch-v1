@@ -6,7 +6,9 @@ from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
 from app.cli.jeeves.jeeves import JeevesSpec
-from app.models.tenant import TenantStatusEnum
+
+
+# from app.models.tenant import TenantStatusEnum
 
 
 class PostgresSetupActivity(Activity):
@@ -426,44 +428,44 @@ class GrafanaAlertsActivity(Activity):
         # await create_grafana_alerts(jeeves)
 
 
-@dataclasses.dataclass
-class TenantStatus:
-    """
-    TenantStatus dataclass
-    """
-    tenant_name: str
-    status: TenantStatusEnum
-    error_msg: None | str = None
+# @dataclasses.dataclass
+# class TenantStatus:
+#     """
+#     TenantStatus dataclass
+#     """
+#     tenant_name: str
+#     status: TenantStatusEnum
+#     error_msg: None | str = None
 
 
-class UpdateTenantStatusActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
-
-    @staticmethod
-    @activity.defn(name="UpdateTenantStatusActivity")
-    async def defn(activity_input: TenantStatus):
-        """
-        Callable for the activity
-        """
-        # Update tenant status
-        from app.cli.common.tenantStatus import update_tenant_status
-        from app.cli.jeeves.jeeves import ProductName
-        await update_tenant_status(
-            tenant_name=activity_input.tenant_name,
-            product=ProductName,
-            status=activity_input.status,
-            error_message=activity_input.error_msg
-        )
+# class UpdateTenantStatusActivity(Activity):
+#     @staticmethod
+#     def get_retry_policy() -> RetryPolicy:
+#         """
+#         RetryPolicy for the activity
+#         """
+#         return RetryPolicy(
+#             initial_interval=timedelta(seconds=1),
+#             backoff_coefficient=2,
+#             maximum_interval=timedelta(seconds=10),
+#             maximum_attempts=1,
+#         )
+#
+#     @staticmethod
+#     @activity.defn(name="UpdateTenantStatusActivity")
+#     async def defn(activity_input: TenantStatus):
+#         """
+#         Callable for the activity
+#         """
+#         # Update tenant status
+#         from app.cli.common.tenantStatus import update_tenant_status
+#         from app.cli.jeeves.jeeves import ProductName
+#         await update_tenant_status(
+#             tenant_name=activity_input.tenant_name,
+#             product=ProductName,
+#             status=activity_input.status,
+#             error_message=activity_input.error_msg
+#         )
 
 
 class ChatwootSetupActivity(Activity):
