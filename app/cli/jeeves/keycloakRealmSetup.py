@@ -5,7 +5,7 @@ import orjson
 
 from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.jeeves import TemplatePath
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 from app.core.settings import AppSettings, get_settings
 from app.template_env import get_env
 
@@ -60,8 +60,8 @@ def create_tenant_customer_admin_user(
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_tenant_customer_admin.json")
     user_config = template.render(
-        username=jeeves.customerDetails.customerUserName,
-        email=jeeves.customerDetails.customerEmail,
+        username=jeeves.customerDetails.userName,
+        email=jeeves.customerDetails.email,
     )
     keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
@@ -71,7 +71,7 @@ def create_tenant_customer_admin_user(
     keycloak_client.assign_client_role(
         client_id=client_uuid,
         user_id=keycloak_client.get_user_id(
-            username=jeeves.customerDetails.customerUserName, realm_name=realm_name
+            username=jeeves.customerDetails.userName, realm_name=realm_name
         ),
         roles=roles,
         realm_name=realm_name,

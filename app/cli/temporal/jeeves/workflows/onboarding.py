@@ -1,10 +1,10 @@
 from datetime import timedelta
 from typing import Callable
 
-import pydash
+
 from temporalio import workflow
 
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.base import Workflow
 
 from app.cli.temporal.jeeves.activities.onboarding import (
@@ -204,7 +204,7 @@ class JeevesOnboardingWorkflow(Workflow):
         #     activity=UpdateTenantStatusActivity.defn,
         #     arg=TenantStatus(
         #         tenant_name=pydash.get(jeeves, 'tenant'),
-        #         status="completed"
+        #         status=TenantStatusEnum.Completed
         #     ),
         #     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
         #     start_to_close_timeout=timedelta(seconds=120),

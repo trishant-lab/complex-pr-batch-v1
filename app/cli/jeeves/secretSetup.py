@@ -1,6 +1,6 @@
 from kubernetes.client import V1ObjectMeta, V1Secret
 
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 

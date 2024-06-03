@@ -5,7 +5,8 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
+from app.models.tenant import TenantStatusEnum
 
 
 class PostgresSetupActivity(Activity):
@@ -431,7 +432,7 @@ class TenantStatus:
     TenantStatus dataclass
     """
     tenant_name: str
-    status: str
+    status: TenantStatusEnum
     error_msg: None | str = None
 
 
@@ -456,7 +457,7 @@ class UpdateTenantStatusActivity(Activity):
         """
         # Update tenant status
         from app.cli.common.tenantStatus import update_tenant_status
-        from app.cli.jeeves.common import ProductName
+        from app.cli.jeeves.jeeves import ProductName
         await update_tenant_status(
             tenant_name=activity_input.tenant_name,
             product=ProductName,

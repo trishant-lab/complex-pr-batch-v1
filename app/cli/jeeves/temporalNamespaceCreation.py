@@ -4,7 +4,7 @@ from temporalio import client
 from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
 from temporalio.service import RPCError, RPCStatusCode
 
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 from app.core.settings import AppSettings, get_settings
 
 

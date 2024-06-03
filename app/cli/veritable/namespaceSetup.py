@@ -2,7 +2,7 @@ from kubernetes.client import V1Namespace, V1ObjectMeta
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 
 class Namespace(K8sResourceBaseClass):

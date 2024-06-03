@@ -9,7 +9,7 @@ from app.cli.temporal.jeeves.activities.deprovisioning import (
     DeleteDeploymentActivity, DeleteConfigMapActivity, DeletePVCActivity, DropUIBundlesActivity, DeleteDNSActivity,
     DeleteVMScraperActivity
 )
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger

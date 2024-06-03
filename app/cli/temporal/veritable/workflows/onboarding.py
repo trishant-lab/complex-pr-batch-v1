@@ -11,7 +11,8 @@ from app.cli.temporal.veritable.activities.onboarding import (
     KubernetesVirtualServiceActivity, DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
     UpdateTenantStatusActivity, TenantStatus, FernetKeyGenerationActivity
 )
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.models.tenant import TenantStatusEnum
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger
@@ -177,7 +178,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
                     tenant_name=pydash.get(veritable, 'tenant'),
-                    status="completed",
+                    status=TenantStatusEnum.Completed,
                     error_msg=None
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
@@ -194,7 +195,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
                     tenant_name=pydash.get(veritable, 'tenant'),
-                    status="failed",
+                    status=TenantStatusEnum.Failed,
                     error_msg=str(e)
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),

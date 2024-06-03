@@ -8,7 +8,7 @@ from loguru import logger
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.jeeves import TemplatePath
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 from app.core.settings import get_settings
 from app.onepasswordutil import secret_inject
 from app.template_env import get_env

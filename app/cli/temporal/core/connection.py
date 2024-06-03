@@ -8,7 +8,6 @@ from temporalio.service import RPCError, RPCStatusCode
 from app.core.settings import get_settings
 
 
-@async_lru.alru_cache
 async def get_temporal_client() -> client.Client:
     """
     Get Temporal Client

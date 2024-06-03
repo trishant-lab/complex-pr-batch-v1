@@ -3,7 +3,7 @@ from datetime import timedelta
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.base import Activity
 
 

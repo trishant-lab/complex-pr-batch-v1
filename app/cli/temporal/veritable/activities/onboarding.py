@@ -5,7 +5,8 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.models.tenant import TenantStatusEnum
 
 
 class PostgresSetupActivity(Activity):
@@ -377,9 +378,9 @@ class GrafanaAlertsActivity(Activity):
         """
         Callable for the activity
         """
-        # Setup grafana alerts
-        from app.cli.veritable.grafanaAlerts import create_grafana_alerts
-        await create_grafana_alerts(veritable)
+        # Setup grafana alerts  # todo
+        # from app.cli.veritable.grafanaAlerts import create_grafana_alerts
+        # await create_grafana_alerts(veritable)
 
 
 @dataclasses.dataclass
@@ -388,7 +389,7 @@ class TenantStatus:
     TenantStatus dataclass
     """
     tenant_name: str
-    status: str
+    status: TenantStatusEnum
     error_msg: None | str = None
 
 
@@ -413,7 +414,7 @@ class UpdateTenantStatusActivity(Activity):
         """
         # Update tenant status
         from app.cli.common.tenantStatus import update_tenant_status
-        from app.cli.veritable.common import ProductName
+        from app.cli.veritable.veritable import ProductName
         await update_tenant_status(
             tenant_name=activity_input.tenant_name,
             product=ProductName,

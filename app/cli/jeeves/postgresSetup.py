@@ -3,7 +3,7 @@ import os
 from loguru import logger
 
 from app.onepasswordutil import OnePasswordUtil
-from app.cli.jeeves.common import JeevesSpec, ProductName
+from app.cli.jeeves.jeeves import JeevesSpec, ProductName
 from app.cli.postgresUtils import PostgresUtils
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
