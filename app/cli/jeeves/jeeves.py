@@ -40,3 +40,15 @@ class JeevesWorkflow(ProductWorkflow):
             workflow=JeevesDeProvisioningWorkflow,
             queue=product_config.temporal_jeeves_deboarding_task_queue
         )
+
+    @staticmethod
+    async def approve(schema: dict):
+        """
+        approve method
+        """
+        from app.cli.temporal.jeeves.starter import get_workflow_handle
+        from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+
+        handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema),workflow=JeevesOnboardingWorkflow)
+
+        await handle.signal(JeevesOnboardingWorkflow.approve)

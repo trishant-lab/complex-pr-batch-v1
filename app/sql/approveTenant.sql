@@ -1,4 +1,4 @@
 Update tenant
-set status = 'APPROVED'
-set approvedBy = {{user_id}}
+set status = {{status}}
+, approvedby = {{user_id}}
 where id = {{tenant_id}};

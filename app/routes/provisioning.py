@@ -1,3 +1,5 @@
+import uuid
+
 import orjson
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
@@ -47,16 +49,19 @@ async def provisioning(
         _param=_param
     )
 
-    if not product_details["approvalRequired"] or skip_approval:
-        # Trigger provisioning workflow
-        product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
-        await product_workflow.onboard(schema)
-        logger.info(f"Triggered provisioning workflow for product: {product}")
+    product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
+    await product_workflow.onboard(schema)
+    logger.info(f"Triggered provisioning workflow for product: {product}")
+
+    if product_details["approvalRequired"] and skip_approval:
+        logger.info(f"Skipping approval for product: {product}")
+        await product_workflow.approve(schema)
 
 
 @provisioning_router.post("/approve")
 async def approve_tenant(
-        tenant_id: int,
+        product: ProductEnum,
+        tenant_id: uuid.UUID,
         request: Request,
         _param: dict = Depends(get_oauth_scheme()),
 ):
@@ -67,8 +72,10 @@ async def approve_tenant(
     user_id: dict = request.scope.get("user", {}).get("sub")
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("updateRequestor.sql", tenant_id=tenant_id)
-        await db.fetch_one("approveTenant.sql", tenant_id=tenant_id, user_id=user_id)
+        response = await db.fetch_one("getTenant.sql", tenant_id=tenant_id)
+        await db.fetch_one(
+            "approveTenant.sql", tenant_id=tenant_id, user_id=user_id, status=TenantStatusEnum.Provisioning
+        )
 
     except Exception as e:
         logger.error(f"Error approving tenant: {e}")
@@ -76,8 +83,8 @@ async def approve_tenant(
 
     schema = {
         "tenant": response["name"],
-        "customerDetails": orjson.loads(response["requestor"])
     }
-    product_workflow: ProductWorkflow = ProductEnum(response["product"]).value
-    await product_workflow.onboard(schema)
-    logger.info(f"Triggered provisioning workflow for product: {response['product']}")
+    product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
+    await product_workflow.approve(schema)
+    logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
+

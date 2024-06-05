@@ -14,6 +14,7 @@ p, ADMINS, /api/v1/tenant/listAllTenantsPerProduct, GET
 p, ADMINS, /api/v1/tenant/updateRequestorDetails, PUT
 
 p, ADMINS, /api/v1/provisioning, POST
+p, ADMINS, /api/v1/provisioning/approve, POST
 
 p, ADMINS, /api/v1/deprovisioning, POST
 

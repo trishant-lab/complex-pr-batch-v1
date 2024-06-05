@@ -37,10 +37,10 @@ async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_sch
 async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict = Depends(get_oauth_scheme())):
     config: AppSettings = get_settings()
 
-    await create_requestor(tenant_details.requestor, _param=_param)
+    requestor_id = await create_requestor(tenant_details.requestor, _param=_param)
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("createTenant.sql", **tenant_details.dict())
+        response = await db.fetch_one("createTenant.sql", **tenant_details.dict(), requestor_id=requestor_id)
 
         return response
 

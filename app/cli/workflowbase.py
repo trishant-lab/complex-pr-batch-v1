@@ -12,3 +12,7 @@ class ProductWorkflow(abc.ABC):
     @abc.abstractmethod
     async def deboard(schema: dict):
         raise NotImplementedError
+
+    @staticmethod
+    async def approve(schema: dict):
+        raise NotImplementedError

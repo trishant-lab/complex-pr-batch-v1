@@ -8,8 +8,8 @@ from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.activities.onboarding import (
     PostgresSetupActivity, NamespaceSetupActivity, ConfigmapSetupActivity, PVCSetupActivity, SecretSetupActivity,
     DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, ProvisioningJobActivity, KubernetesServiceActivity,
-    KubernetesVirtualServiceActivity, DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
-    UpdateTenantStatusActivity, TenantStatus, FernetKeyGenerationActivity
+    KubernetesVirtualServiceActivity, DeploymentActivity, VmPodScraperActivity, UpdateTenantStatusActivity,
+    TenantStatus, FernetKeyGenerationActivity
 )
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.models.tenant import TenantStatusEnum
@@ -34,7 +34,7 @@ class VeritableOnboardingWorkflow(Workflow):
             PVCSetupActivity.defn, SecretSetupActivity.defn, DnsSetupActivity.defn, UiSetupActivity.defn,
             KeycloakRealmSetupActivity.defn, ProvisioningJobActivity.defn, KubernetesServiceActivity.defn,
             KubernetesVirtualServiceActivity.defn, DeploymentActivity.defn, VmPodScraperActivity.defn,
-            GrafanaAlertsActivity.defn, UpdateTenantStatusActivity.defn, FernetKeyGenerationActivity.defn
+            UpdateTenantStatusActivity.defn, FernetKeyGenerationActivity.defn
         ]
 
     @classmethod
@@ -163,14 +163,6 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=VmPodScraperActivity.defn,
                 arg=veritable,
                 retry_policy=VmPodScraperActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=300),
-            )
-
-            # Grafana Alerts
-            await workflow.execute_activity(
-                activity=GrafanaAlertsActivity.defn,
-                arg=veritable,
-                retry_policy=GrafanaAlertsActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=300),
             )
 
