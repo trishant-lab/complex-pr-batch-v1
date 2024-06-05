@@ -7,7 +7,7 @@ from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.jeeves.activities.deprovisioning import (
     DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeleteProvisioningJobActivity,
     DeleteDeploymentActivity, DeleteConfigMapActivity, DeletePVCActivity, DropUIBundlesActivity, DeleteDNSActivity,
-    DeleteVMScraperActivity
+    DeleteVMScraperActivity, DeleteStatefulSetActivity
 )
 from app.cli.jeeves.jeeves import JeevesSpec
 
@@ -30,7 +30,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
             DeleteKubernetesServiceActivity.defn, DeleteKubernetesVirtualServiceActivity.defn,
             DeleteProvisioningJobActivity.defn, DeleteDeploymentActivity.defn, DeleteConfigMapActivity.defn,
             DeletePVCActivity.defn, DropUIBundlesActivity.defn, DeleteDNSActivity.defn,
-            DeleteVMScraperActivity.defn
+            DeleteVMScraperActivity.defn, DeleteStatefulSetActivity.defn
         ]
 
     @classmethod
@@ -109,4 +109,20 @@ class JeevesDeProvisioningWorkflow(Workflow):
             arg=workflow_input,
             start_to_close_timeout=timedelta(seconds=120),
             retry_policy=DeleteDNSActivity.get_retry_policy(),
+        )
+
+        # delete vm scraper
+        await workflow.execute_activity(
+            DeleteVMScraperActivity.defn,
+            arg=workflow_input,
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteVMScraperActivity.get_retry_policy(),
+        )
+
+        # delete stateful set
+        await workflow.execute_activity(
+            DeleteStatefulSetActivity.defn,
+            arg=workflow_input,
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteStatefulSetActivity.get_retry_policy(),
         )

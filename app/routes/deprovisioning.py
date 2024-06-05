@@ -15,8 +15,8 @@ de_provisioning_router = APIRouter()
 )
 async def de_provision_tenant(product: ProductEnum, tenant: str, _: dict = Depends(get_oauth_scheme())):
     """
-    Deprovision tenant
+    De-provision tenant
     """
-    product_workflow: ProductWorkflow = product.value
-    await product_workflow.onboard({"tenant": tenant})
-    logger.info(f"Triggered provisioning workflow for product: {product}")
+    product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
+    await product_workflow.deboard({"tenant": tenant})
+    logger.info(f"Triggered de-provisioning workflow for tenant: {tenant}")

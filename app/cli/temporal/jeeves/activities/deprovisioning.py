@@ -240,3 +240,26 @@ class DeleteRedisNamespace(Activity):
         """
         from app.cli.jeeves.statefulSetup import StateFullSet
         StateFullSet(jeeves=jeeves).delete()
+
+
+class DeleteStatefulSetActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=1,
+        )
+
+    @staticmethod
+    @activity.defn(name="DeleteStatefulSetActivity")
+    async def defn(jeeves: JeevesSpec):
+        """
+        Callable for the activity
+        """
+        from app.cli.jeeves.statefulSetup import StateFullSet
+        StateFullSet(jeeves=jeeves).delete()
