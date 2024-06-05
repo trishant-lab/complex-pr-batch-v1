@@ -79,6 +79,21 @@ def create_tenant_customer_admin_user(
     )
 
 
+def create_client(jeeves: JeevesSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+    """
+    Create keycloak client
+    """
+    jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
+
+    template = jinja_env.get_template("keycloak_jeeves_client.json")
+    client_config = template.render(tenant=jeeves.tenant, domain=domain)
+    keycloak_client.create_client(orjson.loads(client_config), realm_name)
+
+    template = jinja_env.get_template("keycloak_form_auth_client.json")
+    form_auth_client_config = template.render(tenant=jeeves.tenant, domain=domain)
+    keycloak_client.create_client(orjson.loads(form_auth_client_config), realm_name)
+
+
 def create_client_roles(client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str):
     """
     Create keycloak client roles
@@ -107,6 +122,10 @@ async def create_realm_and_users(jeeves: JeevesSpec):
         jeeves=jeeves, config=config, domain=domain, keycloak_client=keycloak_client
     )
 
+    # create client
+    create_client(jeeves=jeeves, domain=domain, keycloak_client=keycloak_client, realm_name=realm_name)
+
+    # get client uuid
     client_uuid = keycloak_client.get_client_id(client="jeeves", realm_name=realm_name)
 
     # create client roles

@@ -50,9 +50,9 @@ async def setup_supavisor_poll_user(
 def create_k8s_postgres_secret(veritable: VeritableSpec, password: str):
     Secret(
         veritable=veritable,
-        name="veritable-postgres-password",
+        name="veritable-postgres",
         string_data={
-            "POSTGRES__PASSWORD": password
+            "password": password
         }
     ).put()
 

@@ -43,7 +43,7 @@ def integrate_provider(
     config: AppSettings,
     novu_api_key: str,
     active: bool = True,
-) -> dict:
+) -> str:
     """
     :return:
     """
@@ -55,15 +55,8 @@ def integrate_provider(
         "active": active,
     }
     integration = IntegrationDto(**integration)
-
-    try:
-        res = novu_client.create(
-            integration=integration,
-        )
-        return res.to_camel_case()
-    except Exception as e:
-        logger.error(f"Failed to integrate provider: {e}")
-        return {}
+    res = novu_client.create(integration=integration,)
+    return res._id
 
 
 def create_novu_workflow_template(
@@ -515,6 +508,18 @@ def list_integration_provider(config: AppSettings, novu_api_key: str) -> list:
     ]
 
 
+def set_integration_provider_as_primary(integration_id: str, config: AppSettings, novu_api_key: str) -> None:
+    """
+
+    :param integration_id:
+    :param config:
+    :param novu_api_key:
+    :return:
+    """
+    novu_client: IntegrationApi = IntegrationApi(url=config.jeeves.novu_url, api_key=novu_api_key)
+    novu_client.set_primary(integration_id)
+
+
 def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
     """
 
@@ -531,7 +536,7 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
 
     # adding email provider sendgrid
     if not email_exist:
-        integrate_provider(
+        integration_id = integrate_provider(
             provider="sendgrid",
             channel="email",
             credentials={
@@ -543,6 +548,9 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             config=config,
             novu_api_key=novu_api_key
         )
+
+        if integration_id:
+            set_integration_provider_as_primary(integration_id=integration_id, config=config, novu_api_key=novu_api_key)
 
     # adding in app provider novu
     if not in_app_exist:

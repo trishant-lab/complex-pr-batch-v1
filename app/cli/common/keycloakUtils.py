@@ -125,4 +125,3 @@ def get_keycloak_manager() -> "KeycloakAdminClient":
     """
     config = get_settings().keycloak
     return KeycloakAdminClient(config=config)
-

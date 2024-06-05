@@ -111,8 +111,8 @@ class ProvisioningJob(K8sResourceBaseClass):
                                         name="POSTGRES__PASSWORD",
                                         value_from=V1EnvVarSource(
                                             secret_key_ref=V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
-                                                name="veritable-postgres-password"
+                                                key="password",
+                                                name="veritable-postgres"
                                             )
                                         )
                                     ),

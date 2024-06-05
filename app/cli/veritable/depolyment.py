@@ -87,8 +87,8 @@ class DeploymentServer(K8sResourceBaseClass):
                                         name="POSTGRES__PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(
                                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
-                                                name="veritable-postgres-password"
+                                                key="password",
+                                                name="veritable-postgres"
                                             )
                                         )
                                     ),
@@ -260,8 +260,8 @@ class DeploymentCli(K8sResourceBaseClass):
                                         name="POSTGRES__PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(
                                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
-                                                name="veritable-postgres-password"
+                                                key="password",
+                                                name="veritable-postgres"
                                             )
                                         )
                                     ),
