@@ -4,8 +4,8 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.common import ProductName
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.veritable import ProductName
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import get_settings
 
 
@@ -87,8 +87,8 @@ class DeploymentServer(K8sResourceBaseClass):
                                         name="POSTGRES__PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(
                                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
-                                                name="veritable-postgres-password"
+                                                key="password",
+                                                name="veritable-postgres"
                                             )
                                         )
                                     ),
@@ -114,7 +114,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="ORG_NAME",
-                                        value=self.veritable.customerDetails.orgName
+                                        value=self.veritable.customerDetails.organization
                                     )
                                 ]
                             )
@@ -260,8 +260,8 @@ class DeploymentCli(K8sResourceBaseClass):
                                         name="POSTGRES__PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(
                                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
-                                                name="veritable-postgres-password"
+                                                key="password",
+                                                name="veritable-postgres"
                                             )
                                         )
                                     ),
@@ -287,7 +287,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="ORG_NAME",
-                                        value=self.veritable.customerDetails.orgName
+                                        value=self.veritable.customerDetails.organization
                                     )
                                 ]
                             )

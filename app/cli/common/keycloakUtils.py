@@ -41,12 +41,13 @@ class KeycloakAdminClient:
         """
         return self.kc_client.get_realm(realm_name)
 
-    def create_realm(self: "KeycloakAdminClient", realm_config: dict) -> None:
+    def create_realm(self: "KeycloakAdminClient", realm_config: dict, skip_exists=True) -> None:
         """
         Create keycloak realm
         """
+
         self.kc_client.connection.refresh_token()
-        self.kc_client.create_realm(payload=realm_config, skip_exists=True)
+        self.kc_client.create_realm(payload=realm_config, skip_exists=skip_exists)
 
     def delete_realm(self: "KeycloakAdminClient", realm_name: str) -> None:
         """
@@ -124,4 +125,3 @@ def get_keycloak_manager() -> "KeycloakAdminClient":
     """
     config = get_settings().keycloak
     return KeycloakAdminClient(config=config)
-

@@ -2,18 +2,16 @@ import dataclasses
 
 from app.cli.temporal.core.base import IODataclass
 
-ProductName = "jeeves"
-
 
 @dataclasses.dataclass
 class ResourceSpec:
     """
     ResourceSpec dataclass
     """
-    request_memory: str
-    request_cpu: str
-    limit_memory: str
-    limit_cpu: str
+    request_memory: str = "500m"
+    request_cpu: str = "500Mi"
+    limit_memory: str = "3000m"
+    limit_cpu: str = "3000Mi"
 
 
 @dataclasses.dataclass
@@ -21,8 +19,9 @@ class CustomerDetails(IODataclass):
     """
     CustomerDetails dataclass
     """
-    customerUserName: str
-    customerEmail: str
+    userName: str
+    email: str
+    organization: str
 
 
 @dataclasses.dataclass
@@ -32,5 +31,5 @@ class JeevesSpec(IODataclass):
     """
     tenant: str
     customerDetails: None | CustomerDetails = None
-    serverSpec: None | ResourceSpec = None
-    cliSpec: None | ResourceSpec = None
+    serverSpec: None | ResourceSpec = dataclasses.field(default_factory=ResourceSpec)
+    cliSpec: None | ResourceSpec = dataclasses.field(default_factory=ResourceSpec)

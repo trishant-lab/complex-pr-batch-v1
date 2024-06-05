@@ -3,7 +3,7 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.jeeves.common import ProductName, JeevesSpec
+from app.cli.jeeves.jeeves import ProductName, JeevesSpec
 from app.core.settings import AppSettings, get_settings, JeevesSettings
 
 

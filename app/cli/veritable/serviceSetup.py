@@ -4,7 +4,7 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.common import VeritableSpec, ProductName
+from app.cli.veritable.models.veritableSpec import VeritableSpec, ProductName
 
 
 class Service(K8sResourceBaseClass):

@@ -3,7 +3,7 @@ from loguru import logger
 
 from app.cli.common.grafanaUtils import GrafanaUtils
 from app.cli.veritable import TemplatePath
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import get_settings, VeritableSettings
 from app.template_env import get_env
 

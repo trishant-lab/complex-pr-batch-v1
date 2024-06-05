@@ -9,7 +9,7 @@ from loguru import logger
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.veritable import TemplatePath
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import get_settings, AppSettings
 from app.onepasswordutil import secret_inject
 from app.s3_utils import copy_files_from_s3, download_file_from_storage
@@ -65,7 +65,7 @@ class ConfigMapClass(K8sResourceBaseClass):
             output = template.render(
                 tenant=self.veritable.tenant,
                 customerId=self.veritable.customerDetails.customerId,
-                orgName=self.veritable.customerDetails.orgName,
+                orgName=self.veritable.customerDetails.organization,
             )
 
             with open(f"{temp_dir}/{template_file_name}", "w") as f:

@@ -3,7 +3,7 @@ import os
 from loguru import logger
 
 from app.onepasswordutil import OnePasswordUtil
-from app.cli.jeeves.common import JeevesSpec, ProductName
+from app.cli.jeeves.jeeves import JeevesSpec, ProductName
 from app.cli.postgresUtils import PostgresUtils
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
@@ -74,6 +74,13 @@ async def setup_postgres(jeeves: JeevesSpec):
         await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_media", username=db_username)
         await postgres_utils.grant_user_all_privileges_on_table(
             table="matomo_log_link_visit_action", username=db_username
+        )
+
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_visit_view", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_action_view", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_media_view", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(
+            table="matomo_log_link_visit_action_view", username=db_username
         )
 
         return

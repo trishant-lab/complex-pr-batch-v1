@@ -9,7 +9,7 @@ from app.cli.temporal.veritable.activities.deprovisioning import (
     DeletePVCActivity, DeleteDeploymentActivity, DeleteConfigMapActivity, DropUIBundlesActivity, DeleteDNSActivity,
     DeleteVMScraperActivity
 )
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger

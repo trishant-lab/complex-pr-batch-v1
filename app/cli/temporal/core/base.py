@@ -49,3 +49,10 @@ class Workflow(abc.ABC):
         """
         Entry point for workflow
         """
+
+    @staticmethod
+    def approve(self: "Workflow") -> None:
+        """
+        Signal the workflow
+        """
+        pass
