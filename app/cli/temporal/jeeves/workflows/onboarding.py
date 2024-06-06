@@ -228,6 +228,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
+            raise e
 
     @workflow.signal
     async def approve(self: "Workflow") -> None:
