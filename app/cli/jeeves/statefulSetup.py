@@ -180,8 +180,8 @@ class StateFullSet(K8sResourceBaseClass):
             field_manager="kubectl-client-side-apply"
         )
         RedisService(self.jeeves).put()
-        await asyncio.sleep(30)
-        create_product_namespace(self.jeeves, self.k8s_dynamic_client)
+        # await asyncio.sleep(30)
+        # create_product_namespace(self.jeeves, self.k8s_dynamic_client)
 
     def delete(self):
         """

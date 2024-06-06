@@ -37,17 +37,17 @@ async def provisioning(
     product_details = dict(product_details)
 
     # Create tenant
-    await create_tenant(
-        TenantCreateRequestModel(
-            name=schema.get("tenant"),
-            product=product_details["id"],
-            status=TenantStatusEnum.PendingApproval
-            if product_details["approvalRequired"] or skip_approval else TenantStatusEnum.Provisioning,
-            requestor=schema.get("customerDetails"),
-            approvedBy=user_id if skip_approval else None
-        ),
-        _param=_param
-    )
+    # await create_tenant(
+    #     TenantCreateRequestModel(
+    #         name=schema.get("tenant"),
+    #         product=product_details["id"],
+    #         status=TenantStatusEnum.PendingApproval
+    #         if product_details["approvalRequired"] or skip_approval else TenantStatusEnum.Provisioning,
+    #         requestor=schema.get("customerDetails"),
+    #         approvedBy=user_id if skip_approval else None
+    #     ),
+    #     _param=_param
+    # )
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
     await product_workflow.onboard(schema)
