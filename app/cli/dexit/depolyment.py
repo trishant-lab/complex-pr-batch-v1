@@ -96,7 +96,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                         )
                                     ),
                                     k8s_client.V1EnvVar(
-                                        name="POSTGRES__USER",
+                                        name="POSTGRES_USER",
                                         value=self.postgres_user
                                     ),
                                     k8s_client.V1EnvVar(
@@ -263,7 +263,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                         )
                                     ),
                                     k8s_client.V1EnvVar(
-                                        name="POSTGRES__USER",
+                                        name="POSTGRES_USER",
                                         value=self.postgres_user
                                     ),
                                     k8s_client.V1EnvVar(

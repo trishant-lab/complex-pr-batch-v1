@@ -48,7 +48,7 @@ class AtlasJob(K8sResourceBaseClass):
                                 env=[
                                     V1EnvVar(name="POSTGRES_PASSWORD", value_from=V1EnvVarSource(
                                             secret_key_ref=V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
+                                                key="POSTGRES_PASSWORD",
                                                 name="dexit-postgres-password"
                                             )
                                         )
