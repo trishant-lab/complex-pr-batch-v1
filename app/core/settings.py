@@ -8,8 +8,8 @@ import requests
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
-CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json"]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json"]
+CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -128,6 +128,27 @@ class JeevesSettings(BaseModel):
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
 
+class DexitSettings(BaseModel):
+    """
+    Dexit Settings
+    """
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "dexit.314ecorp.tech"
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"
+    temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = ""
+    novu_admin_password: ""
+
+    keycloak_db_password: str = ""
+    matomo_db_password: str = ""
+
+    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -139,6 +160,7 @@ class AppSettings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
+    dexit: DexitSettings = DexitSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3: S3Settings = S3Settings()
