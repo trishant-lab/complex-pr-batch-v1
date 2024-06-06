@@ -4,10 +4,10 @@ from pathlib import Path
 import orjson
 import requests
 from jinja2 import Template
-from loguru import logger
 from novu.api import NotificationGroupApi, IntegrationApi, NotificationTemplateApi
 from novu.dto import IntegrationDto, NotificationTemplateFormDto
 
+from app.cli.dexit import TemplatePath
 from app.cli.dexit.dexit import DexitSpec
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
@@ -76,11 +76,6 @@ def create_novu_workflow_templates(target_dir, config: AppSettings, api_key: str
     :param api_key:
     :return:
     """
-    target_dir = Path(target_dir)
-
-    if not target_dir.exists():
-        print("The target directory doesn't exist")
-        raise SystemExit(1)
 
     id = get_notification_group_id(group_name='General', config=config, api_key=api_key)
     notification = {
@@ -182,8 +177,9 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             provider="slack",
             channel="chat",
             credentials={
-                "token": config.slack_token,
-                "channel": config.slack_channel,
+                "applicationId": config.dexit.slack_application_id,
+                "clientId": config.dexit.slack_client_id,
+                "secretKey": config.dexit.slack_channel_secret_key,
             },
             active=True,
             config=config,
@@ -355,8 +351,9 @@ class NovuSetup:
         ).insert_if_not_exists(key="novu_api_key", value=api_keys)
 
         # create the templates
+        novu_template_path = os.path.join(TemplatePath, 'novu_workflow_template')
         create_novu_workflow_templates(
-            target_dir='./app/cli/dexit/templates/novu_workflow_template',
+            target_dir=novu_template_path,
             config=config,
             api_key=api_keys
         )

@@ -140,11 +140,15 @@ class DexitSettings(BaseModel):
     temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
 
     novu_url: str = "https://alerting.314ecorp.tech"
-    novu_admin_user: str = ""
-    novu_admin_password: ""
+    novu_admin_user: str = "dexit.assistant@314ecorp.com"
+    novu_admin_password: str = ""
 
     keycloak_db_password: str = ""
     matomo_db_password: str = ""
+
+    slack_application_id: str = ""
+    slack_client_id: str = ""
+    slack_channel_secret_key: str = ""
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 

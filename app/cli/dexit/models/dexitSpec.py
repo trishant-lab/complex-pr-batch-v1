@@ -25,6 +25,7 @@ class CustomerDetails(IODataclass):
     """
     userName: str
     email: str
+    organization: str
 
 
 @dataclass

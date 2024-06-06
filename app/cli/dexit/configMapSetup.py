@@ -47,7 +47,7 @@ class ConfigMapClass(K8sResourceBaseClass):
         with TemporaryDirectory() as temp_dir:
 
             download_file_from_storage(
-                object_name=f"new/{template_file_name}",
+                object_name=f"{template_file_name}",
                 file_path=f"{temp_dir}/{template_file_name}",
                 config=self.config,
                 bucket_name="dexit-config",

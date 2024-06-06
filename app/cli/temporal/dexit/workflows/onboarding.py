@@ -53,18 +53,19 @@ class DexitOnboardingWorkflow(Workflow):
         try:
             await workflow.wait_condition(lambda: self.approved)
 
-            await workflow.execute_activity(
-                activity=PostgresSetupActivity.defn,
-                arg=dexit,
-                retry_policy=PostgresSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
             # namespace setup
             await workflow.execute_activity(
                 activity=NamespaceSetupActivity.defn,
                 arg=dexit,
                 retry_policy=NamespaceSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            # postgres setup
+            await workflow.execute_activity(
+                activity=PostgresSetupActivity.defn,
+                arg=dexit,
+                retry_policy=PostgresSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
@@ -202,6 +203,7 @@ class DexitOnboardingWorkflow(Workflow):
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
+            raise e
 
     @workflow.signal
     async def approve(self: "Workflow") -> None:

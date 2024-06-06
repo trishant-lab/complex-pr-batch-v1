@@ -6,7 +6,6 @@ from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
 from app.cli.dexit.dexit import DexitSpec
-from app.models.tenant import TenantStatusEnum
 
 
 class PostgresSetupActivity(Activity):
@@ -398,7 +397,7 @@ class TenantStatus:
     TenantStatus dataclass
     """
     tenant_name: str
-    status: TenantStatusEnum
+    status: str
     error_msg: None | str = None
 
 
@@ -423,11 +422,12 @@ class UpdateTenantStatusActivity(Activity):
         """
         # Update tenant status
         from app.cli.common.tenantStatus import update_tenant_status
-        from app.cli.dexit.models.dexitSpec import ProductName
+        from app.models.tenant import TenantStatusEnum
+        from app.cli.dexit.dexit import ProductName
         await update_tenant_status(
             tenant_name=activity_input.tenant_name,
             product=ProductName,
-            status=activity_input.status,
+            status=TenantStatusEnum(activity_input.status),
             error_message=activity_input.error_msg
         )
 
