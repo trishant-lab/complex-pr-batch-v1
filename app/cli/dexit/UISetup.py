@@ -53,13 +53,6 @@ def deploy_ui(dexit: DexitSpec):
                 config=config,
             )
 
-            if environment == "production":
-                copy_files_to_s3(
-                    input_path=os.path.join(tmp_dir, "bundle", "dist", "admin", "index.html"),
-                    output_path=f"{config.s3.rclone_remote}:static/{dest_dir}/custom/index.html",
-                    config=config,
-                )
-
     except Exception as e:
         logger.error(f"Failed to deploy UI: {e}")
         raise e

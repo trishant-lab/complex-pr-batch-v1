@@ -70,57 +70,6 @@ class IstioVirtualService(K8sResourceBaseClass):
         }
         http_list.append(http_log_collect)
 
-        # http analytics router
-        http_analytics = {
-            "name": "dexit-analytics",
-            "route": [{
-                "destination": {
-                    "host": f"matomo-server.matomo.svc.cluster.local",
-                    "port": {"number": 80},
-                }
-            }],
-            "match": [{
-                "uri": {"prefix": "/analytics/"},
-            }],
-            "rewrite": {
-                "uri": "/"
-            }
-        }
-        http_list.append(http_analytics)
-
-        # http alerting router
-        http_alerting = {
-            "name": "dexit-alerting",
-            "route": [{
-                "destination": {
-                    "host": f"api.novu.svc.cluster.local",
-                    "port": {"number": 4000},
-                }
-            }],
-            "match": [{
-                "uri": {"prefix": "/alerting/"},
-            }],
-            "rewrite": {
-                "uri": "/"
-            }
-        }
-        http_list.append(http_alerting)
-
-        # novu socket router
-        novu_socket = {
-            "name": "novu-socket",
-            "route": [{
-                "destination": {
-                    "host": f"ws.novu.svc.cluster.local",
-                    "port": {"number": 3002},
-                }
-            }],
-            "match": [{
-                "uri": {"prefix": "/socket.io/"},
-            }]
-        }
-        http_list.append(novu_socket)
-
         # http_redirect router
         if self.env != "production":
             http_redirect = {

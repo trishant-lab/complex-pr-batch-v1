@@ -50,7 +50,7 @@ class DeploymentServer(K8sResourceBaseClass):
                         containers=[
                             k8s_client.V1Container(
                                 name="dexit",
-                                image=f"registry.314ecorp.tech/dexit-server:{self.dexit.imageTag}",
+                                image=f"registry.314ecorp.tech/dexit-app:{self.dexit.imageTag}",
                                 image_pull_policy="Always",
                                 resources=k8s_client.V1ResourceRequirements(
                                     requests={
@@ -87,10 +87,10 @@ class DeploymentServer(K8sResourceBaseClass):
                                         value=self.env
                                     ),
                                     k8s_client.V1EnvVar(
-                                        name="POSTGRES__PASSWORD",
+                                        name="POSTGRES_PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(
                                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
+                                                key="POSTGRES_PASSWORD",
                                                 name="dexit-postgres-password"
                                             )
                                         )
@@ -212,7 +212,7 @@ class DeploymentCli(K8sResourceBaseClass):
                         containers=[
                             k8s_client.V1Container(
                                 name="dexit",
-                                image=f"registry.314ecorp.tech/dexit-server:{self.dexit.imageTag}",
+                                image=f"registry.314ecorp.tech/dexit-app:{self.dexit.imageTag}",
                                 resources=k8s_client.V1ResourceRequirements(
                                     requests={
                                         "cpu": self.dexit.cliSpec.request_cpu,
@@ -254,10 +254,10 @@ class DeploymentCli(K8sResourceBaseClass):
                                         value=self.env
                                     ),
                                     k8s_client.V1EnvVar(
-                                        name="POSTGRES__PASSWORD",
+                                        name="POSTGRES_PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(
                                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
+                                                key="POSTGRES_PASSWORD",
                                                 name="dexit-postgres-password"
                                             )
                                         )

@@ -13,7 +13,7 @@ def create_k8s_postgres_secret(dexit: DexitSpec, password: str):
         dexit=dexit,
         name="dexit-postgres-password",
         string_data={
-            "POSTGRES__PASSWORD": password
+            "POSTGRES_PASSWORD": password
         }
     ).put()
 
