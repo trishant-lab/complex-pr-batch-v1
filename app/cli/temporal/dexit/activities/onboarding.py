@@ -239,6 +239,30 @@ class NovuSetupActivity(Activity):
         NovuSetup(dexit=dexit).setup_novu()
 
 
+class FaxSetupActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=1,
+        )
+
+    @staticmethod
+    @activity.defn(name="fax_setup_activity")
+    async def defn(dexit: DexitSpec):
+        """
+        Callable for the activity
+        """
+        # Setup fax
+        from app.cli.dexit.faxSetup import FaxSetup
+        await FaxSetup(dexit=dexit).setup_fax()
+
+
 class ProvisioningJobActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:

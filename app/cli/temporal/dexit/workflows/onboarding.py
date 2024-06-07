@@ -12,7 +12,7 @@ from app.cli.temporal.dexit.activities.onboarding import (
     DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, NovuSetupActivity,
     ProvisioningJobActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity,
     DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
-    TemporalNamespaceCreationActivity
+    TemporalNamespaceCreationActivity, FaxSetupActivity
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
 
@@ -82,6 +82,14 @@ class DexitOnboardingWorkflow(Workflow):
                 activity=NovuSetupActivity.defn,
                 arg=dexit,
                 retry_policy=NovuSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            # fax setup
+            await workflow.execute_activity(
+                activity=FaxSetupActivity.defn,
+                arg=dexit,
+                retry_policy=FaxSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 

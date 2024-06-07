@@ -216,7 +216,6 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
         )
 
 
-
 class NovuSetup:
     """
     This class will be used to setup the Novu environment
