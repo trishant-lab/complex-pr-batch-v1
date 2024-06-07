@@ -35,7 +35,7 @@ class DexitOnboardingWorkflow(Workflow):
             KeycloakRealmSetupActivity.defn, NovuSetupActivity.defn,
             ProvisioningJobActivity.defn, KubernetesServiceActivity.defn, KubernetesVirtualServiceActivity.defn,
             DeploymentActivity.defn, VmPodScraperActivity.defn, GrafanaAlertsActivity.defn,
-            UpdateTenantStatusActivity.defn, TemporalNamespaceCreationActivity.defn
+            UpdateTenantStatusActivity.defn, TemporalNamespaceCreationActivity.defn, FaxSetupActivity.defn
         ]
 
     @classmethod
@@ -93,6 +93,14 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
+            # keycloak realm setup
+            await workflow.execute_activity(
+                activity=KeycloakRealmSetupActivity.defn,
+                arg=dexit,
+                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
             # configmap setup
             await workflow.execute_activity(
                 activity=ConfigmapSetupActivity.defn,
@@ -122,14 +130,6 @@ class DexitOnboardingWorkflow(Workflow):
                 activity=UiSetupActivity.defn,
                 arg=dexit,
                 retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # keycloak realm setup
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
-                arg=dexit,
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
