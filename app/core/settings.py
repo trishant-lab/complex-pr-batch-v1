@@ -150,6 +150,11 @@ class DexitSettings(BaseModel):
     slack_client_id: str = ""
     slack_channel_secret_key: str = ""
 
+    FaxAccountId: str = ""
+    FaxApiToken: str = ""
+
+    LamlUrl: str = f"https://314e.signalwire.com/api/laml/2010-04-01/Accounts/{FaxAccountId}/LamlBins"
+
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
 
