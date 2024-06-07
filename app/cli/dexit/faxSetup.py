@@ -11,6 +11,8 @@ class FaxSetup:
         self.config: AppSettings = get_settings()
         self.env: str = self.config.env
         self.domain_name = "com" if self.env == "production" else "tech"
+        self.laml_url = f"https://314e.signalwire.com/api/laml/2010-04-01/Accounts/{self.config.dexit.FaxAccountId}/LamlBins"
+        self.endpoint = f"https://{self.dexit.tenant}.dexit.314ecorp.{self.domain_name}/public/api/v1/fax/receiveFax"
 
     async def fax_request(self, url: str, payload: dict):
         """
@@ -32,10 +34,8 @@ class FaxSetup:
         return content, status
 
     async def setup_fax(self):
-        endpoint = f"https://{self.dexit.tenant}.dexit.314ecorp.{self.domain_name}/public/api/v1/fax/receiveFax"
-
         contents = f'<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n' \
-                   f'<Receive action="{endpoint}" mediaType="application/pdf"/>\n' \
+                   f'<Receive action="{self.endpoint}" mediaType="application/pdf"/>\n' \
                    f'</Response>'
 
         payload = {
@@ -43,23 +43,20 @@ class FaxSetup:
             "Contents": contents
         }
 
-        try:
-            content, status = await self.fax_request(
-                url=self.config.dexit.LamlUrl,
-                payload=payload
-            )
-            if status != 201 and status != 422:
-                raise Exception(f'API createLamlBin failed with status code : {status}')
-            elif status == 422:
-                raise Exception(f"API createLamlBin Error '{content['message']}'")
+        content, status = await self.fax_request(
+            url=self.laml_url,
+            payload=payload
+        )
+        if status != 201 and status != 422:
+            raise Exception(f'API createLamlBin failed with status code : {status}')
+        elif status == 422:
+            raise Exception(f"API createLamlBin Error '{content['message']}'")
 
-            # store in 1Password
-            OnePasswordUtil(
-                tenant=f"Dexit_Server_{self.dexit.tenant}",
-                server_item="application-config",
-                vault="Dexit",
-            ).insert_if_not_exists(key="fax_url", value=content['request_url'])
+        # store in 1Password
+        OnePasswordUtil(
+            tenant=f"Dexit_Server_{self.dexit.tenant}",
+            server_item="application-config",
+            vault="Dexit",
+        ).insert_if_not_exists(key="fax_url", value=content['request_url'])
 
-            return content
-        except Exception as e:
-            raise Exception(f'laml bin creation failed with error : {e}')
+        return content

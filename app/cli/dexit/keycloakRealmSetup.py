@@ -6,7 +6,9 @@ import orjson
 from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.dexit import TemplatePath
 from app.cli.dexit.dexit import DexitSpec
+from app.common import generate_password
 from app.core.settings import AppSettings, get_settings
+from app.onepasswordutil import OnePasswordUtil
 from app.template_env import get_env
 
 
@@ -66,6 +68,30 @@ def create_client(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminC
     keycloak_client.create_client(orjson.loads(client_config), realm_name)
 
 
+def create_service_account(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+    """
+    Create keycloak service account
+    """
+    jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
+    template = jinja_env.get_template("keycloak_service_account.json")
+
+    client_secret = generate_password(length=32)
+
+    service_account_config = template.render(
+        tenant=dexit.tenant,
+        domain=domain,
+        secret=client_secret
+    )
+
+    keycloak_client.refresh_token()
+    keycloak_client.create_client(orjson.loads(service_account_config), realm_name)
+    OnePasswordUtil(
+        tenant=f"Dexit_Server_{dexit.tenant}",
+        server_item="application-config",
+        vault="Dexit",
+    ).insert_if_not_exists(key="service_account_secret", value=client_secret)
+
+
 def create_tenant_customer_admin_user(
         dexit: DexitSpec, client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str
 ):
@@ -122,6 +148,9 @@ async def create_realm_and_users(dexit: DexitSpec):
 
     # create client
     create_client(dexit=dexit, domain=domain, keycloak_client=keycloak_client, realm_name=realm_name)
+
+    # create service account
+    create_service_account(dexit=dexit, domain=domain, keycloak_client=keycloak_client, realm_name=realm_name)
 
     client_uuid = keycloak_client.get_client_id(client="dexit", realm_name=realm_name)
 

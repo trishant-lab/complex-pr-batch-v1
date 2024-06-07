@@ -153,8 +153,6 @@ class DexitSettings(BaseModel):
     FaxAccountId: str = ""
     FaxApiToken: str = ""
 
-    LamlUrl: str = f"https://314e.signalwire.com/api/laml/2010-04-01/Accounts/{FaxAccountId}/LamlBins"
-
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
 
