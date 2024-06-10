@@ -16,3 +16,7 @@ class ProductWorkflow(abc.ABC):
     @staticmethod
     async def approve(schema: dict):
         raise NotImplementedError
+
+    @staticmethod
+    async def decline(schema: dict):
+        raise NotImplementedError

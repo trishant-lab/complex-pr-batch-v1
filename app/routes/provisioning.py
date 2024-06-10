@@ -1,6 +1,5 @@
 import uuid
 
-import orjson
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 from starlette.requests import Request
@@ -8,7 +7,6 @@ from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUES
 
 from .product import get_product
 from .tenant import create_tenant, TenantCreateRequestModel
-
 from ..cli.workflowbase import ProductWorkflow
 from ..core.db import get_db_manager, DBManager
 from ..core.oauth2 import get_oauth_scheme
@@ -37,17 +35,17 @@ async def provisioning(
     product_details = dict(product_details)
 
     # Create tenant
-    # await create_tenant(
-    #     TenantCreateRequestModel(
-    #         name=schema.get("tenant"),
-    #         product=product_details["id"],
-    #         status=TenantStatusEnum.PendingApproval
-    #         if product_details["approvalRequired"] or skip_approval else TenantStatusEnum.Provisioning,
-    #         requestor=schema.get("customerDetails"),
-    #         approvedBy=user_id if skip_approval else None
-    #     ),
-    #     _param=_param
-    # )
+    await create_tenant(
+        TenantCreateRequestModel(
+            name=schema.get("tenant"),
+            product=product_details["id"],
+            status=TenantStatusEnum.PendingApproval
+            if product_details["approvalRequired"] or skip_approval else TenantStatusEnum.Provisioning,
+            requestor=schema.get("customerDetails"),
+            approvedBy=user_id if skip_approval else None
+        ),
+        _param=_param
+    )
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
     await product_workflow.onboard(schema)
@@ -58,9 +56,13 @@ async def provisioning(
         await product_workflow.approve(schema)
 
 
-@provisioning_router.post("/approve")
+@provisioning_router.post(
+    "/approveOrDecline",
+    operation_id="approveOrDecline"
+)
 async def approve_tenant(
         product: ProductEnum,
+        approval: bool,
         tenant_id: uuid.UUID,
         request: Request,
         _param: dict = Depends(get_oauth_scheme()),
@@ -74,7 +76,8 @@ async def approve_tenant(
         db: DBManager = await get_db_manager(config.postgres.dsn)
         response = await db.fetch_one("getTenant.sql", tenant_id=tenant_id)
         await db.fetch_one(
-            "approveTenant.sql", tenant_id=tenant_id, user_id=user_id, status=TenantStatusEnum.Provisioning
+            "approveTenant.sql", tenant_id=tenant_id, user_id=user_id,
+            status=TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined
         )
 
     except Exception as e:
@@ -85,6 +88,10 @@ async def approve_tenant(
         "tenant": response["name"],
     }
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
-    await product_workflow.approve(schema)
-    logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
 
+    if approval:
+        await product_workflow.approve(schema)
+        logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
+    else:
+        await product_workflow.decline(schema)
+        logger.info(f"Declined {response['product_name']} workflow for tenant: {response['name']}")

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 class TenantStatusEnum(str, Enum):
     PendingApproval = "PendingApproval"
     Approved = "Approved"
-    Rejected = "Rejected"
+    Declined = "Declined"
     Provisioning = "Provisioning"
     Completed = "Completed"
     Failed = "Failed"
