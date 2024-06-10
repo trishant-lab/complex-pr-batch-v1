@@ -52,3 +52,15 @@ class JeevesWorkflow(ProductWorkflow):
         handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema),workflow=JeevesOnboardingWorkflow)
 
         await handle.signal(JeevesOnboardingWorkflow.approve)
+
+    @staticmethod
+    async def decline(schema: dict):
+        """
+        decline method
+        """
+        from app.cli.temporal.jeeves.starter import get_workflow_handle
+        from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+
+        handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema),workflow=JeevesOnboardingWorkflow)
+
+        await handle.signal(JeevesOnboardingWorkflow.deny)
