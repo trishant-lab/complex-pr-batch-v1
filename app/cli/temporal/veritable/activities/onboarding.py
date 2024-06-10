@@ -392,7 +392,7 @@ class UpdateTenantStatusActivity(Activity):
         from app.cli.veritable.veritable import ProductName
         from app.models.tenant import TenantStatusEnum
 
-        status = TenantStatusEnum.Completed if activity_input.status == "Completed" else TenantStatusEnum.Failed
+        status = TenantStatusEnum(activity_input.status)
 
         await update_tenant_status(
             tenant_name=activity_input.tenant_name,

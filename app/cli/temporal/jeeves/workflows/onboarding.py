@@ -12,7 +12,7 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     StateFullSetSetupActivity, DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, NovuSetupActivity,
     ChatwootSetupActivity, ProvisioningJobActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity,
     DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
-    AiVoiceSetupActivity, TemporalNamespaceCreationActivity
+    AiVoiceSetupActivity, TemporalNamespaceCreationActivity, SlackNotification
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
 
@@ -22,7 +22,10 @@ class JeevesOnboardingWorkflow(Workflow):
     """
     Jeeves Onboarding Workflow
     """
-    approved: bool = False
+
+    def __init__(self):
+        self.approved: bool = False
+        self.deny: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:
@@ -35,7 +38,8 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakRealmSetupActivity.defn, NovuSetupActivity.defn, ChatwootSetupActivity.defn,
             ProvisioningJobActivity.defn, KubernetesServiceActivity.defn, KubernetesVirtualServiceActivity.defn,
             DeploymentActivity.defn, VmPodScraperActivity.defn, GrafanaAlertsActivity.defn,
-            AiVoiceSetupActivity.defn, TemporalNamespaceCreationActivity.defn, UpdateTenantStatusActivity.defn
+            AiVoiceSetupActivity.defn, TemporalNamespaceCreationActivity.defn, UpdateTenantStatusActivity.defn,
+            SlackNotification.defn
         ]
 
     @classmethod
@@ -53,7 +57,27 @@ class JeevesOnboardingWorkflow(Workflow):
 
         try:
 
-            await workflow.wait_condition(lambda: self.approved)
+            await workflow.execute_activity(
+                activity=SlackNotification.defn,
+                arg=jeeves,
+                retry_policy=SlackNotification.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            await workflow.wait_condition(lambda: self.approved or self.deny)
+
+            if self.deny:
+                await workflow.execute_activity(
+                    activity=UpdateTenantStatusActivity.defn,
+                    arg=TenantStatus(
+                        tenant_name=pydash.get(jeeves, 'tenant'),
+                        status="Declined",
+                        error_msg="Request Declined"
+                    ),
+                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=timedelta(seconds=120),
+                )
+                return
 
             await workflow.execute_activity(
                 activity=PostgresSetupActivity.defn,
@@ -236,3 +260,10 @@ class JeevesOnboardingWorkflow(Workflow):
         Signal to approve the workflow
         """
         self.approved = True
+
+    @workflow.signal
+    async def deny(self: "Workflow") -> None:
+        """
+        Signal to reject the workflow
+        """
+        self.deny = True

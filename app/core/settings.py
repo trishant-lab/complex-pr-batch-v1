@@ -89,6 +89,15 @@ class S3Settings(BaseModel):
     rclone_remote: str = "s3_rclone_remote"
 
 
+class SlackSettings(BaseModel):
+    """
+    Slack Settings
+    """
+    channel_id: str = "C076N2B1FD4"
+    bot_token: str = ""
+    bot_username: str = "Launchpad"
+
+
 class VeritableSettings(BaseModel):
     """
     Veritable Settings
@@ -165,6 +174,8 @@ class AppSettings(BaseSettings):
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+    slack: SlackSettings = SlackSettings()
+
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
     dexit: DexitSettings = DexitSettings()

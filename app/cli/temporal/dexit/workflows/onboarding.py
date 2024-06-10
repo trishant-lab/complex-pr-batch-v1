@@ -130,7 +130,7 @@ class DexitOnboardingWorkflow(Workflow):
                 activity=UiSetupActivity.defn,
                 arg=dexit,
                 retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
+                start_to_close_timeout=timedelta(seconds=600),
             )
 
             # Provisioning Job
