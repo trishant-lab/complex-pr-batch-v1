@@ -577,23 +577,23 @@
     {
       "clientId": "app",
       "name": "dexit application client",
-      "rootUrl": "https://{{tenant}}.dexit.{{domain}}",
-      "adminUrl": "https://{{tenant}}.dexit.{{domain}}",
+      "rootUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
+      "adminUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://{{tenant}}.dexit.{{domain}}/*",
-        "https://{{tenant}}.dexitadmin.{{domain}}/*",
-        "http://{{tenant}}.dexit.{{domain}}/*",
-        "http://{{tenant}}.dexitadmin.{{domain}}/*"
+        "https://{{tenant}}.dexit.314ecorp.{{domain}}/*",
+        "https://{{tenant}}.dexitadmin.314ecorp.{{domain}}/*",
+        "http://{{tenant}}.dexit.314ecorp.{{domain}}/*",
+        "http://{{tenant}}.dexitadmin.314ecorp.{{domain}}/*"
       ],
       "webOrigins": [
-        "http://{{tenant}}.dexit.{{domain}}",
-        "https://{{tenant}}.dexitadmin.{{domain}}",
-        "http://{{tenant}}.dexitadmin.{{domain}}",
-        "https://{{tenant}}.dexit.{{domain}}"
+        "http://{{tenant}}.dexit.314ecorp.{{domain}}",
+        "https://{{tenant}}.dexitadmin.314ecorp.{{domain}}",
+        "http://{{tenant}}.dexitadmin.314ecorp.{{domain}}",
+        "https://{{tenant}}.dexit.314ecorp.{{domain}}"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -798,12 +798,12 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://{{tenant}}.dexit.{{domain}}/*",
-        "http://{{tenant}}.dexit.{{domain}}/*"
+        "https://{{tenant}}.dexit.314ecorp.{{domain}}/*",
+        "http://{{tenant}}.dexit.314ecorp.{{domain}}/*"
       ],
       "webOrigins": [
-        "http://{{tenant}}.dexit.{{domain}}",
-        "https://{{tenant}}.dexit.{{domain}}"
+        "http://{{tenant}}.dexit.314ecorp.{{domain}}",
+        "https://{{tenant}}.dexit.314ecorp.{{domain}}"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -893,20 +893,20 @@
       "clientId": "formauth",
       "name": "formauth",
       "description": "",
-      "rootUrl": "https://{{tenant}}.dexit.{{domain}}",
-      "adminUrl": "https://{{tenant}}.dexit.{{domain}}",
+      "rootUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
+      "adminUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
       "baseUrl": "",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://{{tenant}}.dexit.{{domain}}/*",
-        "http://{{tenant}}.dexit.{{domain}}/*"
+        "https://{{tenant}}.dexit.314ecorp.{{domain}}/*",
+        "http://{{tenant}}.dexit.314ecorp.{{domain}}/*"
       ],
       "webOrigins": [
-        "http://{{tenant}}.dexit.{{domain}}",
-        "https://{{tenant}}.dexit.{{domain}}"
+        "http://{{tenant}}.dexit.314ecorp.{{domain}}",
+        "https://{{tenant}}.dexit.314ecorp.{{domain}}"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -1547,8 +1547,8 @@
         "hideOnLoginPage": "true",
         "acceptsPromptNoneForwardFromClient": "true",
         "clientId": "{{dexittestappsmartonfhirclientid}}",
-        "tokenUrl": "https://{{tenant}}.dexit.{{domain}}/api/v1/epicintegration/epicToken",
-        "authorizationUrl": "https://{{tenant}}.dexit.{{domain}}/api/v1/epicintegration/epicToken",
+        "tokenUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}/api/v1/epicintegration/epicToken",
+        "authorizationUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}/api/v1/epicintegration/epicToken",
         "clientAuthMethod": "client_secret_basic",
         "disableUserInfo": "true",
         "syncMode": "IMPORT",
@@ -1572,8 +1572,8 @@
         "hideOnLoginPage": "true",
         "acceptsPromptNoneForwardFromClient": "true",
         "clientId": "{{ehrsimulatorappclientid}}",
-        "tokenUrl": "https://{{tenant}}.dexit.{{domain}}/api/v1/epicintegration/epicToken",
-        "authorizationUrl": "https://{{tenant}}.dexit.{{domain}}/api/v1/epicintegration/epicToken",
+        "tokenUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}/api/v1/epicintegration/epicToken",
+        "authorizationUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}/api/v1/epicintegration/epicToken",
         "clientAuthMethod": "client_secret_basic",
         "disableUserInfo": "true",
         "syncMode": "IMPORT",
