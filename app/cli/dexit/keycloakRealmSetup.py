@@ -49,7 +49,7 @@ def create_keycloak_realm(
     )
 
     keycloak_client.refresh_token()
-    keycloak_client.create_realm(orjson.loads(realm_config))
+    keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=False)
 
 
 def create_client(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str):

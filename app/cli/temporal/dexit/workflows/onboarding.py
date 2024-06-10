@@ -194,7 +194,7 @@ class DexitOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
                     tenant_name=pydash.get(dexit, 'tenant'),
-                    status="completed"
+                    status="Completed"
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),

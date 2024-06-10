@@ -116,7 +116,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                         value=self.tika_server_endpoint
                                     ),
                                     k8s_client.V1EnvVar(
-                                        name="IS_CLI",
+                                        name="CLI",
                                         value="FALSE"
                                     )
                                 ]
@@ -135,7 +135,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="dexit-tenant-config",
                                     items=[k8s_client.V1KeyToPath(
-                                        key="dexit-tenant-config", path="tenant-config.json"
+                                        key="tenant-config.json", path="tenant-config.json"
                                     )]
                                 )
                             ),
@@ -283,7 +283,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                         value=self.tika_server_endpoint
                                     ),
                                     k8s_client.V1EnvVar(
-                                        name="IS_CLI",
+                                        name="CLI",
                                         value="TRUE"
                                     )
                                 ]
@@ -304,7 +304,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="dexit-tenant-config",
                                     items=[k8s_client.V1KeyToPath(
-                                        key="dexit-tenant-config", path="tenant-config.json"
+                                        key="tenant-config.json", path="tenant-config.json"
                                     )]
                                 )
                             ),
