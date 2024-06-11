@@ -49,6 +49,7 @@ def deploy_ui(veritable: VeritableSpec):
             with zipfile.ZipFile(Path(tmp_dir, "bundle.zip").as_posix(), "r") as zip_ref:
                 zip_ref.extractall(os.path.join(tmp_dir, "bundle"))
 
+            delete_ui_bundle(veritable=veritable)
             # Upload the files to S3
             copy_files_to_s3(
                 input_path=os.path.join(tmp_dir, "bundle", "dist"),

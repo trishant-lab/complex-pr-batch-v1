@@ -132,7 +132,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="veritable-tenant-config",
                                     items=[k8s_client.V1KeyToPath(
-                                        key="veritable-tenant-config", path="tenant-config.json"
+                                        key="tenant-config.json", path="tenant-config.json"
                                     )]
                                 )
                             ),
@@ -307,7 +307,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="veritable-tenant-config",
                                     items=[k8s_client.V1KeyToPath(
-                                        key="veritable-tenant-config", path="tenant-config.json"
+                                        key="tenant-config.json", path="tenant-config.json"
                                     )]
                                 )
                             ),

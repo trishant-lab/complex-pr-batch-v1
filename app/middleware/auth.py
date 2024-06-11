@@ -91,6 +91,8 @@ class AuthenticationMiddleware:
         if scope["type"] == "lifespan":
             return await self.app(scope, receive, send)
         request = Request(scope, receive)
+        if not request.url.path.startswith(config.api_prefix):
+            return await self.app(scope, receive, send)
         try:
             _, token = get_token(request)
             if token:
@@ -149,7 +151,7 @@ class AuthorizationMiddleware:
         if scope["type"] == "lifespan":
             return await self.app(scope, receive, send)
         request = Request(scope, receive)
-        if scope["method"] == "OPTIONS" or self._enforce(request):
+        if not request.url.path.startswith(config.api_prefix) or scope["method"] == "OPTIONS" or self._enforce(request):
             return await self.app(scope, receive, send)
         else:
             response = ORJSONResponse(

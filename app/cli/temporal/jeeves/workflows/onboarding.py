@@ -12,7 +12,7 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     StateFullSetSetupActivity, DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, NovuSetupActivity,
     ChatwootSetupActivity, ProvisioningJobActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity,
     DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
-    AiVoiceSetupActivity, TemporalNamespaceCreationActivity, SlackNotification
+    AiVoiceSetupActivity, TemporalNamespaceCreationActivity
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
 
@@ -39,7 +39,6 @@ class JeevesOnboardingWorkflow(Workflow):
             ProvisioningJobActivity.defn, KubernetesServiceActivity.defn, KubernetesVirtualServiceActivity.defn,
             DeploymentActivity.defn, VmPodScraperActivity.defn, GrafanaAlertsActivity.defn,
             AiVoiceSetupActivity.defn, TemporalNamespaceCreationActivity.defn, UpdateTenantStatusActivity.defn,
-            SlackNotification.defn
         ]
 
     @classmethod
@@ -56,13 +55,6 @@ class JeevesOnboardingWorkflow(Workflow):
         """
 
         try:
-
-            await workflow.execute_activity(
-                activity=SlackNotification.defn,
-                arg=jeeves,
-                retry_policy=SlackNotification.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
 
             await workflow.wait_condition(lambda: self.approved or self.deny)
 
