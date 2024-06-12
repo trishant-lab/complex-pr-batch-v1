@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, Field
+from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.cli.temporal.core.base import IODataclass
