@@ -1,11 +1,14 @@
 import uuid
 
+import orjson
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from loguru import logger
+from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
 
 from .product import get_product
+from ..cli.temporal.core.base import LaunchpadCLIBaseModel
 from ..slack_utils import send_slack_msg
 from .tenant import create_tenant, TenantCreateRequestModel
 from ..cli.workflowbase import ProductWorkflow
@@ -18,7 +21,7 @@ from ..models.tenant import TenantStatusEnum
 provisioning_router = APIRouter()
 
 
-async def send_slack_notification(product: ProductEnum, schema: dict, approval_required: bool):
+async def send_slack_notification(product: ProductEnum, schema: dict):
     """
     Send Slack notification
     """
@@ -63,6 +66,13 @@ async def provisioning(
     """
     Trigger provisioning workflow for the given product
     """
+    try:
+        product_model = ProductEnum.get_input_model_class(product)
+        product_model.model_validate(schema)
+    except ValidationError as e:
+        logger.error(f"Invalid schema: {e.errors()}")
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid schema")
+
     user_id: dict = request.scope.get("user", {}).get("sub")
     product_details = await get_product(product=product.name, _param=_param)
     if not product_details:
@@ -77,24 +87,24 @@ async def provisioning(
             status=TenantStatusEnum.PendingApproval
             if product_details["approvalRequired"] or skip_approval else TenantStatusEnum.Provisioning,
             requestor=schema.get("customerDetails"),
-            approvedBy=user_id if skip_approval else None
+            approvedBy=user_id if skip_approval else None,
+            schema_=orjson.dumps(schema).decode("utf-8")
         ),
         _param=_param
     )
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
     await product_workflow.onboard(schema)
-    logger.info(f"Triggered provisioning workflow for product: {product}")
+    logger.info(f"Triggered provisioning workflow for product: {product.value}")
 
     background_tasks.add_task(
         send_slack_notification,
         product=product,
         schema=schema,
-        approval_required=True if product_details["approvalRequired"] and not skip_approval else False
     )
 
     if product_details["approvalRequired"] and skip_approval:
-        logger.info(f"Skipping approval for product: {product}")
+        logger.info(f"Skipping approval for product: {product.value}")
         await product_workflow.approve(schema)
 
 
@@ -153,14 +163,15 @@ async def retry_provisioning(
         db: DBManager = await get_db_manager(config.postgres.dsn)
         response = await db.fetch_one("getTenant.sql", tenant_id=tenant_id)
         await db.fetch_one(
-            "updateTenant.sql", tenant_id=response["name"], status=TenantStatusEnum.Provisioning
+            "updateTenant.sql", tenant_name=response["name"],
+            status=TenantStatusEnum.Provisioning.value, product=product.value
+
         )
-        schema = {
-            "tenant": response["name"],
-        }
+        schema = orjson.loads(response["schema"])
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(schema)
-        await product_workflow.approve(schema)
+
+        # await product_workflow.approve(schema)
         logger.info(f"Retried provisioning workflow for tenant: {response['name']}")
     except Exception as e:
         logger.error(f"Error retrying provisioning: {e}")

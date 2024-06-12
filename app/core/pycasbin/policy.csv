@@ -17,6 +17,7 @@ p, PUBLIC, /api/v1/tenant/{tenant_name}, GET
 
 p, ADMINS, /api/v1/provisioning, POST
 p, ADMINS, /api/v1/provisioning/approveOrDecline, POST
+p, ADMINS, /api/v1/provisioning/retryProvisioning, POST
 
 p, ADMINS, /api/v1/deprovisioning, POST
 

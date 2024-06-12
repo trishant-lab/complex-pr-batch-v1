@@ -11,7 +11,7 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     PostgresSetupActivity, NamespaceSetupActivity, ConfigmapSetupActivity, PVCSetupActivity, SecretSetupActivity,
     StateFullSetSetupActivity, DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, NovuSetupActivity,
     ChatwootSetupActivity, ProvisioningJobActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity,
-    DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
+    DeploymentActivity, VmPodScraperActivity,
     AiVoiceSetupActivity, TemporalNamespaceCreationActivity
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
@@ -37,19 +37,19 @@ class JeevesOnboardingWorkflow(Workflow):
             SecretSetupActivity.defn, StateFullSetSetupActivity.defn, DnsSetupActivity.defn, UiSetupActivity.defn,
             KeycloakRealmSetupActivity.defn, NovuSetupActivity.defn, ChatwootSetupActivity.defn,
             ProvisioningJobActivity.defn, KubernetesServiceActivity.defn, KubernetesVirtualServiceActivity.defn,
-            DeploymentActivity.defn, VmPodScraperActivity.defn, GrafanaAlertsActivity.defn,
-            AiVoiceSetupActivity.defn, TemporalNamespaceCreationActivity.defn, UpdateTenantStatusActivity.defn,
+            DeploymentActivity.defn, VmPodScraperActivity.defn, AiVoiceSetupActivity.defn,
+            TemporalNamespaceCreationActivity.defn, UpdateTenantStatusActivity.defn,
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", jeeves: JeevesSpec) -> str:
+    def get_workflow_id(cls: "JeevesOnboardingWorkflow", jeeves: JeevesSpec) -> str:
         """
         Return workflow id
         """
         return f"jeeves_onboarding_workflow_{jeeves.tenant}"
 
     @workflow.run
-    async def run(self: "Workflow", jeeves: JeevesSpec) -> None:
+    async def run(self: "JeevesOnboardingWorkflow", jeeves: JeevesSpec) -> None:
         """
         Run workflow
         """
@@ -198,14 +198,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # Grafana Alerts
-            await workflow.execute_activity(
-                activity=GrafanaAlertsActivity.defn,
-                arg=jeeves,
-                retry_policy=GrafanaAlertsActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
             # Temporal Namespace Creation
             await workflow.execute_activity(
                 activity=TemporalNamespaceCreationActivity.defn,
@@ -247,14 +239,14 @@ class JeevesOnboardingWorkflow(Workflow):
             raise e
 
     @workflow.signal
-    async def approve(self: "Workflow") -> None:
+    async def approve(self: "JeevesOnboardingWorkflow") -> None:
         """
         Signal to approve the workflow
         """
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def deny(self: "JeevesOnboardingWorkflow") -> None:
         """
         Signal to reject the workflow
         """
