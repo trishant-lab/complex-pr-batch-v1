@@ -106,7 +106,7 @@ def create_rclone_remote(config: AppSettings) -> None:
             remote_type=RemoteTypes.s3,
             client_id=config.s3.access_key,
             client_secret=config.s3.secret_key,
-            provider="Minio",
+            provider="Cloudflare",
             endpoint=config.s3.endpoint,
         )
     except Exception as e:
