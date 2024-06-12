@@ -23,6 +23,7 @@ class IstioVirtualService(K8sResourceBaseClass):
         self.config: AppSettings = get_settings()
         self.dexit_config: DexitSettings = self.config.dexit
         self.env = self.config.env
+        self.image_tag = "sprint" if self.env == "integration" else "production"
 
     def payload(self):
         http_list = []
@@ -78,7 +79,7 @@ class IstioVirtualService(K8sResourceBaseClass):
                     "uri": {"exact": "/"},
                 }],
                 "redirect": {
-                    "uri": f"/{self.dexit.imageTag}/"
+                    "uri": f"/{self.image_tag}/"
                 }
             }
             http_list.append(http_redirect)

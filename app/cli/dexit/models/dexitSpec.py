@@ -35,6 +35,5 @@ class DexitSpec(IODataclass):
     """
     tenant: str
     customerDetails: None | CustomerDetails = None
-    imageTag: None | str = None
     serverSpec: None | ResourceSpec = field(default_factory=ResourceSpec)
     cliSpec: None | ResourceSpec = field(default_factory=ResourceSpec)

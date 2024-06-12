@@ -26,6 +26,7 @@ class AtlasJob(K8sResourceBaseClass):
         self.job_name = "dexit-atlas-migration-job"
         self.job_type = "atlas"
         self.postgres_user = f"dexit_{dexit.tenant}"
+        self.image_tag = "production" if self.env == "production" else "sprint"
 
     def payload(self):
         body = V1Job(
@@ -44,7 +45,7 @@ class AtlasJob(K8sResourceBaseClass):
                         containers=[
                             V1Container(
                                 name=self.job_name,
-                                image=f"registry.314ecorp.tech/dexit-app:{self.dexit.imageTag}",
+                                image=f"registry.314ecorp.tech/dexit-app:{self.image_tag}",
                                 env=[
                                     V1EnvVar(name="POSTGRES_PASSWORD", value_from=V1EnvVarSource(
                                             secret_key_ref=V1SecretKeySelector(
@@ -136,6 +137,7 @@ class VespaJob(K8sResourceBaseClass):
         self.env = get_settings().env
         self.job_name = "dexit-vespa-job"
         self.job_type = "vespa"
+        self.image_tag = "production" if self.env == "production" else "sprint"
 
     def payload(self):
         """
@@ -176,7 +178,7 @@ class VespaJob(K8sResourceBaseClass):
                                         read_only=True
                                     )
                                 ],
-                                image=f"registry.314ecorp.tech/dexit-app:{self.dexit.imageTag}",
+                                image=f"registry.314ecorp.tech/dexit-app:{self.image_tag}",
                                 command=["/bin/sh", "-c"],
                                 args=[
                                     f"dexit --tenant-name {self.dexit.tenant} customer --create"

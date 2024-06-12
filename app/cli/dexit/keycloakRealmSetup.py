@@ -1,4 +1,5 @@
 import os
+import pydash as py_
 
 import jinja2
 import orjson
@@ -92,6 +93,38 @@ def create_service_account(dexit: DexitSpec, domain: str, keycloak_client: Keycl
     ).insert_if_not_exists(key="service_account_secret", value=client_secret)
 
 
+def create_idp_and_flows(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+    """
+    Create keycloak idp and flows
+    """
+    jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
+    template = jinja_env.get_template("keycloak_idp_and_flows.json")
+
+    client_config = template.render(
+        tenant=dexit.tenant,
+        domain=domain,
+    )
+    client_config = orjson.loads(client_config)
+    flow_configs = client_config["authenticationFlows"]
+    idp_configs = client_config["identityProviders"]
+    idp_mapper_configs = client_config["identityProviderMappers"]
+
+    keycloak_client.refresh_token()
+    for flow_config in flow_configs:
+        keycloak_client.create_authentication_flow(flow_config, realm_name)
+
+    identity_providers = keycloak_client.get_identity_providers(realm_name=realm_name)
+    for idp_config in idp_configs:
+        if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
+            keycloak_client.create_identity_provider(idp_config, realm_name)
+            for idp_mapper_config in idp_mapper_configs:
+                keycloak_client.add_mapper_to_idp(
+                    idp_alias=idp_mapper_config["identityProviderAlias"],
+                    mapper_config=idp_mapper_config,
+                    realm_name=realm_name
+                )
+
+
 def create_tenant_customer_admin_user(
         dexit: DexitSpec, client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str
 ):
@@ -151,6 +184,9 @@ async def create_realm_and_users(dexit: DexitSpec):
 
     # create service account
     create_service_account(dexit=dexit, domain=domain, keycloak_client=keycloak_client, realm_name=realm_name)
+
+    # create idp and flows
+    create_idp_and_flows(dexit=dexit, domain=domain, keycloak_client=keycloak_client, realm_name=realm_name)
 
     client_uuid = keycloak_client.get_client_id(client="dexit", realm_name=realm_name)
 
