@@ -171,20 +171,20 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
         if item.get("channel", "") == "chat":
             chat_exist = True
 
-    # adding chat provider slack
-    if not chat_exist:
-        integrate_provider(
-            provider="slack",
-            channel="chat",
-            credentials={
-                "applicationId": config.dexit.slack_application_id,
-                "clientId": config.dexit.slack_client_id,
-                "secretKey": config.dexit.slack_channel_secret_key,
-            },
-            active=True,
-            config=config,
-            novu_api_key=novu_api_key
-        )
+    # # adding chat provider slack
+    # if not chat_exist:
+    #     integrate_provider(
+    #         provider="slack",
+    #         channel="chat",
+    #         credentials={
+    #             "applicationId": config.dexit.slack_application_id,
+    #             "clientId": config.dexit.slack_client_id,
+    #             "secretKey": config.dexit.slack_channel_secret_key,
+    #         },
+    #         active=True,
+    #         config=config,
+    #         novu_api_key=novu_api_key
+    #     )
 
     # adding email provider sendgrid
     if not email_exist:
