@@ -403,31 +403,6 @@ class VmPodScraperActivity(Activity):
         VMPodScrapperServer(jeeves=jeeves).put()
 
 
-class GrafanaAlertsActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
-
-    @staticmethod
-    @activity.defn(name="grafana_alerts_activity")
-    async def defn(jeeves: JeevesSpec):
-        """
-        Callable for the activity
-        """
-        # Todo: Implement this
-        # Setup grafana alerts
-        # from app.cli.jeeves.grafanaAlerts import create_grafana_alerts
-        # await create_grafana_alerts(jeeves)
-
-
 # @dataclasses.dataclass
 # class TenantStatus:
 #     """
@@ -539,48 +514,3 @@ class AiVoiceSetupActivity(Activity):
         from app.cli.jeeves.aiVoiceSetup import add_ai_voices_to_storage
         add_ai_voices_to_storage(jeeves=jeeves)
 
-
-class SlackNotification(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
-
-    @staticmethod
-    @activity.defn(name="slack_notification_activity")
-    async def defn(jeeves: JeevesSpec):
-        """
-        Callable for the activity
-        """
-        # Send Slack notification
-        from app.slack_utils import send_slack_msg
-        text = (
-            f"A new Jeeves tenant has been requested by "
-            f"{jeeves.customerDetails.email} from {jeeves.customerDetails.organization}"
-        )
-        blocks = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": text,
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Tenant:* {jeeves.tenant}",
-                    }
-                ],
-            },
-        ]
-        send_slack_msg(text=text, blocks=blocks)

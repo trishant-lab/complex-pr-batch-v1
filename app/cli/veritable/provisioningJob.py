@@ -1,9 +1,10 @@
 import asyncio
 
 from kubernetes import client as api_client
-from kubernetes.client import V1Job, V1JobSpec, V1JobTemplateSpec, V1PodSpec, \
-    V1LocalObjectReference, V1Container, V1EnvVar, V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, \
-    V1EnvVarSource, V1SecretKeySelector
+from kubernetes.client import (
+    V1Job, V1JobSpec, V1JobTemplateSpec, V1PodSpec, V1LocalObjectReference, V1Container, V1EnvVar,
+    V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, V1EnvVarSource, V1SecretKeySelector
+)
 from kubernetes.client import V1ObjectMeta
 from kubernetes.dynamic import Resource, ResourceField
 from kubernetes.dynamic.exceptions import NotFoundError
@@ -11,6 +12,7 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+from app.cli.veritable.models.labels import PROVISIONING_JOB_LABELS
 from app.cli.veritable.veritable import ProductName
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import get_settings
@@ -96,8 +98,7 @@ class ProvisioningJob(K8sResourceBaseClass):
             metadata=V1ObjectMeta(
                 name=self.job_name,
                 namespace=self.veritable.tenant,
-                labels={"app": ProductName, "jobKind": self.job_type},
-                annotations={"app": ProductName, "jobKind": self.job_type}
+                labels=PROVISIONING_JOB_LABELS,
             ),
             spec=V1JobSpec(
                 template=V1JobTemplateSpec(

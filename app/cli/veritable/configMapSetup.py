@@ -1,5 +1,4 @@
 from tempfile import TemporaryDirectory
-from tempfile import TemporaryDirectory
 from typing import Final
 
 from kubernetes.client import V1ConfigMap, V1ObjectMeta
@@ -8,6 +7,7 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+from app.cli.veritable.models.configmap import TenantMapClass, ProvisionMapClass, EnvMapClass, VectorMapClass
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import get_settings, AppSettings
 from app.onepasswordutil import secret_inject
@@ -17,20 +17,20 @@ from app.template_env import get_env
 
 class ConfigMapClass(K8sResourceBaseClass):
     TENANT_CONFIG: Final[dict[str, str]] = {
-        "name": "veritable-tenant-config",
-        "key": "tenant-config.json",
+        "name": TenantMapClass.name,
+        "key": TenantMapClass.key
     }
     PROVISION_CONFIG: Final[dict[str, str]] = {
-        "name": "veritable-provisioning-config",
-        "key": "provisioning-config.json"
+        "name": ProvisionMapClass.name,
+        "key": ProvisionMapClass.key
     }
     ENV_CONFIG: Final[dict[str, str]] = {
-        "name": "veritable-env-config",
-        "key": "env-config.json"
+        "name": EnvMapClass.name,
+        "key": EnvMapClass.key
     }
     VECTOR_CONFIG: Final[dict[str, str]] = {
-        "name": "veritable-cli-vector-config",
-        "key": "vector-config.toml"
+        "name": VectorMapClass.name,
+        "key": VectorMapClass.key
     }
 
     def __init__(self, veritable: VeritableSpec, config_map: dict[str, str]) -> None:
@@ -101,5 +101,5 @@ class ConfigMapClass(K8sResourceBaseClass):
                 name=self.config_map['name'],
                 namespace=self.veritable.tenant
             )
-        except NotFoundError as e:
+        except NotFoundError:
             logger.error(f"ConfigMap {self.config_map['name']} not found in namespace {self.veritable.tenant}")

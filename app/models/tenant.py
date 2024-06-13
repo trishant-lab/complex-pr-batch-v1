@@ -23,6 +23,7 @@ class TenantCreateRequestModel(BaseModel):
     source: None | str = None
     requestor: dict
     approvedBy: None | str = None
+    schema_: str
 
 
 class RequestorModel(BaseModel):

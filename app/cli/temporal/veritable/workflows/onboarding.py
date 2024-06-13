@@ -12,7 +12,6 @@ from app.cli.temporal.veritable.activities.onboarding import (
     TenantStatus, FernetKeyGenerationActivity
 )
 from app.cli.veritable.models.veritableSpec import VeritableSpec
-from app.models.tenant import TenantStatusEnum
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger
@@ -55,18 +54,19 @@ class VeritableOnboardingWorkflow(Workflow):
 
         # postgres database setup
         try:
-            await workflow.execute_activity(
-                activity=PostgresSetupActivity.defn,
-                arg=veritable,
-                retry_policy=PostgresSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
 
             # create namespace in k8s
             await workflow.execute_activity(
                 activity=NamespaceSetupActivity.defn,
                 arg=veritable,
                 retry_policy=NamespaceSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            await workflow.execute_activity(
+                activity=PostgresSetupActivity.defn,
+                arg=veritable,
+                retry_policy=PostgresSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
@@ -115,7 +115,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=UiSetupActivity.defn,
                 arg=veritable,
                 retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=300),
+                start_to_close_timeout=timedelta(seconds=600),
             )
 
             # Create Keycloak realm and users
@@ -170,7 +170,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
                     tenant_name=pydash.get(veritable, 'tenant'),
-                    status=TenantStatusEnum.Completed,
+                    status="Completed",
                     error_msg=None
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
@@ -187,7 +187,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
                     tenant_name=pydash.get(veritable, 'tenant'),
-                    status=TenantStatusEnum.Failed,
+                    status="Failed",
                     error_msg=str(e)
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
