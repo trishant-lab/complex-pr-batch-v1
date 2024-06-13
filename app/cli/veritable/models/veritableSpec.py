@@ -1,11 +1,9 @@
-from dataclasses import dataclass, field, Field
 from uuid import UUID
 
-from app.cli.temporal.core.base import IODataclass
+from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 
 
-@dataclass
-class ResourceSpec:
+class ResourceSpec(LaunchpadCLIBaseModel):
     """
     ResourceSpec dataclass
     """
@@ -15,8 +13,7 @@ class ResourceSpec:
     limit_cpu: str = "3000m"
 
 
-@dataclass
-class VeritableCustomerDetails:
+class VeritableCustomerDetails(LaunchpadCLIBaseModel):
     """
     VeritableCustomerDetails dataclass
     """
@@ -26,13 +23,12 @@ class VeritableCustomerDetails:
     organization: str
 
 
-@dataclass
-class VeritableSpec(IODataclass):
+class VeritableSpec(LaunchpadCLIBaseModel):
     """
     VeritableSpec dataclass
     """
     tenant: str
     imageTag: None | str = None
     customerDetails: None | VeritableCustomerDetails = None
-    serverSpec: None | ResourceSpec = field(default_factory=ResourceSpec)
-    cliSpec: None | ResourceSpec = field(default_factory=ResourceSpec)
+    serverSpec: None | ResourceSpec = ResourceSpec()
+    cliSpec: None | ResourceSpec = ResourceSpec()

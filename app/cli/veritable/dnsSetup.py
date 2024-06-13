@@ -1,6 +1,6 @@
 from app.core.settings import AppSettings, get_settings
 from app.cli.common.googleDNS import GoogleDNS
-from app.cli.veritable.models.veritableSpec import VeritableSpec, ProductName
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 
 async def dns_setup(veritable: VeritableSpec):

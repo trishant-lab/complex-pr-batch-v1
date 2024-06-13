@@ -1,8 +1,11 @@
+from itertools import filterfalse
+from pathlib import Path
+
 import orjson
 from fastapi import APIRouter, Depends
 from loguru import logger
 from starlette.exceptions import HTTPException
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
 
 from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
@@ -91,3 +94,76 @@ async def update_tenant(requestor_details: UpdateRequestorModel, _param: dict = 
     except Exception as e:
         logger.error(f"Error updating tenant: {e}")
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating tenant")
+
+
+def generate_combinations(organization: str) -> list:
+    """
+    @param organization:
+    @return:
+    """
+    words = organization.split()
+    combinations = set()
+
+    def helper(prefix: str, start: int) -> None:
+        if len(combinations) > 20:
+            return
+        if start >= len(words):
+            if 2 < len(prefix) < 8:
+                combinations.add(prefix.lower())
+        else:
+            word = words[start]
+            for j in range(1, len(word) + 1):
+                if word[:j].isdigit():
+                    continue
+                new_prefix = prefix + "".join(x for x in word[:j] if x.isalpha())
+                helper(new_prefix, start + 1)
+
+    helper("", 0)
+    return sorted(combinations, key=len)
+
+
+async def get_valid_tenant_names(tenant_names: list) -> list:
+    """
+    @param tenant_names:
+    @return:
+    """
+    config: AppSettings = get_settings()
+    tenant_name_clause = ",".join([f"'{val.lower()}'" for val in tenant_names])
+    params = {
+        "table": "tenant",
+        "columns": ["name"],
+        "where": f"name in ({tenant_name_clause})",
+    }
+    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+    return [data["name"] for data in await db.fetch_all("get.sql", **params)]
+
+
+@tenant_router.get(
+    "/suggestTenantNames",
+    operation_id="suggestTenantNames",
+)
+async def suggest_tenant_names(organization: str):
+    combinations = generate_combinations(organization=organization)
+    existing_tenants = await get_valid_tenant_names(combinations)
+    existing_tenants.extend(["auth", "accounts"])
+    return list(filterfalse(existing_tenants.__contains__, combinations))
+
+
+@tenant_router.get(
+    "/{tenant_name}",
+    operation_id="validateTenantName",
+)
+async def verify_tenant_name(
+    tenant_name: str = Path(min_length=3, max_length=7),
+) -> None:
+    """
+    @param tenant_name:
+    @return:
+    """
+    tenant_names = await get_valid_tenant_names([tenant_name.lower()])
+    if tenant_names:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail=f"Tenant name {tenant_name} already exists"
+        )
+    return None

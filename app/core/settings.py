@@ -171,6 +171,7 @@ class AppSettings(BaseSettings):
     """
 
     env: str = os.getenv("DEPLOYMENT", "integration").lower()
+    api_prefix: str = "/api/v1"
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()

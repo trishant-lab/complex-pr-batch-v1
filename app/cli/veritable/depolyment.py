@@ -4,6 +4,8 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+from app.cli.veritable.models.configmap import TenantMapClass, ProvisionMapClass, EnvMapClass, VectorMapClass
+from app.cli.veritable.models.labels import SERVER_DEPLOYMENT_LABELS, CLi_DEPLOYMENT_LABELS
 from app.cli.veritable.veritable import ProductName
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import get_settings
@@ -27,26 +29,26 @@ class DeploymentServer(K8sResourceBaseClass):
     def payload(self):
         body = k8s_client.V1Deployment(
             api_version="apps/v1",
-            kind="Deployment",
+            kind=ResourceKindEnum.Deployment.value,
             metadata=k8s_client.V1ObjectMeta(
-                name=f"veritable",
+                name=ProductName,
                 namespace=self.veritable.tenant,
             ),
             spec=k8s_client.V1DeploymentSpec(
                 replicas=1,
                 selector=k8s_client.V1LabelSelector(
-                    match_labels={"app": "veritable"}
+                    match_labels=SERVER_DEPLOYMENT_LABELS
                 ),
                 template=k8s_client.V1PodTemplateSpec(
                     metadata=k8s_client.V1ObjectMeta(
-                        labels={"app": "veritable"}
+                        labels=SERVER_DEPLOYMENT_LABELS
                     ),
                     spec=k8s_client.V1PodSpec(
                         image_pull_secrets=[k8s_client.V1LocalObjectReference(name="registrycred")],
                         node_selector={"app": "314e"},
                         containers=[
                             k8s_client.V1Container(
-                                name="veritable",
+                                name=ProductName,
                                 image=f"registry.314ecorp.tech/veritable-server:{self.veritable.imageTag}",
                                 image_pull_policy="Always",
                                 resources=k8s_client.V1ResourceRequirements(
@@ -123,25 +125,25 @@ class DeploymentServer(K8sResourceBaseClass):
                             k8s_client.V1Volume(
                                 name="env-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-env-config",
-                                    items=[k8s_client.V1KeyToPath(key="env-config.json", path="env-config.json")]
+                                    name=EnvMapClass.name,
+                                    items=[k8s_client.V1KeyToPath(key=EnvMapClass.key, path="env-config.json")]
                                 )
                             ),
                             k8s_client.V1Volume(
                                 name="tenant-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-tenant-config",
+                                    name=TenantMapClass.name,
                                     items=[k8s_client.V1KeyToPath(
-                                        key="tenant-config.json", path="tenant-config.json"
+                                        key=TenantMapClass.key, path="tenant-config.json"
                                     )]
                                 )
                             ),
                             k8s_client.V1Volume(
                                 name="provisioning-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-provisioning-config",
+                                    name=ProvisionMapClass.name,
                                     items=[k8s_client.V1KeyToPath(
-                                        key="provisioning-config.json", path="provisioning-config.json"
+                                        key=ProvisionMapClass.key, path="provisioning-config.json"
                                     )]
                                 )
                             )
@@ -190,26 +192,26 @@ class DeploymentCli(K8sResourceBaseClass):
     def payload(self):
         body = k8s_client.V1Deployment = k8s_client.V1Deployment(
             api_version="apps/v1",
-            kind="Deployment",
+            kind=ResourceKindEnum.Deployment.value,
             metadata=k8s_client.V1ObjectMeta(
-                name=f"veritable-cli",
+                name=f"{ProductName}-cli",
                 namespace=self.veritable.tenant,
             ),
             spec=k8s_client.V1DeploymentSpec(
                 replicas=1,
                 selector=k8s_client.V1LabelSelector(
-                    match_labels={"app": "veritable-cli"}
+                    match_labels=CLi_DEPLOYMENT_LABELS
                 ),
                 template=k8s_client.V1PodTemplateSpec(
                     metadata=k8s_client.V1ObjectMeta(
-                        labels={"app": "veritable-cli"}
+                        labels=CLi_DEPLOYMENT_LABELS
                     ),
                     spec=k8s_client.V1PodSpec(
                         image_pull_secrets=[k8s_client.V1LocalObjectReference(name="registrycred")],
                         node_selector={"app": "314e"},
                         containers=[
                             k8s_client.V1Container(
-                                name="veritable",
+                                name=f"{ProductName}-cli",
                                 image=f"registry.314ecorp.tech/veritable-server:{self.veritable.imageTag}",
                                 resources=k8s_client.V1ResourceRequirements(
                                     requests={
@@ -296,26 +298,26 @@ class DeploymentCli(K8sResourceBaseClass):
                             k8s_client.V1Volume(
                                 name="env-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-env-config",
+                                    name=EnvMapClass.name,
                                     items=[k8s_client.V1KeyToPath(
-                                        key="env-config.json", path="env-config.json"
+                                        key=EnvMapClass.key, path="env-config.json"
                                     )]
                                 )
                             ),
                             k8s_client.V1Volume(
                                 name="tenant-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-tenant-config",
+                                    name=TenantMapClass.name,
                                     items=[k8s_client.V1KeyToPath(
-                                        key="tenant-config.json", path="tenant-config.json"
+                                        key=TenantMapClass.key, path="tenant-config.json"
                                     )]
                                 )
                             ),
                             k8s_client.V1Volume(
                                 name="vector-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-cli-vector-config",
-                                    items=[k8s_client.V1KeyToPath(key="vector-config.toml", path="vector-config.toml")]
+                                    name=VectorMapClass.name,
+                                    items=[k8s_client.V1KeyToPath(key=VectorMapClass.key, path="vector-config.toml")]
                                 )
                             ),
                             k8s_client.V1Volume(

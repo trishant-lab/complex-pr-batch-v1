@@ -108,5 +108,5 @@ async def redoc_html() -> HTMLResponse:
 # Adding application routes to FastAPI instance
 fastapi_app.include_router(product_router, prefix=f"{api_prefix}/product", tags=["Product"])
 fastapi_app.include_router(tenant_router, prefix=f"{api_prefix}/tenant", tags=["Tenant"])
-fastapi_app.include_router(provisioning_router, prefix=f"{api_prefix}/provisioning", tags=["Onboarding"])
+fastapi_app.include_router(provisioning_router, prefix=f"{api_prefix}/provisioning", tags=["Provisioning"])
 fastapi_app.include_router(de_provisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])
