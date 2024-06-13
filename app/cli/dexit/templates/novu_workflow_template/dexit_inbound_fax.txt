@@ -1,0 +1,51 @@
+{
+    "name": "dexit-inbound-fax",
+    "description": "",
+    "tags": [],
+    "steps": [
+      {
+        "template": {
+          "content": "A fax from {{ '{{fax.fromnumber}}' }} received.",
+          "type": "in_app",
+          "cta": {
+              "type": "redirect",
+              "data": {
+                "url": "/faxes"
+              }
+            }
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "A fax from {{ '{{fax.fromnumber}}' }} received.",
+          "type": "email",
+          "senderName":"DexIt",
+          "subject":"A Fax Got Received",
+          "contentType":"customHtml"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "A fax from {{ '{{fax.fromnumber}}' }} received.",
+          "type": "chat"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      }
+    ],
+    "active": true,
+    "notification_group_id": "{{notification.notification_grp_id}}",
+    "critical": false,
+    "draft": false,
+    "preference_settings": {
+      "email": true,
+      "sms": true,
+      "in_app": true,
+      "chat": true,
+      "push": true
+    }
+}

@@ -5,7 +5,7 @@ import orjson
 
 from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.veritable import TemplatePath
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import AppSettings, get_settings
 from app.template_env import get_env
 
@@ -20,7 +20,9 @@ def create_keycloak_realm(
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_realm.json")
 
-    customer_roles = orjson.dumps(veritable.customerDetails.customerRealmRoles).decode("utf-8")
+    customer_realm_roles = ["VT_CUSTOMER_ADMIN"]
+
+    customer_roles = orjson.dumps(customer_realm_roles).decode("utf-8")
 
     realm_config = template.render(
         realm_name=realm_name,
@@ -40,8 +42,8 @@ def create_tenant_customer_admin_user(veritable: VeritableSpec, keycloak_client:
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_tenant_customer_admin.json")
     user_config = template.render(
-        customerUserName=veritable.customerDetails.customerUserName,
-        customerEmail=veritable.customerDetails.customerEmail,
+        customerUserName=veritable.customerDetails.userName,
+        customerEmail=veritable.customerDetails.email,
     )
     keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)

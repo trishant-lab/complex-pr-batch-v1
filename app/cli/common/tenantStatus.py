@@ -4,15 +4,18 @@ from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.core.db import DBManager, get_db_manager
 from app.core.settings import AppSettings, get_settings
+from app.models.tenant import TenantStatusEnum
 
 
-async def update_tenant_status(tenant_name: str, product: str, status: str, error_message: None | str = None):
+async def update_tenant_status(
+        tenant_name: str, product: str, status: TenantStatusEnum, error_message: None | str = None
+):
     config: AppSettings = get_settings()
     try:
         parameters = {
             "tenant_name": tenant_name,
             "product": product,
-            "status": status,
+            "status": status.value,
             "error_message": error_message
         }
         db: DBManager = await get_db_manager(config.postgres.dsn)

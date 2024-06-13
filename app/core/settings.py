@@ -8,8 +8,8 @@ import requests
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
-CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json"]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json"]
+CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -89,6 +89,15 @@ class S3Settings(BaseModel):
     rclone_remote: str = "s3_rclone_remote"
 
 
+class SlackSettings(BaseModel):
+    """
+    Slack Settings
+    """
+    channel_id: str = "C076N2B1FD4"
+    bot_token: str = ""
+    bot_username: str = "Launchpad"
+
+
 class VeritableSettings(BaseModel):
     """
     Veritable Settings
@@ -128,17 +137,49 @@ class JeevesSettings(BaseModel):
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
 
+class DexitSettings(BaseModel):
+    """
+    Dexit Settings
+    """
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "dexit.314ecorp.tech"
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"
+    temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = "dexit.assistant@314ecorp.com"
+    novu_admin_password: str = ""
+
+    keycloak_db_password: str = ""
+    matomo_db_password: str = ""
+
+    slack_application_id: str = ""
+    slack_client_id: str = ""
+    slack_channel_secret_key: str = ""
+
+    FaxAccountId: str = ""
+    FaxApiToken: str = ""
+
+    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
     """
 
     env: str = os.getenv("DEPLOYMENT", "integration").lower()
+    api_prefix: str = "/api/v1"
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+    slack: SlackSettings = SlackSettings()
+
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
+    dexit: DexitSettings = DexitSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3: S3Settings = S3Settings()

@@ -2,11 +2,16 @@ import abc
 import dataclasses
 from collections.abc import Callable
 
+from pydantic import BaseModel
 from temporalio.common import RetryPolicy
 
 
 @dataclasses.dataclass
 class IODataclass:
+    pass
+
+
+class LaunchpadCLIBaseModel(BaseModel):
     pass
 
 
@@ -21,7 +26,7 @@ class Activity(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    async def defn(activity_input: IODataclass | None) -> IODataclass | None:
+    async def defn(activity_input: LaunchpadCLIBaseModel | None) -> LaunchpadCLIBaseModel | None:
         """
         Callable for the activity
         """
@@ -38,14 +43,21 @@ class Workflow(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def get_workflow_id(cls: "Workflow", workflow_input: IODataclass) -> str | None:
+    def get_workflow_id(cls: "Workflow", workflow_input: LaunchpadCLIBaseModel) -> str | None:
         """
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
         """
 
     @abc.abstractmethod
-    async def run(self: "Workflow", workflow_input: IODataclass | None) -> IODataclass | None:
+    async def run(self: "Workflow", workflow_input: LaunchpadCLIBaseModel | None) -> LaunchpadCLIBaseModel | None:
         """
         Entry point for workflow
         """
+
+    @staticmethod
+    def approve(self: "Workflow") -> None:
+        """
+        Signal the workflow
+        """
+        pass

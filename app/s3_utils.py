@@ -106,7 +106,7 @@ def create_rclone_remote(config: AppSettings) -> None:
             remote_type=RemoteTypes.s3,
             client_id=config.s3.access_key,
             client_secret=config.s3.secret_key,
-            provider="Cloudflare",
+            provider="Minio",
             endpoint=config.s3.endpoint,
         )
     except Exception as e:
@@ -124,7 +124,6 @@ def copy_files_to_s3(input_path: str, output_path: str, config: AppSettings) -> 
 
 
 def copy_files_from_s3(folder_path: str, s3_path: str, bucket_name: str, config: AppSettings) -> None:
-    # s3_path: str = s3_path if s3_path.endswith("/") else f"{s3_path}/"
     logger.info(f"downloading objects from s3  path:{s3_path}")
 
     create_rclone_remote(config)

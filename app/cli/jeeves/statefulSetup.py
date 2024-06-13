@@ -5,11 +5,10 @@ from kubernetes.client import (
     V1StatefulSet, V1ObjectMeta, V1StatefulSetSpec, V1PodTemplateSpec, V1PodSpec, V1LocalObjectReference, V1Container,
     V1ContainerPort, V1EnvVar, V1EnvVarSource, V1SecretKeySelector, V1Service, V1ServiceSpec, V1ServicePort
 )
-from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 from redis import Redis
 
-from app.cli.jeeves.common import JeevesSpec, ProductName
+from app.cli.jeeves.jeeves import JeevesSpec, ProductName
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.common import generate_password
@@ -26,6 +25,7 @@ def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
     redis_tenant_password = generate_password(20)
 
     resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1")
+
     secret = base64.b64decode(
         k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
     ).decode()
@@ -40,7 +40,7 @@ def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
         redis.execute_command("namespace", "ADD", ProductName, redis_tenant_password)
 
     OnePasswordUtil(
-        tenant=jeeves.tenant,
+        tenant=f"JEEVES_{jeeves.tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).create_or_replace(key="redis_password", value=redis_tenant_password)
@@ -53,6 +53,7 @@ def delete_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
     redis_port = 6379
 
     resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1")
+
     secret = base64.b64decode(
         k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
     ).decode()
@@ -179,8 +180,8 @@ class StateFullSet(K8sResourceBaseClass):
             field_manager="kubectl-client-side-apply"
         )
         RedisService(self.jeeves).put()
-        await asyncio.sleep(30)
-        create_product_namespace(self.jeeves, self.k8s_dynamic_client)
+        # await asyncio.sleep(30)
+        # create_product_namespace(self.jeeves, self.k8s_dynamic_client)
 
     def delete(self):
         """

@@ -5,7 +5,10 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
+
+
+# from app.models.tenant import TenantStatusEnum
 
 
 class PostgresSetupActivity(Activity):
@@ -147,7 +150,7 @@ class SecretSetupActivity(Activity):
         Secret(
             jeeves=jeeves,
             name="cache-secret",
-            string_data={
+            data={
                 "REDIS_PASSWORD": config.cache_admin_password
             }
         ).put()
@@ -400,69 +403,44 @@ class VmPodScraperActivity(Activity):
         VMPodScrapperServer(jeeves=jeeves).put()
 
 
-class GrafanaAlertsActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
-
-    @staticmethod
-    @activity.defn(name="grafana_alerts_activity")
-    async def defn(jeeves: JeevesSpec):
-        """
-        Callable for the activity
-        """
-        # Todo: Implement this
-        # Setup grafana alerts
-        # from app.cli.jeeves.grafanaAlerts import create_grafana_alerts
-        # await create_grafana_alerts(jeeves)
+# @dataclasses.dataclass
+# class TenantStatus:
+#     """
+#     TenantStatus dataclass
+#     """
+#     tenant_name: str
+#     status: TenantStatusEnum
+#     error_msg: None | str = None
 
 
-@dataclasses.dataclass
-class TenantStatus:
-    """
-    TenantStatus dataclass
-    """
-    tenant_name: str
-    status: str
-    error_msg: None | str = None
-
-
-class UpdateTenantStatusActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
-
-    @staticmethod
-    @activity.defn(name="UpdateTenantStatusActivity")
-    async def defn(activity_input: TenantStatus):
-        """
-        Callable for the activity
-        """
-        # Update tenant status
-        from app.cli.common.tenantStatus import update_tenant_status
-        from app.cli.jeeves.common import ProductName
-        await update_tenant_status(
-            tenant_name=activity_input.tenant_name,
-            product=ProductName,
-            status=activity_input.status,
-            error_message=activity_input.error_msg
-        )
+# class UpdateTenantStatusActivity(Activity):
+#     @staticmethod
+#     def get_retry_policy() -> RetryPolicy:
+#         """
+#         RetryPolicy for the activity
+#         """
+#         return RetryPolicy(
+#             initial_interval=timedelta(seconds=1),
+#             backoff_coefficient=2,
+#             maximum_interval=timedelta(seconds=10),
+#             maximum_attempts=1,
+#         )
+#
+#     @staticmethod
+#     @activity.defn(name="UpdateTenantStatusActivity")
+#     async def defn(activity_input: TenantStatus):
+#         """
+#         Callable for the activity
+#         """
+#         # Update tenant status
+#         from app.cli.common.tenantStatus import update_tenant_status
+#         from app.cli.jeeves.jeeves import ProductName
+#         await update_tenant_status(
+#             tenant_name=activity_input.tenant_name,
+#             product=ProductName,
+#             status=activity_input.status,
+#             error_message=activity_input.error_msg
+#         )
 
 
 class ChatwootSetupActivity(Activity):
@@ -535,3 +513,4 @@ class AiVoiceSetupActivity(Activity):
         # Add AI voices to storage
         from app.cli.jeeves.aiVoiceSetup import add_ai_voices_to_storage
         add_ai_voices_to_storage(jeeves=jeeves)
+

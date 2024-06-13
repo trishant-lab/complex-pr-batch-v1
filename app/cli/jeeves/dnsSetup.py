@@ -1,6 +1,6 @@
 from app.core.settings import AppSettings, get_settings
 from app.cli.common.googleDNS import GoogleDNS
-from app.cli.jeeves.common import JeevesSpec, ProductName
+from app.cli.jeeves.jeeves import JeevesSpec, ProductName
 
 
 async def dns_setup(jeeves: JeevesSpec):

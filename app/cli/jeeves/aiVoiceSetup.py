@@ -1,4 +1,4 @@
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import copy_files_to_s3
 

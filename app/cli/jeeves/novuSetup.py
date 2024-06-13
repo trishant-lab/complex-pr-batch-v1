@@ -3,8 +3,7 @@ from loguru import logger
 from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi
 from novu.dto import IntegrationDto
 
-from app.cli.jeeves import TemplatePath
-from app.cli.jeeves.common import JeevesSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
 
@@ -44,7 +43,7 @@ def integrate_provider(
     config: AppSettings,
     novu_api_key: str,
     active: bool = True,
-) -> dict:
+) -> str:
     """
     :return:
     """
@@ -56,15 +55,8 @@ def integrate_provider(
         "active": active,
     }
     integration = IntegrationDto(**integration)
-
-    try:
-        res = novu_client.create(
-            integration=integration,
-        )
-        return res.to_camel_case()
-    except Exception as e:
-        logger.error(f"Failed to integrate provider: {e}")
-        return {}
+    res = novu_client.create(integration=integration,)
+    return res._id
 
 
 def create_novu_workflow_template(
@@ -189,7 +181,7 @@ def list_novu_notification_template(
     """
     :return:
     """
-    novu_client = NotificationTemplateApi(url=config.novu_url, api_key=novu_api_key)
+    novu_client = NotificationTemplateApi(url=config.jeeves.novu_url, api_key=novu_api_key)
     response = novu_client.list(page=page, limit=limit)
     template_names: list = [template.to_camel_case().get("name", "")for template in response.data if response]
     return template_names
@@ -203,10 +195,10 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     :return:
     """
 
-    template_names: list = list_novu_notification_template(config=config)
+    template_names: list = list_novu_notification_template(config=config, novu_api_key=novu_api_key)
 
     # jeeves-assignment-created
-    if "jeeves-assignment-created" in template_names:
+    if "jeeves-assignment-created" not in template_names:
         assignment_created_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>The following assignments created in Jeeves.</span></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.name}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due date: {{assignment.duedate}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'  # noqa
         assignment_created_subject: str = "Assignments are created in Jeeves"
         assignment_created_chat_content: str = "Assignments are created in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"  # noqa
@@ -223,7 +215,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-assignment-updated
-    if "jeeves-assignment-updated" in template_names:
+    if "jeeves-assignment-updated" not in template_names:
         assignment_updated_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>The following assignments updated in Jeeves.</span></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.name}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due date: {{assignment.duedate}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'  # noqa
         assignment_updated_subject: str = "Assignments are updated in Jeeves"
         assignment_updated_chat_content: str = "Assignments are updated in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"  # noqa
@@ -240,7 +232,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-created
-    if "jeeves-asset-created" in template_names:
+    if "jeeves-asset-created" not in template_names:
         asset_created_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Following assets are created in Jeeves:</span></p><p class="editor-paragraph" dir="ltr"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Application: {{asset.application}}</span></p><p class="editor-paragraph" dir="ltr"><span>Category: {{asset.category}}</span></p><p class="editor-paragraph" dir="ltr"><span>Author: {{asset.author}}</span></p><p class="editor-paragraph" dir="ltr"><span>Click to View: {{asset.asset_link}}</span></p><p class="editor-paragraph" dir="ltr"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_created_subject: str = "New Assets created in Jeeves"
         asset_created_chat_content: str = "New assets are created.\n\n{{#each step.events}}\nAsset title:  {{asset.asset_title}} \nClick to View: {{asset.asset_link}}\n\n{{/each}}"
@@ -257,7 +249,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-assignment-due-in-15-days
-    if "jeeves-assignment-due-in-15-days" in template_names:
+    if "jeeves-assignment-due-in-15-days" not in template_names:
         assignment_due_15_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>This is a reminder that several assignments will due in 15 days. Kindly take note of the following details:</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.title}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due Date: {{assignment.due_date}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>We kindly request that you ensure timely completion of these assignments to meet the deadline.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         assignment_due_15_subject: str = "Reminder: Assignments Due in 15 Days"
         assignment_due_15_chat_content: str = "Some of your assignments will due in 15 days.\n{{#each step.events}}\nAssignment title: {{assignment.title}}]nDue date: {{assignment.due_date}}\nClick here: {{assignment.link}}\n\n{{/each}}"
@@ -274,7 +266,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-assignment-due-in-7-days
-    if "jeeves-assignment-due-in-7-days" in template_names:
+    if "jeeves-assignment-due-in-7-days" not in template_names:
         assignment_due_7_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>This is a reminder that several assignments will due in 7 days. Kindly take note of the following details:</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.title}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due Date: {{assignment.due_date}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>We kindly request that you ensure timely completion of these assignments to meet the deadline.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         assignment_due_7_subject: str = "Reminder: Assignments Due in 7 Days"
         assignment_due_7_chat_content: str = "Some of your assignments will due in 7 days.\n{{#each step.events}}\nAssignment title: {{assignment.title}}]nDue date: {{assignment.due_date}}\nClick here: {{assignment.link}}\n\n{{/each}}"
@@ -291,7 +283,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-assignment-due-in-1-day
-    if "jeeves-assignment-due-in-1-day" in template_names:
+    if "jeeves-assignment-due-in-1-day" not in template_names:
         assignment_due_1_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>This is a reminder that several assignments will due in one day. Kindly take note of the following details:</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.title}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due Date: {{assignment.due_date}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>We kindly request that you ensure timely completion of these assignments to meet the deadline.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         assignment_due_1_subject: str = "Reminder: Assignments Due in One Day"
         assignment_due_1_inapp_content: str = "Some of your assignments will due in one day.<br />{{#each step.events}}Assignment title: {{assignment.title}}<br />Due date: {{assignment.due_date}}<br />{{/each}}"
@@ -308,7 +300,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-assignment-overdue
-    if "jeeves-assignment-overdue" in template_names:
+    if "jeeves-assignment-overdue" not in template_names:
         assignment_over_due_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>The following assignment(s) are overdue.</span></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.title}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due date: {{assignment.due_date}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>We kindly request that you ensure timely completion of these assignments to meet the deadline.</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         assignment_over_due_subject: str = "Urgent: Overdue Assignments - Action Required."
         assignment_over_due_inapp_content: str = "Some of your assignments are overdue.<br />{{#each step.events}}Assignment title : {{assignment.title}}.<br />Due on: {{assignment.due_date}}<br />{{/each}}"
@@ -324,7 +316,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-expiring-in-7-days
-    if "jeeves-asset-expiring-in-7-days" in template_names:
+    if "jeeves-asset-expiring-in-7-days" not in template_names:
         asset_expiring_7_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>This is to inform you that several of your assets will expire in 7 days. Please take action and update the asset details.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Expiration Date: {{asset.expiration_date}}</span></p><p class="editor-paragraph" dir="ltr"><span>You can update the asset information by clicking [</span><a href="{{asset.asset_link}}" class="editor-link"><span>here</span></a><span>].</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Please take immediate action to update the information for these assets to ensure smooth operations.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_expiring_7_subject: str = "Action Required: Asset Expiring In 7 Days"
         asset_expiring_7_inapp_content: str = 'Some of your assets are about to expire in 7 days.<br />{{#each step.events}}Asset title: "{{asset.asset_title}}"<br />{{/each}}'
@@ -340,7 +332,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-expiring-in-30-days
-    if "jeeves-asset-expiring-in-30-days" in template_names:
+    if "jeeves-asset-expiring-in-30-days" not in template_names:
         asset_expiring_30_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>This is to inform you that several of your assets will expire in 30 days. Please take action and update the asset details.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Expiration Date: {{asset.expiration_date}}</span></p><p class="editor-paragraph" dir="ltr"><span>You can update the asset information by clicking [</span><a href="{{asset.asset_link}}" class="editor-link"><span>here</span></a><span>].</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Please take immediate action to update the information for these assets to ensure smooth operations.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_expiring_30_subject: str = "Action Required: Asset Expiring In 30 Days"
         asset_expiring_30_inapp_content: str = 'Some of your assets are about to expire in 30 days.<br />{{#each step.events}}Asset title: "{{asset.asset_title}}"<br />{{/each}}'
@@ -356,7 +348,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-expiring-in-1-days
-    if "jeeves-asset-expiring-in-1-days" in template_names:
+    if "jeeves-asset-expiring-in-1-days" not in template_names:
         asset_expiring_1_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>This is to inform you that several of your assets will expire in one day. Please take action and update the asset details.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Expiration Date: {{asset.expiration_date}}</span></p><p class="editor-paragraph" dir="ltr"><span>You can update the asset information by clicking [</span><a href="{{asset.asset_link}}" class="editor-link"><span>here</span></a><span>].</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Please take immediate action to update the information for these assets to ensure smooth operations.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_expiring_1_subject: str = "Action Required: Asset Expiring In One Day"
         asset_expiring_1_inapp_content: str = 'Some of your assets are about to expire in one day.<br />{{#each step.events}}Asset title: "{{asset.asset_title}}"<br />{{/each}}'
@@ -372,7 +364,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-expired
-    if "jeeves-asset-expired" in template_names:
+    if "jeeves-asset-expired" not in template_names:
         asset_expired_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>We regret to inform you that several of your assets have expired and require immediate attention. Please take note of the following details:</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Expiration Date: {{asset.expiration_date}}</span></p><p class="editor-paragraph" dir="ltr"><span>You can update the asset information by clicking [</span><a href="{{asset.asset_link}}" class="editor-link"><span>here</span></a><span>].</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Please take immediate action to update the information for these assets to ensure smooth operations.</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_expired_subject: str = "Urgent: Expired Asset Requires Immediate Update"
         asset_expired_inapp_content: str = 'Some of your assets have expired. Update now to continue learning.<br />{{#each step.events}}Asset Title: "{{asset.asset_title}}". <br />{{/each}}'
@@ -389,7 +381,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-deleted
-    if "jeeves-asset-deleted" in template_names:
+    if "jeeves-asset-deleted" not in template_names:
         asset_deleted_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Following assets are deleted from Jeeves.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Application: {{asset.application}}</span></p><p class="editor-paragraph" dir="ltr"><span>Category: {{asset.category}}</span></p><p class="editor-paragraph" dir="ltr"><span>Author: {{asset.author}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_deleted_subject: str = "Assets deleted from Jeeves"
         asset_deleted_inapp_content: str = "Following Assets are deleted from Jeeeves<br />{{#each step.events}}Asset title:  {{asset.asset_title}}<br />{{/each}}"
@@ -406,7 +398,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-updated
-    if "jeeves-asset-updated" in template_names:
+    if "jeeves-asset-updated" not in template_names:
         asset_updated_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Following assets in Jeeves have been updated to provide you with an even better learning experience:</span></p><p class="editor-paragraph" dir="ltr"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Application: {{asset.application}}</span></p><p class="editor-paragraph" dir="ltr"><span>Category: {{asset.category}}</span></p><p class="editor-paragraph" dir="ltr"><span>Author: {{asset.author}}</span></p><p class="editor-paragraph" dir="ltr"><span>Click to View: {{asset.asset_link}}</span></p><p class="editor-paragraph" dir="ltr"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_updated_subject: str = "Assets updated in Jeeves"
         asset_updated_inapp_content: str = "Following assets are updated in Jeeves.<br />{{#each step.events}}Asset title: {{asset.asset_title}}<br />{{/each}}"
@@ -423,7 +415,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-published
-    if "jeeves-asset-published" in template_names:
+    if "jeeves-asset-published" not in template_names:
         asset_published_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Following assets are published in Jeeves to provide you with an even better learning experience:</span></p><p class="editor-paragraph" dir="ltr"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Application: {{asset.application}}</span></p><p class="editor-paragraph" dir="ltr"><span>Category: {{asset.category}}</span></p><p class="editor-paragraph" dir="ltr"><span>Author: {{asset.author}}</span></p><p class="editor-paragraph" dir="ltr"><span>Click to View: {{asset.asset_link}}</span></p><p class="editor-paragraph" dir="ltr"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_published_subject: str = "Assets published in Jeeves"
         asset_published_inapp_content: str = "Following assets are published in Jeeves.<br />{{#each step.events}}Asset title: {{asset.asset_title}}<br />{{/each}}"
@@ -440,7 +432,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-assignment-assigned
-    if "jeeves-assignment-assigned" in template_names:
+    if "jeeves-assignment-assigned" not in template_names:
         assignment_assigned_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{ first_name }},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>You have received a new assignment.</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: {{todo_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assigned By: {{todo_assigned_by}}</span></p><p class="editor-paragraph" dir="ltr"><span>Click to View: {{todo_link}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>{{email_signature}}</span></p>'
         assignment_assigned_subject: str = "New Assignment: {{todo_title}} Assigned by {{todo_assigned_by}}"
         assignment_assigned_inapp_content: str = "A new Assignment has been assigned to you."
@@ -461,7 +453,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-account-created
-    if "jeeves-account-created" in template_names:
+    if "jeeves-account-created" not in template_names:
         account_created_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{first_name}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Your JEEVES account has been created successfully.</span></p><p class="editor-paragraph" dir="ltr"><span>Click here to get started: {{jeeves_link}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>{{email_signature}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p><p class="editor-paragraph"><br></p>'
         account_created_subject: str = "Welcome to Jeeves {{ first_name }} {{{{ last_name }}}}"
         account_created_inapp_content: str = "Welcome to JEEVES"
@@ -479,7 +471,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-feedback-created
-    if "jeeves-feedback-created" in template_names:
+    if "jeeves-feedback-created" not in template_names:
         feedback_created_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>There\'s a new feedback/question on an asset.</span></p><p class="editor-paragraph" dir="ltr"><br><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Application: {{asset.application}}</span></p><p class="editor-paragraph" dir="ltr"><span>Category: {{asset.category}}</span></p><p class="editor-paragraph" dir="ltr"><span>Author: {{asset.author_name}}({{asset.author}})</span></p><p class="editor-paragraph" dir="ltr"><span>Sender: {{feedback.sender_user_name}}({{feedback.sender_user_email}})</span></p><p class="editor-paragraph" dir="ltr"><span>Remarks: {{feedback.feedback_text}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Link to edit the asset: {{asset.asset_link}}</span></p><p class="editor-paragraph"><span>--</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         feedback_created_subject: str = "New Feedback/Question on an asset"
         feedback_created_inapp_content: str = (
@@ -503,7 +495,7 @@ def list_integration_provider(config: AppSettings, novu_api_key: str) -> list:
     """
     :return:
     """
-    novu_client = IntegrationApi(url=config.novu_url, api_key=novu_api_key)
+    novu_client = IntegrationApi(url=config.jeeves.novu_url, api_key=novu_api_key)
     response = novu_client.list()
     return [
         {
@@ -514,6 +506,18 @@ def list_integration_provider(config: AppSettings, novu_api_key: str) -> list:
         }
         for res in response
     ]
+
+
+def set_integration_provider_as_primary(integration_id: str, config: AppSettings, novu_api_key: str) -> None:
+    """
+
+    :param integration_id:
+    :param config:
+    :param novu_api_key:
+    :return:
+    """
+    novu_client: IntegrationApi = IntegrationApi(url=config.jeeves.novu_url, api_key=novu_api_key)
+    novu_client.set_primary(integration_id)
 
 
 def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
@@ -532,7 +536,7 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
 
     # adding email provider sendgrid
     if not email_exist:
-        integrate_provider(
+        integration_id = integrate_provider(
             provider="sendgrid",
             channel="email",
             credentials={
@@ -544,6 +548,9 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             config=config,
             novu_api_key=novu_api_key
         )
+
+        if integration_id:
+            set_integration_provider_as_primary(integration_id=integration_id, config=config, novu_api_key=novu_api_key)
 
     # adding in app provider novu
     if not in_app_exist:
