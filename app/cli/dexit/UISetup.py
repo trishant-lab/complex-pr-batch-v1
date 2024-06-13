@@ -23,11 +23,12 @@ def deploy_ui(dexit: DexitSpec):
     domain_name: str = config.dexit.domain_name
     repo_name = "dexit-ui"
     tenant = dexit.tenant
+    image_tag = "production" if environment == "production" else "sprint"
 
     if environment == "production":
         dest_dir = f"{tenant}.{domain_name}/"
     else:
-        dest_dir = f"{tenant}.{domain_name}/{dexit.imageTag}"
+        dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
     s3_client: boto3.client = get_storage_client(config=config)
 
@@ -36,7 +37,7 @@ def deploy_ui(dexit: DexitSpec):
         with tempfile.TemporaryDirectory() as tmp_dir:
 
             download_file_from_storage(
-                object_name=f"{repo_name}/{dexit.imageTag}/bundle.zip",
+                object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
                 config=config,
                 storage_client=s3_client,
@@ -70,11 +71,12 @@ def delete_ui_bundle(dexit: DexitSpec):
     environment: str = config.env
     domain_name: str = config.dexit.domain_name
     tenant = dexit.tenant
+    image_tag = "production" if environment == "production" else "sprint"
 
     if environment == "production":
         bundle_path = f"{tenant}.{domain_name}/"
     else:
-        bundle_path = f"{tenant}.{domain_name}/{dexit.imageTag}"
+        bundle_path = f"{tenant}.{domain_name}/{image_tag}"
 
     delete_file_from_storage(
         object_name=bundle_path,

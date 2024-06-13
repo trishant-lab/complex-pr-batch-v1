@@ -26,6 +26,7 @@ class DeploymentServer(K8sResourceBaseClass):
         self.postgres_user = f"dexit_{dexit.tenant}"
         self.env: str = get_settings().env
         self.tika_server_endpoint = self.config.dexit.tika_server_endpoint
+        self.image_tag = "production" if self.env == "production" else "sprint"
 
     def payload(self):
         body = k8s_client.V1Deployment(
@@ -50,7 +51,7 @@ class DeploymentServer(K8sResourceBaseClass):
                         containers=[
                             k8s_client.V1Container(
                                 name="dexit",
-                                image=f"registry.314ecorp.tech/dexit-app:{self.dexit.imageTag}",
+                                image=f"registry.314ecorp.tech/dexit-app:{self.image_tag}",
                                 image_pull_policy="Always",
                                 resources=k8s_client.V1ResourceRequirements(
                                     requests={
@@ -101,7 +102,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="RELEASE_VERSION",
-                                        value=self.dexit.imageTag,
+                                        value=self.image_tag,
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="APP_CONFIG_DIR",
@@ -188,6 +189,7 @@ class DeploymentCli(K8sResourceBaseClass):
         self.postgres_user = f"dexit_{dexit.tenant}"
         self.env: str = get_settings().env
         self.tika_server_endpoint = self.config.jeeves.tika_server_endpoint
+        self.image_tag = "production" if self.env == "production" else "sprint"
 
     def payload(self):
         body = k8s_client.V1Deployment = k8s_client.V1Deployment(
@@ -212,7 +214,7 @@ class DeploymentCli(K8sResourceBaseClass):
                         containers=[
                             k8s_client.V1Container(
                                 name="dexit",
-                                image=f"registry.314ecorp.tech/dexit-app:{self.dexit.imageTag}",
+                                image=f"registry.314ecorp.tech/dexit-app:{self.image_tag}",
                                 resources=k8s_client.V1ResourceRequirements(
                                     requests={
                                         "cpu": self.dexit.cliSpec.request_cpu,
@@ -268,7 +270,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="RELEASE_VERSION",
-                                        value=self.dexit.imageTag,
+                                        value=self.image_tag,
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="APP_CONFIG_DIR",
