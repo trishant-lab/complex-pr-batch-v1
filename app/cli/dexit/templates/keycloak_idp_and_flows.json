@@ -1572,6 +1572,7 @@
       "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
       "config": {
         "syncMode": "FORCE",
+         "claims": "[]",
         "attribute.value": "Epic",
         "attribute": "ehr_app_name"
       }
@@ -1591,6 +1592,7 @@
       "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
       "config": {
         "syncMode": "FORCE",
+         "claims": "[]",
         "attribute.value": "Epic",
         "attribute": "ehr_app_name"
       }
@@ -1601,6 +1603,7 @@
       "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
       "config": {
         "syncMode": "FORCE",
+         "claims": "[]",
         "attribute.value": "Epic",
         "attribute": "ehr_app_name"
       }
@@ -1611,6 +1614,7 @@
       "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
       "config": {
         "syncMode": "FORCE",
+         "claims": "[]",
         "attribute.value": "Epic",
         "attribute": "ehr_app_name"
       }
@@ -1621,6 +1625,7 @@
       "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
       "config": {
         "syncMode": "FORCE",
+         "claims": "[]",
         "attribute.value": "Epic",
         "attribute": "ehr_app_name"
       }

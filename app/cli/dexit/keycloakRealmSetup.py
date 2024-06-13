@@ -118,11 +118,12 @@ def create_idp_and_flows(dexit: DexitSpec, domain: str, keycloak_client: Keycloa
         if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
             keycloak_client.create_identity_provider(idp_config, realm_name)
             for idp_mapper_config in idp_mapper_configs:
-                keycloak_client.add_mapper_to_idp(
-                    idp_alias=idp_mapper_config["identityProviderAlias"],
-                    mapper_config=idp_mapper_config,
-                    realm_name=realm_name
-                )
+                if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
+                    keycloak_client.add_mapper_to_idp(
+                        idp_alias=idp_mapper_config["identityProviderAlias"],
+                        mapper_config=idp_mapper_config,
+                        realm_name=realm_name
+                    )
 
 
 def create_tenant_customer_admin_user(
