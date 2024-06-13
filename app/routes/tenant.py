@@ -67,6 +67,7 @@ async def list_tenants(product: ProductEnum, _param: dict = Depends(get_oauth_sc
         for tenant in response:
             tenant = dict(tenant)
             tenant['requestor'] = orjson.loads(tenant['requestor_details'])
+            tenant['provisionedDateTime'] = tenant.get('provisioneddatetime')
             output_response.append(TenantResponseModel(**tenant))
 
         return output_response
