@@ -98,6 +98,9 @@ class AuthenticationMiddleware:
             if token:
                 await self._validate_token(token)
                 scope["user"] = get_user(token)
+                roles = scope["user"].get("realm_access", {}).get("roles", [])
+                roles.append("NO_AUTH")
+                scope["user"].get("realm_access", {}).update({"roles": roles})
                 await self.app(scope, receive, send)
             else:
                 scope["user"] = {"realm_access": {"roles": ["NO_AUTH"]}}
