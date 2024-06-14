@@ -42,14 +42,14 @@ class JeevesOnboardingWorkflow(Workflow):
         ]
 
     @classmethod
-    def get_workflow_id(cls: "JeevesOnboardingWorkflow", jeeves: JeevesSpec) -> str:
+    def get_workflow_id(cls: "Workflow", jeeves: JeevesSpec) -> str:
         """
         Return workflow id
         """
         return f"jeeves_onboarding_workflow_{jeeves.tenant}"
 
     @workflow.run
-    async def run(self: "JeevesOnboardingWorkflow", jeeves: JeevesSpec) -> None:
+    async def run(self: "Workflow", jeeves: JeevesSpec) -> None:
         """
         Run workflow
         """
@@ -239,14 +239,14 @@ class JeevesOnboardingWorkflow(Workflow):
             raise e
 
     @workflow.signal
-    async def approve(self: "JeevesOnboardingWorkflow") -> None:
+    async def approve(self: "Workflow") -> None:
         """
         Signal to approve the workflow
         """
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "JeevesOnboardingWorkflow") -> None:
+    async def deny(self: "Workflow") -> None:
         """
         Signal to reject the workflow
         """
