@@ -22,11 +22,12 @@ class DeleteKubernetesServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteKubernetesServiceActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.serviceSetup import Service
+
         Service(dexit=dexit).delete()
 
 
@@ -45,11 +46,12 @@ class DeleteKubernetesVirtualServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteKubernetesVirtualServiceActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.istioVitualService import IstioVirtualService
+
         IstioVirtualService(dexit).delete()
 
 
@@ -68,11 +70,12 @@ class DeleteProvisioningJobActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteProvisioningJobActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.Job import AtlasJob, VespaJob
+
         AtlasJob(dexit=dexit).delete()
         VespaJob(dexit=dexit).delete()
 
@@ -92,11 +95,12 @@ class DeleteDeploymentActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteDeploymentActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.depolyment import DeploymentServer, DeploymentCli
+
         DeploymentServer(dexit=dexit).delete()
         DeploymentCli(dexit=dexit).delete()
 
@@ -116,11 +120,12 @@ class DeleteConfigMapActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteConfigMapActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.configMapSetup import ConfigMapClass
+
         ConfigMapClass(dexit=dexit, config_map=ConfigMapClass.TENANT_CONFIG).delete()
         ConfigMapClass(dexit=dexit, config_map=ConfigMapClass.ENV_CONFIG).delete()
         ConfigMapClass(dexit=dexit, config_map=ConfigMapClass.VECTOR_CONFIG).delete()
@@ -141,11 +146,12 @@ class DeletePVCActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeletePVCActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.pvcSetup import PVC
+
         PVC(dexit=dexit).delete()
 
 
@@ -164,11 +170,12 @@ class DropUIBundlesActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DropUIBundlesActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.UISetup import UISetup
+
         UISetup(dexit=dexit).delete()
 
 
@@ -187,11 +194,12 @@ class DeleteDNSActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteDNSActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.dnsSetup import dns_teardown
+
         await dns_teardown(tenant_name=dexit.tenant)
 
 
@@ -210,9 +218,10 @@ class DeleteVMScraperActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteVMScraperActivity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.dexit.vmPodScraper import VMPodScrapperServer
+
         VMPodScrapperServer(dexit=dexit).delete()

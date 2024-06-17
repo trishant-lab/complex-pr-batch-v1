@@ -23,16 +23,13 @@ class ConfigMapClass(K8sResourceBaseClass):
         "name": "jeeves-rclone-config",
         "key": "rclone.conf",
     }
-    VECTOR_CONFIG: Final[dict[str, str]] = {
-        "name": "jeeves-cli-vector-config",
-        "key": "vector-config.toml"
-    }
-    STATE_STORE_CONFIG: Final[dict[str, str]] = {
-        "name": "jeeves-statestore-config",
-        "key": "statestore.yaml"
-    }
+    VECTOR_CONFIG: Final[dict[str, str]] = {"name": "jeeves-cli-vector-config", "key": "vector-config.toml"}
+    STATE_STORE_CONFIG: Final[dict[str, str]] = {"name": "jeeves-statestore-config", "key": "statestore.yaml"}
 
-    def __init__(self, jeeves: JeevesSpec, config_map: dict[str, str]) -> None:
+    def __init__(self: "ConfigMapClass", jeeves: JeevesSpec, config_map: dict[str, str]) -> None:
+        """
+        Constructor for ConfigMapClass
+        """
         self.jeeves: JeevesSpec = jeeves
         self.config_map: dict[str, str] = config_map
         self.config_ = get_settings()
@@ -42,16 +39,17 @@ class ConfigMapClass(K8sResourceBaseClass):
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1"
         )
 
-    def payload(self):
+    def payload(self: "ConfigMapClass") -> dict:
+        """
+        Payload for ConfigMap
+        """
         template_env = get_env(template_path=TemplatePath)
 
-        template_file_name = (
-            f"""{self.env}-{self.config_map['key']
+        template_file_name = f"""{self.env}-{self.config_map['key']
             .replace('.json', '.tmpl.json')
             .replace('.toml', '.tmpl.toml')
             .replace('.yaml', '.tmpl.yaml')
             .replace('.conf', '.tmpl.conf')}"""
-        )
 
         template = template_env.get_template(template_file_name)
         output = template.render(
@@ -66,33 +64,33 @@ class ConfigMapClass(K8sResourceBaseClass):
             # inject secret into tenant-config.json from 1Password
             secret_inject(
                 source_file_path=f"{temp_dir}/{template_file_name}",
-                destination_path=f"{temp_dir}/{self.config_map['key']}"
+                destination_path=f"{temp_dir}/{self.config_map['key']}",
             )
 
             body = V1ConfigMap(
                 api_version="v1",
                 kind=ResourceKindEnum.ConfigMap.value,
-                metadata=V1ObjectMeta(name=self.config_map['name'], namespace=self.jeeves.tenant),
-                data={self.config_map['key']: open(f"{temp_dir}/{self.config_map['key']}").read()}
+                metadata=V1ObjectMeta(name=self.config_map["name"], namespace=self.jeeves.tenant),
+                data={self.config_map["key"]: open(f"{temp_dir}/{self.config_map['key']}").read()},
             )
 
-            body = self.k8s_dynamic_client.client.sanitize_for_serialization(body)
+            return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-            return body
-
-    def put(self):
+    def put(self: "ConfigMapClass") -> None:
+        """
+        Put ConfigMap
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "ConfigMapClass") -> None:
+        """
+        Delete ConfigMap
+        """
         try:
             self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name=self.config_map['name'],
-                namespace=self.jeeves.tenant
+                resource=self.resource, name=self.config_map["name"], namespace=self.jeeves.tenant
             )
         except NotFoundError:
             logger.error(f"ConfigMap {self.config_map['name']} not found in namespace {self.jeeves.tenant}")

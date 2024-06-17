@@ -5,16 +5,22 @@ from temporalio import workflow
 
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.activities.deprovisioning import (
-    DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeleteProvisioningJobActivity,
-    DeletePVCActivity, DeleteDeploymentActivity, DeleteConfigMapActivity, DropUIBundlesActivity, DeleteDNSActivity,
-    DeleteVMScraperActivity
+    DeleteKubernetesServiceActivity,
+    DeleteKubernetesVirtualServiceActivity,
+    DeleteProvisioningJobActivity,
+    DeletePVCActivity,
+    DeleteDeploymentActivity,
+    DeleteConfigMapActivity,
+    DropUIBundlesActivity,
+    DeleteDNSActivity,
+    DeleteVMScraperActivity,
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity
-from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.cli.veritable.models.VeritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger
-    
+
 
 @workflow.defn
 class VeritableDeProvisioningWorkflow(Workflow):
@@ -28,10 +34,16 @@ class VeritableDeProvisioningWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            DeleteKubernetesServiceActivity.defn, DeleteKubernetesVirtualServiceActivity.defn,
-            DeleteProvisioningJobActivity.defn, DeletePVCActivity.defn, DeleteDeploymentActivity.defn,
-            DeleteConfigMapActivity.defn, DropUIBundlesActivity.defn, DeleteDNSActivity.defn,
-            DeleteVMScraperActivity.defn, UpdateTenantStatusActivity.defn
+            DeleteKubernetesServiceActivity.defn,
+            DeleteKubernetesVirtualServiceActivity.defn,
+            DeleteProvisioningJobActivity.defn,
+            DeletePVCActivity.defn,
+            DeleteDeploymentActivity.defn,
+            DeleteConfigMapActivity.defn,
+            DropUIBundlesActivity.defn,
+            DeleteDNSActivity.defn,
+            DeleteVMScraperActivity.defn,
+            UpdateTenantStatusActivity.defn,
         ]
 
     @classmethod
@@ -47,7 +59,6 @@ class VeritableDeProvisioningWorkflow(Workflow):
         """
         Entry point for workflow
         """
-
         # delete k8s service
         await workflow.execute_activity(
             DeleteKubernetesServiceActivity.defn,

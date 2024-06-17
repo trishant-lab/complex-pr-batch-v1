@@ -2,7 +2,10 @@ import secrets
 import string
 
 
-def generate_password(length):
+def generate_password(length: int) -> str:
+    """
+    :param length:
+    :return:
+    """
     all_characters = string.ascii_letters + string.digits
-    password = ''.join(secrets.choice(all_characters) for _ in range(length))
-    return password
+    return "".join(secrets.choice(all_characters) for _ in range(length))

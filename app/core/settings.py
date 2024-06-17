@@ -57,6 +57,7 @@ class GrafanaSettings(BaseModel):
     """
     Grafana Settings
     """
+
     dashboard_uid: str = ""
     datasource_uid: str = ""
     folder_uid: str = ""
@@ -80,6 +81,7 @@ class S3Settings(BaseModel):
     """
     S3 Settings
     """
+
     endpoint: str = ""
     access_key: str = ""
     secret_key: str = ""
@@ -93,6 +95,7 @@ class SlackSettings(BaseModel):
     """
     Slack Settings
     """
+
     channel_id: str = "C076N2B1FD4"
     bot_token: str = ""
     bot_username: str = "Launchpad"
@@ -103,6 +106,7 @@ class VeritableSettings(BaseModel):
     Veritable Settings
 
     """
+
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "int.veritable.app"
     grafana: GrafanaSettings = GrafanaSettings()
@@ -116,6 +120,7 @@ class JeevesSettings(BaseModel):
     """
     Jeeves Settings
     """
+
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "jeeves.314ecorp.tech"
     # grafana: GrafanaSettings = GrafanaSettings()
@@ -141,6 +146,7 @@ class DexitSettings(BaseModel):
     """
     Dexit Settings
     """
+
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "dexit.314ecorp.tech"
     # grafana: GrafanaSettings = GrafanaSettings()
@@ -204,6 +210,7 @@ class IntegrationSettings(AppSettings):
     """
     Integration Settings
     """
+
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
     model_config = ConfigDict(extra="ignore")
@@ -213,12 +220,13 @@ class ProductionSettings(AppSettings):
     """
     Production Settings
     """
+
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
     model_config = ConfigDict(extra="ignore")
 
 
-def get_settings():
+def get_settings() -> AppSettings:
     """
     This function initializes the settings object based on environment DEPLOYMENT. The order in which
     the settings are applied is as follows:
@@ -228,13 +236,7 @@ def get_settings():
     """
     deployment: str = os.getenv("DEPLOYMENT", "integration").lower()
     config_dir = os.getenv("APP_CONFIG_DIR", "/")
-    # config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES]
     default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
-    # if len(config_files) != len(CONFIG_FILE_NAMES):
-    #     loguru.logger.info(
-    #         f"found inadequate config files - {orjson.dumps(config_files)}, returning default settings!",
-    #     )
-    #     return default_settings
 
     combined_config = dict()
     for file in CONFIG_FILE_NAMES:
@@ -255,14 +257,13 @@ def get_settings():
     for key, val in combined_config.items():
         default_settings_dict_partial(key, val)
 
-    settings = default_settings.model_validate(default_settings_dict)
-    return settings
+    return default_settings.model_validate(default_settings_dict)
 
 
 @lru_cache
-def get_security_config():
+def get_security_config() -> dict:
     """
     Returns keycloak endpoints
     """
     settings: AppSettings = get_settings()
-    return requests.get(settings.keycloak.wellknown_url).json()
+    return requests.get(settings.keycloak.wellknown_url, timeout=60).json()

@@ -1,5 +1,3 @@
-import dataclasses
-
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 
 
@@ -7,6 +5,7 @@ class ResourceSpec(LaunchpadCLIBaseModel):
     """
     ResourceSpec dataclass
     """
+
     request_memory: str = "500Mi"
     request_cpu: str = "500m"
     limit_memory: str = "3000Mi"
@@ -17,6 +16,7 @@ class CustomerDetails(LaunchpadCLIBaseModel):
     """
     CustomerDetails dataclass
     """
+
     userName: str
     email: str
     organization: str
@@ -26,6 +26,7 @@ class JeevesSpec(LaunchpadCLIBaseModel):
     """
     JeevesSpec dataclass
     """
+
     tenant: str
     customerDetails: None | CustomerDetails = None
     serverSpec: None | ResourceSpec = ResourceSpec()

@@ -6,12 +6,12 @@ from pathlib import Path
 import boto3
 from loguru import logger
 
-from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.cli.veritable.models.VeritableSpec import VeritableSpec
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(veritable: VeritableSpec):
+def deploy_ui(veritable: VeritableSpec) -> None:
     """
 
     :param veritable:
@@ -37,7 +37,6 @@ def deploy_ui(veritable: VeritableSpec):
     try:
         # Copy file from source to temporary folder
         with tempfile.TemporaryDirectory() as tmp_dir:
-
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
@@ -62,7 +61,7 @@ def deploy_ui(veritable: VeritableSpec):
         raise e
 
 
-def delete_ui_bundle(veritable: VeritableSpec):
+def delete_ui_bundle(veritable: VeritableSpec) -> None:
     """
 
     :param veritable

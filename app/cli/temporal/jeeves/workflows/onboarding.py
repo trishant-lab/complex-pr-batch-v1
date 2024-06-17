@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Callable
+from collections.abc import Callable
 
 import pydash
 from temporalio import workflow
@@ -8,11 +8,24 @@ from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.base import Workflow
 
 from app.cli.temporal.jeeves.activities.onboarding import (
-    PostgresSetupActivity, NamespaceSetupActivity, ConfigmapSetupActivity, PVCSetupActivity, SecretSetupActivity,
-    StateFullSetSetupActivity, DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, NovuSetupActivity,
-    ChatwootSetupActivity, ProvisioningJobActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity,
-    DeploymentActivity, VmPodScraperActivity,
-    AiVoiceSetupActivity, TemporalNamespaceCreationActivity
+    PostgresSetupActivity,
+    NamespaceSetupActivity,
+    ConfigmapSetupActivity,
+    PVCSetupActivity,
+    SecretSetupActivity,
+    StateFullSetSetupActivity,
+    DnsSetupActivity,
+    UiSetupActivity,
+    KeycloakRealmSetupActivity,
+    NovuSetupActivity,
+    ChatwootSetupActivity,
+    ProvisioningJobActivity,
+    KubernetesServiceActivity,
+    KubernetesVirtualServiceActivity,
+    DeploymentActivity,
+    VmPodScraperActivity,
+    AiVoiceSetupActivity,
+    TemporalNamespaceCreationActivity,
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
 
@@ -23,7 +36,7 @@ class JeevesOnboardingWorkflow(Workflow):
     Jeeves Onboarding Workflow
     """
 
-    def __init__(self):
+    def __init__(self: "Workflow") -> None:
         self.approved: bool = False
         self.deny: bool = False
 
@@ -33,12 +46,25 @@ class JeevesOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            PostgresSetupActivity.defn, NamespaceSetupActivity.defn, ConfigmapSetupActivity.defn, PVCSetupActivity.defn,
-            SecretSetupActivity.defn, StateFullSetSetupActivity.defn, DnsSetupActivity.defn, UiSetupActivity.defn,
-            KeycloakRealmSetupActivity.defn, NovuSetupActivity.defn, ChatwootSetupActivity.defn,
-            ProvisioningJobActivity.defn, KubernetesServiceActivity.defn, KubernetesVirtualServiceActivity.defn,
-            DeploymentActivity.defn, VmPodScraperActivity.defn, AiVoiceSetupActivity.defn,
-            TemporalNamespaceCreationActivity.defn, UpdateTenantStatusActivity.defn,
+            PostgresSetupActivity.defn,
+            NamespaceSetupActivity.defn,
+            ConfigmapSetupActivity.defn,
+            PVCSetupActivity.defn,
+            SecretSetupActivity.defn,
+            StateFullSetSetupActivity.defn,
+            DnsSetupActivity.defn,
+            UiSetupActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            NovuSetupActivity.defn,
+            ChatwootSetupActivity.defn,
+            ProvisioningJobActivity.defn,
+            KubernetesServiceActivity.defn,
+            KubernetesVirtualServiceActivity.defn,
+            DeploymentActivity.defn,
+            VmPodScraperActivity.defn,
+            AiVoiceSetupActivity.defn,
+            TemporalNamespaceCreationActivity.defn,
+            UpdateTenantStatusActivity.defn,
         ]
 
     @classmethod
@@ -53,18 +79,14 @@ class JeevesOnboardingWorkflow(Workflow):
         """
         Run workflow
         """
-
         try:
-
             await workflow.wait_condition(lambda: self.approved or self.deny)
 
             if self.deny:
                 await workflow.execute_activity(
                     activity=UpdateTenantStatusActivity.defn,
                     arg=TenantStatus(
-                        tenant_name=pydash.get(jeeves, 'tenant'),
-                        status="Declined",
-                        error_msg="Request Declined"
+                        tenant_name=pydash.get(jeeves, "tenant"), status="Declined", error_msg="Request Declined"
                     ),
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                     start_to_close_timeout=timedelta(seconds=120),
@@ -217,10 +239,7 @@ class JeevesOnboardingWorkflow(Workflow):
             # Update Tenant Status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=pydash.get(jeeves, 'tenant'),
-                    status="Completed"
-                ),
+                arg=TenantStatus(tenant_name=pydash.get(jeeves, "tenant"), status="Completed"),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -228,11 +247,7 @@ class JeevesOnboardingWorkflow(Workflow):
             workflow.logger.error(f"Error in onboarding workflow: {e}")
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=pydash.get(jeeves, 'tenant'),
-                    status="Failed",
-                    error_msg=str(e)
-                ),
+                arg=TenantStatus(tenant_name=pydash.get(jeeves, "tenant"), status="Failed", error_msg=str(e)),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )

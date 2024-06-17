@@ -12,14 +12,20 @@ class Service(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "Service", jeeves: JeevesSpec) -> None:
+        """
+        Constructor
+        """
         self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Service, api_version="v1"
         )
 
-    def payload(self):
+    def payload(self: "Service") -> dict:
+        """
+        k8s resource payload
+        """
         body = V1Service(
             api_version="v1",
             kind=ResourceKindEnum.Service.value,
@@ -36,25 +42,25 @@ class Service(K8sResourceBaseClass):
                         name="http",
                         port=8000,
                     )
-                ]
-            )
+                ],
+            ),
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "Service") -> None:
+        """
+        k8s server side apply
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "Service") -> None:
+        """
+        k8s delete resource
+        """
         try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name=ProductName,
-                namespace=self.jeeves.tenant
-            )
-        except NotFoundError as e:
+            self.k8s_dynamic_client.delete(resource=self.resource, name=ProductName, namespace=self.jeeves.tenant)
+        except NotFoundError:
             logger.error(f"Service {ProductName} not found in namespace {self.jeeves.tenant}")

@@ -18,7 +18,7 @@ from .routes.provisioning import provisioning_router
 from .routes.deprovisioning import de_provisioning_router
 
 api_prefix = "/api/v1"
-TITLE = f"Launchpad APP"
+TITLE = "Launchpad APP"
 
 config: AppSettings = get_settings()
 

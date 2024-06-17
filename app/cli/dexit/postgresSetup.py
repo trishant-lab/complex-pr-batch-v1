@@ -8,17 +8,14 @@ from app.core.db import DBManager, get_db_manager
 from app.core.settings import get_settings, DexitSettings
 
 
-def create_k8s_postgres_secret(dexit: DexitSpec, password: str):
-    Secret(
-        dexit=dexit,
-        name="dexit-postgres-password",
-        string_data={
-            "POSTGRES_PASSWORD": password
-        }
-    ).put()
+def create_k8s_postgres_secret(dexit: DexitSpec, password: str) -> None:
+    """
+    Create a secret in k8s for the postgres password
+    """
+    Secret(dexit=dexit, name="dexit-postgres-password", string_data={"POSTGRES_PASSWORD": password}).put()
 
 
-async def setup_postgres(dexit: DexitSpec):
+async def setup_postgres(dexit: DexitSpec) -> None:
     """
     Setup postgres database for dexit tenant
     """

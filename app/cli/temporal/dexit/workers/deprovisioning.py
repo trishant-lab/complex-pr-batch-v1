@@ -1,14 +1,14 @@
 import asyncio
 
 from loguru import logger
-from temporalio.worker import Worker
 from temporalio.client import Client
+from temporalio.worker import Worker
 
-from app.core.settings import AppSettings, get_settings
 from app.cli.temporal.dexit.workflows.deprovisioning import DexitDeProvisioningWorkflow
+from app.core.settings import AppSettings, get_settings
 
 
-async def dexit_deprovisioning_worker():
+async def dexit_deprovisioning_worker() -> None:
     """
     Workflow worker for dexit onboarding
     """
@@ -23,7 +23,7 @@ async def dexit_deprovisioning_worker():
         task_queue=config.dexit.temporal_dexit_deboarding_task_queue,
         workflows=[DexitDeProvisioningWorkflow],
         activities=DexitDeProvisioningWorkflow.get_activities(),
-        debug_mode=True
+        debug_mode=True,
     )
     await worker.run()
 

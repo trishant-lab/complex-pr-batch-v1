@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 import orjson
 import requests
@@ -13,7 +12,7 @@ from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
 
 
-def get_notification_group_id(group_name, config: AppSettings, api_key: str):
+def get_notification_group_id(group_name: str, config: AppSettings, api_key: str) -> None | str:
     """
 
     :param group_name:
@@ -30,12 +29,12 @@ def get_notification_group_id(group_name, config: AppSettings, api_key: str):
 
 
 def get_novu_notification_workflow_by_name(
-        workflow_name: str,
-        config: AppSettings,
-        api_key: str,
-        page: int = 0,
-        limit: int = 100,
-):
+    workflow_name: str,
+    config: AppSettings,
+    api_key: str,
+    page: int = 0,
+    limit: int = 100,
+) -> None | dict:
     """
 
     :param workflow_name:
@@ -53,7 +52,7 @@ def get_novu_notification_workflow_by_name(
     return None
 
 
-def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: str):
+def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: str) -> None:
     """
     :param data:
     :param config:
@@ -68,7 +67,7 @@ def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: 
         novu_client.create(notification_template=notification_template)
 
 
-def create_novu_workflow_templates(target_dir, config: AppSettings, api_key: str):
+def create_novu_workflow_templates(target_dir: str, config: AppSettings, api_key: str) -> None:
     """
 
     :param target_dir:
@@ -76,11 +75,8 @@ def create_novu_workflow_templates(target_dir, config: AppSettings, api_key: str
     :param api_key:
     :return:
     """
-
-    id = get_notification_group_id(group_name='General', config=config, api_key=api_key)
-    notification = {
-        "notification_grp_id": id
-    }
+    id_ = get_notification_group_id(group_name="General", config=config, api_key=api_key)
+    notification = {"notification_grp_id": id_}
     for root, dirs, files in os.walk(target_dir):
         for file in files:
             file_ = os.path.join(root, file)
@@ -90,16 +86,10 @@ def create_novu_workflow_templates(target_dir, config: AppSettings, api_key: str
 
             jinja_template = Template(json_data)
 
-            rendered_template = jinja_template.render(
-                notification=notification
-            )
+            rendered_template = jinja_template.render(notification=notification)
             rendered_template = orjson.loads(rendered_template)
 
-            create_novu_notification_workflow(
-                data=rendered_template,
-                config=config,
-                api_key=api_key
-            )
+            create_novu_notification_workflow(data=rendered_template, config=config, api_key=api_key)
 
 
 def list_integration_provider(config: AppSettings, novu_api_key: str) -> list:
@@ -139,7 +129,9 @@ def integrate_provider(
     }
     integration = IntegrationDto(**integration)
 
-    res = novu_client.create(integration=integration, )
+    res = novu_client.create(
+        integration=integration,
+    )
     return res._id
 
 
@@ -160,7 +152,7 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
     :return:
     """
     provider_data: list = list_integration_provider(config=config, novu_api_key=novu_api_key)
-    chat_exist: bool = False
+    # chat_exist: bool = False
     email_exist: bool = False
     in_app_exist: bool = False
     for item in provider_data:
@@ -168,8 +160,8 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             email_exist = True
         if item.get("channel", "") == "in_app":
             in_app_exist = True
-        if item.get("channel", "") == "chat":
-            chat_exist = True
+        # if item.get("channel", "") == "chat":
+        #     chat_exist = True
 
     # # adding chat provider slack
     # if not chat_exist:
@@ -198,7 +190,7 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             },
             active=True,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
         if integration_id:
@@ -207,12 +199,7 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
     # adding in app provider novu
     if not in_app_exist:
         integrate_provider(
-            provider="novu",
-            channel="in_app",
-            credentials={},
-            active=True,
-            config=config,
-            novu_api_key=novu_api_key
+            provider="novu", channel="in_app", credentials={}, active=True, config=config, novu_api_key=novu_api_key
         )
 
 
@@ -221,52 +208,41 @@ class NovuSetup:
     This class will be used to setup the Novu environment
     """
 
-    def __init__(self, dexit: DexitSpec) -> None:
+    def __init__(self: "NovuSetup", dexit: DexitSpec) -> None:
         self.dexit: DexitSpec = dexit
         self.config: AppSettings = get_settings()
 
-    def get_access_token(self):
+    def get_access_token(self: "NovuSetup") -> str:
         """
         Get the access token for the Novu environment
         """
         url = f"{self.config.dexit.novu_url}/v1/auth/login"
 
-        payload = {
-            "email": self.config.dexit.novu_admin_user,
-            "password": self.config.dexit.novu_admin_password
-        }
+        payload = {"email": self.config.dexit.novu_admin_user, "password": self.config.dexit.novu_admin_password}
 
-        response = requests.post(
-            url=url,
-            json=payload
-        )
+        response = requests.post(url=url, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get access token for Novu environment")
+            raise Exception("Failed to get access token for Novu environment")
 
-        return response.json()['data']['token']
+        return response.json()["data"]["token"]
 
-    def get_organizations_by_name(self, organization_name: str, token: str):
+    def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
         List the organizations in the Novu environment
         """
         url = f"{self.config.dexit.novu_url}/v1/organizations"
 
-        response = requests.get(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {token}"
-            }
-        )
+        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
             raise Exception(f"Failed to get organization by name: {organization_name}")
 
-        return [row for row in response.json()['data'] if row['name'] == organization_name]
+        return [row for row in response.json()["data"] if row["name"] == organization_name]
 
-    def create_organization(self, token: str, org_name: str):
+    def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
-
+        Create an organization in the Novu environment
         """
         url = f"{self.config.dexit.novu_url}/v1/organizations"
 
@@ -274,56 +250,40 @@ class NovuSetup:
             "name": org_name,
         }
 
-        response = requests.post(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {token}"
-            },
-            json=payload
-        )
+        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
 
         if response.status_code >= 300:
             raise Exception(f"Failed to create organization: {org_name}")
 
         return response.json()
 
-    def get_organization_api_key(self, token: str):
+    def get_organization_api_key(self: "NovuSetup", token: str) -> str:
         """
         Get the API keys for the organization
         """
         url = f"{self.config.dexit.novu_url}/v1/environments/api-keys"
 
-        response = requests.get(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {token}"
-            }
-        )
+        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
             raise Exception(f"Failed to get API keys for organization status_code:{response.status_code}")
 
-        return response.json()['data'][0]['key']
+        return response.json()["data"][0]["key"]
 
-    def switch_organization(self, organization_id: str, token: str):
+    def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
         Switch the organization
         """
         url = f"{self.config.dexit.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
-        response = requests.post(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {token}"
-            },
-        )
+        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
             raise Exception(f"Failed to switch organization: {organization_id}")
 
-        return response.json()['data']
+        return response.json()["data"]
 
-    def setup_novu(self):
+    def setup_novu(self: "NovuSetup") -> None:
         """
         Setup the Novu environment
         """
@@ -334,10 +294,10 @@ class NovuSetup:
         organization = self.get_organizations_by_name(organization_name=organization_name, token=access_token)
         if not organization:
             organization = self.create_organization(token=access_token, org_name=organization_name)
-            organization_id = organization['data']['id']
+            organization_id = organization["data"]["id"]
         else:
             organization = organization[0]
-            organization_id = organization['_id']
+            organization_id = organization["_id"]
 
         organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
         api_keys = self.get_organization_api_key(token=organization_token)
@@ -350,12 +310,8 @@ class NovuSetup:
         ).insert_if_not_exists(key="novu_api_key", value=api_keys)
 
         # create the templates
-        novu_template_path = os.path.join(TemplatePath, 'novu_workflow_template')
-        create_novu_workflow_templates(
-            target_dir=novu_template_path,
-            config=config,
-            api_key=api_keys
-        )
+        novu_template_path = os.path.join(TemplatePath, "novu_workflow_template")
+        create_novu_workflow_templates(target_dir=novu_template_path, config=config, api_key=api_keys)
 
         # add the integration provider
         add_integration_provider(config=config, novu_api_key=api_keys)

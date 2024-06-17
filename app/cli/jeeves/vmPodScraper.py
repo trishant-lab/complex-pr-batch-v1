@@ -11,30 +11,32 @@ class VMPodScrapperServer(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "VMPodScrapperServer", jeeves: JeevesSpec) -> None:
+        """
+        Constructor
+        """
         self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client,
             kind=ResourceKindEnum.VMPodScrape,
-            api_version="operator.victoriametrics.com/v1beta1"
+            api_version="operator.victoriametrics.com/v1beta1",
         )
 
-    def payload(self):
+    def payload(self: "VMPodScrapperServer") -> dict:
+        """
+        k8s resource payload
+        """
         vms_spec = {
-            "namespaceSelector": {
-                "matchNames": [self.jeeves.tenant]
-            },
-            "podMetricsEndpoints": [{
-                "path": "/metrics",
-                "port": "http",
-                "interval": "5s",
-            }],
-            "selector": {
-                "matchLabels": {
-                    "app": ProductName
+            "namespaceSelector": {"matchNames": [self.jeeves.tenant]},
+            "podMetricsEndpoints": [
+                {
+                    "path": "/metrics",
+                    "port": "http",
+                    "interval": "5s",
                 }
-            }
+            ],
+            "selector": {"matchLabels": {"app": ProductName}},
         }
 
         body = {
@@ -44,23 +46,23 @@ class VMPodScrapperServer(K8sResourceBaseClass):
                 "name": "jeeves-metrics",
                 "namespace": self.jeeves.tenant,
             },
-            "spec": vms_spec
+            "spec": vms_spec,
         }
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "VMPodScrapperServer") -> None:
+        """
+        k8s server side apply
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "VMPodScrapperServer") -> None:
+        """
+        k8s delete resource
+        """
         try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name="jeeves-metrics",
-                namespace=self.jeeves.tenant
-            )
+            self.k8s_dynamic_client.delete(resource=self.resource, name="jeeves-metrics", namespace=self.jeeves.tenant)
         except NotFoundError:
             logger.error(f"VMPodScrapperServer not found in namespace {self.jeeves.tenant}")

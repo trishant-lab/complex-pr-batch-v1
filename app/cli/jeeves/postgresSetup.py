@@ -1,5 +1,3 @@
-import os
-
 from loguru import logger
 
 from app.onepasswordutil import OnePasswordUtil
@@ -10,7 +8,7 @@ from app.core.db import DBManager, get_db_manager
 from app.core.settings import get_settings, JeevesSettings
 
 
-async def setup_postgres(jeeves: JeevesSpec):
+async def setup_postgres(jeeves: JeevesSpec) -> None:
     """
     Setup postgres database for jeeves tenant
     """

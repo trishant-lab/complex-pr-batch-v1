@@ -5,14 +5,20 @@ from temporalio import workflow
 
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.dexit.activities.deprovisioning import (
-    DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeleteProvisioningJobActivity,
-    DeleteDeploymentActivity, DeleteConfigMapActivity, DeletePVCActivity, DropUIBundlesActivity, DeleteDNSActivity,
-    DeleteVMScraperActivity
+    DeleteKubernetesServiceActivity,
+    DeleteKubernetesVirtualServiceActivity,
+    DeleteProvisioningJobActivity,
+    DeleteDeploymentActivity,
+    DeleteConfigMapActivity,
+    DeletePVCActivity,
+    DropUIBundlesActivity,
+    DeleteDNSActivity,
+    DeleteVMScraperActivity,
 )
 from app.cli.dexit.models.dexitSpec import DexitSpec
 
 with workflow.unsafe.imports_passed_through():
-    from loguru import logger
+    pass
 
 
 @workflow.defn
@@ -27,10 +33,15 @@ class DexitDeProvisioningWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            DeleteKubernetesServiceActivity.defn, DeleteKubernetesVirtualServiceActivity.defn,
-            DeleteProvisioningJobActivity.defn, DeleteDeploymentActivity.defn, DeleteConfigMapActivity.defn,
-            DeletePVCActivity.defn, DropUIBundlesActivity.defn, DeleteDNSActivity.defn,
-            DeleteVMScraperActivity.defn
+            DeleteKubernetesServiceActivity.defn,
+            DeleteKubernetesVirtualServiceActivity.defn,
+            DeleteProvisioningJobActivity.defn,
+            DeleteDeploymentActivity.defn,
+            DeleteConfigMapActivity.defn,
+            DeletePVCActivity.defn,
+            DropUIBundlesActivity.defn,
+            DeleteDNSActivity.defn,
+            DeleteVMScraperActivity.defn,
         ]
 
     @classmethod
@@ -46,7 +57,6 @@ class DexitDeProvisioningWorkflow(Workflow):
         """
         Entry point for workflow
         """
-
         # delete k8s service
         await workflow.execute_activity(
             DeleteKubernetesServiceActivity.defn,

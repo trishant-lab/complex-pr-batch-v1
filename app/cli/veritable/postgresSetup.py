@@ -7,18 +7,16 @@ from temporalio.client import Client
 from app.cli.postgresUtils import PostgresUtils
 from app.cli.temporal.veritable.workflows.postgres import VeritablePostgresSetupWorkflow
 from app.cli.veritable import TemplatePath
-from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.cli.veritable.models.VeritableSpec import VeritableSpec
 from app.cli.veritable.veritable import ProductName
-from app.cli.veritable.secretSetup import Secret
+from app.cli.veritable.Secret import Secret
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
 from app.core.settings import get_settings, AppSettings, VeritableSettings
 from app.template_env import get_env
 
 
-async def setup_supavisor_poll_user(
-        db_username: str, database_name: str, db_password: str, environment: str
-):
+async def setup_supavisor_poll_user(db_username: str, database_name: str, db_password: str, environment: str) -> None:
     """
     Setup supervisor poll user for veritable tenant
     """
@@ -26,20 +24,17 @@ async def setup_supavisor_poll_user(
 
     jinja_env = get_env(template_path=TemplatePath)
     template = jinja_env.get_template(f"{environment}-supavisor-user.json")
-    rendered_template = template.render(
-        DATABASE=database_name,
-        DB_USER=db_username,
-        DB_PASSWORD=db_password
-    )
+    rendered_template = template.render(DATABASE=database_name, DB_USER=db_username, DB_PASSWORD=db_password)
 
     response = requests.put(
         url=f"{config.supavisor_url}/api/tenants/{db_username}",
         headers={
             "Authorization": f"Bearer {config.supavisor_token}",
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
         },
-        data=rendered_template
+        data=rendered_template,
+        timeout=120,
     )
 
     if response.status_code < 200 or response.status_code >= 299:
@@ -48,17 +43,14 @@ async def setup_supavisor_poll_user(
     logger.info(f"Supervisor poll user created: {db_username}")
 
 
-def create_k8s_postgres_secret(veritable: VeritableSpec, password: str):
-    Secret(
-        veritable=veritable,
-        name="veritable-postgres",
-        string_data={
-            "password": password
-        }
-    ).put()
+def create_k8s_postgres_secret(veritable: VeritableSpec, password: str) -> None:
+    """
+    Create a k8s secret for postgres password
+    """
+    Secret(veritable=veritable, name="veritable-postgres", string_data={"password": password}).put()
 
 
-async def setup_postgres(veritable: VeritableSpec):
+async def setup_postgres(veritable: VeritableSpec) -> None:
     """
     Setup postgres database for veritable tenant
     """

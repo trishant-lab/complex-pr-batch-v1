@@ -1,6 +1,5 @@
 from datetime import datetime
 import uuid
-from typing import List
 
 import orjson
 from fastapi import APIRouter, Depends
@@ -25,12 +24,12 @@ class ProductResponseModel(BaseModel):
     approvalRequired: bool
 
 
-@product_router.get(
-    "/listAllProducts",
-    operation_id="listAllProducts",
-    response_model=List[ProductResponseModel]
-)
-async def list_all_products(_: dict = Depends(get_oauth_scheme())):
+@product_router.get("/listAllProducts", operation_id="listAllProducts", response_model=list[ProductResponseModel])
+async def list_all_products(_: dict = Depends(get_oauth_scheme())) -> list[ProductResponseModel]:
+    """
+    @param _:
+    @return:
+    """
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
@@ -40,7 +39,7 @@ async def list_all_products(_: dict = Depends(get_oauth_scheme())):
         for resp in response:
             resp = dict(resp)
             resp["product_schema"] = orjson.loads(resp["schema"])
-            output_response.append(resp)
+            output_response.append(ProductResponseModel(**resp))
 
         return output_response
 
@@ -49,12 +48,13 @@ async def list_all_products(_: dict = Depends(get_oauth_scheme())):
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching product")
 
 
-@product_router.get(
-    "/getProduct",
-    operation_id="getProduct",
-    response_model=ProductResponseModel
-)
-async def get_product(product: str, _param: dict = Depends(get_oauth_scheme())):
+@product_router.get("/getProduct", operation_id="getProduct", response_model=ProductResponseModel)
+async def get_product(product: str, _param: dict = Depends(get_oauth_scheme())) -> ProductResponseModel:
+    """
+    @param product:
+    @param _param:
+    @return:
+    """
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
@@ -63,7 +63,7 @@ async def get_product(product: str, _param: dict = Depends(get_oauth_scheme())):
         response = dict(response)
         response["product_schema"] = orjson.loads(response["schema"])
 
-        return response
+        return ProductResponseModel(**response)
 
     except Exception as e:
         logger.error(f"Error fetching product: {e}")

@@ -6,7 +6,7 @@ from temporalio import workflow
 
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.activities.postgres import PostgresDatabaseSetupActivity
-from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.cli.veritable.models.VeritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger
@@ -23,9 +23,7 @@ class VeritablePostgresSetupWorkflow(Workflow):
         """
         Return list of activities used in the workflow
         """
-        return [
-            PostgresDatabaseSetupActivity.defn
-        ]
+        return [PostgresDatabaseSetupActivity.defn]
 
     @classmethod
     def get_workflow_id(cls: "Workflow", veritable: VeritableSpec) -> str | None:
@@ -40,7 +38,6 @@ class VeritablePostgresSetupWorkflow(Workflow):
         """
         Entry point for workflow
         """
-
         try:
             logger.info(f"Starting Postgres setup for tenant: {pydash.get(veritable, 'tenant')}")
             await workflow.execute_activity(

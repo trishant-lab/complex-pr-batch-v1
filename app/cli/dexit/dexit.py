@@ -10,7 +10,7 @@ class DexitWorkflow(ProductWorkflow):
     """
 
     @staticmethod
-    async def onboard(schema: dict):
+    async def onboard(schema: dict) -> None:
         """
         onboard method
         """
@@ -22,11 +22,11 @@ class DexitWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=DexitSpec(**schema),
             workflow=DexitOnboardingWorkflow,
-            queue=product_config.temporal_dexit_onboarding_task_queue
+            queue=product_config.temporal_dexit_onboarding_task_queue,
         )
 
     @staticmethod
-    async def deboard(schema: dict):
+    async def deboard(schema: dict) -> None:
         """
         deprovision method
         """
@@ -38,17 +38,17 @@ class DexitWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=DexitSpec(**schema),
             workflow=DexitDeProvisioningWorkflow,
-            queue=product_config.temporal_dexit_deboarding_task_queue
+            queue=product_config.temporal_dexit_deboarding_task_queue,
         )
 
     @staticmethod
-    async def approve(schema: dict):
+    async def approve(schema: dict) -> None:
         """
         approve method
         """
         from app.cli.temporal.dexit.starter import get_workflow_handle
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
 
-        handle = await get_workflow_handle(workflow_input=DexitSpec(**schema),workflow=DexitOnboardingWorkflow)
+        handle = await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
 
         await handle.signal(DexitOnboardingWorkflow.approve)

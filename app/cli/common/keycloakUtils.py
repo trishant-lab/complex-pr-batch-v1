@@ -1,7 +1,6 @@
 from functools import lru_cache
 
 from keycloak import KeycloakAdmin
-from loguru import logger
 
 from app.core.settings import KeycloakSettings, get_settings
 
@@ -41,11 +40,10 @@ class KeycloakAdminClient:
         """
         return self.kc_client.get_realm(realm_name)
 
-    def create_realm(self: "KeycloakAdminClient", realm_config: dict, skip_exists=True) -> None:
+    def create_realm(self: "KeycloakAdminClient", realm_config: dict, skip_exists: bool = True) -> None:
         """
         Create keycloak realm
         """
-
         self.kc_client.connection.refresh_token()
         self.kc_client.create_realm(payload=realm_config, skip_exists=skip_exists)
 
@@ -91,9 +89,7 @@ class KeycloakAdminClient:
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_client_id(client_id=client)
 
-    def create_client_role(
-            self: "KeycloakAdminClient", client_id: str, role_config: dict, realm_name: str
-    ) -> None:
+    def create_client_role(self: "KeycloakAdminClient", client_id: str, role_config: dict, realm_name: str) -> None:
         """
         Create keycloak client role
         """
@@ -108,12 +104,11 @@ class KeycloakAdminClient:
         return self.kc_client.get_client_roles(client_id=client_id)
 
     def assign_client_role(
-            self: "KeycloakAdminClient", realm_name: str, user_id: str, client_id: str, roles: list
+        self: "KeycloakAdminClient", realm_name: str, user_id: str, client_id: str, roles: list
     ) -> None:
         """
         Assign client roles
         """
-
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.assign_client_role(user_id=user_id, client_id=client_id, roles=roles)
 

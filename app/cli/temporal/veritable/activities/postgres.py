@@ -4,7 +4,7 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.cli.veritable.models.VeritableSpec import VeritableSpec
 
 
 class PostgresDatabaseSetupActivity(Activity):
@@ -22,7 +22,7 @@ class PostgresDatabaseSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="PostgresDatabaseSetupActivity")
-    async def defn(veritable: VeritableSpec):
+    async def defn(veritable: VeritableSpec) -> None:
         """
         Callable for the activity
         """

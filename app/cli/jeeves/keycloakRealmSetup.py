@@ -35,8 +35,8 @@ ROLES = [
 
 
 def create_keycloak_realm(
-        jeeves: JeevesSpec, config: AppSettings, domain: str, keycloak_client: KeycloakAdminClient
-):
+    jeeves: JeevesSpec, config: AppSettings, domain: str, keycloak_client: KeycloakAdminClient
+) -> None:
     """
     Create keycloak realm
     """
@@ -54,8 +54,11 @@ def create_keycloak_realm(
 
 
 def create_tenant_customer_admin_user(
-        jeeves: JeevesSpec, client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str
-):
+    jeeves: JeevesSpec, client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str
+) -> None:
+    """
+    Create tenant customer admin user
+    """
     # Create tenant admin customer user
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_tenant_customer_admin.json")
@@ -70,16 +73,13 @@ def create_tenant_customer_admin_user(
 
     keycloak_client.assign_client_role(
         client_id=client_uuid,
-        user_id=keycloak_client.get_user_id(
-            username=jeeves.customerDetails.userName, realm_name=realm_name
-        ),
+        user_id=keycloak_client.get_user_id(username=jeeves.customerDetails.userName, realm_name=realm_name),
         roles=roles,
         realm_name=realm_name,
-
     )
 
 
-def create_client(jeeves: JeevesSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+def create_client(jeeves: JeevesSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:
     """
     Create keycloak client
     """
@@ -94,17 +94,15 @@ def create_client(jeeves: JeevesSpec, domain: str, keycloak_client: KeycloakAdmi
     keycloak_client.create_client(orjson.loads(form_auth_client_config), realm_name)
 
 
-def create_client_roles(client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+def create_client_roles(client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:
     """
     Create keycloak client roles
     """
     for role in ROLES:
-        keycloak_client.create_client_role(
-            client_id=client_uuid, role_config={"name": role}, realm_name=realm_name
-        )
+        keycloak_client.create_client_role(client_id=client_uuid, role_config={"name": role}, realm_name=realm_name)
 
 
-async def create_realm_and_users(jeeves: JeevesSpec):
+async def create_realm_and_users(jeeves: JeevesSpec) -> None:
     """
     Create keycloak realm and users
     """
@@ -118,9 +116,7 @@ async def create_realm_and_users(jeeves: JeevesSpec):
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
     # create realm
-    create_keycloak_realm(
-        jeeves=jeeves, config=config, domain=domain, keycloak_client=keycloak_client
-    )
+    create_keycloak_realm(jeeves=jeeves, config=config, domain=domain, keycloak_client=keycloak_client)
 
     # create client
     create_client(jeeves=jeeves, domain=domain, keycloak_client=keycloak_client, realm_name=realm_name)

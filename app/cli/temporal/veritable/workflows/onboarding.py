@@ -6,12 +6,24 @@ from temporalio import workflow
 
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.activities.onboarding import (
-    PostgresSetupActivity, NamespaceSetupActivity, ConfigmapSetupActivity, PVCSetupActivity, SecretSetupActivity,
-    DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, ProvisioningJobActivity, KubernetesServiceActivity,
-    KubernetesVirtualServiceActivity, DeploymentActivity, VmPodScraperActivity, UpdateTenantStatusActivity,
-    TenantStatus, FernetKeyGenerationActivity
+    PostgresSetupActivity,
+    NamespaceSetupActivity,
+    ConfigmapSetupActivity,
+    PVCSetupActivity,
+    SecretSetupActivity,
+    DnsSetupActivity,
+    UiSetupActivity,
+    KeycloakRealmSetupActivity,
+    ProvisioningJobActivity,
+    KubernetesServiceActivity,
+    KubernetesVirtualServiceActivity,
+    DeploymentActivity,
+    VmPodScraperActivity,
+    UpdateTenantStatusActivity,
+    TenantStatus,
+    FernetKeyGenerationActivity,
 )
-from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.cli.veritable.models.VeritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger
@@ -29,11 +41,21 @@ class VeritableOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            PostgresSetupActivity.defn, NamespaceSetupActivity.defn, ConfigmapSetupActivity.defn,
-            PVCSetupActivity.defn, SecretSetupActivity.defn, DnsSetupActivity.defn, UiSetupActivity.defn,
-            KeycloakRealmSetupActivity.defn, ProvisioningJobActivity.defn, KubernetesServiceActivity.defn,
-            KubernetesVirtualServiceActivity.defn, DeploymentActivity.defn, VmPodScraperActivity.defn,
-            UpdateTenantStatusActivity.defn, FernetKeyGenerationActivity.defn
+            PostgresSetupActivity.defn,
+            NamespaceSetupActivity.defn,
+            ConfigmapSetupActivity.defn,
+            PVCSetupActivity.defn,
+            SecretSetupActivity.defn,
+            DnsSetupActivity.defn,
+            UiSetupActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            ProvisioningJobActivity.defn,
+            KubernetesServiceActivity.defn,
+            KubernetesVirtualServiceActivity.defn,
+            DeploymentActivity.defn,
+            VmPodScraperActivity.defn,
+            UpdateTenantStatusActivity.defn,
+            FernetKeyGenerationActivity.defn,
         ]
 
     @classmethod
@@ -49,12 +71,10 @@ class VeritableOnboardingWorkflow(Workflow):
         """
         Entry point for workflow
         """
-
         # todo vaildate customer id
 
         # postgres database setup
         try:
-
             # create namespace in k8s
             await workflow.execute_activity(
                 activity=NamespaceSetupActivity.defn,
@@ -168,11 +188,7 @@ class VeritableOnboardingWorkflow(Workflow):
 
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=pydash.get(veritable, 'tenant'),
-                    status="Completed",
-                    error_msg=None
-                ),
+                arg=TenantStatus(tenant_name=pydash.get(veritable, "tenant"), status="Completed", error_msg=None),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -185,11 +201,7 @@ class VeritableOnboardingWorkflow(Workflow):
 
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=pydash.get(veritable, 'tenant'),
-                    status="Failed",
-                    error_msg=str(e)
-                ),
+                arg=TenantStatus(tenant_name=pydash.get(veritable, "tenant"), status="Failed", error_msg=str(e)),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
