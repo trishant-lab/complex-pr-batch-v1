@@ -1,14 +1,14 @@
 from kubernetes import client as k8s_client
-from kubernetes.client import V1EnvVar, V1EnvVarSource, V1SecretKeySelector
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.common import OnepasswordItemName, OnepasswordVaultName, ProductName
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.configmap import TenantMapClass, ProvisionMapClass, EnvMapClass, VectorMapClass
+from app.cli.veritable.models.labels import SERVER_DEPLOYMENT_LABELS, CLi_DEPLOYMENT_LABELS
+from app.cli.veritable.veritable import ProductName
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import get_settings
-from app.onepasswordutil import OnePasswordUtil
 
 
 class DeploymentServer(K8sResourceBaseClass):
@@ -26,32 +26,29 @@ class DeploymentServer(K8sResourceBaseClass):
         self.postgres_user = f"veritable_{veritable.tenant}"
         self.env: str = get_settings().env
 
-        # Todo change it to get kube secret
-        self.postgres_password = "veritable"
-
     def payload(self):
         body = k8s_client.V1Deployment(
             api_version="apps/v1",
-            kind="Deployment",
+            kind=ResourceKindEnum.Deployment.value,
             metadata=k8s_client.V1ObjectMeta(
-                name=f"veritable",
+                name=ProductName,
                 namespace=self.veritable.tenant,
             ),
             spec=k8s_client.V1DeploymentSpec(
                 replicas=1,
                 selector=k8s_client.V1LabelSelector(
-                    match_labels={"app": "veritable"}
+                    match_labels=SERVER_DEPLOYMENT_LABELS
                 ),
                 template=k8s_client.V1PodTemplateSpec(
                     metadata=k8s_client.V1ObjectMeta(
-                        labels={"app": "veritable"}
+                        labels=SERVER_DEPLOYMENT_LABELS
                     ),
                     spec=k8s_client.V1PodSpec(
                         image_pull_secrets=[k8s_client.V1LocalObjectReference(name="registrycred")],
                         node_selector={"app": "314e"},
                         containers=[
                             k8s_client.V1Container(
-                                name="veritable",
+                                name=ProductName,
                                 image=f"registry.314ecorp.tech/veritable-server:{self.veritable.imageTag}",
                                 image_pull_policy="Always",
                                 resources=k8s_client.V1ResourceRequirements(
@@ -92,14 +89,14 @@ class DeploymentServer(K8sResourceBaseClass):
                                         name="POSTGRES__PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(
                                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
-                                                name="veritable-postgres-password"
+                                                key="password",
+                                                name="veritable-postgres"
                                             )
                                         )
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="POSTGRES__USER",
-                                        value=self.postgres_password
+                                        value=self.postgres_user
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="RELEASE_VERSION",
@@ -119,7 +116,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="ORG_NAME",
-                                        value=self.veritable.customerDetails.orgName
+                                        value=self.veritable.customerDetails.organization
                                     )
                                 ]
                             )
@@ -128,25 +125,25 @@ class DeploymentServer(K8sResourceBaseClass):
                             k8s_client.V1Volume(
                                 name="env-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-env-config",
-                                    items=[k8s_client.V1KeyToPath(key="env-config.json", path="env-config.json")]
+                                    name=EnvMapClass.name,
+                                    items=[k8s_client.V1KeyToPath(key=EnvMapClass.key, path="env-config.json")]
                                 )
                             ),
                             k8s_client.V1Volume(
                                 name="tenant-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-tenant-config",
+                                    name=TenantMapClass.name,
                                     items=[k8s_client.V1KeyToPath(
-                                        key="veritable-tenant-config", path="tenant-config.json"
+                                        key=TenantMapClass.key, path="tenant-config.json"
                                     )]
                                 )
                             ),
                             k8s_client.V1Volume(
                                 name="provisioning-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-provisioning-config",
+                                    name=ProvisionMapClass.name,
                                     items=[k8s_client.V1KeyToPath(
-                                        key="provisioning-config.json", path="provisioning-config.json"
+                                        key=ProvisionMapClass.key, path="provisioning-config.json"
                                     )]
                                 )
                             )
@@ -195,26 +192,26 @@ class DeploymentCli(K8sResourceBaseClass):
     def payload(self):
         body = k8s_client.V1Deployment = k8s_client.V1Deployment(
             api_version="apps/v1",
-            kind="Deployment",
+            kind=ResourceKindEnum.Deployment.value,
             metadata=k8s_client.V1ObjectMeta(
-                name=f"veritable-cli",
+                name=f"{ProductName}-cli",
                 namespace=self.veritable.tenant,
             ),
             spec=k8s_client.V1DeploymentSpec(
                 replicas=1,
                 selector=k8s_client.V1LabelSelector(
-                    match_labels={"app": "veritable-cli"}
+                    match_labels=CLi_DEPLOYMENT_LABELS
                 ),
                 template=k8s_client.V1PodTemplateSpec(
                     metadata=k8s_client.V1ObjectMeta(
-                        labels={"app": "veritable-cli"}
+                        labels=CLi_DEPLOYMENT_LABELS
                     ),
                     spec=k8s_client.V1PodSpec(
                         image_pull_secrets=[k8s_client.V1LocalObjectReference(name="registrycred")],
                         node_selector={"app": "314e"},
                         containers=[
                             k8s_client.V1Container(
-                                name="veritable",
+                                name=f"{ProductName}-cli",
                                 image=f"registry.314ecorp.tech/veritable-server:{self.veritable.imageTag}",
                                 resources=k8s_client.V1ResourceRequirements(
                                     requests={
@@ -265,8 +262,8 @@ class DeploymentCli(K8sResourceBaseClass):
                                         name="POSTGRES__PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(
                                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                                key="POSTGRES__PASSWORD",
-                                                name="veritable-postgres-password"
+                                                key="password",
+                                                name="veritable-postgres"
                                             )
                                         )
                                     ),
@@ -292,7 +289,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                     ),
                                     k8s_client.V1EnvVar(
                                         name="ORG_NAME",
-                                        value=self.veritable.customerDetails.orgName
+                                        value=self.veritable.customerDetails.organization
                                     )
                                 ]
                             )
@@ -301,26 +298,26 @@ class DeploymentCli(K8sResourceBaseClass):
                             k8s_client.V1Volume(
                                 name="env-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-env-config",
+                                    name=EnvMapClass.name,
                                     items=[k8s_client.V1KeyToPath(
-                                        key="env-config.json", path="env-config.json"
+                                        key=EnvMapClass.key, path="env-config.json"
                                     )]
                                 )
                             ),
                             k8s_client.V1Volume(
                                 name="tenant-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-tenant-config",
+                                    name=TenantMapClass.name,
                                     items=[k8s_client.V1KeyToPath(
-                                        key="veritable-tenant-config", path="tenant-config.json"
+                                        key=TenantMapClass.key, path="tenant-config.json"
                                     )]
                                 )
                             ),
                             k8s_client.V1Volume(
                                 name="vector-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="veritable-cli-vector-config",
-                                    items=[k8s_client.V1KeyToPath(key="vector-config.toml", path="vector-config.toml")]
+                                    name=VectorMapClass.name,
+                                    items=[k8s_client.V1KeyToPath(key=VectorMapClass.key, path="vector-config.toml")]
                                 )
                             ),
                             k8s_client.V1Volume(

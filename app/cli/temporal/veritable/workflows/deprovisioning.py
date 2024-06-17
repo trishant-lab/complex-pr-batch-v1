@@ -9,7 +9,8 @@ from app.cli.temporal.veritable.activities.deprovisioning import (
     DeletePVCActivity, DeleteDeploymentActivity, DeleteConfigMapActivity, DropUIBundlesActivity, DeleteDNSActivity,
     DeleteVMScraperActivity
 )
-from app.cli.veritable.common import VeritableSpec
+from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger
@@ -30,7 +31,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             DeleteKubernetesServiceActivity.defn, DeleteKubernetesVirtualServiceActivity.defn,
             DeleteProvisioningJobActivity.defn, DeletePVCActivity.defn, DeleteDeploymentActivity.defn,
             DeleteConfigMapActivity.defn, DropUIBundlesActivity.defn, DeleteDNSActivity.defn,
-            DeleteVMScraperActivity.defn
+            DeleteVMScraperActivity.defn, UpdateTenantStatusActivity.defn
         ]
 
     @classmethod
@@ -119,7 +120,13 @@ class VeritableDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteVMScraperActivity.get_retry_policy(),
         )
 
-        # Todo update tenant status
+        # update tenant status
+        await workflow.execute_activity(
+            UpdateTenantStatusActivity.defn,
+            arg=workflow_input,
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
+        )
 
         logger.info("DeBoarding Workflow completed.")
         return

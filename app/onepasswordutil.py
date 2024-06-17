@@ -12,7 +12,7 @@ def secret_inject(source_file_path, destination_path):
     process = subprocess.Popen(
         commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
     )
-    stdout, stderr = process.communicate(timeout=10)
+    stdout, stderr = process.communicate(timeout=60)
 
     if process.returncode != 0:
         output = f"Error: {stderr.decode()}"
@@ -65,7 +65,7 @@ class OnePasswordUtil:
         if process.returncode != 0:
             output = f"Error: {stderr.decode()}"
             logger.error(output)
-            raise Exception(output)
+            return None
 
         return stdout.decode().strip()
 

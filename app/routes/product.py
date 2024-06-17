@@ -3,13 +3,14 @@ import uuid
 from typing import List
 
 import orjson
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from loguru import logger
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.core.db import DBManager, get_db_manager
+from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
 
 product_router = APIRouter()
@@ -21,6 +22,7 @@ class ProductResponseModel(BaseModel):
     product_schema: dict
     created: datetime
     lastmodified: datetime
+    approvalRequired: bool
 
 
 @product_router.get(
@@ -28,7 +30,7 @@ class ProductResponseModel(BaseModel):
     operation_id="listAllProducts",
     response_model=List[ProductResponseModel]
 )
-async def list_all_products():
+async def list_all_products(_: dict = Depends(get_oauth_scheme())):
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
@@ -52,11 +54,11 @@ async def list_all_products():
     operation_id="getProduct",
     response_model=ProductResponseModel
 )
-async def get_product(product_id: uuid.UUID):
+async def get_product(product: str, _param: dict = Depends(get_oauth_scheme())):
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getProduct.sql", product_id=product_id)
+        response = await db.fetch_one("getProduct.sql", product=product)
 
         response = dict(response)
         response["product_schema"] = orjson.loads(response["schema"])

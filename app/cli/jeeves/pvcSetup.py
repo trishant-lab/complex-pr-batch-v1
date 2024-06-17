@@ -1,9 +1,11 @@
 from kubernetes.client import V1ObjectMeta, V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec, \
     V1ResourceRequirements
+from kubernetes.dynamic.exceptions import NotFoundError
+from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.common import VeritableSpec
+from app.cli.jeeves.jeeves import JeevesSpec
 
 
 class PVC(K8sResourceBaseClass):
@@ -11,20 +13,20 @@ class PVC(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, veritable: VeritableSpec) -> None:
-        self.veritable: VeritableSpec = veritable
+    def __init__(self, jeeves: JeevesSpec) -> None:
+        self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.PersistentVolumeClaim, api_version="v1"
         )
-        self.pvc_name = f"veritable-pvc"
+        self.pvc_name = f"jeeves-vespa-pvc"
 
     def payload(self):
         body = V1PersistentVolumeClaim(
             api_version="v1",
             kind=ResourceKindEnum.PersistentVolumeClaim.value,
             metadata=V1ObjectMeta(
-                namespace=self.veritable.tenant,
+                namespace=self.jeeves.tenant,
                 name=self.pvc_name
             ),
             spec=V1PersistentVolumeClaimSpec(
@@ -32,7 +34,7 @@ class PVC(K8sResourceBaseClass):
                 storage_class_name="topolvm-provisioner",
                 access_modes=["ReadWriteOnce"],
                 resources=V1ResourceRequirements(
-                    requests={"storage": "200Mi"}
+                    requests={"storage": "1Gi"}
                 ),
             ),
         )
@@ -47,8 +49,11 @@ class PVC(K8sResourceBaseClass):
         )
 
     def delete(self):
-        self.k8s_dynamic_client.delete(
-            resource=self.resource,
-            name=self.pvc_name,
-            namespace=self.veritable.tenant
-        )
+        try:
+            self.k8s_dynamic_client.delete(
+                resource=self.resource,
+                name=self.pvc_name,
+                namespace=self.jeeves.tenant
+            )
+        except NotFoundError:
+            logger.error(f"PVC {self.pvc_name} not found in namespace {self.jeeves.tenant}")

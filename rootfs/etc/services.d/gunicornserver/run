@@ -1,0 +1,6 @@
+#!/usr/bin/with-contenv bash
+set -e
+if [[ "$IS_CLI" == "FALSE" ]]; then
+    echo "Starting gunicornserver in $DEPLOYMENT"
+    gunicorn app.main:fastapi_app --config /app/app/gunicorn_conf.py --reload -k uvicorn.workers.UvicornWorker
+fi

@@ -1,11 +1,7 @@
-name: "Deploy Onboarding App"
+name: "Deploy Launchpad App"
 
 on:
-  workflow_run:
-    workflows: [ "Build Onboarding App" ]
-    branches: [ "sprint" ]
-    types:
-      - completed
+    workflow_dispatch:
 
 jobs:
   deploy:
@@ -15,5 +11,5 @@ jobs:
       - name: Deploy to Kubernetes SPRINT
         if: github.ref_name == 'sprint'
         run: |
-          kubectl rollout restart deployment onboarding-app -n onboarding
-          kubectl rollout restart deployment onboarding-cli -n onboarding
+          kubectl rollout restart deployment launchpad -n launchpad
+          kubectl rollout restart deployment launchpad-cli -n launchpad

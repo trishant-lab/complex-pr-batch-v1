@@ -1,0 +1,26 @@
+p, PUBLIC, /docs, GET
+p, PUBLIC, /docs/oauth2-redirect, GET
+p, PUBLIC, /favicon.ico, GET
+
+p, PUBLIC, /metrics, GET
+
+p, PUBLIC, /api/v1/openapi.json, GET
+
+p, ADMINS, /api/v1/product/listAllProducts, GET
+p, ADMINS, /api/v1/product/getProduct, GET
+
+p, ADMINS, /api/v1/tenant, POST
+p, ADMINS, /api/v1/tenant/listAllTenantsPerProduct, GET
+p, ADMINS, /api/v1/tenant/updateRequestorDetails, PUT
+p, PUBLIC, /api/v1/tenant/suggestTenantNames, GET
+p, PUBLIC, /api/v1/tenant/{tenant_name}, GET
+
+p, ADMINS, /api/v1/provisioning, POST
+p, ADMINS, /api/v1/provisioning/approveOrDecline, POST
+p, ADMINS, /api/v1/provisioning/retryProvisioning, POST
+
+p, ADMINS, /api/v1/deprovisioning, POST
+
+
+g, ADMINS, Admin
+g, PUBLIC, NO_AUTH

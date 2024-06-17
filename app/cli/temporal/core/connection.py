@@ -3,18 +3,23 @@ from google.protobuf.duration_pb2 import Duration
 from loguru import logger
 from temporalio import client
 from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
+from temporalio.converter import DataConverter
 from temporalio.service import RPCError, RPCStatusCode
 
+from app.cli.temporal.core.data_converter import PydanticPayloadConverter
 from app.core.settings import get_settings
 
 
-@async_lru.alru_cache
 async def get_temporal_client() -> client.Client:
     """
     Get Temporal Client
     """
     config = get_settings()
-    return await client.Client.connect(config.temporal.dsn, namespace=config.temporal.namespace)
+    return await client.Client.connect(
+        config.temporal.dsn,
+        namespace=config.temporal.namespace,
+        data_converter=DataConverter(payload_converter_class=PydanticPayloadConverter),
+    )
 
 
 async def create_temporal_namespace() -> None:

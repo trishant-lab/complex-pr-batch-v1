@@ -1,6 +1,6 @@
 from app.core.settings import AppSettings, get_settings
 from app.cli.common.googleDNS import GoogleDNS
-from app.cli.veritable.common import VeritableSpec, ProductName
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 
 async def dns_setup(veritable: VeritableSpec):
@@ -18,7 +18,7 @@ async def dns_setup(veritable: VeritableSpec):
     google_dns.create_dns()
 
     # check dns propagation
-    await google_dns.check_dns_propagation_cf()
+    await google_dns.check_dns_propagation()
 
 
 async def dns_teardown(tenant_name: str):

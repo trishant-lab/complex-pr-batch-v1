@@ -5,7 +5,7 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.veritable.common import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 
 class PostgresSetupActivity(Activity):
@@ -358,30 +358,6 @@ class VmPodScraperActivity(Activity):
         VMPodScrapperCli(veritable=veritable).put()
 
 
-class GrafanaAlertsActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
-
-    @staticmethod
-    @activity.defn(name="grafana_alerts_activity")
-    async def defn(veritable: VeritableSpec):
-        """
-        Callable for the activity
-        """
-        # Setup grafana alerts
-        from app.cli.veritable.grafanaAlerts import create_grafana_alerts
-        await create_grafana_alerts(veritable)
-
-
 @dataclasses.dataclass
 class TenantStatus:
     """
@@ -412,7 +388,15 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.veritable.tenantStatus import update_tenant_status
+        from app.cli.common.tenantStatus import update_tenant_status
+        from app.cli.veritable.veritable import ProductName
+        from app.models.tenant import TenantStatusEnum
+
+        status = TenantStatusEnum(activity_input.status)
+
         await update_tenant_status(
-            tenant_name=activity_input.tenant_name, status=activity_input.status, error_message=activity_input.error_msg
+            tenant_name=activity_input.tenant_name,
+            product=ProductName,
+            status=status,
+            error_message=activity_input.error_msg
         )

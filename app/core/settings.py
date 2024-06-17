@@ -1,14 +1,15 @@
 import os
-from functools import partial
+from functools import partial, lru_cache
 from typing import Final
 
 import loguru
 import orjson
+import requests
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
-CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json"]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json"]
+CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -16,7 +17,7 @@ class KeycloakSettings(BaseModel):
     Keycloak Settings
     """
 
-    realm: str = "onboarding"
+    realm: str = "launchpad"
 
     admin_realm: str = "master"
     admin_client_id: str = "admin-temporal"
@@ -24,8 +25,12 @@ class KeycloakSettings(BaseModel):
     password: str = ""
 
     client_id: str = "app"
-    client_secret: str = ""
     auth_url: str = "https://auth.314ecorp.tech"
+
+    @property
+    def wellknown_url(self: "KeycloakSettings") -> str:
+        """Returns keycloak well-known url"""
+        return f"{self.auth_url}/auth/realms/{self.realm}/.well-known/openid-configuration"
 
 
 class PostgresSettings(BaseModel):
@@ -58,21 +63,12 @@ class GrafanaSettings(BaseModel):
     alert_folder_uid: str = ""
 
 
-class ProductConfig(BaseModel):
-    """
-    Product Config
-    """
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = ""  # Domain name for the product e.g. int.veritable.app or jeeves.314ecorp.tech
-    grafana: GrafanaSettings = GrafanaSettings()
-
-
 class TemporalSettings(BaseModel):
     """Temporal Settings"""
 
     host: str = "localhost"
     port: str = "7233"
-    namespace: str = "onboarding"
+    namespace: str = "launchpad"
 
     @property
     def dsn(self: "TemporalSettings") -> str:
@@ -93,6 +89,15 @@ class S3Settings(BaseModel):
     rclone_remote: str = "s3_rclone_remote"
 
 
+class SlackSettings(BaseModel):
+    """
+    Slack Settings
+    """
+    channel_id: str = "C076N2B1FD4"
+    bot_token: str = ""
+    bot_username: str = "Launchpad"
+
+
 class VeritableSettings(BaseModel):
     """
     Veritable Settings
@@ -107,22 +112,80 @@ class VeritableSettings(BaseModel):
     temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
 
 
+class JeevesSettings(BaseModel):
+    """
+    Jeeves Settings
+    """
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "jeeves.314ecorp.tech"
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
+    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = "jeeves.assistant@314ecorp.com"
+    novu_admin_password: str = ""
+
+    chatwoot_base_url: str = "https://jeeves-agent.314ecorp.tech/"
+    chatwoot_platform_api_token: str = ""
+    chatwoot_default_user_password: str = ""
+
+    keycloak_db_password: str = ""
+    matomo_db_password: str = ""
+
+    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+
+
+class DexitSettings(BaseModel):
+    """
+    Dexit Settings
+    """
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "dexit.314ecorp.tech"
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"
+    temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = "dexit.assistant@314ecorp.com"
+    novu_admin_password: str = ""
+
+    keycloak_db_password: str = ""
+    matomo_db_password: str = ""
+
+    slack_application_id: str = ""
+    slack_client_id: str = ""
+    slack_channel_secret_key: str = ""
+
+    FaxAccountId: str = ""
+    FaxApiToken: str = ""
+
+    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
     """
 
     env: str = os.getenv("DEPLOYMENT", "integration").lower()
+    api_prefix: str = "/api/v1"
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+    slack: SlackSettings = SlackSettings()
+
     veritable: VeritableSettings = VeritableSettings()
+    jeeves: JeevesSettings = JeevesSettings()
+    dexit: DexitSettings = DexitSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3: S3Settings = S3Settings()
 
     docker_image_pull_secret: str = ""
-    google_dns_cname: str = "k8s.31ecorp.tech"
+    google_dns_cname: str = "k8s.314ecorp.tech"
 
     sendgrid_api_key: str = ""
 
@@ -131,6 +194,8 @@ class AppSettings(BaseSettings):
 
     supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"
     supavisor_token: str = ""
+
+    cache_admin_password: str = ""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -163,13 +228,13 @@ def get_settings():
     """
     deployment: str = os.getenv("DEPLOYMENT", "integration").lower()
     config_dir = os.getenv("APP_CONFIG_DIR", "/")
-    config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES]
+    # config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES]
     default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
-    if len(config_files) != len(CONFIG_FILE_NAMES):
-        loguru.logger.info(
-            f"found inadequate config files - {orjson.dumps(config_files)}, returning default settings!",
-        )
-        return default_settings
+    # if len(config_files) != len(CONFIG_FILE_NAMES):
+    #     loguru.logger.info(
+    #         f"found inadequate config files - {orjson.dumps(config_files)}, returning default settings!",
+    #     )
+    #     return default_settings
 
     combined_config = dict()
     for file in CONFIG_FILE_NAMES:
@@ -192,3 +257,12 @@ def get_settings():
 
     settings = default_settings.model_validate(default_settings_dict)
     return settings
+
+
+@lru_cache
+def get_security_config():
+    """
+    Returns keycloak endpoints
+    """
+    settings: AppSettings = get_settings()
+    return requests.get(settings.keycloak.wellknown_url).json()

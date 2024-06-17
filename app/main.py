@@ -4,16 +4,21 @@ from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html, get_redoc_html
 from fastapi.responses import ORJSONResponse
 from loguru import logger
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse
+from starlette_prometheus import PrometheusMiddleware, metrics
 
+from .core.pycasbin.enforcer import enforcer
 from .core.settings import AppSettings, get_settings
+from .middleware.auth import AuthenticationMiddleware, AuthorizationMiddleware
 
 from .routes.product import product_router
-from .routes.onboarding import onboarding_router
+from .routes.tenant import tenant_router
+from .routes.provisioning import provisioning_router
 from .routes.deprovisioning import de_provisioning_router
 
 api_prefix = "/api/v1"
-TITLE = f"Onboarding APP"
+TITLE = f"Launchpad APP"
 
 config: AppSettings = get_settings()
 
@@ -21,6 +26,16 @@ ui_init_oauth: dict = {
     "realm": config.keycloak.realm,
     "clientId": config.keycloak.client_id,
 }
+
+origins: list = [
+    "http://localhost:8000",
+    "http://localhost:2000",
+    "http://localhost:3000",
+    config.keycloak.auth_url,
+    "https://api-definitions.314ecorp.tech",
+    "https://softwareartistry.github.io",
+    "https://launchpad.314ecorp.tech",
+]
 
 
 @asynccontextmanager
@@ -44,6 +59,22 @@ fastapi_app = FastAPI(
     swagger_ui_init_oauth=ui_init_oauth,
     lifespan=lifespan,
 )
+
+
+fastapi_app.add_middleware(PrometheusMiddleware)
+fastapi_app.add_middleware(AuthorizationMiddleware, enforcer=enforcer)
+fastapi_app.add_middleware(AuthenticationMiddleware)
+
+fastapi_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+fastapi_app.add_route("/metrics", metrics)
 
 
 @fastapi_app.get("/docs", include_in_schema=False)
@@ -76,5 +107,6 @@ async def redoc_html() -> HTMLResponse:
 
 # Adding application routes to FastAPI instance
 fastapi_app.include_router(product_router, prefix=f"{api_prefix}/product", tags=["Product"])
-fastapi_app.include_router(onboarding_router, prefix=f"{api_prefix}/onboarding", tags=["Onboarding"])
+fastapi_app.include_router(tenant_router, prefix=f"{api_prefix}/tenant", tags=["Tenant"])
+fastapi_app.include_router(provisioning_router, prefix=f"{api_prefix}/provisioning", tags=["Provisioning"])
 fastapi_app.include_router(de_provisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])
