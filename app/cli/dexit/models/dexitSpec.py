@@ -1,14 +1,12 @@
-from dataclasses import dataclass, field
-from uuid import UUID
+from dataclasses import field
 
-from app.cli.temporal.core.base import IODataclass
+from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 
 OnepasswordVaultName: str = "dexit"
 OnepasswordItemName: str = "dexit-tenant-config-{environment}"
 
 
-@dataclass
-class ResourceSpec:
+class ResourceSpec(LaunchpadCLIBaseModel):
     """
     ResourceSpec dataclass
     """
@@ -18,8 +16,7 @@ class ResourceSpec:
     limit_cpu: str = "3000m"
 
 
-@dataclass
-class CustomerDetails(IODataclass):
+class CustomerDetails(LaunchpadCLIBaseModel):
     """
     CustomerDetails dataclass
     """
@@ -28,12 +25,11 @@ class CustomerDetails(IODataclass):
     organization: str
 
 
-@dataclass
-class DexitSpec(IODataclass):
+class DexitSpec(LaunchpadCLIBaseModel):
     """
     DexitSpec dataclass
     """
     tenant: str
     customerDetails: None | CustomerDetails = None
-    serverSpec: None | ResourceSpec = field(default_factory=ResourceSpec)
-    cliSpec: None | ResourceSpec = field(default_factory=ResourceSpec)
+    serverSpec: None | ResourceSpec = ResourceSpec()
+    cliSpec: None | ResourceSpec = ResourceSpec()
