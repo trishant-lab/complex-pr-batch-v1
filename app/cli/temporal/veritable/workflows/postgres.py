@@ -6,7 +6,7 @@ from temporalio import workflow
 
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.activities.postgres import PostgresDatabaseSetupActivity
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger

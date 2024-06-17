@@ -1,6 +1,6 @@
 from cryptography.fernet import Fernet
 
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.cli.veritable.veritable import OnepasswordVaultName
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil

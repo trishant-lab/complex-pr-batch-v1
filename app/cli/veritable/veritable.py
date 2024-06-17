@@ -1,7 +1,7 @@
 from app.cli.temporal.veritable.starter import trigger_workflow
 from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvisioningWorkflow
 from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.cli.workflowbase import ProductWorkflow
 from app.core.settings import get_settings, VeritableSettings
 

@@ -2,7 +2,7 @@ from kubernetes.client import V1ObjectMeta, V1Secret
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import AppSettings, get_settings
 
 

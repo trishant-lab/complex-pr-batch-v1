@@ -5,7 +5,7 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 
 class PostgresSetupActivity(Activity):
@@ -259,7 +259,7 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.veritable.ProvisioningJob import ProvisioningJob
+        from app.cli.veritable.Job import ProvisioningJob
 
         await ProvisioningJob(veritable=veritable).put()
 
@@ -361,7 +361,7 @@ class VmPodScraperActivity(Activity):
         Callable for the activity
         """
         # Scrape pod logs
-        from app.cli.veritable.VMPodScraper import VMPodScrapperServer, VMPodScrapperCli
+        from app.cli.veritable.VMPodScrapper import VMPodScrapperServer, VMPodScrapperCli
 
         VMPodScrapperServer(veritable=veritable).put()
         VMPodScrapperCli(veritable=veritable).put()

@@ -6,7 +6,7 @@ from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.veritable.models.configmap import TenantMapClass, EnvMapClass, VectorMapClass
 from app.cli.veritable.models.labels import CLi_DEPLOYMENT_LABELS
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.cli.veritable.veritable import ProductName
 from app.core.settings import get_settings
 

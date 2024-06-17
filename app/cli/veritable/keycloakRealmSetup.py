@@ -5,7 +5,7 @@ import orjson
 
 from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.veritable import TemplatePath
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import AppSettings, get_settings
 from app.template_env import get_env
 

@@ -16,7 +16,7 @@ from app.cli.temporal.veritable.activities.deprovisioning import (
     DeleteVMScraperActivity,
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from loguru import logger

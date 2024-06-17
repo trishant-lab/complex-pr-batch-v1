@@ -1,7 +1,7 @@
 from enum import Enum
 
 from app.cli.jeeves.models.jeevesSpec import JeevesSpec
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.cli.dexit.models.dexitSpec import DexitSpec
 from app.cli.veritable.veritable import VeritableWorkflow
 from app.cli.jeeves.jeeves import JeevesWorkflow

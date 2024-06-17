@@ -8,7 +8,7 @@ from loguru import logger
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.veritable.models.configmap import TenantMapClass, ProvisionMapClass, EnvMapClass, VectorMapClass
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import get_settings, AppSettings
 from app.onepasswordutil import secret_inject
 from app.s3_utils import download_file_from_storage

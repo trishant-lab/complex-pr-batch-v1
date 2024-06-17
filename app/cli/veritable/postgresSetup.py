@@ -7,7 +7,7 @@ from temporalio.client import Client
 from app.cli.postgresUtils import PostgresUtils
 from app.cli.temporal.veritable.workflows.postgres import VeritablePostgresSetupWorkflow
 from app.cli.veritable import TemplatePath
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.cli.veritable.veritable import ProductName
 from app.cli.veritable.Secret import Secret
 from app.common import generate_password

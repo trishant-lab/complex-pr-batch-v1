@@ -4,7 +4,7 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.veritable.models.VeritableSpec import VeritableSpec
+from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 
 class DeleteKubernetesServiceActivity(Activity):
@@ -74,7 +74,7 @@ class DeleteProvisioningJobActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.veritable.ProvisioningJob import ProvisioningJob
+        from app.cli.veritable.Job import ProvisioningJob
 
         ProvisioningJob(veritable=activity_input).delete()
 

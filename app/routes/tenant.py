@@ -144,13 +144,15 @@ async def get_valid_tenant_names(tenant_names: list) -> list:
     """
     config: AppSettings = get_settings()
     tenant_name_clause = ",".join([f"'{val.lower()}'" for val in tenant_names])
-    params = {
-        "table": "tenant",
-        "columns": ["name"],
-        "where": f"name in ({tenant_name_clause})",
-    }
-    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
-    return [data["name"] for data in await db.fetch_all("get.sql", **params)]
+    if tenant_name_clause:
+        params = {
+            "table": "tenant",
+            "columns": ["name"],
+            "where": f"name in ({tenant_name_clause})",
+        }
+        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        return [data["name"] for data in await db.fetch_all("get.sql", **params)]
+    return []
 
 
 @tenant_router.get(
