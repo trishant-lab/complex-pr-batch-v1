@@ -1,8 +1,7 @@
 from itertools import filterfalse
-from pathlib import Path
 
 import orjson
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
@@ -25,12 +24,13 @@ async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_sch
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        return await db.fetch_one(
+        response = await db.fetch_one(
             "createRequestor.sql",
             username=requestor["userName"],
             email=requestor["email"],
             organization=requestor["organization"],
         )
+        return dict(response)
 
     except Exception as e:
         logger.error(f"Error updating requestor: {e}")
@@ -52,7 +52,7 @@ async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict =
     requestor = await create_requestor(tenant_details.requestor, _param=_param)
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        return await db.fetch_one("createTenant.sql", **tenant_details.dict(), requestor_id=requestor["id"])
+        return dict(await db.fetch_one("createTenant.sql", **tenant_details.dict(), requestor_id=requestor["id"]))
 
     except Exception as e:
         logger.error(f"Error creating tenant: {e}")
@@ -175,7 +175,7 @@ async def suggest_tenant_names(organization: str) -> list:
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(
-    tenant_name: str = Path(min_length=3, max_length=7),
+    tenant_name: str = Path(min_length=3, max_length=10, regex="^[a-zA-Z]*$"),
 ) -> None:
     """
     @param tenant_name:
