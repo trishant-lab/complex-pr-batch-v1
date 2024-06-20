@@ -1,3 +1,4 @@
+import uuid
 from itertools import filterfalse
 
 import orjson
@@ -87,6 +88,33 @@ async def list_tenants(product: ProductEnum, _param: dict = Depends(get_oauth_sc
     except Exception as e:
         logger.error(f"Error fetching tenants: {e}")
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants")
+
+
+@tenant_router.get(
+    "/getTenantById",
+    operation_id="getTenantById",
+    response_model=TenantResponseModel,
+)
+async def get_tenant(tenant_id: uuid.UUID, _param: dict = Depends(get_oauth_scheme())) -> TenantResponseModel:
+    """
+    @param tenant_id:
+    @param _param:
+    @return:
+    """
+    config: AppSettings = get_settings()
+    try:
+        db: DBManager = await get_db_manager(config.postgres.dsn)
+        response = await db.fetch_one("getTenantById.sql", tenant_id=str(tenant_id))
+
+        tenant: dict = dict(response)
+        tenant["requestor"] = orjson.loads(tenant["requestor_details"])
+        tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
+
+        return TenantResponseModel(**tenant)
+
+    except Exception as e:
+        logger.error(f"Error fetching tenant: {e}")
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
 
 
 @tenant_router.put(
