@@ -11,6 +11,7 @@ from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
+from app.models.product import ProductEnum
 
 product_router = APIRouter()
 
@@ -48,8 +49,8 @@ async def list_all_products(_: dict = Depends(get_oauth_scheme())) -> list[Produ
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching product")
 
 
-@product_router.get("/getProductById", operation_id="getProductById", response_model=ProductResponseModel)
-async def get_product(product: uuid.UUID, _param: dict = Depends(get_oauth_scheme())) -> ProductResponseModel:
+@product_router.get("/getProductByName", operation_id="getProductByName", response_model=ProductResponseModel)
+async def get_product(product: ProductEnum, _param: dict = Depends(get_oauth_scheme())) -> ProductResponseModel:
     """
     @param product:
     @param _param:
@@ -58,7 +59,7 @@ async def get_product(product: uuid.UUID, _param: dict = Depends(get_oauth_schem
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getProduct.sql", product_id=str(product))
+        response = await db.fetch_one("getProduct.sql", product=product.value.lower())
 
         response = dict(response)
         response["product_schema"] = orjson.loads(response["schema"])

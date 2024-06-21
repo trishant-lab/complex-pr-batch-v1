@@ -7,7 +7,7 @@ p, PUBLIC, /metrics, GET
 p, PUBLIC, /api/v1/openapi.json, GET
 
 p, ADMINS, /api/v1/product/listAllProducts, GET
-p, ADMINS, /api/v1/product/getProductById, GET
+p, ADMINS, /api/v1/product/getProductByName, GET
 p, ADMINS, /api/v1/product/updateProductSchema, POST
 
 p, ADMINS, /api/v1/tenant, POST
