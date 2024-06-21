@@ -1,1 +1,1 @@
-SELECT * FROM product WHERE name = {{product}}
+SELECT * FROM product WHERE id = {{product_id}}

@@ -75,6 +75,20 @@ class KeycloakAdminClient:
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_user_id(username=username)
 
+    def get_users(self: "KeycloakAdminClient", query: dict, realm_name: str) -> list:
+        """
+        Returns keycloak users
+        """
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_users(query=query)
+
+    def set_user_password(self: "KeycloakAdminClient", user_id: str, password: str, realm_name: str) -> None:
+        """
+        Set keycloak user password
+        """
+        self.kc_client.connection.realm_name = realm_name
+        self.kc_client.set_user_password(user_id=user_id, password=password)
+
     def create_client(self: "KeycloakAdminClient", client_config: dict, realm_name: str) -> None:
         """
         Create keycloak client

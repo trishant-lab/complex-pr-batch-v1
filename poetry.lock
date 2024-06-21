@@ -708,6 +708,26 @@ files = [
 ]
 
 [[package]]
+name = "dnspython"
+version = "2.6.1"
+description = "DNS toolkit"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "dnspython-2.6.1-py3-none-any.whl", hash = "sha256:5ef3b9680161f6fa89daf8ad451b5f1a33b18ae8a1c6778cdf4b43f08c0a6e50"},
+    {file = "dnspython-2.6.1.tar.gz", hash = "sha256:e8f0f9c23a7b7cb99ded64e6c3a6f3e701d78f50c55e002b839dea7225cff7cc"},
+]
+
+[package.extras]
+dev = ["black (>=23.1.0)", "coverage (>=7.0)", "flake8 (>=7)", "mypy (>=1.8)", "pylint (>=3)", "pytest (>=7.4)", "pytest-cov (>=4.1.0)", "sphinx (>=7.2.0)", "twine (>=4.0.0)", "wheel (>=0.42.0)"]
+dnssec = ["cryptography (>=41)"]
+doh = ["h2 (>=4.1.0)", "httpcore (>=1.0.0)", "httpx (>=0.26.0)"]
+doq = ["aioquic (>=0.9.25)"]
+idna = ["idna (>=3.6)"]
+trio = ["trio (>=0.23)"]
+wmi = ["wmi (>=1.5.1)"]
+
+[[package]]
 name = "ecdsa"
 version = "0.19.0"
 description = "ECDSA cryptographic signature library (pure python)"
@@ -724,6 +744,21 @@ six = ">=1.9.0"
 [package.extras]
 gmpy = ["gmpy"]
 gmpy2 = ["gmpy2"]
+
+[[package]]
+name = "email-validator"
+version = "2.1.2"
+description = "A robust email address syntax and deliverability validation library."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "email_validator-2.1.2-py3-none-any.whl", hash = "sha256:d89f6324e13b1e39889eab7f9ca2f91dc9aebb6fa50a6d8bd4329ab50f251115"},
+    {file = "email_validator-2.1.2.tar.gz", hash = "sha256:14c0f3d343c4beda37400421b39fa411bbe33a75df20825df73ad53e06a9f04c"},
+]
+
+[package.dependencies]
+dnspython = ">=2.0.0"
+idna = ">=2.0.0"
 
 [[package]]
 name = "fastapi"
@@ -1662,6 +1697,7 @@ files = [
 
 [package.dependencies]
 annotated-types = ">=0.4.0"
+email-validator = {version = ">=2.0.0", optional = true, markers = "extra == \"email\""}
 pydantic-core = "2.18.4"
 typing-extensions = ">=4.6.1"
 
@@ -1925,6 +1961,17 @@ files = [
 cli = ["click (>=5.0)"]
 
 [[package]]
+name = "python-http-client"
+version = "3.3.7"
+description = "HTTP REST client, simplified for Python"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+files = [
+    {file = "python_http_client-3.3.7-py3-none-any.whl", hash = "sha256:ad371d2bbedc6ea15c26179c6222a78bc9308d272435ddf1d5c84f068f249a36"},
+    {file = "python_http_client-3.3.7.tar.gz", hash = "sha256:bf841ee45262747e00dec7ee9971dfb8c7d83083f5713596488d67739170cea0"},
+]
+
+[[package]]
 name = "python-jose"
 version = "3.3.0"
 description = "JOSE implementation in Python"
@@ -2186,6 +2233,21 @@ botocore = ">=1.33.2,<2.0a.0"
 crt = ["botocore[crt] (>=1.33.2,<2.0a.0)"]
 
 [[package]]
+name = "sendgrid"
+version = "6.11.0"
+description = "Twilio SendGrid library for Python"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+files = [
+    {file = "sendgrid-6.11.0-py3-none-any.whl", hash = "sha256:43ecf5bb742ea5850c7cfe68f5e7d9948772352306d4e83e119899959538b884"},
+    {file = "sendgrid-6.11.0.tar.gz", hash = "sha256:71424b2a97f5a034121ea3b2666c653ba0ed315982f0d57b7851c0c9503dc5ab"},
+]
+
+[package.dependencies]
+python-http-client = ">=3.2.1"
+starkbank-ecdsa = ">=2.0.1"
+
+[[package]]
 name = "simpleeval"
 version = "0.9.13"
 description = "A simple, safe single expression evaluator library."
@@ -2230,6 +2292,16 @@ python-versions = ">=3.7"
 files = [
     {file = "sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2"},
     {file = "sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc"},
+]
+
+[[package]]
+name = "starkbank-ecdsa"
+version = "2.2.0"
+description = "A lightweight and fast pure python ECDSA library"
+optional = false
+python-versions = "*"
+files = [
+    {file = "starkbank-ecdsa-2.2.0.tar.gz", hash = "sha256:9399c3371b899d4a235b68a1ed7919d202fbf024bd2c863ae8ebdad343c2a63a"},
 ]
 
 [[package]]
@@ -2525,4 +2597,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "7fc82b42a6aea449ec68d2b67af4a1f742819a0e5188634fcc8f9add5e0d3ddc"
+content-hash = "c7dc3e23d0feac3f259b48e5f345368e38c8a73ac31ec074abf7c3bf64da6182"

@@ -31,7 +31,7 @@ def create_keycloak_realm(
         realm_name=realm_name,
         customerRealmRoles=customer_roles,
         tenant=veritable.tenant,
-        sendgrid_api_key=config.sendgrid_api_key,
+        sendgrid_api_key=config.sendgrid.api_key,
         tenant_url=tenant_url,
     )
 

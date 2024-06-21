@@ -26,6 +26,7 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     VmPodScraperActivity,
     AiVoiceSetupActivity,
     TemporalNamespaceCreationActivity,
+    SendMailActivity,
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
 
@@ -63,6 +64,7 @@ class JeevesOnboardingWorkflow(Workflow):
             DeploymentActivity.defn,
             VmPodScraperActivity.defn,
             AiVoiceSetupActivity.defn,
+            SendMailActivity.defn,
             TemporalNamespaceCreationActivity.defn,
             UpdateTenantStatusActivity.defn,
         ]
@@ -243,6 +245,15 @@ class JeevesOnboardingWorkflow(Workflow):
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
+
+            # Send Mail
+            await workflow.execute_activity(
+                activity=SendMailActivity.defn,
+                arg=jeeves,
+                retry_policy=SendMailActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
             await workflow.execute_activity(

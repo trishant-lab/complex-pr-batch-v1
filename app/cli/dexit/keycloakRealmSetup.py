@@ -45,7 +45,7 @@ def create_keycloak_realm(
 
     realm_config = template.render(
         tenant=dexit.tenant,
-        sendgrid_api_key=config.sendgrid_api_key,
+        sendgrid_api_key=config.sendgrid.api_key,
         domain=domain,
     )
 

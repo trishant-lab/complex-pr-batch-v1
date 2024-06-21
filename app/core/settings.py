@@ -5,7 +5,7 @@ from typing import Final
 import loguru
 import orjson
 import requests
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 from pydantic_settings import BaseSettings
 
 CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json"]
@@ -101,6 +101,14 @@ class SlackSettings(BaseModel):
     bot_username: str = "Launchpad"
 
 
+class SendGridSettings(BaseModel):
+    """SendGrid Settings"""
+
+    api_key: str = ""
+    email_from: EmailStr = "developer@314ecorp.com"
+    category: str = "provisioning"
+
+
 class VeritableSettings(BaseModel):
     """
     Veritable Settings
@@ -142,6 +150,19 @@ class JeevesSettings(BaseModel):
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
 
+class DexitAIEndpoints(BaseModel):
+    enable_ocr: bool = False
+    enable_nlp: bool = False
+
+
+class DexitAISettings(BaseModel):
+    """
+    Dexit AI Settings
+    """
+
+    endpoints: list[DexitAIEndpoints] = [DexitAIEndpoints()]
+
+
 class DexitSettings(BaseModel):
     """
     Dexit Settings
@@ -170,6 +191,8 @@ class DexitSettings(BaseModel):
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
+    dexit_ai: DexitAISettings = DexitAISettings()
+
 
 class AppSettings(BaseSettings):
     """
@@ -182,6 +205,7 @@ class AppSettings(BaseSettings):
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
     slack: SlackSettings = SlackSettings()
+    sendgrid: SendGridSettings = SendGridSettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
@@ -192,8 +216,6 @@ class AppSettings(BaseSettings):
 
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.314ecorp.tech"
-
-    sendgrid_api_key: str = ""
 
     grafana_url: str = ""
     grafana_token: str = ""

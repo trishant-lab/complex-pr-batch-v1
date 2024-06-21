@@ -541,7 +541,7 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             provider="sendgrid",
             channel="email",
             credentials={
-                "apiKey": config.sendgrid_api_key,
+                "apiKey": config.sendgrid.api_key,
                 "from": "developer@314ecorp.com",
                 "senderName": "Jeeves",
             },
