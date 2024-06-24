@@ -73,7 +73,7 @@ async def get_product(product: ProductEnum, _param: dict = Depends(get_oauth_sch
 
 @product_router.post("/updateProductSchema", operation_id="updateProductSchema", response_model=dict)
 async def update_product_schema(
-    product: uuid.UUID, product_schema: dict, _param: dict = Depends(get_oauth_scheme())
+    product: ProductEnum, product_schema: dict, _param: dict = Depends(get_oauth_scheme())
 ) -> dict:
     """
     @param product:
@@ -86,7 +86,7 @@ async def update_product_schema(
         db: DBManager = await get_db_manager(config.postgres.dsn)
         await db.execute(
             "updateProductSchema.sql",
-            product_id=str(product),
+            product_name=product.value.lower(),
             product_schema=orjson.dumps(product_schema).decode("utf-8"),
         )
 
