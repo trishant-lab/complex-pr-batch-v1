@@ -6,7 +6,7 @@ authors = ["Sridhar <sridhar.s@314ecorp.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 uvicorn = "^0.29.0"
 fastapi = "^0.110.0"
 loguru = "^0.7.2"
