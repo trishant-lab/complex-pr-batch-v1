@@ -34,7 +34,7 @@ async def send_slack_notification(product: ProductEnum, schema: dict) -> None:
     )
     blocks = [
         {
-            "type": "header",
+            "type": "section",
             "text": {
                 "type": "mrkdwn",
                 "text": text,
@@ -127,10 +127,10 @@ async def approve_tenant(
     user_id: dict = request.scope.get("user", {}).get("sub")
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getTenant.sql", tenant_id=tenant_id)
+        response = await db.fetch_one("getTenant.sql", tenant_id=str(tenant_id))
         await db.fetch_one(
             "approveTenant.sql",
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id),
             user_id=user_id,
             status=TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined,
         )
@@ -164,7 +164,7 @@ async def retry_provisioning(
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getTenant.sql", tenant_id=tenant_id)
+        response = await db.fetch_one("getTenant.sql", tenant_id=str(tenant_id))
         await db.fetch_one(
             "updateTenant.sql",
             tenant_name=response["name"],
