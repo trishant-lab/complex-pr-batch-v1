@@ -5,7 +5,7 @@ from typing import Final
 import loguru
 import orjson
 import requests
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
 CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json"]
@@ -105,7 +105,7 @@ class SendGridSettings(BaseModel):
     """SendGrid Settings"""
 
     api_key: str = ""
-    email_from: EmailStr = "developer@314ecorp.com"
+    email_from: str = "developer@314ecorp.com"
     category: str = "provisioning"
 
 
