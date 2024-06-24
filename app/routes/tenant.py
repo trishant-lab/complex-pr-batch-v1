@@ -42,7 +42,7 @@ async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_sch
     "",
     operation_id="createTenant",
 )
-async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict = Depends(get_oauth_scheme())) -> None:
     """
     @param tenant_details:
     @param _param:
@@ -53,7 +53,7 @@ async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict =
     requestor = await create_requestor(tenant_details.requestor, _param=_param)
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        return dict(await db.fetch_one("createTenant.sql", **tenant_details.dict(), requestor_id=requestor["id"]))
+        await db.fetch_one("createTenant.sql", **tenant_details.dict(), requestor_id=requestor["id"])
 
     except Exception as e:
         logger.error(f"Error creating tenant: {e}")
