@@ -1,12 +1,11 @@
-from datetime import timedelta
 from collections.abc import Callable
+from datetime import timedelta
 
 import pydash
 from temporalio import workflow
 
 from app.cli.dexit.models.dexitSpec import DexitSpec
 from app.cli.temporal.core.base import Workflow
-
 from app.cli.temporal.dexit.activities.onboarding import (
     PostgresSetupActivity,
     NamespaceSetupActivity,
@@ -25,8 +24,12 @@ from app.cli.temporal.dexit.activities.onboarding import (
     GrafanaAlertsActivity,
     TemporalNamespaceCreationActivity,
     FaxSetupActivity,
+    HFInferenceEndpointSetupActivity,
 )
-from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
+from app.cli.temporal.veritable.activities.onboarding import (
+    UpdateTenantStatusActivity,
+    TenantStatus,
+)
 
 
 @workflow.defn
@@ -61,6 +64,7 @@ class DexitOnboardingWorkflow(Workflow):
             UpdateTenantStatusActivity.defn,
             TemporalNamespaceCreationActivity.defn,
             FaxSetupActivity.defn,
+            HFInferenceEndpointSetupActivity.defn,
         ]
 
     @classmethod
@@ -124,6 +128,14 @@ class DexitOnboardingWorkflow(Workflow):
                 arg=dexit,
                 retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            # Creating HF Inference Endpoints
+            await workflow.execute_activity(
+                activity=HFInferenceEndpointSetupActivity.defn,
+                arg=dexit,
+                retry_policy=HFInferenceEndpointSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(minutes=30),
             )
 
             # configmap setup
@@ -217,7 +229,9 @@ class DexitOnboardingWorkflow(Workflow):
             # Update Tenant Status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=pydash.get(dexit, "tenant"), status="Completed"),
+                arg=TenantStatus(
+                    tenant_name=pydash.get(dexit, "tenant"), status="Completed"
+                ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -225,7 +239,11 @@ class DexitOnboardingWorkflow(Workflow):
             workflow.logger.error(f"Error in onboarding workflow: {e}")
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=pydash.get(dexit, "tenant"), status="Failed", error_msg=str(e)),
+                arg=TenantStatus(
+                    tenant_name=pydash.get(dexit, "tenant"),
+                    status="Failed",
+                    error_msg=str(e),
+                ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
