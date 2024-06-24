@@ -1,10 +1,9 @@
-import dataclasses
 from datetime import timedelta
 
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.temporal.core.base import Activity, IODataclass
+from app.cli.temporal.core.base import Activity
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 
 
@@ -23,11 +22,12 @@ class DeleteKubernetesServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteKubernetesServiceActivity")
-    async def defn(veritable: VeritableSpec):
+    async def defn(veritable: VeritableSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.veritable.serviceSetup import Service
+        from app.cli.veritable.Service import Service
+
         Service(veritable=veritable).delete()
 
 
@@ -46,11 +46,12 @@ class DeleteKubernetesVirtualServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteKubernetesVirtualServiceActivity")
-    async def defn(activity_input: VeritableSpec):
+    async def defn(activity_input: VeritableSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.veritable.istioVitualService import IstioVirtualService
+
         IstioVirtualService(activity_input).delete()
 
 
@@ -69,11 +70,12 @@ class DeleteProvisioningJobActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteProvisioningJobActivity")
-    async def defn(activity_input: VeritableSpec):
+    async def defn(activity_input: VeritableSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.veritable.provisioningJob import ProvisioningJob
+        from app.cli.veritable.Job import ProvisioningJob
+
         ProvisioningJob(veritable=activity_input).delete()
 
 
@@ -92,11 +94,13 @@ class DeleteDeploymentActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteDeploymentActivity")
-    async def defn(activity_input: VeritableSpec):
+    async def defn(activity_input: VeritableSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.veritable.depolyment import DeploymentServer, DeploymentCli
+        from app.cli.veritable.DeploymentCli import DeploymentCli
+        from app.cli.veritable.DeploymentServer import DeploymentServer
+
         DeploymentServer(veritable=activity_input).delete()
         DeploymentCli(veritable=activity_input).delete()
 
@@ -116,15 +120,16 @@ class DeleteConfigMapActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteConfigMapActivity")
-    async def defn(activity_input: VeritableSpec):
+    async def defn(activity_input: VeritableSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.veritable.configMapSetup import ConfigMapClass
-        ConfigMapClass(veritable=activity_input, config_map=ConfigMapClass.TENANT_CONFIG).delete()
-        ConfigMapClass(veritable=activity_input, config_map=ConfigMapClass.PROVISION_CONFIG).delete()
-        ConfigMapClass(veritable=activity_input, config_map=ConfigMapClass.ENV_CONFIG).delete()
-        ConfigMapClass(veritable=activity_input, config_map=ConfigMapClass.VECTOR_CONFIG).delete()
+        from app.cli.veritable.ConfigMap import ConfigMap
+
+        ConfigMap(veritable=activity_input, config_map=ConfigMap.TENANT_CONFIG).delete()
+        ConfigMap(veritable=activity_input, config_map=ConfigMap.PROVISION_CONFIG).delete()
+        ConfigMap(veritable=activity_input, config_map=ConfigMap.ENV_CONFIG).delete()
+        ConfigMap(veritable=activity_input, config_map=ConfigMap.VECTOR_CONFIG).delete()
 
 
 class DeletePVCActivity(Activity):
@@ -142,11 +147,12 @@ class DeletePVCActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeletePVCActivity")
-    async def defn(activity_input: VeritableSpec):
+    async def defn(activity_input: VeritableSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.veritable.pvcSetup import PVC
+        from app.cli.veritable.PVC import PVC
+
         PVC(veritable=activity_input).delete()
 
 
@@ -165,11 +171,12 @@ class DropUIBundlesActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DropUIBundlesActivity")
-    async def defn(activity_input: VeritableSpec):
+    async def defn(activity_input: VeritableSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.veritable.UISetup import UISetup
+
         UISetup(veritable=activity_input).delete()
 
 
@@ -188,11 +195,12 @@ class DeleteDNSActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteDNSActivity")
-    async def defn(activity_input: VeritableSpec):
+    async def defn(activity_input: VeritableSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.veritable.dnsSetup import dns_teardown
+
         await dns_teardown(tenant_name=activity_input.tenant)
 
 
@@ -211,10 +219,11 @@ class DeleteVMScraperActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteVMScraperActivity")
-    async def defn(activity_input: VeritableSpec):
+    async def defn(activity_input: VeritableSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.veritable.vmPodScraper import VMPodScrapperServer, VMPodScrapperCli
+        from app.cli.veritable.VMPodScraper import VMPodScrapperServer, VMPodScrapperCli
+
         VMPodScrapperServer(veritable=activity_input).delete()
         VMPodScrapperCli(veritable=activity_input).delete()

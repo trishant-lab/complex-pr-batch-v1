@@ -9,12 +9,15 @@ from app.core.settings import AppSettings, get_settings
 
 
 class TemporalNamespaceCreation:
-    def __init__(self, dexit: DexitSpec) -> None:
+    def __init__(self: "TemporalNamespaceCreation", dexit: DexitSpec) -> None:
+        """
+        Initialize class
+        """
         self.dexit: DexitSpec = dexit
         self.config: AppSettings = get_settings()
         self.namespace = f"dexit_{self.dexit.tenant}"
 
-    async def create_temporal_namespace(self):
+    async def create_temporal_namespace(self: "TemporalNamespaceCreation") -> None:
         """
         Create Temporal Namespace
         """

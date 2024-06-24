@@ -11,7 +11,7 @@ from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(dexit: DexitSpec):
+def deploy_ui(dexit: DexitSpec) -> None:
     """
 
     :param dexit:
@@ -35,7 +35,6 @@ def deploy_ui(dexit: DexitSpec):
     try:
         # Copy file from source to temporary folder
         with tempfile.TemporaryDirectory() as tmp_dir:
-
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
@@ -60,7 +59,7 @@ def deploy_ui(dexit: DexitSpec):
         raise e
 
 
-def delete_ui_bundle(dexit: DexitSpec):
+def delete_ui_bundle(dexit: DexitSpec) -> None:
     """
 
     :param dexit

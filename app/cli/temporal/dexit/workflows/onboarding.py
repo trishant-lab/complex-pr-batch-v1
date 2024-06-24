@@ -1,20 +1,35 @@
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Callable
 
 import pydash
 from temporalio import workflow
 
 from app.cli.dexit.models.dexitSpec import DexitSpec
 from app.cli.temporal.core.base import Workflow
-
 from app.cli.temporal.dexit.activities.onboarding import (
-    PostgresSetupActivity, NamespaceSetupActivity, ConfigmapSetupActivity, PVCSetupActivity, SecretSetupActivity,
-    DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, NovuSetupActivity,
-    ProvisioningJobActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity,
-    DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
-    TemporalNamespaceCreationActivity, FaxSetupActivity, HFInferenceEndpointSetupActivity
+    PostgresSetupActivity,
+    NamespaceSetupActivity,
+    ConfigmapSetupActivity,
+    PVCSetupActivity,
+    SecretSetupActivity,
+    DnsSetupActivity,
+    UiSetupActivity,
+    KeycloakRealmSetupActivity,
+    NovuSetupActivity,
+    ProvisioningJobActivity,
+    KubernetesServiceActivity,
+    KubernetesVirtualServiceActivity,
+    DeploymentActivity,
+    VmPodScraperActivity,
+    GrafanaAlertsActivity,
+    TemporalNamespaceCreationActivity,
+    FaxSetupActivity,
+    HFInferenceEndpointSetupActivity,
 )
-from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
+from app.cli.temporal.veritable.activities.onboarding import (
+    UpdateTenantStatusActivity,
+    TenantStatus,
+)
 
 
 @workflow.defn
@@ -22,6 +37,7 @@ class DexitOnboardingWorkflow(Workflow):
     """
     Dexit Onboarding Workflow
     """
+
     approved: bool = False
 
     @staticmethod
@@ -30,12 +46,25 @@ class DexitOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            PostgresSetupActivity.defn, NamespaceSetupActivity.defn, ConfigmapSetupActivity.defn, PVCSetupActivity.defn,
-            SecretSetupActivity.defn, DnsSetupActivity.defn, UiSetupActivity.defn,
-            KeycloakRealmSetupActivity.defn, NovuSetupActivity.defn,
-            ProvisioningJobActivity.defn, KubernetesServiceActivity.defn, KubernetesVirtualServiceActivity.defn,
-            DeploymentActivity.defn, VmPodScraperActivity.defn, GrafanaAlertsActivity.defn,
-            UpdateTenantStatusActivity.defn, TemporalNamespaceCreationActivity.defn, FaxSetupActivity.defn
+            PostgresSetupActivity.defn,
+            NamespaceSetupActivity.defn,
+            ConfigmapSetupActivity.defn,
+            PVCSetupActivity.defn,
+            SecretSetupActivity.defn,
+            DnsSetupActivity.defn,
+            UiSetupActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            NovuSetupActivity.defn,
+            ProvisioningJobActivity.defn,
+            KubernetesServiceActivity.defn,
+            KubernetesVirtualServiceActivity.defn,
+            DeploymentActivity.defn,
+            VmPodScraperActivity.defn,
+            GrafanaAlertsActivity.defn,
+            UpdateTenantStatusActivity.defn,
+            TemporalNamespaceCreationActivity.defn,
+            FaxSetupActivity.defn,
+            HFInferenceEndpointSetupActivity.defn,
         ]
 
     @classmethod
@@ -201,8 +230,7 @@ class DexitOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
-                    tenant_name=pydash.get(dexit, 'tenant'),
-                    status="Completed"
+                    tenant_name=pydash.get(dexit, "tenant"), status="Completed"
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
@@ -212,9 +240,9 @@ class DexitOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
-                    tenant_name=pydash.get(dexit, 'tenant'),
+                    tenant_name=pydash.get(dexit, "tenant"),
                     status="Failed",
-                    error_msg=str(e)
+                    error_msg=str(e),
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),

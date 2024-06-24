@@ -11,7 +11,7 @@ from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(jeeves: JeevesSpec):
+def deploy_ui(jeeves: JeevesSpec) -> None:
     """
 
     :param jeeves:
@@ -35,7 +35,6 @@ def deploy_ui(jeeves: JeevesSpec):
     try:
         # Copy file from source to temporary folder
         with tempfile.TemporaryDirectory() as tmp_dir:
-
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
@@ -66,7 +65,7 @@ def deploy_ui(jeeves: JeevesSpec):
         raise e
 
 
-def delete_ui_bundle(jeeves: JeevesSpec):
+def delete_ui_bundle(jeeves: JeevesSpec) -> None:
     """
 
     :param jeeves

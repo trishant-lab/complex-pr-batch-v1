@@ -8,7 +8,7 @@ from app.core.settings import AppSettings, get_settings
 from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
 
 
-async def jeeves_deprovisioning_worker():
+async def jeeves_deprovisioning_worker() -> None:
     """
     Workflow worker for jeeves onboarding
     """
@@ -23,7 +23,7 @@ async def jeeves_deprovisioning_worker():
         task_queue=config.jeeves.temporal_jeeves_deboarding_task_queue,
         workflows=[JeevesDeProvisioningWorkflow],
         activities=JeevesDeProvisioningWorkflow.get_activities(),
-        debug_mode=True
+        debug_mode=True,
     )
     await worker.run()
 

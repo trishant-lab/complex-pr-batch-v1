@@ -12,30 +12,32 @@ class VMPodScrapperServer(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, veritable: VeritableSpec) -> None:
+    def __init__(self: "VMPodScrapperServer", veritable: VeritableSpec) -> None:
+        """
+        Initialize VMPodScrapperServer
+        """
         self.veritable: VeritableSpec = veritable
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client,
             kind=ResourceKindEnum.VMPodScrape,
-            api_version="operator.victoriametrics.com/v1beta1"
+            api_version="operator.victoriametrics.com/v1beta1",
         )
 
-    def payload(self):
+    def payload(self: "VMPodScrapperServer") -> dict:
+        """
+        Payload
+        """
         vms_spec = {
-            "namespaceSelector": {
-                "matchNames": [self.veritable.tenant]
-            },
-            "podMetricsEndpoints": [{
-                "path": "/metrics",
-                "port": "http",
-                "interval": "5s",
-            }],
-            "selector": {
-                "matchLabels": {
-                    "app": ProductName
+            "namespaceSelector": {"matchNames": [self.veritable.tenant]},
+            "podMetricsEndpoints": [
+                {
+                    "path": "/metrics",
+                    "port": "http",
+                    "interval": "5s",
                 }
-            }
+            ],
+            "selector": {"matchLabels": {"app": ProductName}},
         }
 
         body = {
@@ -45,23 +47,25 @@ class VMPodScrapperServer(K8sResourceBaseClass):
                 "name": "veritable-metrics",
                 "namespace": self.veritable.tenant,
             },
-            "spec": vms_spec
+            "spec": vms_spec,
         }
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "VMPodScrapperServer") -> None:
+        """
+        Put VMPodScrapperServer
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "VMPodScrapperServer") -> None:
+        """
+        Delete VMPodScrapperServer
+        """
         try:
             self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name="veritable-metrics",
-                namespace=self.veritable.tenant
+                resource=self.resource, name="veritable-metrics", namespace=self.veritable.tenant
             )
         except NotFoundError:
             logger.error(f"VMPodScrapperServer not found in namespace {self.veritable.tenant}")
@@ -72,30 +76,32 @@ class VMPodScrapperCli(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, veritable: VeritableSpec) -> None:
+    def __init__(self: "VMPodScrapperCli", veritable: VeritableSpec) -> None:
+        """
+        Initialize VMPodScrapperCli
+        """
         self.veritable: VeritableSpec = veritable
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client,
             kind=ResourceKindEnum.VMPodScrape,
-            api_version="operator.victoriametrics.com/v1beta1"
+            api_version="operator.victoriametrics.com/v1beta1",
         )
 
-    def payload(self):
+    def payload(self: "VMPodScrapperCli") -> dict:
+        """
+        Payload
+        """
         cli_vms_spec = {
-            "namespaceSelector": {
-                "matchNames": [self.veritable.tenant]
-            },
-            "podMetricsEndpoints": [{
-                "path": "/metrics",
-                "port": "http",
-                "interval": "5s",
-            }],
-            "selector": {
-                "matchLabels": {
-                    "app": "veritable-cli"
+            "namespaceSelector": {"matchNames": [self.veritable.tenant]},
+            "podMetricsEndpoints": [
+                {
+                    "path": "/metrics",
+                    "port": "http",
+                    "interval": "5s",
                 }
-            }
+            ],
+            "selector": {"matchLabels": {"app": "veritable-cli"}},
         }
 
         body = {
@@ -105,24 +111,26 @@ class VMPodScrapperCli(K8sResourceBaseClass):
                 "name": "veritable-cli-metrics",
                 "namespace": self.veritable.tenant,
             },
-            "spec": cli_vms_spec
+            "spec": cli_vms_spec,
         }
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "VMPodScrapperCli") -> None:
+        """
+        Put VMPodScrapperCli
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "VMPodScrapperCli") -> None:
+        """
+        Delete VMPodScrapperCli
+        """
         try:
             self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name="veritable-cli-metrics",
-                namespace=self.veritable.tenant
+                resource=self.resource, name="veritable-cli-metrics", namespace=self.veritable.tenant
             )
         except NotFoundError:
             logger.error(f"VMPodScrapperCli not found in namespace {self.veritable.tenant}")

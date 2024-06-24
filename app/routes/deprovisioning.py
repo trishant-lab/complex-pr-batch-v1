@@ -1,11 +1,15 @@
+from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends
 from loguru import logger
 
-from ..cli.workflowbase import ProductWorkflow
 from ..core.oauth2 import get_oauth_scheme
 from ..models.product import ProductEnum
 
 de_provisioning_router = APIRouter()
+
+
+if TYPE_CHECKING:
+    from ..cli.workflowbase import ProductWorkflow
 
 
 @de_provisioning_router.post(
@@ -13,7 +17,7 @@ de_provisioning_router = APIRouter()
     operation_id="deprovisionTenant",
     summary="Deprovision tenant",
 )
-async def de_provision_tenant(product: ProductEnum, tenant: str, _: dict = Depends(get_oauth_scheme())):
+async def de_provision_tenant(product: ProductEnum, tenant: str, _: dict = Depends(get_oauth_scheme())) -> None:
     """
     De-provision tenant
     """

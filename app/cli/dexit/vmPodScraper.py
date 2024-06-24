@@ -11,30 +11,32 @@ class VMPodScrapperServer(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, dexit: DexitSpec) -> None:
+    def __init__(self: "VMPodScrapperServer", dexit: DexitSpec) -> None:
+        """
+        Initialize class
+        """
         self.dexit: DexitSpec = dexit
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client,
             kind=ResourceKindEnum.VMPodScrape,
-            api_version="operator.victoriametrics.com/v1beta1"
+            api_version="operator.victoriametrics.com/v1beta1",
         )
 
-    def payload(self):
+    def payload(self: "VMPodScrapperServer") -> dict:
+        """
+        Payload
+        """
         vms_spec = {
-            "namespaceSelector": {
-                "matchNames": [self.dexit.tenant]
-            },
-            "podMetricsEndpoints": [{
-                "path": "/metrics",
-                "port": "http",
-                "interval": "5s",
-            }],
-            "selector": {
-                "matchLabels": {
-                    "app": ProductName
+            "namespaceSelector": {"matchNames": [self.dexit.tenant]},
+            "podMetricsEndpoints": [
+                {
+                    "path": "/metrics",
+                    "port": "http",
+                    "interval": "5s",
                 }
-            }
+            ],
+            "selector": {"matchLabels": {"app": ProductName}},
         }
 
         body = {
@@ -44,23 +46,23 @@ class VMPodScrapperServer(K8sResourceBaseClass):
                 "name": "dexit-metrics",
                 "namespace": self.dexit.tenant,
             },
-            "spec": vms_spec
+            "spec": vms_spec,
         }
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "VMPodScrapperServer") -> None:
+        """
+        Put
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "VMPodScrapperServer") -> None:
+        """
+        Delete
+        """
         try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name="dexit-metrics",
-                namespace=self.dexit.tenant
-            )
+            self.k8s_dynamic_client.delete(resource=self.resource, name="dexit-metrics", namespace=self.dexit.tenant)
         except NotFoundError:
             logger.error(f"VMPodScrapperServer not found in namespace {self.dexit.tenant}")

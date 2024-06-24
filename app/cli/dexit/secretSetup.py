@@ -11,12 +11,12 @@ class Secret(K8sResourceBaseClass):
     """
 
     def __init__(
-            self,
-            dexit: DexitSpec,
-            name: str,
-            type: None | str = None,
-            data: None | dict = None,
-            string_data: None | dict = None
+        self: "Secret",
+        dexit: DexitSpec,
+        name: str,
+        type: None | str = None,
+        data: None | dict = None,
+        string_data: None | dict = None,
     ) -> None:
         """
         dexit: DexitSpec
@@ -36,29 +36,33 @@ class Secret(K8sResourceBaseClass):
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1"
         )
 
-    def payload(self):
+    def payload(self: "Secret") -> dict:
+        """
+        Payload
+        """
         body: V1Secret = V1Secret(
             api_version="v1",
             kind=ResourceKindEnum.Secret.value,
-            metadata=V1ObjectMeta(
-                namespace=self.dexit.tenant,
-                name=self.name
-            ),
+            metadata=V1ObjectMeta(namespace=self.dexit.tenant, name=self.name),
             type=self.type,
             data=self.data,
-            string_data=self.string_data
+            string_data=self.string_data,
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "Secret") -> None:
+        """
+        Put
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "Secret") -> None:
+        """
+        Delete
+        """
         # Don't delete secret.
         # Work with devops team to secret if needed
         pass

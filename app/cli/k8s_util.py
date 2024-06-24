@@ -6,6 +6,10 @@ from kubernetes.dynamic import DynamicClient, Resource
 
 
 class ResourceKindEnum(Enum):
+    """
+    Enum for k8s resource kind
+    """
+
     Namespace = "Namespace"
     Service = "Service"
     ConfigMap = "ConfigMap"
@@ -22,13 +26,15 @@ class ResourceKindEnum(Enum):
 
 @lru_cache
 def get_dynamic_client() -> DynamicClient:
+    """
+    Get k8s dynamic client
+    """
     k8s_api_client = api_client.ApiClient(configuration=k8s_config.load_kube_config())
-    dynamic_client = DynamicClient(k8s_api_client)
-    return dynamic_client
+    return DynamicClient(k8s_api_client)
 
 
 def get_resource(dynamic_client: DynamicClient, kind: ResourceKindEnum, api_version: str) -> Resource:
-    return dynamic_client.resources.get(
-        kind=kind.value,
-        api_version=api_version
-    )
+    """
+    Get k8s resource object
+    """
+    return dynamic_client.resources.get(kind=kind.value, api_version=api_version)

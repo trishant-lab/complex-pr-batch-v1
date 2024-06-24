@@ -16,7 +16,7 @@ class VeritableWorkflow(ProductWorkflow):
     """
 
     @staticmethod
-    async def onboard(schema: dict):
+    async def onboard(schema: dict) -> None:
         """
         onboard method
         """
@@ -24,11 +24,11 @@ class VeritableWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=VeritableSpec(**schema),
             workflow=VeritableOnboardingWorkflow,
-            queue=product_config.temporal_veritable_onboarding_task_queue
+            queue=product_config.temporal_veritable_onboarding_task_queue,
         )
 
     @staticmethod
-    async def deboard(schema: dict):
+    async def deboard(schema: dict) -> None:
         """
         deprovision method
         """
@@ -36,5 +36,5 @@ class VeritableWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=VeritableSpec(**schema),
             workflow=VeritableDeProvisioningWorkflow,
-            queue=product_config.temporal_veritable_deboarding_task_queue
+            queue=product_config.temporal_veritable_deboarding_task_queue,
         )

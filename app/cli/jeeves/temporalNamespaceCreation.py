@@ -9,12 +9,15 @@ from app.core.settings import AppSettings, get_settings
 
 
 class TemporalNamespaceCreation:
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "TemporalNamespaceCreation", jeeves: JeevesSpec) -> None:
+        """
+        Constructor
+        """
         self.jeeves: JeevesSpec = jeeves
         self.config: AppSettings = get_settings()
         self.namespace = f"jeeves_{self.jeeves.tenant}"
 
-    async def create_temporal_namespace(self):
+    async def create_temporal_namespace(self: "TemporalNamespaceCreation") -> None:
         """
         Create Temporal Namespace
         """

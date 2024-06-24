@@ -1,15 +1,10 @@
-import asyncio
-from functools import lru_cache, wraps
-from time import time
-from typing import Any
+from functools import lru_cache
 
-import aiohttp
 import jwt
 import requests
 from casbin.enforcer import Enforcer
 from fastapi.responses import ORJSONResponse
 from httpx import AsyncClient
-from loguru import logger
 from starlette.requests import Request
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -22,7 +17,7 @@ config: AppSettings = get_settings()
 class CredentialException(Exception):
     """Raised when there is an invalid token"""
 
-    def __init__(self, detail: str = None):
+    def __init__(self: "CredentialException", detail: None | str = None) -> None:
         self.detail = detail
         super().__init__(self.detail)
 
@@ -91,13 +86,14 @@ class AuthenticationMiddleware:
         if scope["type"] == "lifespan":
             return await self.app(scope, receive, send)
         request = Request(scope, receive)
-        if not request.url.path.startswith(config.api_prefix):
-            return await self.app(scope, receive, send)
         try:
             _, token = get_token(request)
             if token:
                 await self._validate_token(token)
                 scope["user"] = get_user(token)
+                roles = scope["user"].get("realm_access", {}).get("roles", [])
+                roles.append("NO_AUTH")
+                scope["user"].get("realm_access", {}).update({"roles": roles})
                 await self.app(scope, receive, send)
             else:
                 scope["user"] = {"realm_access": {"roles": ["NO_AUTH"]}}
@@ -116,17 +112,6 @@ class AuthenticationMiddleware:
             raise CredentialException("Unauthorized")
         if response.status_code == 403:
             raise CredentialException("Forbidden")
-
-        # async with aiohttp.ClientSession() as session:
-        #     try:
-        #         resp = await session.get(
-        #             self.security_config["userinfo_endpoint"], headers={"Authorization": f"{scheme} {token}"}
-        #         )
-        #         if resp.status == 200:
-        #             return await resp.json()
-        #         return None
-        #     except aiohttp.ClientError:
-        #         return None
 
 
 class AuthorizationMiddleware:
@@ -151,15 +136,12 @@ class AuthorizationMiddleware:
         if scope["type"] == "lifespan":
             return await self.app(scope, receive, send)
         request = Request(scope, receive)
-        if not request.url.path.startswith(config.api_prefix) or scope["method"] == "OPTIONS" or self._enforce(request):
+        if scope["method"] == "OPTIONS" or self._enforce(request):
             return await self.app(scope, receive, send)
         else:
-            response = ORJSONResponse(
-                status_code=HTTP_403_FORBIDDEN,
-                content="Forbidden"
-            )
+            response = ORJSONResponse(status_code=HTTP_403_FORBIDDEN, content="Forbidden")
 
-            await response(scope, receive, send)
+            return await response(scope, receive, send)
 
     def _enforce(self: "AuthorizationMiddleware", request: Request) -> bool:
         """

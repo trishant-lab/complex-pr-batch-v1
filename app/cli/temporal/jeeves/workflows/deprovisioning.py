@@ -5,14 +5,21 @@ from temporalio import workflow
 
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.jeeves.activities.deprovisioning import (
-    DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeleteProvisioningJobActivity,
-    DeleteDeploymentActivity, DeleteConfigMapActivity, DeletePVCActivity, DropUIBundlesActivity, DeleteDNSActivity,
-    DeleteVMScraperActivity, DeleteStatefulSetActivity
+    DeleteKubernetesServiceActivity,
+    DeleteKubernetesVirtualServiceActivity,
+    DeleteProvisioningJobActivity,
+    DeleteDeploymentActivity,
+    DeleteConfigMapActivity,
+    DeletePVCActivity,
+    DropUIBundlesActivity,
+    DeleteDNSActivity,
+    DeleteVMScraperActivity,
+    DeleteStatefulSetActivity,
 )
 from app.cli.jeeves.jeeves import JeevesSpec
 
 with workflow.unsafe.imports_passed_through():
-    from loguru import logger
+    pass
 
 
 @workflow.defn
@@ -27,10 +34,16 @@ class JeevesDeProvisioningWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            DeleteKubernetesServiceActivity.defn, DeleteKubernetesVirtualServiceActivity.defn,
-            DeleteProvisioningJobActivity.defn, DeleteDeploymentActivity.defn, DeleteConfigMapActivity.defn,
-            DeletePVCActivity.defn, DropUIBundlesActivity.defn, DeleteDNSActivity.defn,
-            DeleteVMScraperActivity.defn, DeleteStatefulSetActivity.defn
+            DeleteKubernetesServiceActivity.defn,
+            DeleteKubernetesVirtualServiceActivity.defn,
+            DeleteProvisioningJobActivity.defn,
+            DeleteDeploymentActivity.defn,
+            DeleteConfigMapActivity.defn,
+            DeletePVCActivity.defn,
+            DropUIBundlesActivity.defn,
+            DeleteDNSActivity.defn,
+            DeleteVMScraperActivity.defn,
+            DeleteStatefulSetActivity.defn,
         ]
 
     @classmethod
@@ -46,7 +59,6 @@ class JeevesDeProvisioningWorkflow(Workflow):
         """
         Entry point for workflow
         """
-
         # delete k8s service
         await workflow.execute_activity(
             DeleteKubernetesServiceActivity.defn,

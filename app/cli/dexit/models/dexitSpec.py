@@ -1,5 +1,3 @@
-from dataclasses import field
-
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 
 OnepasswordVaultName: str = "dexit"
@@ -10,6 +8,7 @@ class ResourceSpec(LaunchpadCLIBaseModel):
     """
     ResourceSpec dataclass
     """
+
     request_memory: str = "500Mi"
     request_cpu: str = "500m"
     limit_memory: str = "3000Mi"
@@ -20,6 +19,7 @@ class CustomerDetails(LaunchpadCLIBaseModel):
     """
     CustomerDetails dataclass
     """
+
     userName: str
     email: str
     organization: str
@@ -29,6 +29,7 @@ class DexitSpec(LaunchpadCLIBaseModel):
     """
     DexitSpec dataclass
     """
+
     tenant: str
     customerDetails: None | CustomerDetails = None
     serverSpec: None | ResourceSpec = ResourceSpec()

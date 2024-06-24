@@ -22,7 +22,7 @@ class PostgresDatabaseSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="PostgresDatabaseSetupActivity")
-    async def defn(veritable: VeritableSpec):
+    async def defn(veritable: VeritableSpec) -> None:
         """
         Callable for the activity
         """

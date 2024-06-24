@@ -1,5 +1,4 @@
-from kubernetes.client import V1ObjectMeta, V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec, \
-    V1ResourceRequirements
+from kubernetes.client import V1ObjectMeta, V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec, V1ResourceRequirements
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 
@@ -13,47 +12,48 @@ class PVC(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "PVC", jeeves: JeevesSpec) -> None:
+        """
+        Constructor
+        """
         self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.PersistentVolumeClaim, api_version="v1"
         )
-        self.pvc_name = f"jeeves-vespa-pvc"
+        self.pvc_name = "jeeves-vespa-pvc"
 
-    def payload(self):
+    def payload(self: "PVC") -> dict:
+        """
+        k8s resource payload
+        """
         body = V1PersistentVolumeClaim(
             api_version="v1",
             kind=ResourceKindEnum.PersistentVolumeClaim.value,
-            metadata=V1ObjectMeta(
-                namespace=self.jeeves.tenant,
-                name=self.pvc_name
-            ),
+            metadata=V1ObjectMeta(namespace=self.jeeves.tenant, name=self.pvc_name),
             spec=V1PersistentVolumeClaimSpec(
                 volume_mode="Filesystem",
                 storage_class_name="topolvm-provisioner",
                 access_modes=["ReadWriteOnce"],
-                resources=V1ResourceRequirements(
-                    requests={"storage": "1Gi"}
-                ),
+                resources=V1ResourceRequirements(requests={"storage": "1Gi"}),
             ),
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "PVC") -> None:
+        """
+        k8s server side apply
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "PVC") -> None:
+        """
+        k8s server side apply
+        """
         try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name=self.pvc_name,
-                namespace=self.jeeves.tenant
-            )
+            self.k8s_dynamic_client.delete(resource=self.resource, name=self.pvc_name, namespace=self.jeeves.tenant)
         except NotFoundError:
             logger.error(f"PVC {self.pvc_name} not found in namespace {self.jeeves.tenant}")
