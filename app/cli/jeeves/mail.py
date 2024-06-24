@@ -77,17 +77,3 @@ def onboard_success(jeeves: JeevesSpec) -> None:
     reset_keycloak_user_password(jeeves=jeeves, password=password)
     send_customer_password_mail(jeeves=jeeves, password=password)
     return
-
-
-if __name__ == "__main__":
-    from app.cli.jeeves.models.jeevesSpec import JeevesSpec, CustomerDetails
-
-    jeeves_ = JeevesSpec(
-        tenant="test5",
-        customerDetails=CustomerDetails(
-            userName="Sridhar S",
-            email="sridhar.s@314ecorp.com",
-            organization="314e",
-        ),
-    )
-    onboard_success(jeeves=jeeves_)

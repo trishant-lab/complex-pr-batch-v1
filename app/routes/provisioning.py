@@ -77,7 +77,7 @@ async def provisioning(
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid schema")
 
     user_id: dict = request.scope.get("user", {}).get("sub")
-    product_details = await get_product(product=product.name, _param=_param)
+    product_details = await get_product(product=product, _param=_param)
     if not product_details:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
     product_details = dict(product_details)
