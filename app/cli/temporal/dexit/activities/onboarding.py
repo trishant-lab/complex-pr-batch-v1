@@ -478,3 +478,27 @@ class TemporalNamespaceCreationActivity(Activity):
         # Create temporal namespace
         from app.cli.dexit.temporalNamespaceCreation import TemporalNamespaceCreation
         await TemporalNamespaceCreation(dexit=dexit).create_temporal_namespace()
+
+        
+class HFInferenceEndpointSetupActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=1,
+        )
+
+    @staticmethod
+    @activity.defn(name="hf_inference_endpoint_setup_activity")
+    async def defn(dexit: DexitSpec):
+        """
+        Callable for the activity
+        """
+        from app.cli.dexit.hfinferenceendpoint import HFInferenceEndpointSetup
+        await HFInferenceEndpointSetup(dexit=dexit).deploy()
+        

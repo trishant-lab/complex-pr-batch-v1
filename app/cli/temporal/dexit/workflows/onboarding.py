@@ -12,7 +12,7 @@ from app.cli.temporal.dexit.activities.onboarding import (
     DnsSetupActivity, UiSetupActivity, KeycloakRealmSetupActivity, NovuSetupActivity,
     ProvisioningJobActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity,
     DeploymentActivity, VmPodScraperActivity, GrafanaAlertsActivity,
-    TemporalNamespaceCreationActivity, FaxSetupActivity
+    TemporalNamespaceCreationActivity, FaxSetupActivity, HFInferenceEndpointSetupActivity
 )
 from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
 
@@ -99,6 +99,14 @@ class DexitOnboardingWorkflow(Workflow):
                 arg=dexit,
                 retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            # Creating HF Inference Endpoints
+            await workflow.execute_activity(
+                activity=HFInferenceEndpointSetupActivity.defn,
+                arg=dexit,
+                retry_policy=HFInferenceEndpointSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(minutes=30),
             )
 
             # configmap setup

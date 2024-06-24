@@ -1,10 +1,11 @@
 import os
+import requests
+from enum import Enum
 from functools import partial, lru_cache
-from typing import Final
+from typing import Final, List
 
 import loguru
 import orjson
-import requests
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
@@ -135,6 +136,67 @@ class JeevesSettings(BaseModel):
     matomo_db_password: str = ""
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+    
+    
+class DexitAIOcrEngines(str, Enum):
+    """OCR Engine"""
+    TESSERACT = 'tesseract'
+    EASYOCR = 'easyocr'
+    DOCTR = 'doctr'
+    
+
+class DexitAIEntityExtractionModels(str, Enum):
+    """Entity Extraction Models"""
+    LLAMA2_7B = 'llama2:7b'
+    LLAMA2_13B = 'llama2:13b'
+
+
+class DexitAIComputeEngineSettings(BaseModel):
+    """
+    Dexit AI Compute Engine Settings
+    """
+    accelerator: str = ''
+    instance_size: str = ''
+    instance_type: str = ''
+    min_replica: int = 0
+    max_replica: int = 1
+    scale_to_zero_timeout: int = 15 # minutes
+    vendor: str = ''
+    region: str = 'us-east-1'
+    
+
+class DexitAIEndpointSettings(BaseModel):
+    """
+    Dexit AI Endpoint Settings
+    """
+    enable_ocr: bool = True
+    enable_entity: bool = False
+    enable_classification: bool = False
+    compute_engine: DexitAIComputeEngineSettings = DexitAIComputeEngineSettings()
+    
+
+class DexitAISettings(BaseModel):
+    """
+    Dexit AI Settings
+    """
+    hf_username: str = '314e'
+    hf_token_read: str = ''
+    hf_token_write: str = ''
+    hf_endpoint_repo_name: str = '314e/Dexit-AI'
+    hf_endpoint_repo_revision: str = 'production'
+    
+    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.TESSERACT
+    
+    classification_modelid: str = '314e/Dexit-Document-Classification-Muspell-Model1'
+    classification_modelrevision: str = 'production'
+    
+    entity_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA2_13B
+    entity_model_temperature: float = 0
+    entity_model_numctx: int = 4096
+    entity_model_numpredict: int = 300
+    
+    inference_endpoints: List[DexitAIEndpointSettings] = [DexitAIEndpointSettings()]
+    
 
 
 class DexitSettings(BaseModel):
@@ -163,6 +225,8 @@ class DexitSettings(BaseModel):
     FaxApiToken: str = ""
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+    
+    ai_config: DexitAISettings = DexitAISettings()
 
 
 class AppSettings(BaseSettings):
