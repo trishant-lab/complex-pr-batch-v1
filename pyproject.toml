@@ -38,6 +38,8 @@ aiohttp = "^3.9.5"
 gunicorn = "^22.0.0"
 slack-sdk = "^3.27.2"
 huggingface-hub = "0.20.2"
+python-http-client = "^3.3.7"
+sendgrid = "^6.11.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.3"
