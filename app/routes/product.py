@@ -1,5 +1,5 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 import orjson
 from fastapi import APIRouter, Depends
@@ -25,16 +25,20 @@ class ProductResponseModel(BaseModel):
     approvalRequired: bool
 
 
-@product_router.get("/listAllProducts", operation_id="listAllProducts", response_model=list[ProductResponseModel])
-async def list_all_products(_: dict = Depends(get_oauth_scheme())) -> list[ProductResponseModel]:
+@product_router.get("", operation_id="Products", response_model=list[ProductResponseModel])
+async def list_all_products(
+    product: None | ProductEnum = None, _: dict = Depends(get_oauth_scheme())
+) -> list[ProductResponseModel]:
     """
-    @param _:
-    @return:
+    param product:
+    param _:
+    return:
     """
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_all("listAllProducts.sql")
+        parameters = {"product_name": product.value.lower() if product else None}
+        response = await db.fetch_all("listAllProducts.sql", **parameters)
 
         output_response = []
         for resp in response:
