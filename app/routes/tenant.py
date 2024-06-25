@@ -11,12 +11,18 @@ from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
 from app.models.product import ProductEnum
-from app.models.tenant import TenantCreateRequestModel, TenantResponseModel, UpdateRequestorModel
+from app.models.tenant import (
+    TenantCreateRequestModel,
+    TenantResponseModel,
+    UpdateRequestorModel,
+)
 
 tenant_router = APIRouter()
 
 
-async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def create_requestor(
+    requestor: dict, _param: dict = Depends(get_oauth_scheme())
+) -> dict:
     """
     @param requestor:
     @param _param:
@@ -35,14 +41,19 @@ async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_sch
 
     except Exception as e:
         logger.error(f"Error updating requestor: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating requestor")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error updating requestor",
+        )
 
 
 @tenant_router.post(
     "",
     operation_id="createTenant",
 )
-async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict = Depends(get_oauth_scheme())) -> None:
+async def create_tenant(
+    tenant_details: TenantCreateRequestModel, _param: dict = Depends(get_oauth_scheme())
+) -> dict:
     """
     @param tenant_details:
     @param _param:
@@ -53,11 +64,19 @@ async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict =
     requestor = await create_requestor(tenant_details.requestor, _param=_param)
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        await db.fetch_one("createTenant.sql", **tenant_details.dict(), requestor_id=requestor["id"])
+        return dict(
+            await db.fetch_one(
+                "createTenant.sql",
+                **tenant_details.dict(),
+                requestor_id=requestor["id"],
+            )
+        )
 
     except Exception as e:
         logger.error(f"Error creating tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error creating tenant")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error creating tenant"
+        )
 
 
 @tenant_router.get(
@@ -65,7 +84,9 @@ async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict =
     operation_id="listAllTenantsPerProduct",
     response_model=list[TenantResponseModel] | None,
 )
-async def list_tenants(product: ProductEnum, _param: dict = Depends(get_oauth_scheme())) -> list[TenantResponseModel]:
+async def list_tenants(
+    product: ProductEnum, _param: dict = Depends(get_oauth_scheme())
+) -> list[TenantResponseModel]:
     """
     @param product:
     @param _param:
@@ -87,7 +108,9 @@ async def list_tenants(product: ProductEnum, _param: dict = Depends(get_oauth_sc
 
     except Exception as e:
         logger.error(f"Error fetching tenants: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants"
+        )
 
 
 @tenant_router.get(
@@ -95,7 +118,9 @@ async def list_tenants(product: ProductEnum, _param: dict = Depends(get_oauth_sc
     operation_id="getTenantById",
     response_model=TenantResponseModel,
 )
-async def get_tenant(tenant_id: uuid.UUID, _param: dict = Depends(get_oauth_scheme())) -> TenantResponseModel:
+async def get_tenant(
+    tenant_id: uuid.UUID, _param: dict = Depends(get_oauth_scheme())
+) -> TenantResponseModel:
     """
     @param tenant_id:
     @param _param:
@@ -114,14 +139,18 @@ async def get_tenant(tenant_id: uuid.UUID, _param: dict = Depends(get_oauth_sche
 
     except Exception as e:
         logger.error(f"Error fetching tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant"
+        )
 
 
 @tenant_router.put(
     "/updateRequestorDetails",
     operation_id="updateRequestorDetails",
 )
-async def update_tenant(requestor_details: UpdateRequestorModel, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def update_tenant(
+    requestor_details: UpdateRequestorModel, _param: dict = Depends(get_oauth_scheme())
+) -> dict:
     """
     @param requestor_details:
     @param _param:
@@ -136,7 +165,9 @@ async def update_tenant(requestor_details: UpdateRequestorModel, _param: dict = 
 
     except Exception as e:
         logger.error(f"Error updating tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating tenant")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating tenant"
+        )
 
 
 def generate_combinations(organization: str) -> list:
@@ -211,5 +242,8 @@ async def verify_tenant_name(
     """
     tenant_names = await get_valid_tenant_names([tenant_name.lower()])
     if tenant_names:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=f"Tenant name {tenant_name} already exists")
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail=f"Tenant name {tenant_name} already exists",
+        )
     return

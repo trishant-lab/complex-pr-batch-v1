@@ -24,15 +24,19 @@ if TYPE_CHECKING:
     from ..cli.workflowbase import ProductWorkflow
 
 
-async def send_slack_notification(product: ProductEnum, schema: dict) -> None:
+async def send_slack_notification(
+    product: ProductEnum, schema: dict, approval_required: bool, tenant_id: str
+) -> None:
     """
     Send Slack notification
     """
+    config: AppSettings = get_settings()
     text = (
         f"A new {product.value} tenant has been requested by "
         f"{schema.get('customerDetails', {}).get('email')} from {schema.get('customerDetails', {}).get('organization')}"
     )
     blocks = [
+        {"type": "divider"},
         {
             "type": "section",
             "text": {
@@ -45,11 +49,35 @@ async def send_slack_notification(product: ProductEnum, schema: dict) -> None:
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": f"*Tenant:* {schema['tenant']}",
+                    "text": f"*TenantName:* {schema['tenant']}",
                 }
             ],
         },
     ]
+    if approval_required:
+        extended_block = [
+            {
+                "type": "section",
+                "fields": [{"type": "mrkdwn", "text": "*Approval Required:*"}],
+            },
+            {
+                "type": "rich_text",
+                "elements": [
+                    {
+                        "type": "rich_text_section",
+                        "elements": [
+                            {
+                                "type": "link",
+                                "url": f"{config.app_url}/tenant-details?id={tenant_id}",
+                            }
+                        ],
+                    }
+                ],
+            },
+        ]
+        blocks.extend(extended_block)
+
+    blocks.append({"type": "divider"})
 
     send_slack_msg(text=text, blocks=blocks)
 
@@ -85,7 +113,7 @@ async def provisioning(
     product_details = dict(product_details)
 
     # Create tenant
-    await create_tenant(
+    tenant_details = await create_tenant(
         TenantCreateRequestModel(
             name=schema.get("tenant"),
             product=product_details["id"],
@@ -107,6 +135,10 @@ async def provisioning(
         send_slack_notification,
         product=product,
         schema=schema,
+        approval_required=True
+        if product_details["approvalRequired"] and not skip_approval
+        else False,
+        tenant_id=tenant_details.get("id"),
     )
 
     if product_details["approvalRequired"] and skip_approval:

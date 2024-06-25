@@ -295,6 +295,8 @@ class AppSettings(BaseSettings):
 
     cache_admin_password: str = ""
 
+    app_url: str = "https://launchpad.314ecorp.tech/sprint"
+
     model_config = ConfigDict(extra="ignore")
 
 
@@ -305,6 +307,9 @@ class IntegrationSettings(AppSettings):
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+
+    app_url: str = "https://launchpad.314ecorp.tech/sprint"
+
     model_config = ConfigDict(extra="ignore")
 
 
@@ -315,6 +320,9 @@ class ProductionSettings(AppSettings):
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+
+    app_url: str = "https://launchpad.314ecorp.com"
+
     model_config = ConfigDict(extra="ignore")
 
 
