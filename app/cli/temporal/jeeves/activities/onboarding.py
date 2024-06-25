@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import timedelta
 
 from temporalio import activity
@@ -80,7 +81,9 @@ class ConfigmapSetupActivity(Activity):
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.TENANT_CONFIG).put()
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.RCLONE_CONFIG).put()
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.VECTOR_CONFIG).put()
-        ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.STATE_STORE_CONFIG).put()
+        ConfigMapClass(
+            jeeves=jeeves, config_map=ConfigMapClass.STATE_STORE_CONFIG
+        ).put()
 
 
 class PVCSetupActivity(Activity):
@@ -142,7 +145,11 @@ class SecretSetupActivity(Activity):
         ).put()
 
         # Create redis secret for redis password
-        Secret(jeeves=jeeves, name="cache-secret", data={"REDIS_PASSWORD": config.cache_admin_password}).put()
+        Secret(
+            jeeves=jeeves,
+            name="cache-secret",
+            data={"REDIS_PASSWORD": config.cache_admin_password},
+        ).put()
 
 
 class StateFullSetSetupActivity(Activity):
@@ -402,44 +409,49 @@ class VmPodScraperActivity(Activity):
         VMPodScrapperServer(jeeves=jeeves).put()
 
 
-# @dataclasses.dataclass
-# class TenantStatus:
-#     """
-#     TenantStatus dataclass
-#     """
-#     tenant_name: str
-#     status: TenantStatusEnum
-#     error_msg: None | str = None
+@dataclasses.dataclass
+class TenantStatus:
+    """
+    TenantStatus dataclass
+    """
+
+    tenant_name: str
+    status: str
+    error_msg: None | str = None
 
 
-# class UpdateTenantStatusActivity(Activity):
-#     @staticmethod
-#     def get_retry_policy() -> RetryPolicy:
-#         """
-#         RetryPolicy for the activity
-#         """
-#         return RetryPolicy(
-#             initial_interval=timedelta(seconds=1),
-#             backoff_coefficient=2,
-#             maximum_interval=timedelta(seconds=10),
-#             maximum_attempts=1,
-#         )
-#
-#     @staticmethod
-#     @activity.defn(name="UpdateTenantStatusActivity")
-#     async def defn(activity_input: TenantStatus):
-#         """
-#         Callable for the activity
-#         """
-#         # Update tenant status
-#         from app.cli.common.tenantStatus import update_tenant_status
-#         from app.cli.jeeves.jeeves import ProductName
-#         await update_tenant_status(
-#             tenant_name=activity_input.tenant_name,
-#             product=ProductName,
-#             status=activity_input.status,
-#             error_message=activity_input.error_msg
-#         )
+class UpdateTenantStatusActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=1,
+        )
+
+    @staticmethod
+    @activity.defn(name="update_tenant_status_activity")
+    async def defn(activity_input: TenantStatus) -> None:
+        """
+        Callable for the activity
+        """
+        # Update tenant status
+        from app.cli.common.tenantStatus import update_tenant_status
+        from app.cli.jeeves.jeeves import ProductName
+        from app.models.tenant import TenantStatusEnum
+
+        status = TenantStatusEnum(activity_input.status)
+
+        await update_tenant_status(
+            tenant_name=activity_input.tenant_name,
+            product=ProductName,
+            status=status,
+            error_message=activity_input.error_msg,
+        )
 
 
 class ChatwootSetupActivity(Activity):

@@ -25,8 +25,6 @@ from app.cli.temporal.dexit.activities.onboarding import (
     TemporalNamespaceCreationActivity,
     FaxSetupActivity,
     HFInferenceEndpointSetupActivity,
-)
-from app.cli.temporal.veritable.activities.onboarding import (
     UpdateTenantStatusActivity,
     TenantStatus,
 )

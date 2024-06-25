@@ -27,8 +27,9 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     AiVoiceSetupActivity,
     TemporalNamespaceCreationActivity,
     SendMailActivity,
+    UpdateTenantStatusActivity,
+    TenantStatus,
 )
-from app.cli.temporal.veritable.activities.onboarding import UpdateTenantStatusActivity, TenantStatus
 
 
 @workflow.defn
@@ -88,7 +89,9 @@ class JeevesOnboardingWorkflow(Workflow):
                 await workflow.execute_activity(
                     activity=UpdateTenantStatusActivity.defn,
                     arg=TenantStatus(
-                        tenant_name=pydash.get(jeeves, "tenant"), status="Declined", error_msg="Request Declined"
+                        tenant_name=pydash.get(jeeves, "tenant"),
+                        status="Declined",
+                        error_msg="Request Declined",
                     ),
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                     start_to_close_timeout=timedelta(seconds=120),
@@ -241,7 +244,9 @@ class JeevesOnboardingWorkflow(Workflow):
             # Update Tenant Status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=pydash.get(jeeves, "tenant"), status="Completed"),
+                arg=TenantStatus(
+                    tenant_name=pydash.get(jeeves, "tenant"), status="Completed"
+                ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -258,7 +263,11 @@ class JeevesOnboardingWorkflow(Workflow):
             workflow.logger.error(f"Error in onboarding workflow: {e}")
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=pydash.get(jeeves, "tenant"), status="Failed", error_msg=str(e)),
+                arg=TenantStatus(
+                    tenant_name=pydash.get(jeeves, "tenant"),
+                    status="Failed",
+                    error_msg=str(e),
+                ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )

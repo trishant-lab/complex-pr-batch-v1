@@ -79,7 +79,9 @@ async def provisioning(
     user_id: dict = request.scope.get("user", {}).get("sub")
     product_details = await get_product(product=product, _param=_param)
     if not product_details:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST, detail="Product not found"
+        )
     product_details = dict(product_details)
 
     # Create tenant
@@ -88,7 +90,7 @@ async def provisioning(
             name=schema.get("tenant"),
             product=product_details["id"],
             status=TenantStatusEnum.Provisioning
-            if not product_details["approvalRequired"] and skip_approval
+            if product_details["approvalRequired"] and skip_approval
             else TenantStatusEnum.PendingApproval,
             requestor=schema.get("customerDetails"),
             approvedBy=user_id if skip_approval else None,
@@ -132,12 +134,16 @@ async def approve_tenant(
             "approveTenant.sql",
             tenant_id=str(tenant_id),
             user_id=user_id,
-            status=TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined,
+            status=TenantStatusEnum.Provisioning
+            if approval
+            else TenantStatusEnum.Declined,
         )
 
     except Exception as e:
         logger.error(f"Error approving tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error approving tenant")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error approving tenant"
+        )
 
     schema = {
         "tenant": response["name"],
@@ -146,10 +152,14 @@ async def approve_tenant(
 
     if approval:
         await product_workflow.approve(schema)
-        logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
+        logger.info(
+            f"Approved {response['product_name']} workflow for tenant: {response['name']}"
+        )
     else:
         await product_workflow.decline(schema)
-        logger.info(f"Declined {response['product_name']} workflow for tenant: {response['name']}")
+        logger.info(
+            f"Declined {response['product_name']} workflow for tenant: {response['name']}"
+        )
 
 
 @provisioning_router.post("/retryProvisioning", operation_id="retryProvisioning")
@@ -179,4 +189,7 @@ async def retry_provisioning(
         logger.info(f"Retried provisioning workflow for tenant: {response['name']}")
     except Exception as e:
         logger.error(f"Error retrying provisioning: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error retrying provisioning")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrying provisioning",
+        )
