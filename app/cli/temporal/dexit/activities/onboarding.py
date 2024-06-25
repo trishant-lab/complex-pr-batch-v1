@@ -507,7 +507,7 @@ class HFInferenceEndpointSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="hf_inference_endpoint_setup_activity")
-    async def defn(dexit: DexitSpec):
+    async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
