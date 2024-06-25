@@ -1,7 +1,7 @@
 import os
 from enum import Enum
 from functools import partial, lru_cache
-from typing import Final, List
+from typing import Final
 
 import loguru
 import orjson
@@ -230,7 +230,7 @@ class DexitAISettings(BaseModel):
     entity_model_numctx: int = 4096
     entity_model_numpredict: int = 300
 
-    inference_endpoints: List[DexitAIEndpointSettings] = [DexitAIEndpointSettings()]
+    inference_endpoints: list[DexitAIEndpointSettings] = [DexitAIEndpointSettings()]
 
 
 class DexitSettings(BaseModel):
