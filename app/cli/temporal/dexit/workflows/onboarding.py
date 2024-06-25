@@ -105,12 +105,12 @@ class DexitOnboardingWorkflow(Workflow):
             )
 
             # novu setup
-            await workflow.execute_activity(
-                activity=NovuSetupActivity.defn,
-                arg=dexit,
-                retry_policy=NovuSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
+            # await workflow.execute_activity(
+            #     activity=NovuSetupActivity.defn,
+            #     arg=dexit,
+            #     retry_policy=NovuSetupActivity.get_retry_policy(),
+            #     start_to_close_timeout=timedelta(seconds=120),
+            # )
 
             # fax setup
             await workflow.execute_activity(
@@ -227,9 +227,7 @@ class DexitOnboardingWorkflow(Workflow):
             # Update Tenant Status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=pydash.get(dexit, "tenant"), status="Completed"
-                ),
+                arg=TenantStatus(tenant_name=pydash.get(dexit, "tenant"), status="Completed"),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
