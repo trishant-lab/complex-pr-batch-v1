@@ -4,7 +4,6 @@ from app.cli.dexit.dexit import DexitSpec
 from huggingface_hub import get_inference_endpoint
 from starlette.status import HTTP_409_CONFLICT
 import aiohttp
-from typing import List
 from app.onepasswordutil import OnePasswordUtil
 import asyncio
 
@@ -12,7 +11,7 @@ import asyncio
 async def get_huggingface_endpoint_url(
     endpoint_name: str,
     check_interval: int = 10
-):
+) -> str:
     """Resumes or waits for the HuggingFace inference endpoint based on its current status."""
     config: AppSettings = get_settings()
     endpoint = get_inference_endpoint(
@@ -45,20 +44,21 @@ async def get_huggingface_endpoint_url(
         return endpoint.url
 
 
-class HFInferenceEndpointSetup():
-    def __init__(self, dexit: DexitSpec) -> None:
+class HFInferenceEndpointSetup:
+    def __init__(self: "HFInferenceEndpointSetup", dexit: DexitSpec) -> None:
         self.dexit: DexitSpec = dexit
         self.config: AppSettings = get_settings()
         self.ai_config: DexitAISettings = self.config.dexit.ai_config
 
-    async def deploy(self):
+    async def deploy(self: "HFInferenceEndpointSetup") -> None:
+        """Deploy HF Inference Endpoints for tenant"""
         logger.info(f'Deploying HF Inference Endpoints for tenant {self.dexit.tenant}')
         headers = {
             'content-type': 'application/json',
             'Authorization': f'Bearer {self.ai_config.hf_token_write}'
         }
         hf_url = f'https://api.endpoints.huggingface.cloud/v2/endpoint/{self.ai_config.hf_username}'
-        endpoints: List[DexitAIEndpointSettings] = self.ai_config.inference_endpoints
+        endpoints: list[DexitAIEndpointSettings] = self.ai_config.inference_endpoints
         for endpoint in endpoints:
             if not any([endpoint.enable_ocr, endpoint.enable_classification, endpoint.enable_entity]):
                 logger.error('At least one of OCR, Classification or Entity Extraction should be enabled')
@@ -72,7 +72,7 @@ class HFInferenceEndpointSetup():
                 endpoint_name += '-ocr'
             endpoint_name += f'-{self.dexit.tenant}'
             endpoint_name = endpoint_name.lower().replace(' ', '-')[:32]
-            
+
             payload = {
                 # 'name' must not exceed 32 characters and should be in lowercase
                 'name': endpoint_name,
@@ -115,7 +115,7 @@ class HFInferenceEndpointSetup():
                     'task': 'custom'
                 }
             }
-            
+
             logger.info(f'Deploying HF Inference Endpoint {endpoint_name}')
             async with aiohttp.ClientSession() as session:
                 try:
@@ -130,11 +130,11 @@ class HFInferenceEndpointSetup():
                     logger.exception(f'An error occurred while making the request: {e}')
                 except Exception as e:
                     logger.exception(f'An unexpected error occurred: {e}')
-                
+
             endpoint_url = await get_huggingface_endpoint_url(endpoint_name, check_interval=30)
-            
+
             logger.info(f'Endpoint {endpoint_name} is ready at {endpoint_url}')
-            
+
             op_util = OnePasswordUtil(
                 tenant=f'Dexit_Server_{self.dexit.tenant}',
                 server_item='application-config',
@@ -149,8 +149,9 @@ class HFInferenceEndpointSetup():
             if endpoint.enable_ocr:
                 op_util.insert_if_not_exists(key='ai_ocr_endpoint_name', value=endpoint_name)
                 op_util.insert_if_not_exists(key='ai_ocr_endpoint_url', value=endpoint_url)
-                
 
-    async def delete(self):
+
+    async def delete(self: "HFInferenceEndpointSetup") -> None:
+        """Delete HF Inference Endpoints for tenant"""
         # logger.info(f"Deleting HF Inference Endpoints for tenant {self.dexit.tenant}")
         ...
