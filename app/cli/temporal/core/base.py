@@ -2,7 +2,7 @@ import abc
 import dataclasses
 from collections.abc import Callable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 from temporalio.common import RetryPolicy
 
 
@@ -11,12 +11,11 @@ class IODataclass:
     pass
 
 
-class LaunchpadCLIBaseModel(BaseModel):
+class LaunchpadCLIBaseModel(BaseModel, extra=Extra.allow):
     pass
 
 
 class Activity(abc.ABC):
-
     @staticmethod
     @abc.abstractmethod
     def get_retry_policy() -> RetryPolicy:
@@ -33,7 +32,6 @@ class Activity(abc.ABC):
 
 
 class Workflow(abc.ABC):
-
     @staticmethod
     @abc.abstractmethod
     def get_activities() -> list[type[Callable]]:

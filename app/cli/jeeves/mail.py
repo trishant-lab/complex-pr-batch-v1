@@ -35,7 +35,7 @@ def send_customer_password_mail(jeeves: JeevesSpec, password: str) -> None:
 
     subject = "Your Jeeves Environment is Ready"
     content = provisioning_success_mail(
-        name=jeeves.customerDetails.userName,
+        name=f"{jeeves.customerDetails.firstName} {jeeves.customerDetails.lastName}",
         email=jeeves.customerDetails.email,
         link=f"https://{jeeves.tenant}.{domain_name}",
         password=password,

@@ -17,9 +17,11 @@ class CustomerDetails(LaunchpadCLIBaseModel):
     CustomerDetails dataclass
     """
 
-    userName: str
+    firstName: str
+    lastName: str
     email: str
     organization: str
+    contactNumber: str
 
 
 class JeevesSpec(LaunchpadCLIBaseModel):
