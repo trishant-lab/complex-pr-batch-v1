@@ -514,3 +514,28 @@ class HFInferenceEndpointSetupActivity(Activity):
         from app.cli.dexit.hfinferenceendpoint import HFInferenceEndpointSetup
 
         await HFInferenceEndpointSetup(dexit=dexit).deploy()
+
+
+class SendMailActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="send_mail_activity")
+    async def defn(dexit: DexitSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Send mail to customer
+        from app.cli.dexit.mail import onboard_success
+
+        onboard_success(dexit=dexit)

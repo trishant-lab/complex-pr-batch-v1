@@ -31,7 +31,7 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     config: AppSettings = get_settings()
     text = (
         f"A new {product.value} tenant has been requested by "
-        f"{schema.get('customerDetails', {}).get('email')} from {schema.get('customerDetails', {}).get('organization')}"
+        f"{schema.get('email')} from {schema.get('organization')}"
     )
     blocks = [
         {"type": "divider"},

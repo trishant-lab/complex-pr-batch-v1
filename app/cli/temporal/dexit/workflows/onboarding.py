@@ -27,6 +27,7 @@ from app.cli.temporal.dexit.activities.onboarding import (
     HFInferenceEndpointSetupActivity,
     UpdateTenantStatusActivity,
     TenantStatus,
+    SendMailActivity,
 )
 
 
@@ -63,6 +64,7 @@ class DexitOnboardingWorkflow(Workflow):
             TemporalNamespaceCreationActivity.defn,
             FaxSetupActivity.defn,
             HFInferenceEndpointSetupActivity.defn,
+            SendMailActivity.defn,
         ]
 
     @classmethod
@@ -105,12 +107,12 @@ class DexitOnboardingWorkflow(Workflow):
             )
 
             # novu setup
-            # await workflow.execute_activity(
-            #     activity=NovuSetupActivity.defn,
-            #     arg=dexit,
-            #     retry_policy=NovuSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=timedelta(seconds=120),
-            # )
+            await workflow.execute_activity(
+                activity=NovuSetupActivity.defn,
+                arg=dexit,
+                retry_policy=NovuSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
             # fax setup
             await workflow.execute_activity(
@@ -231,6 +233,15 @@ class DexitOnboardingWorkflow(Workflow):
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
+
+            # Send mail to customer
+            await workflow.execute_activity(
+                activity=SendMailActivity.defn,
+                arg=dexit,
+                retry_policy=SendMailActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
             await workflow.execute_activity(
