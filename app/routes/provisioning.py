@@ -117,7 +117,12 @@ async def provisioning(
             status=TenantStatusEnum.Provisioning
             if product_details["approvalRequired"] and skip_approval
             else TenantStatusEnum.PendingApproval,
-            requestor=schema.get("customerDetails"),
+            requestor={
+                "userName": f"{schema.get('firstName')} {schema.get('lastName')}",
+                "email": schema.get("email"),
+                "organization": schema.get("organization"),
+                "contactNumber": schema.get("contactNumber"),
+            },
             approvedBy=user_id if skip_approval else None,
             schema_=orjson.dumps(schema).decode("utf-8"),
         ),
