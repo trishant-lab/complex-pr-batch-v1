@@ -50,7 +50,7 @@ def create_keycloak_realm(
     )
 
     keycloak_client.refresh_token()
-    keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=False)
+    keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
 
 
 def create_client(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:
@@ -134,8 +134,8 @@ def create_tenant_customer_admin_user(
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_user.json")
     user_config = template.render(
-        username=dexit.customerDetails.userName,
-        email=dexit.customerDetails.email,
+        username=f"{dexit.firstName}_{dexit.lastname}",
+        email=dexit.email,
     )
     keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
@@ -144,7 +144,7 @@ def create_tenant_customer_admin_user(
 
     keycloak_client.assign_client_role(
         client_id=client_uuid,
-        user_id=keycloak_client.get_user_id(username=dexit.customerDetails.userName, realm_name=realm_name),
+        user_id=keycloak_client.get_user_id(username=f"{dexit.firstName}_{dexit.lastname}", realm_name=realm_name),
         roles=roles,
         realm_name=realm_name,
     )

@@ -31,6 +31,10 @@ class DexitSpec(LaunchpadCLIBaseModel):
     """
 
     tenant: str
-    customerDetails: None | CustomerDetails = None
+    firstName: str
+    lastname: str
+    email: str
+    organization: str
+    contactNumber: str
     serverSpec: None | ResourceSpec = ResourceSpec()
     cliSpec: None | ResourceSpec = ResourceSpec()
