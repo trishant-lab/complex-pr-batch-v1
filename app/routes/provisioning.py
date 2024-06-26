@@ -24,9 +24,7 @@ if TYPE_CHECKING:
     from ..cli.workflowbase import ProductWorkflow
 
 
-async def send_slack_notification(
-    product: ProductEnum, schema: dict, approval_required: bool, tenant_id: str
-) -> None:
+async def send_slack_notification(product: ProductEnum, schema: dict, approval_required: bool, tenant_id: str) -> None:
     """
     Send Slack notification
     """
@@ -98,6 +96,7 @@ async def provisioning(
     Trigger provisioning workflow for the given product
     """
     try:
+        schema["tenant"] = schema.get("tenantName") if schema.get("tenantName") else schema.get("tenant")
         product_model = ProductEnum.get_input_model_class(product)
         product_model.model_validate(schema)
     except ValidationError as e:
@@ -107,9 +106,7 @@ async def provisioning(
     user_id: dict = request.scope.get("user", {}).get("sub")
     product_details = await get_product(product=product, _param=_param)
     if not product_details:
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST, detail="Product not found"
-        )
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
     product_details = dict(product_details)
 
     # Create tenant
@@ -135,9 +132,7 @@ async def provisioning(
         send_slack_notification,
         product=product,
         schema=schema,
-        approval_required=True
-        if product_details["approvalRequired"] and not skip_approval
-        else False,
+        approval_required=True if product_details["approvalRequired"] and not skip_approval else False,
         tenant_id=tenant_details.get("id"),
     )
 
@@ -166,16 +161,12 @@ async def approve_tenant(
             "approveTenant.sql",
             tenant_id=str(tenant_id),
             user_id=user_id,
-            status=TenantStatusEnum.Provisioning
-            if approval
-            else TenantStatusEnum.Declined,
+            status=TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined,
         )
 
     except Exception as e:
         logger.error(f"Error approving tenant: {e}")
-        raise HTTPException(
-            status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error approving tenant"
-        )
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error approving tenant")
 
     schema = {
         "tenant": response["name"],
@@ -184,14 +175,10 @@ async def approve_tenant(
 
     if approval:
         await product_workflow.approve(schema)
-        logger.info(
-            f"Approved {response['product_name']} workflow for tenant: {response['name']}"
-        )
+        logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
     else:
         await product_workflow.decline(schema)
-        logger.info(
-            f"Declined {response['product_name']} workflow for tenant: {response['name']}"
-        )
+        logger.info(f"Declined {response['product_name']} workflow for tenant: {response['name']}")
 
 
 @provisioning_router.post("/retryProvisioning", operation_id="retryProvisioning")
