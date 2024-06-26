@@ -18,7 +18,7 @@ class PostgresSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -42,7 +42,7 @@ class NamespaceSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -67,7 +67,7 @@ class ConfigmapSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -81,9 +81,7 @@ class ConfigmapSetupActivity(Activity):
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.TENANT_CONFIG).put()
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.RCLONE_CONFIG).put()
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.VECTOR_CONFIG).put()
-        ConfigMapClass(
-            jeeves=jeeves, config_map=ConfigMapClass.STATE_STORE_CONFIG
-        ).put()
+        ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.STATE_STORE_CONFIG).put()
 
 
 class PVCSetupActivity(Activity):
@@ -96,7 +94,7 @@ class PVCSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -121,7 +119,7 @@ class SecretSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -162,7 +160,7 @@ class StateFullSetSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -187,7 +185,7 @@ class DnsSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -212,7 +210,7 @@ class UiSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -237,7 +235,7 @@ class KeycloakRealmSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -262,7 +260,7 @@ class NovuSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -287,7 +285,7 @@ class ProvisioningJobActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -318,7 +316,7 @@ class KubernetesServiceActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -343,7 +341,7 @@ class KubernetesVirtualServiceActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -368,7 +366,7 @@ class DeploymentActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -394,7 +392,7 @@ class VmPodScraperActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -430,7 +428,7 @@ class UpdateTenantStatusActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -464,7 +462,7 @@ class ChatwootSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -489,7 +487,7 @@ class TemporalNamespaceCreationActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -514,7 +512,7 @@ class AiVoiceSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
@@ -539,7 +537,7 @@ class SendMailActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            maximum_attempts=5,
         )
 
     @staticmethod
