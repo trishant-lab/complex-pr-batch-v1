@@ -35,12 +35,12 @@ def send_customer_password_mail(jeeves: JeevesSpec, password: str) -> None:
 
     subject = "Your Jeeves Environment is Ready"
     content = provisioning_success_mail(
-        name=f"{jeeves.customerDetails.firstName} {jeeves.customerDetails.lastName}",
-        email=jeeves.customerDetails.email,
+        name=f"{jeeves.firstName} {jeeves.lastName}",
+        email=jeeves.email,
         link=f"https://{jeeves.tenant}.{domain_name}",
         password=password,
     )
-    send_mail(to_email=jeeves.customerDetails.email, subject=subject, content=content, from_name="314e Support")
+    send_mail(to_email=jeeves.email, subject=subject, content=content, from_name="314e Support")
 
 
 def reset_keycloak_user_password(jeeves: JeevesSpec, password: str) -> str:
@@ -52,16 +52,13 @@ def reset_keycloak_user_password(jeeves: JeevesSpec, password: str) -> str:
     keycloak_admin_client = KeycloakAdminClient(config=config.keycloak)
     realm_name = jeeves.tenant
 
-    users = keycloak_admin_client.get_users(query={"email": jeeves.customerDetails.email}, realm_name=realm_name)
+    users = keycloak_admin_client.get_users(query={"email": jeeves.email}, realm_name=realm_name)
 
     if len(users) != 1:
         if len(users) == 0:
-            msg = f"OnboardingError: User {jeeves.customerDetails.email} not found in realm {realm_name}"
+            msg = f"OnboardingError: User {jeeves.email} not found in realm {realm_name}"
         else:
-            msg = (
-                f"OnboardingError: Found {len(users)} users with email "
-                f"{jeeves.customerDetails.email} in realm {realm_name}"
-            )
+            msg = f"OnboardingError: Found {len(users)} users with email " f"{jeeves.email} in realm {realm_name}"
         raise Exception(msg)
 
     keycloak_admin_client.set_user_password(user_id=users[0]["id"], password=password, realm_name=realm_name)
