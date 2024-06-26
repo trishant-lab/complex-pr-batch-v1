@@ -173,9 +173,7 @@ async def approve_tenant(
         logger.error(f"Error approving tenant: {e}")
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error approving tenant")
 
-    schema = {
-        "tenant": response["name"],
-    }
+    schema = orjson.loads(response["schema"])
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     if approval:
