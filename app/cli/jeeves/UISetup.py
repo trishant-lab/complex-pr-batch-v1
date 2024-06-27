@@ -49,14 +49,14 @@ def deploy_ui(jeeves: JeevesSpec) -> None:
             # Upload the files to S3
             copy_files_to_s3(
                 input_path=os.path.join(tmp_dir, "bundle", "dist", "admin"),
-                output_path=f"{config.s3.rclone_remote}:static/{dest_dir}",
+                output_path=f"{config.s3.rclone_remote}/static/{dest_dir}",
                 config=config,
             )
 
             if environment == "production":
                 copy_files_to_s3(
                     input_path=os.path.join(tmp_dir, "bundle", "dist", "admin", "index.html"),
-                    output_path=f"{config.s3.rclone_remote}:static/{dest_dir}/custom/index.html",
+                    output_path=f"{config.s3.rclone_remote}/static/{dest_dir}/custom/index.html",
                     config=config,
                 )
 

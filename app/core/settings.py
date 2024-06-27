@@ -36,9 +36,7 @@ class KeycloakSettings(BaseModel):
     @property
     def wellknown_url(self: "KeycloakSettings") -> str:
         """Returns keycloak well-known url"""
-        return (
-            f"{self.auth_url}/auth/realms/{self.realm}/.well-known/openid-configuration"
-        )
+        return f"{self.auth_url}/auth/realms/{self.realm}/.well-known/openid-configuration"
 
 
 class PostgresSettings(BaseModel):
@@ -55,9 +53,7 @@ class PostgresSettings(BaseModel):
     @property
     def dsn(self: "PostgresSettings") -> str:
         """Returns Postgres DSN"""
-        return (
-            f"postgres://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
-        )
+        return f"postgres://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
 
     timezone: str = "Asia/Kolkata"
     schema_name: str = ""
@@ -129,15 +125,9 @@ class VeritableSettings(BaseModel):
     domain_name: str = "int.veritable.app"
     grafana: GrafanaSettings = GrafanaSettings()
 
-    temporal_veritable_onboarding_task_queue: str = (
-        "temporal_veritable_onboarding_task_queue"
-    )
-    temporal_veritable_deboarding_task_queue: str = (
-        "temporal_veritable_deboarding_task_queue"
-    )
-    temporal_veritable_postgres_setup_task_queue: str = (
-        "temporal_veritable_postgres_setup_task_queue"
-    )
+    temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
+    temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
+    temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
 
 
 class JeevesSettings(BaseModel):
@@ -164,6 +154,10 @@ class JeevesSettings(BaseModel):
     matomo_db_password: str = ""
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+
+    r2_url: str = ""
+    r2_access_key: str = ""
+    r2_secret_key: str = ""
 
 
 class DexitAIOcrEngines(str, Enum):
@@ -223,9 +217,7 @@ class DexitAISettings(BaseModel):
     classification_modelid: str = "314e/Dexit-Document-Classification-Muspell-Model1"
     classification_modelrevision: str = "production"
 
-    entity_modelname: DexitAIEntityExtractionModels = (
-        DexitAIEntityExtractionModels.LLAMA2_13B
-    )
+    entity_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA2_13B
     entity_model_temperature: float = 0
     entity_model_numctx: int = 4096
     entity_model_numpredict: int = 300
@@ -336,24 +328,18 @@ def get_settings() -> AppSettings:
     """
     deployment: str = os.getenv("DEPLOYMENT", "integration").lower()
     config_dir = os.getenv("APP_CONFIG_DIR", "/")
-    default_settings = (
-        ProductionSettings() if deployment == "production" else IntegrationSettings()
-    )
+    default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
 
     combined_config = dict()
     for file in CONFIG_FILE_NAMES:
         if file in PRODUCT_FILE_NAMES:
             product = file.split(".")[0]
             try:
-                combined_config[product] = orjson.loads(
-                    open(os.path.join(config_dir, file)).read()
-                )
+                combined_config[product] = orjson.loads(open(os.path.join(config_dir, file)).read())
             except Exception as e:
                 loguru.logger.error(f"Error while loading config for {product}: {e}")
         else:
-            combined_config.update(
-                orjson.loads(open(os.path.join(config_dir, file)).read())
-            )
+            combined_config.update(orjson.loads(open(os.path.join(config_dir, file)).read()))
 
     import pydash as py_
 

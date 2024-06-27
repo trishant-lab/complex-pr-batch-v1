@@ -79,7 +79,7 @@ def copy_files_to_s3(input_path: str, output_path: str, config: AppSettings) -> 
     os.system(
         f"mc alias set {config.s3.rclone_remote} {config.s3.endpoint} {config.s3.access_key} {config.s3.secret_key}"
     )  # nosec
-    os.system(f"mc mirror --remove --overwrite {input_path} {config.s3.rclone_remote}/{output_path}")  # nosec
+    os.system(f"mc mirror --remove --overwrite {input_path} {output_path}")  # nosec
     # create_rclone_remote(config)
     # rclone.copy(
     #     in_path=input_path,
