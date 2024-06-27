@@ -1,6 +1,7 @@
 from tempfile import TemporaryDirectory
 from typing import Final
 
+import boto3
 from kubernetes.client import V1ConfigMap, V1ObjectMeta
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
@@ -10,7 +11,7 @@ from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.dexit.dexit import DexitSpec
 from app.core.settings import get_settings, AppSettings
 from app.onepasswordutil import secret_inject
-from app.s3_utils import download_file_from_storage
+from app.s3_utils import download_file_from_storage, get_storage_client
 from app.template_env import get_env
 
 
@@ -43,11 +44,15 @@ class ConfigMapClass(K8sResourceBaseClass):
             f"{self.env}-{self.config_map['key'].replace('.json', '.tmpl.json').replace('.toml', '.tmpl.toml')}"
         )
 
+        config: AppSettings = get_settings()
         with TemporaryDirectory() as temp_dir:
+            s3_client: boto3.client = get_storage_client(
+                config=config, access_key=config.s3.access_key, secret_key=config.s3.secret_key
+            )
             download_file_from_storage(
                 object_name=f"{template_file_name}",
                 file_path=f"{temp_dir}/{template_file_name}",
-                config=self.config,
+                storage_client=s3_client,
                 bucket_name="dexit-config",
             )
 

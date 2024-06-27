@@ -30,7 +30,9 @@ def deploy_ui(jeeves: JeevesSpec) -> None:
     else:
         dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
-    s3_client: boto3.client = get_storage_client(config=config)
+    s3_client: boto3.client = get_storage_client(
+        config=config, access_key=config.s3.ui_access_key, secret_key=config.s3.ui_secret_key
+    )
 
     try:
         # Copy file from source to temporary folder
@@ -38,7 +40,6 @@ def deploy_ui(jeeves: JeevesSpec) -> None:
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
-                config=config,
                 storage_client=s3_client,
                 bucket_name="artifacts",
             )

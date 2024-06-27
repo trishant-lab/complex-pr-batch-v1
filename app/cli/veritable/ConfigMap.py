@@ -46,8 +46,8 @@ class ConfigMap(K8sResourceBaseClass):
             download_file_from_storage(
                 object_name=f"new/{template_file_name}",
                 file_path=f"{temp_dir}/{template_file_name}",
-                config=self.config,
                 bucket_name="veritable-config",
+                storage_client=self.s3_client,
             )
 
             template_env = get_env(template_path=temp_dir)
