@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import boto3
@@ -64,6 +65,8 @@ def create_rclone_remote(config: AppSettings) -> None:
             client_secret=config.s3.secret_key,
             provider="Minio",
             endpoint=config.s3.endpoint,
+            region=config.s3.region,
+            env_auth="false",
         )
     except Exception as e:
         logger.error(e)
@@ -73,12 +76,16 @@ def copy_files_to_s3(input_path: str, output_path: str, config: AppSettings) -> 
     """
     Copy objects from local to s3
     """
-    create_rclone_remote(config)
-    rclone.copy(
-        in_path=input_path,
-        out_path=output_path,
-    )
-    logger.info(f"uploaded objects to s3  path:{output_path}")
+    os.system(
+        f"mc alias set {config.s3.rclone_remote} {config.s3.endpoint} {config.s3.access_key} {config.s3.secret_key}"
+    )  # nosec
+    os.system(f"mc mirror --remove --overwrite {input_path} {config.s3.rclone_remote}/{output_path}")  # nosec
+    # create_rclone_remote(config)
+    # rclone.copy(
+    #     in_path=input_path,
+    #     out_path=output_path,
+    # )
+    # logger.info(f"uploaded objects to s3  path:{output_path}")
 
 
 def copy_files_from_s3(folder_path: str, s3_path: str, bucket_name: str, config: AppSettings) -> None:

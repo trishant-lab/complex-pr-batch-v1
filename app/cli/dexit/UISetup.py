@@ -46,7 +46,7 @@ def deploy_ui(dexit: DexitSpec) -> None:
             with zipfile.ZipFile(Path(tmp_dir, "bundle.zip").as_posix(), "r") as zip_ref:
                 zip_ref.extractall(os.path.join(tmp_dir, "bundle"))
 
-            delete_ui_bundle(dexit=dexit)
+            # delete_ui_bundle(dexit=dexit)
             # Upload the files to S3
             copy_files_to_s3(
                 input_path=os.path.join(tmp_dir, "bundle", "dist", "admin"),
