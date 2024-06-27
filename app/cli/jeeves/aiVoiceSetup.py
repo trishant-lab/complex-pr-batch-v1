@@ -1,4 +1,4 @@
-from coverage.annotate import os
+import os
 
 from app.cli.jeeves.jeeves import JeevesSpec
 from app.core.settings import AppSettings, get_settings

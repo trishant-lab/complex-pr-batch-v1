@@ -164,3 +164,4 @@ lint.ignore = [
 "app/middleware/auth.py" = ["RET505"]
 "app/cli/jeeves/novuSetup.py" = ["E501"]
 "app/s3_utils.py" = ["S605"]
+"app/cli/jeeves/aiVoiceSetup.py" = ["S605"]
