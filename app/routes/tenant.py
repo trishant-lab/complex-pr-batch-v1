@@ -220,7 +220,7 @@ async def suggest_tenant_names(organization: str) -> list:
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(
-    tenant_name: str = Path(min_length=3, max_length=10, regex="^[a-zA-Z]*$"),
+    tenant_name: str = Path(min_length=3, max_length=15, regex="^[a-zA-Z]*$"),
 ) -> None:
     """
     @param tenant_name:
