@@ -21,6 +21,8 @@ RUN curl -o op.zip https://cache.agilebits.com/dist/1P/op2/pkg/v2.29.0/op_linux_
   mv op/op /usr/local/bin/ && \
   rm -rf op.zip op
 
+RUN wget https://dl.min.io/client/mc/release/linux-amd64/mc && mv mc /bin/ && chmod +x /bin/mc
+
 RUN wget -P /tmp \
   https://github.com/just-containers/s6-overlay/releases/download/v2.2.0.3/s6-overlay-amd64.tar.gz && \
   mkdir /tmp/s6/ && \
