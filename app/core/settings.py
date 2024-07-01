@@ -1,4 +1,5 @@
 import os
+import tempfile
 from enum import Enum
 from functools import partial, lru_cache
 from typing import Final
@@ -8,6 +9,8 @@ import orjson
 import requests
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
+
+from app.core.log import setup_logging
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
@@ -291,6 +294,9 @@ class AppSettings(BaseSettings):
 
     app_url: str = "https://launchpad.314ecorp.tech/sprint"
 
+    log_path: str = "/var/log" if os.getuid() == 0 else tempfile.gettempdir()
+    log_file_path: str = os.path.join(log_path, "launchpad_app.log")
+
     model_config = ConfigDict(extra="ignore")
 
 
@@ -351,6 +357,7 @@ def get_settings() -> AppSettings:
     for key, val in combined_config.items():
         default_settings_dict_partial(key, val)
 
+    setup_logging(default_settings.log_path, default_settings.log_file_path)
     return default_settings.model_validate(default_settings_dict)
 
 

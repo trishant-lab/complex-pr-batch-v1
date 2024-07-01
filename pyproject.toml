@@ -40,6 +40,7 @@ slack-sdk = "^3.27.2"
 huggingface-hub = "0.20.2"
 python-http-client = "^3.3.7"
 sendgrid = "^6.11.0"
+grpcio = "^1.64.1"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.3"
