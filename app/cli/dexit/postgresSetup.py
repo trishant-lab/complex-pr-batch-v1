@@ -66,7 +66,7 @@ async def setup_postgres(dexit: DexitSpec) -> None:
         await postgres_utils.grant_user_all_privileges_on_table(table="keycloak_role", username=db_username)
         await postgres_utils.grant_user_all_privileges_on_table(table="user_role_mapping", username=db_username)
         await postgres_utils.grant_user_all_privileges_on_table(table="user_attribute", username=db_username)
-        # await postgres_utils.grant_user_all_privileges_on_table(table="realm", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="realm", username=db_username)
 
         await postgres_utils.create_user_mapping_for_matomo(
             username=db_username, matomo_password=dexit_config.matomo_db_password
