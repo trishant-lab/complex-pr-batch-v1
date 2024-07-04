@@ -48,7 +48,7 @@ class PostgresUtils:
             sqlfile="checkIfUserExists.sql",
             username=username,
         )
-        return dict(response)
+        return dict(response) if response else {}
 
     async def grant_user_to_connect_and_create(self: "PostgresUtils", username: str, database: str) -> None:
         """
