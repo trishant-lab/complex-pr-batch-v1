@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 
 import boto3
+from app.cli.temporal.core.log import log_info
 from loguru import logger
 
 from app.cli.dexit.dexit import DexitSpec
@@ -54,6 +55,7 @@ def deploy_ui(dexit: DexitSpec) -> None:
                 output_path=f"{config.s3.rclone_remote}/static/{dest_dir}",
                 config=config,
             )
+        log_info(f"UI deployed successfully for tenant {tenant}")
 
     except Exception as e:
         logger.error(f"Failed to deploy UI: {e}")

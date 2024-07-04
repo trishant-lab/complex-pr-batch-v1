@@ -1,9 +1,9 @@
 import asyncio
 import socket
 
+from app.cli.temporal.core.log import log_info
 from google.api_core.exceptions import Conflict, NotFound
 from google.cloud import dns
-from loguru import logger
 
 
 class Googledns:
@@ -35,9 +35,9 @@ class Googledns:
             changes.add_record_set(record_set)
             changes.create()
 
-            logger.info(f"DNS record created: {self.fqdn}")
+            log_info(message=f"DNS record created: {self.fqdn}")
         except Conflict:
-            logger.info(f"DNS record Already Present: {self.fqdn}")
+            log_info(message=f"DNS record Already Present: {self.fqdn}")
 
     async def check_dns_propagation(self: "Googledns") -> None:
         """
@@ -53,7 +53,7 @@ class Googledns:
                 count += 1
                 if count == 61:
                     raise Exception(f"DNS propagation check timed out after [10 min]: {self.fqdn}")
-                logger.info(f"DNS not propagated yet: {self.fqdn}")
+                log_info(f"DNS not propagated yet: {self.fqdn}")
                 await asyncio.sleep(10)
 
     def delete(self: "Googledns") -> None:
@@ -76,4 +76,4 @@ class Googledns:
             changes.delete_record_set(record_set)
             changes.create()
         except NotFound:
-            logger.info(f"DNS record not found: {self.fqdn}")
+            log_info(f"DNS record not found: {self.fqdn}")

@@ -1,3 +1,4 @@
+from app.cli.temporal.core.log import log_info
 from kubernetes.client import V1ObjectMeta, V1Service, V1ServicePort, V1ServiceSpec
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
@@ -55,6 +56,7 @@ class Service(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(message=f"Service {ProductName} created successfully.")
 
     def delete(self: "Service") -> None:
         """

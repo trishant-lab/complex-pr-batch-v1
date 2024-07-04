@@ -1,3 +1,4 @@
+from app.cli.temporal.core.log import log_info
 from kubernetes.client import V1Namespace, V1ObjectMeta
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
@@ -37,6 +38,7 @@ class Namespace(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(message=f"Namespace {self.dexit.tenant} created successfully.")
 
     def delete(self: "Namespace") -> None:
         """

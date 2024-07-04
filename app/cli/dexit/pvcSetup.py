@@ -1,3 +1,4 @@
+from app.cli.temporal.core.log import log_info
 from kubernetes.client import V1ObjectMeta, V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec, V1ResourceRequirements
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
@@ -45,6 +46,7 @@ class PVC(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(message=f"PVC {self.pvc_name} created successfully.")
 
     def delete(self: "PVC") -> None:
         """

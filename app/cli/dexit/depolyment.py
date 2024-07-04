@@ -1,3 +1,4 @@
+from app.cli.temporal.core.log import log_info
 from kubernetes import client as k8s_client
 from kubernetes.client import V1PersistentVolumeClaimVolumeSource
 from kubernetes.dynamic.exceptions import NotFoundError
@@ -136,6 +137,7 @@ class DeploymentServer(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(message=f"dexit deployment created in namespace {self.dexit.tenant}")
 
     def delete(self: "DeploymentServer") -> None:
         """
@@ -283,6 +285,7 @@ class DeploymentCli(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(message=f"dexit-cli deployment created in namespace {self.dexit.tenant}")
 
     def delete(self: "DeploymentCli") -> None:
         """

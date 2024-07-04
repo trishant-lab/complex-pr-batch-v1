@@ -2,9 +2,9 @@ from tempfile import TemporaryDirectory
 from typing import Final
 
 import boto3
+from app.cli.temporal.core.log import log_info
 from kubernetes.client import V1ConfigMap, V1ObjectMeta
 from kubernetes.dynamic.exceptions import NotFoundError
-from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
@@ -13,6 +13,7 @@ from app.core.settings import get_settings, AppSettings
 from app.onepasswordutil import secret_inject
 from app.s3_utils import download_file_from_storage, get_storage_client
 from app.template_env import get_env
+from loguru import logger
 
 
 class ConfigMapClass(K8sResourceBaseClass):
@@ -90,6 +91,7 @@ class ConfigMapClass(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(message=f"{self.config_map['name']} created in namespace {self.dexit.tenant}")
 
     def delete(self: "ConfigMapClass") -> None:
         """

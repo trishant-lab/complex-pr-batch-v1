@@ -1,3 +1,4 @@
+from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings, DexitAISettings, DexitAIEndpointSettings
 from loguru import logger
 from app.cli.dexit.dexit import DexitSpec
@@ -131,7 +132,7 @@ class HFInferenceEndpointSetup:
 
             endpoint_url = await get_huggingface_endpoint_url(endpoint_name, check_interval=30)
 
-            logger.info(f"Endpoint {endpoint_name} is ready at {endpoint_url}")
+            log_info(f"Endpoint {endpoint_name} is ready at {endpoint_url}")
 
             op_util = OnePasswordUtil(
                 tenant=f"Dexit_Server_{self.dexit.tenant}",

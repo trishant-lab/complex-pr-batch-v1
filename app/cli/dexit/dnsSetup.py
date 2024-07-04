@@ -1,5 +1,5 @@
 from app.core.settings import AppSettings, get_settings
-from app.cli.common.googleDNS import Googledns
+from app.cli.common.GoogleDNS import Googledns
 from app.cli.dexit.dexit import DexitSpec
 
 

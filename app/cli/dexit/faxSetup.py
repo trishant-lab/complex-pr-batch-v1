@@ -1,6 +1,7 @@
 import aiohttp
 
 from app.cli.dexit.dexit import DexitSpec
+from app.cli.temporal.core.log import log_info
 from app.onepasswordutil import OnePasswordUtil
 from app.core.settings import AppSettings, get_settings
 
@@ -56,5 +57,7 @@ class FaxSetup:
             server_item="application-config",
             vault="Dexit",
         ).insert_if_not_exists(key="fax_url", value=content["request_url"])
+
+        log_info(f"Fax setup completed for tenant: {self.dexit.tenant}")
 
         return content

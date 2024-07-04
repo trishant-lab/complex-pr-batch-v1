@@ -1,3 +1,4 @@
+from app.cli.temporal.core.log import log_info
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 
@@ -57,6 +58,7 @@ class VMPodScrapperServer(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(message="VMPodScrapperServer dexit-metrics created successfully.")
 
     def delete(self: "VMPodScrapperServer") -> None:
         """

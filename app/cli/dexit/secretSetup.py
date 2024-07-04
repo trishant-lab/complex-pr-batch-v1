@@ -1,3 +1,4 @@
+from app.cli.temporal.core.log import log_info
 from kubernetes.client import V1ObjectMeta, V1Secret
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
@@ -58,6 +59,7 @@ class Secret(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(message=f"Secret {self.name} created successfully.")
 
     def delete(self: "Secret") -> None:
         """

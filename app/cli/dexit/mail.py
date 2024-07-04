@@ -1,6 +1,7 @@
 from app.cli.dexit import TemplatePath
 from app.cli.dexit.models.dexitSpec import DexitSpec
 from app.cli.common.keycloakUtils import KeycloakAdminClient
+from app.cli.temporal.core.log import log_info
 from app.common import generate_password
 from app.core.settings import AppSettings, get_settings
 from app.sendgrid_utils import send_mail
@@ -42,6 +43,8 @@ def send_customer_password_mail(dexit: DexitSpec, password: str) -> None:
     )
     send_mail(to_email=dexit.email, subject=subject, content=content, from_name="314e Support")
 
+    log_info(f"Sent provisioning success mail to {dexit.email}")
+
 
 def reset_keycloak_user_password(dexit: DexitSpec, password: str) -> str:
     """
@@ -62,6 +65,8 @@ def reset_keycloak_user_password(dexit: DexitSpec, password: str) -> str:
         raise Exception(msg)
 
     keycloak_admin_client.set_user_password(user_id=users[0]["id"], password=password, realm_name=realm_name)
+
+    log_info(f"Created temporary password for user {dexit.email} in realm {realm_name}")
 
     return password
 

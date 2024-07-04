@@ -2,6 +2,7 @@ import os
 
 import orjson
 import requests
+from app.cli.temporal.core.log import log_info
 from jinja2 import Template
 from novu.api import NotificationGroupApi, IntegrationApi, NotificationTemplateApi
 from novu.dto import IntegrationDto, NotificationTemplateFormDto
@@ -299,6 +300,8 @@ class NovuSetup:
             organization = organization[0]
             organization_id = organization["_id"]
 
+        log_info(f"Novu Organization {organization_name} created successfully.")
+
         organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
         api_keys = self.get_organization_api_key(token=organization_token)
 
@@ -313,5 +316,9 @@ class NovuSetup:
         novu_template_path = os.path.join(TemplatePath, "novu_workflow_template")
         create_novu_workflow_templates(target_dir=novu_template_path, config=config, api_key=api_keys)
 
+        log_info("Novu Workflow templates created successfully.")
+
         # add the integration provider
         add_integration_provider(config=config, novu_api_key=api_keys)
+
+        log_info("Integration provider added successfully.")

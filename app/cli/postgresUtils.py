@@ -1,5 +1,4 @@
-from loguru import logger
-
+from app.cli.temporal.core.log import log_info
 from app.core.db import DBManager
 
 
@@ -21,7 +20,7 @@ class PostgresUtils:
         await self.db.execute_raw_sql(
             query=f"CREATE ROLE {username} NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN PASSWORD '{password}';",
         )
-        logger.info(f"User {username} created successfully")
+        log_info(f"Created user {username} successfully.")
 
     async def update_user_password(self: "PostgresUtils", username: str, password: str) -> None:
         """
@@ -30,7 +29,7 @@ class PostgresUtils:
         await self.db.execute_raw_sql(
             query=f"ALTER USER {username} WITH PASSWORD '{password}';",
         )
-        logger.info(f"Password updated successfully for user {username}")
+        log_info(f"Updated password for user {username} successfully.")
 
     async def create_schema(self: "PostgresUtils", schema_name: str, username: str) -> None:
         """
@@ -39,9 +38,9 @@ class PostgresUtils:
         await self.db.execute_raw_sql(
             f"CREATE SCHEMA IF NOT EXISTS { schema_name } AUTHORIZATION { username };",
         )
-        logger.info(f"Schema {schema_name} created successfully")
+        log_info(f"Created schema {schema_name} successfully.")
 
-    async def check_if_user_exists(self: "PostgresUtils", username: str) -> None:
+    async def check_if_user_exists(self: "PostgresUtils", username: str) -> dict:
         """
         Check if the user already exists in the database
         """
@@ -49,8 +48,7 @@ class PostgresUtils:
             sqlfile="checkIfUserExists.sql",
             username=username,
         )
-        logger.info(f"User {username} exists: {response}")
-        return response
+        return dict(response)
 
     async def grant_user_to_connect_and_create(self: "PostgresUtils", username: str, database: str) -> None:
         """
@@ -60,6 +58,7 @@ class PostgresUtils:
         await self.db.execute_raw_sql(
             query=f"GRANT CONNECT, CREATE ON DATABASE {database} TO {username};",
         )
+        log_info(f"Granted user {username} to connect and create on database {database} successfully.")
 
     async def grant_user_all_privileges_on_schema(self: "PostgresUtils", username: str, schema_name: str) -> None:
         """
@@ -69,6 +68,7 @@ class PostgresUtils:
         await self.db.execute_raw_sql(
             query=f"GRANT ALL ON SCHEMA {schema_name} TO {username}",
         )
+        log_info(f"Granted user {username} all privileges on schema {schema_name} successfully.")
 
     async def create_user_mapping_for_keycloak(self: "PostgresUtils", username: str, keycloak_password: str) -> None:
         """
@@ -78,7 +78,7 @@ class PostgresUtils:
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {username} SERVER keycloak_server OPTIONS  "
             f"(user 'keyclock_fdw', password '{keycloak_password}');",
         )
-        logger.info(f"User mapping created successfully for user {username}")
+        log_info("Created user mapping for keycloak database successfully.")
 
     async def grant_user_all_privileges_on_table(self: "PostgresUtils", username: str, table: str) -> None:
         """
@@ -88,6 +88,7 @@ class PostgresUtils:
         await self.db.execute_raw_sql(
             query=f"GRANT ALL PRIVILEGES ON TABLE {table} TO {username};",
         )
+        log_info("Granted user {username} all privileges on table {table} successfully.")
 
     async def create_user_mapping_for_matomo(self: "PostgresUtils", username: str, matomo_password: str) -> None:
         """
@@ -97,4 +98,4 @@ class PostgresUtils:
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {username} SERVER matomo_server OPTIONS  "
             f"(username 'matomo_fdw', password '{matomo_password}');",
         )
-        logger.info(f"User mapping created successfully for user {username}")
+        log_info("Created user mapping for matomo database successfully.")
