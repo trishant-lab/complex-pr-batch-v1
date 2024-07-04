@@ -33,7 +33,7 @@ def deploy_ui(veritable: VeritableSpec) -> None:
         dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
     s3_client: boto3.client = get_storage_client(
-        config=config, access_key=config.s3.ui_access_key, secret_key=config.s3.ui_secret_key
+        config=config, access_key=config.s3.access_key, secret_key=config.s3.secret_key
     )
 
     try:

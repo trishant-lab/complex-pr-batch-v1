@@ -94,9 +94,6 @@ class S3Settings(BaseModel):
     endpoint: str = ""
     access_key: str = ""
     secret_key: str = ""
-    ui_access_key: str = ""
-    ui_secret_key: str = ""
-    bucket_name: str = ""
     region: str = "us-east-1"
     use_ssl: bool = True
     rclone_remote: str = "s3_rclone_remote"
@@ -163,6 +160,7 @@ class JeevesSettings(BaseModel):
     r2_url: str = ""
     r2_access_key: str = ""
     r2_secret_key: str = ""
+    r2_bucket: str = ""
 
 
 class DexitAIOcrEngines(str, Enum):
