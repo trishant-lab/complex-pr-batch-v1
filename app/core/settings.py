@@ -35,6 +35,10 @@ class KeycloakSettings(BaseModel):
 
     client_id: str = "app"
     auth_url: str = "https://auth.314ecorp.tech"
+    auth_user: str = "installer"
+    auth_secret: str = ""
+
+    realm_path: str = "/auth/admin/realms/"
 
     @property
     def wellknown_url(self: "KeycloakSettings") -> str:
@@ -266,6 +270,7 @@ class AppSettings(BaseSettings):
 
     env: str = os.getenv("DEPLOYMENT", "integration").lower()
     api_prefix: str = "/api/v1"
+    client_code: str = "launchpad"
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()

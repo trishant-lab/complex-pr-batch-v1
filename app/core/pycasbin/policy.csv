@@ -23,5 +23,12 @@ p, ADMINS, /api/v1/provisioning/retryProvisioning, POST
 p, ADMINS, /api/v1/deprovisioning, POST
 
 
+p, ADMINS, /api/v1/User, POST
+p, ADMINS, /api/v1/User, PUT
+p, ADMINS, /api/v1/User/allUsers, GET
+p, ADMINS, /api/v1/User/getUserById, GET
+p, ADMINS, /api/v1/User/roles, GET
+
+
 g, ADMINS, Admin
 g, PUBLIC, NO_AUTH
