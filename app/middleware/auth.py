@@ -60,7 +60,7 @@ def get_user(token: str) -> dict:
     try:
         key: str = get_keycloak_key()
         audience: list = ["account", "broker", "realm-management"]
-        return jwt.decode(token, key=key, algorithms="RS256", audience=audience)
+        return jwt.decode(token, key=key, algorithms="RS256", aud=audience)
     except jwt.PyJWTError:
         raise CredentialException("Invalid token")
 
