@@ -20,8 +20,6 @@ WORKDIR /app
 COPY . .
 COPY --from=requirements-stage /tmp/requirements.txt /tmp/dev_requirements.txt /app/
 
-RUN npm install n -g wrangler postcss-cli
-
 # poetry
 RUN pip install --upgrade pip && \
   pip install -U setuptools && \
