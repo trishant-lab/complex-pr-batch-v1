@@ -285,8 +285,7 @@ async def get_g_suite_users_list(_: dict = Depends(get_oauth_scheme())) -> list:
                 break
     # extracting only id, email and name of each GSuite User
     return [
-        {key, user.get(key)}
-        for key in ["id", "primaryEmail", "name", "aliases"]
+        {key: user.get(key) for key in ["id", "primaryEmail", "name", "aliases"]}
         for user in users_list
         if "314e" in user["primaryEmail"]
     ]
