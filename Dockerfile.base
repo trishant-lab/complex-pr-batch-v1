@@ -24,7 +24,7 @@ RUN curl -o op.zip https://cache.agilebits.com/dist/1P/op2/pkg/v2.29.0/op_linux_
 RUN wget https://dl.min.io/client/mc/release/linux-amd64/mc && mv mc /bin/ && chmod +x /bin/mc
 
 # Install software
-RUN apt-get install --no-install-recommends -y vector nodejs && \
+RUN apt-get install --no-install-recommends -y nodejs npm && \
   apt-get clean && \
   npm install npm@9 -g && \
   npm install n -g wrangler postcss-cli && \
