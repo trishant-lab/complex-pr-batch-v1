@@ -1,5 +1,5 @@
+import os
 from pathlib import Path
-from typing import Optional
 
 import boto3
 from botocore.client import BaseClient
@@ -11,39 +11,26 @@ from rclone_python.remote_types import RemoteTypes
 from app.core.settings import AppSettings
 
 
-def get_storage_client(config: AppSettings):
+def get_storage_client(config: AppSettings, access_key: str, secret_key: str) -> boto3.client:
     """
     Get s3 client object to connect with buckets
+    :param access_key:
+    :param secret_key:
     :param config:
     :return:
     """
     return boto3.client(
         "s3",
         endpoint_url=config.s3.endpoint,
-        aws_access_key_id=config.s3.access_key,
-        aws_secret_access_key=config.s3.secret_key,
-        use_ssl=config.s3.use_ssl,
-    )
-
-
-def get_storage_resource(config: AppSettings):
-    """
-    Get s3 resource object to connect with buckets
-    :param config:
-    :return:
-    """
-    return boto3.resource(
-        "s3",
-        endpoint_url=config.s3.endpoint,
-        aws_access_key_id=config.s3.access_key,
-        aws_secret_access_key=config.s3.secret_key,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
         use_ssl=config.s3.use_ssl,
     )
 
 
 def download_file_from_storage(
-    object_name: str, file_path: str, config: AppSettings, bucket_name: str, storage_client: BaseClient = None
-):
+    object_name: str, file_path: str, bucket_name: str, storage_client: BaseClient
+) -> str | None:
     """
     Download file from s3 to given local destination file_path
     :param storage_client:
@@ -54,13 +41,9 @@ def download_file_from_storage(
     :return:
     """
     base_dir: str = file_path.rsplit("/", 1)[0]
-    if storage_client:
-        client = storage_client
-    else:
-        client = get_storage_client(config=config)
     Path(base_dir).mkdir(parents=True, exist_ok=True)
     try:
-        client.download_file(Bucket=bucket_name, Key=object_name, Filename=file_path)
+        storage_client.download_file(Bucket=bucket_name, Key=object_name, Filename=file_path)
         logger.info(f"getting objects from s3: {object_name}")
         return object_name
     except ClientError as e:
@@ -68,38 +51,10 @@ def download_file_from_storage(
         return None
 
 
-def upload_file_to_storage(
-    object_name: str,
-    file_path,
-    config: AppSettings,
-    content_type: Optional[str] = None,
-    s3_bucket_name: Optional[str] = None,
-    storage_client: BaseClient = None,
-):
-    """
-    Upload file to s3 using local file path
-    :return:
-    """
-    if storage_client:
-        client = storage_client
-    else:
-        client = get_storage_client(config=config)
-    try:
-        client.upload_file(
-            Bucket=s3_bucket_name if s3_bucket_name else config.s3_media_bucket_name,
-            Key=object_name,
-            Filename=file_path,
-            ExtraArgs={"ContentType": content_type} if content_type else None,
-        )
-
-        logger.info(f"added objects to cloud: {object_name}")
-    except ClientError:
-        logger.error(f"failed to add objects to cloud: {object_name} ")
-        return "failed"
-    return "success"
-
-
 def create_rclone_remote(config: AppSettings) -> None:
+    """
+    Create rclone remote for s3
+    """
     try:
         rclone.create_remote(
             remote_name=config.s3.rclone_remote,
@@ -108,24 +63,34 @@ def create_rclone_remote(config: AppSettings) -> None:
             client_secret=config.s3.secret_key,
             provider="Minio",
             endpoint=config.s3.endpoint,
+            region=config.s3.region,
+            env_auth="false",
         )
     except Exception as e:
         logger.error(e)
 
 
 def copy_files_to_s3(input_path: str, output_path: str, config: AppSettings) -> None:
-
-    create_rclone_remote(config)
-    rclone.copy(
-        in_path=input_path,
-        out_path=output_path,
-    )
-    logger.info(f"uploaded objects to s3  path:{output_path}")
+    """
+    Copy objects from local to s3
+    """
+    os.system(
+        f"mc alias set {config.s3.rclone_remote} {config.s3.endpoint} {config.s3.access_key} {config.s3.secret_key}"
+    )  # nosec
+    os.system(f"mc mirror --remove --overwrite {input_path} {output_path}")  # nosec
+    # create_rclone_remote(config)
+    # rclone.copy(
+    #     in_path=input_path,
+    #     out_path=output_path,
+    # )
+    # logger.info(f"uploaded objects to s3  path:{output_path}")
 
 
 def copy_files_from_s3(folder_path: str, s3_path: str, bucket_name: str, config: AppSettings) -> None:
+    """
+    Copy objects from s3 to local
+    """
     logger.info(f"downloading objects from s3  path:{s3_path}")
-
     create_rclone_remote(config)
     rclone.copy(
         in_path=f"{config.s3.rclone_remote}:{bucket_name}/{s3_path}",
@@ -135,6 +100,9 @@ def copy_files_from_s3(folder_path: str, s3_path: str, bucket_name: str, config:
 
 
 def delete_file_from_storage(object_name: str, bucket_name: str, config: AppSettings) -> None:
+    """
+    Delete object from s3
+    """
     create_rclone_remote(config)
     rclone.delete(f"{config.s3.rclone_remote}:{bucket_name}/{object_name}/")
     logger.info(f"deleted object from s3: {object_name}")

@@ -7,6 +7,7 @@ import orjson
 from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.dexit import TemplatePath
 from app.cli.dexit.dexit import DexitSpec
+from app.cli.temporal.core.log import log_info
 from app.common import generate_password
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
@@ -35,8 +36,8 @@ ROLES = [
 
 
 def create_keycloak_realm(
-        dexit: DexitSpec, config: AppSettings, domain: str, keycloak_client: KeycloakAdminClient
-):
+    dexit: DexitSpec, config: AppSettings, domain: str, keycloak_client: KeycloakAdminClient
+) -> None:
     """
     Create keycloak realm
     """
@@ -45,15 +46,17 @@ def create_keycloak_realm(
 
     realm_config = template.render(
         tenant=dexit.tenant,
-        sendgrid_api_key=config.sendgrid_api_key,
+        sendgrid_api_key=config.sendgrid.api_key,
         domain=domain,
     )
 
     keycloak_client.refresh_token()
-    keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=False)
+    keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
+
+    log_info(f"Keycloak realm {dexit.tenant} created successfully.")
 
 
-def create_client(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+def create_client(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:
     """
     Create keycloak client
     """
@@ -68,8 +71,12 @@ def create_client(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminC
     keycloak_client.refresh_token()
     keycloak_client.create_client(orjson.loads(client_config), realm_name)
 
+    log_info(f"Keycloak client {dexit.tenant} created successfully.")
 
-def create_service_account(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+
+def create_service_account(
+    dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str
+) -> None:
     """
     Create keycloak service account
     """
@@ -78,11 +85,7 @@ def create_service_account(dexit: DexitSpec, domain: str, keycloak_client: Keycl
 
     client_secret = generate_password(length=32)
 
-    service_account_config = template.render(
-        tenant=dexit.tenant,
-        domain=domain,
-        secret=client_secret
-    )
+    service_account_config = template.render(tenant=dexit.tenant, domain=domain, secret=client_secret)
 
     keycloak_client.refresh_token()
     keycloak_client.create_client(orjson.loads(service_account_config), realm_name)
@@ -92,8 +95,10 @@ def create_service_account(dexit: DexitSpec, domain: str, keycloak_client: Keycl
         vault="Dexit",
     ).insert_if_not_exists(key="service_account_secret", value=client_secret)
 
+    log_info(f"Keycloak service account {dexit.tenant} created successfully.")
 
-def create_idp_and_flows(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+
+def create_idp_and_flows(dexit: DexitSpec, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:
     """
     Create keycloak idp and flows
     """
@@ -118,22 +123,28 @@ def create_idp_and_flows(dexit: DexitSpec, domain: str, keycloak_client: Keycloa
         if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
             keycloak_client.create_identity_provider(idp_config, realm_name)
             for idp_mapper_config in idp_mapper_configs:
-                keycloak_client.add_mapper_to_idp(
-                    idp_alias=idp_mapper_config["identityProviderAlias"],
-                    mapper_config=idp_mapper_config,
-                    realm_name=realm_name
-                )
+                if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
+                    keycloak_client.add_mapper_to_idp(
+                        idp_alias=idp_mapper_config["identityProviderAlias"],
+                        mapper_config=idp_mapper_config,
+                        realm_name=realm_name,
+                    )
+
+    log_info(f"Keycloak idp and flows {dexit.tenant} created successfully.")
 
 
 def create_tenant_customer_admin_user(
-        dexit: DexitSpec, client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str
-):
+    dexit: DexitSpec, client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str
+) -> None:
+    """
+    Create tenant customer admin user
+    """
     # Create tenant admin customer user
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_user.json")
     user_config = template.render(
-        username=dexit.customerDetails.userName,
-        email=dexit.customerDetails.email,
+        username=f"{dexit.firstName}_{dexit.lastname}",
+        email=dexit.email,
     )
     keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
@@ -142,26 +153,25 @@ def create_tenant_customer_admin_user(
 
     keycloak_client.assign_client_role(
         client_id=client_uuid,
-        user_id=keycloak_client.get_user_id(
-            username=dexit.customerDetails.userName, realm_name=realm_name
-        ),
+        user_id=keycloak_client.get_user_id(username=f"{dexit.firstName}_{dexit.lastname}", realm_name=realm_name),
         roles=roles,
         realm_name=realm_name,
-
     )
 
+    log_info(f"Created customer admin user {dexit.firstName}_{dexit.lastname} successfully.")
 
-def create_client_roles(client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str):
+
+def create_client_roles(client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:
     """
     Create keycloak client roles
     """
     for role in ROLES:
-        keycloak_client.create_client_role(
-            client_id=client_uuid, role_config={"name": role}, realm_name=realm_name
-        )
+        keycloak_client.create_client_role(client_id=client_uuid, role_config={"name": role}, realm_name=realm_name)
+
+    log_info("Keycloak client roles created successfully.")
 
 
-async def create_realm_and_users(dexit: DexitSpec):
+async def create_realm_and_users(dexit: DexitSpec) -> None:
     """
     Create keycloak realm and users
     """
@@ -175,9 +185,7 @@ async def create_realm_and_users(dexit: DexitSpec):
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
     # create realm
-    create_keycloak_realm(
-        dexit=dexit, config=config, domain=domain, keycloak_client=keycloak_client
-    )
+    create_keycloak_realm(dexit=dexit, config=config, domain=domain, keycloak_client=keycloak_client)
 
     # create client
     create_client(dexit=dexit, domain=domain, keycloak_client=keycloak_client, realm_name=realm_name)

@@ -1,14 +1,23 @@
 import os
+import tempfile
+from enum import Enum
 from functools import partial, lru_cache
 from typing import Final
 
 import loguru
 import orjson
 import requests
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
 
-CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json"]
+from app.core.log import setup_logging
+
+CONFIG_FILE_NAMES: Final[list[str]] = [
+    "settings.json",
+    "veritable.json",
+    "jeeves.json",
+    "dexit.json",
+]
 PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json"]
 
 
@@ -26,6 +35,10 @@ class KeycloakSettings(BaseModel):
 
     client_id: str = "app"
     auth_url: str = "https://auth.314ecorp.tech"
+    auth_user: str = "installer"
+    auth_secret: str = ""
+
+    realm_path: str = "/auth/admin/realms/"
 
     @property
     def wellknown_url(self: "KeycloakSettings") -> str:
@@ -57,6 +70,7 @@ class GrafanaSettings(BaseModel):
     """
     Grafana Settings
     """
+
     dashboard_uid: str = ""
     datasource_uid: str = ""
     folder_uid: str = ""
@@ -80,10 +94,10 @@ class S3Settings(BaseModel):
     """
     S3 Settings
     """
+
     endpoint: str = ""
     access_key: str = ""
     secret_key: str = ""
-    bucket_name: str = ""
     region: str = "us-east-1"
     use_ssl: bool = True
     rclone_remote: str = "s3_rclone_remote"
@@ -93,9 +107,41 @@ class SlackSettings(BaseModel):
     """
     Slack Settings
     """
+
     channel_id: str = "C076N2B1FD4"
     bot_token: str = ""
     bot_username: str = "Launchpad"
+
+
+class SendGridSettings(BaseModel):
+    """SendGrid Settings"""
+
+    api_key: str = ""
+    email_from: str = "developer@314ecorp.com"
+    category: str = "provisioning"
+
+
+class GSuiteModel(BaseSettings):
+    type: str = "service_account"
+    project_id: str = "e235711"
+
+    private_key_id: SecretStr = ""
+    private_key: SecretStr = ""
+
+    client_email: str = ""
+
+    client_id: str = ""
+    customer_id: str = ""
+    gsuite_admin: str = "kesav@314ecorp.com"
+
+    auth_uri: str = "https://accounts.google.com/o/oauth2/auth"
+    token_uri: str = "https://oauth2.googleapis.com/token"
+    auth_provider_x509_cert_url: str = "https://www.googleapis.com/oauth2/v1/certs"
+    client_x509_cert_url: str = (
+        "https://www.googleapis.com/robot/v1/metadata/x509/app-314e%40e235711.iam.gserviceaccount.com"
+    )
+
+    model_config = ConfigDict(extra="ignore")
 
 
 class VeritableSettings(BaseModel):
@@ -103,6 +149,7 @@ class VeritableSettings(BaseModel):
     Veritable Settings
 
     """
+
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "int.veritable.app"
     grafana: GrafanaSettings = GrafanaSettings()
@@ -116,6 +163,7 @@ class JeevesSettings(BaseModel):
     """
     Jeeves Settings
     """
+
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "jeeves.314ecorp.tech"
     # grafana: GrafanaSettings = GrafanaSettings()
@@ -136,11 +184,82 @@ class JeevesSettings(BaseModel):
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
+    r2_url: str = ""
+    r2_access_key: str = ""
+    r2_secret_key: str = ""
+    r2_bucket: str = ""
+
+
+class DexitAIOcrEngines(str, Enum):
+    """OCR Engine"""
+
+    TESSERACT = "tesseract"
+    EASYOCR = "easyocr"
+    DOCTR = "doctr"
+
+
+class DexitAIEntityExtractionModels(str, Enum):
+    """Entity Extraction Models"""
+
+    LLAMA2_7B = "llama2:7b"
+    LLAMA2_13B = "llama2:13b"
+
+
+class DexitAIComputeEngineSettings(BaseModel):
+    """
+    Dexit AI Compute Engine Settings
+    """
+
+    accelerator: str = ""
+    instance_size: str = ""
+    instance_type: str = ""
+    min_replica: int = 0
+    max_replica: int = 1
+    scale_to_zero_timeout: int = 15  # minutes
+    vendor: str = ""
+    region: str = "us-east-1"
+
+
+class DexitAIEndpointSettings(BaseModel):
+    """
+    Dexit AI Endpoint Settings
+    """
+
+    enable_ocr: bool = True
+    enable_entity: bool = False
+    enable_classification: bool = False
+    compute_engine: DexitAIComputeEngineSettings = DexitAIComputeEngineSettings()
+
+
+class DexitAISettings(BaseModel):
+    """
+    Dexit AI Settings
+    """
+
+    hf_username: str = "314e"
+    hf_token_read: str = ""
+    hf_token_write: str = ""
+    hf_endpoint_repo_name: str = "314e/Dexit-AI"
+    hf_endpoint_repo_revision: str = "production"
+
+    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.TESSERACT
+
+    classification_modelid: str = "314e/Dexit-Document-Classification-Muspell-Model1"
+    classification_modelrevision: str = "production"
+
+    entity_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA2_13B
+    entity_model_temperature: float = 0
+    entity_model_numctx: int = 4096
+    entity_model_numpredict: int = 300
+
+    inference_endpoints: list[DexitAIEndpointSettings] = [DexitAIEndpointSettings()]
+
 
 class DexitSettings(BaseModel):
     """
     Dexit Settings
     """
+
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "dexit.314ecorp.tech"
     # grafana: GrafanaSettings = GrafanaSettings()
@@ -164,6 +283,8 @@ class DexitSettings(BaseModel):
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
+    ai_config: DexitAISettings = DexitAISettings()
+
 
 class AppSettings(BaseSettings):
     """
@@ -172,10 +293,12 @@ class AppSettings(BaseSettings):
 
     env: str = os.getenv("DEPLOYMENT", "integration").lower()
     api_prefix: str = "/api/v1"
+    client_code: str = "launchpad"
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
     slack: SlackSettings = SlackSettings()
+    sendgrid: SendGridSettings = SendGridSettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
@@ -187,8 +310,6 @@ class AppSettings(BaseSettings):
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.314ecorp.tech"
 
-    sendgrid_api_key: str = ""
-
     grafana_url: str = ""
     grafana_token: str = ""
 
@@ -197,6 +318,13 @@ class AppSettings(BaseSettings):
 
     cache_admin_password: str = ""
 
+    app_url: str = "https://launchpad.314ecorp.tech/sprint"
+
+    log_path: str = "/var/log" if os.getuid() == 0 else tempfile.gettempdir()
+    log_file_path: str = os.path.join(log_path, "launchpad_app.log")
+
+    gsuite: GSuiteModel = GSuiteModel()
+
     model_config = ConfigDict(extra="ignore")
 
 
@@ -204,8 +332,13 @@ class IntegrationSettings(AppSettings):
     """
     Integration Settings
     """
+
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+    gsuite: GSuiteModel = GSuiteModel()
+
+    app_url: str = "https://launchpad.314ecorp.tech/sprint"
+
     model_config = ConfigDict(extra="ignore")
 
 
@@ -213,12 +346,16 @@ class ProductionSettings(AppSettings):
     """
     Production Settings
     """
+
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+
+    app_url: str = "https://launchpad.314ecorp.com"
+
     model_config = ConfigDict(extra="ignore")
 
 
-def get_settings():
+def get_settings() -> AppSettings:
     """
     This function initializes the settings object based on environment DEPLOYMENT. The order in which
     the settings are applied is as follows:
@@ -228,13 +365,7 @@ def get_settings():
     """
     deployment: str = os.getenv("DEPLOYMENT", "integration").lower()
     config_dir = os.getenv("APP_CONFIG_DIR", "/")
-    # config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES]
     default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
-    # if len(config_files) != len(CONFIG_FILE_NAMES):
-    #     loguru.logger.info(
-    #         f"found inadequate config files - {orjson.dumps(config_files)}, returning default settings!",
-    #     )
-    #     return default_settings
 
     combined_config = dict()
     for file in CONFIG_FILE_NAMES:
@@ -255,14 +386,14 @@ def get_settings():
     for key, val in combined_config.items():
         default_settings_dict_partial(key, val)
 
-    settings = default_settings.model_validate(default_settings_dict)
-    return settings
+    setup_logging(default_settings.log_path, default_settings.log_file_path)
+    return default_settings.model_validate(default_settings_dict)
 
 
 @lru_cache
-def get_security_config():
+def get_security_config() -> dict:
     """
     Returns keycloak endpoints
     """
     settings: AppSettings = get_settings()
-    return requests.get(settings.keycloak.wellknown_url).json()
+    return requests.get(settings.keycloak.wellknown_url, timeout=60).json()

@@ -5,4 +5,7 @@ SELECT
         FROM requestor where id = tenant.requestor
   ) as requestor_details
 FROM tenant
-where product = (SELECT id from product where lower(name) = {{product | lower}});
+where product = (SELECT id from product where lower(name) = {{product | lower}})
+{% if tenant_id %}
+    and tenant.id = {{tenant_id}};
+{% endif %}

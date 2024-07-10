@@ -23,9 +23,7 @@ class VeritablePostgresSetupWorkflow(Workflow):
         """
         Return list of activities used in the workflow
         """
-        return [
-            PostgresDatabaseSetupActivity.defn
-        ]
+        return [PostgresDatabaseSetupActivity.defn]
 
     @classmethod
     def get_workflow_id(cls: "Workflow", veritable: VeritableSpec) -> str | None:
@@ -40,7 +38,6 @@ class VeritablePostgresSetupWorkflow(Workflow):
         """
         Entry point for workflow
         """
-
         try:
             logger.info(f"Starting Postgres setup for tenant: {pydash.get(veritable, 'tenant')}")
             await workflow.execute_activity(

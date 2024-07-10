@@ -16,9 +16,10 @@ from .routes.product import product_router
 from .routes.tenant import tenant_router
 from .routes.provisioning import provisioning_router
 from .routes.deprovisioning import de_provisioning_router
+from .routes.users import user_router
 
 api_prefix = "/api/v1"
-TITLE = f"Launchpad APP"
+TITLE = "Launchpad APP"
 
 config: AppSettings = get_settings()
 
@@ -110,3 +111,4 @@ fastapi_app.include_router(product_router, prefix=f"{api_prefix}/product", tags=
 fastapi_app.include_router(tenant_router, prefix=f"{api_prefix}/tenant", tags=["Tenant"])
 fastapi_app.include_router(provisioning_router, prefix=f"{api_prefix}/provisioning", tags=["Provisioning"])
 fastapi_app.include_router(de_provisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])
+fastapi_app.include_router(user_router, prefix=f"{api_prefix}/User", tags=["User"])

@@ -15,7 +15,5 @@ def generate_fernet_key_and_store_in_1password(veritable: VeritableSpec) -> None
     fernet_value = Fernet.generate_key().decode()
 
     OnePasswordUtil(
-        tenant=veritable.tenant,
-        server_item=f"veritable-tenant-config-{config.env}",
-        vault=OnepasswordVaultName
+        tenant=veritable.tenant, server_item=f"veritable-tenant-config-{config.env}", vault=OnepasswordVaultName
     ).insert_if_not_exists("fernet_key", fernet_value)

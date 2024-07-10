@@ -1,3 +1,4 @@
+from app.cli.temporal.core.log import log_info
 from google.protobuf.duration_pb2 import Duration
 from loguru import logger
 from temporalio import client
@@ -9,12 +10,15 @@ from app.core.settings import AppSettings, get_settings
 
 
 class TemporalNamespaceCreation:
-    def __init__(self, dexit: DexitSpec) -> None:
+    def __init__(self: "TemporalNamespaceCreation", dexit: DexitSpec) -> None:
+        """
+        Initialize class
+        """
         self.dexit: DexitSpec = dexit
         self.config: AppSettings = get_settings()
         self.namespace = f"dexit_{self.dexit.tenant}"
 
-    async def create_temporal_namespace(self):
+    async def create_temporal_namespace(self: "TemporalNamespaceCreation") -> None:
         """
         Create Temporal Namespace
         """
@@ -26,7 +30,7 @@ class TemporalNamespaceCreation:
                     workflow_execution_retention_period=Duration(seconds=30 * 24 * 60 * 60),  # 30 days
                 ),
             )
-            logger.info(f"Temporal Namespace {self.namespace} created successfully")
+            log_info(f"Temporal Namespace {self.namespace} created successfully")
         except RPCError as rpc_err:
             if rpc_err.status == RPCStatusCode.ALREADY_EXISTS:
                 logger.info(f"Temporal Namespace {self.namespace} already exists")

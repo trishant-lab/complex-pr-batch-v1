@@ -1,0 +1,52 @@
+name: "Deploy Launchpad From Image Tag"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        required: false
+        description: Release Tag version eg `launchpad-1.0.0`
+      restart:
+        type: boolean
+        required: false
+        description: Restarts the Server and CLI with existing tag.
+        default: false
+
+jobs:
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on:
+      - self-hosted
+      - proddeploy
+    steps:
+      - name: Check Username
+        run: |
+          allowed_usernames=("sridhar-shivraj", "kyogesha")
+
+          echo "Workflow triggered by: ${{ github.triggering_actor }}"
+          if ! [[ " ${allowed_usernames[*]} " =~ ${{ github.triggering_actor }} ]]; then
+            exit 1
+          fi
+
+      - name: Checkout on default branch
+        uses: actions/checkout@v4
+        if: inputs.tag == ''
+
+      - name: Checkout on Tag
+        uses: actions/checkout@v4
+        if: inputs.tag != ''
+        with:
+          ref: ${{inputs.tag}}
+
+      - name: Restart Server & CLI deployments
+        if: inputs.reconcile == true && inputs.tag == ''
+        run: |
+          kubectl rollout restart deployment launchpad -n launchpad
+          kubectl rollout restart deployment launchpad-cli -n launchpad
+
+      - name: Reconcile using operator
+        if: inputs.tag
+        run: |
+          kubectl set image deployment.apps/launchpad -n launchpad launchpad=registry.314ecorp.tech/launchpad-app:{inputs.tag}
+          kubectl set image deployment.apps/launchpad-cli -n launchpad launchpad-cli=registry.314ecorp.tech/launchpad-app:{inputs.tag}

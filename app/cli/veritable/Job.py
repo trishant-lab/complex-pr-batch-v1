@@ -2,8 +2,19 @@ import asyncio
 
 from kubernetes import client as api_client
 from kubernetes.client import (
-    V1Job, V1JobSpec, V1JobTemplateSpec, V1PodSpec, V1LocalObjectReference, V1Container, V1EnvVar,
-    V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, V1EnvVarSource, V1SecretKeySelector
+    V1Job,
+    V1JobSpec,
+    V1JobTemplateSpec,
+    V1PodSpec,
+    V1LocalObjectReference,
+    V1Container,
+    V1EnvVar,
+    V1VolumeMount,
+    V1Volume,
+    V1ConfigMapVolumeSource,
+    V1KeyToPath,
+    V1EnvVarSource,
+    V1SecretKeySelector,
 )
 from kubernetes.client import V1ObjectMeta
 from kubernetes.dynamic import Resource, ResourceField
@@ -13,12 +24,11 @@ from loguru import logger
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.veritable.models.labels import PROVISIONING_JOB_LABELS
-from app.cli.veritable.veritable import ProductName
-from app.cli.veritable.models.veritableSpec import VeritableSpec
+from app.cli.veritable.models.VeritableSpec import VeritableSpec
 from app.core.settings import get_settings
 
 
-def check_pod_logs(namespace: str, job_name: str):
+def check_pod_logs(namespace: str, job_name: str) -> bool:
     """
     :return:
 
@@ -50,13 +60,16 @@ def check_pod_logs(namespace: str, job_name: str):
 
 
 def get_job_status(namespace: str, job_name: str) -> ResourceField:
+    """
+    :return:
+    """
     dynamic_client = get_dynamic_client()
     resource: Resource = get_resource(dynamic_client=dynamic_client, kind=ResourceKindEnum.Job, api_version="batch/v1")
     job = dynamic_client.get(resource=resource, name=job_name, namespace=namespace)
     return job.status
 
 
-async def check_execution_status(veritable: VeritableSpec, job_name: str):
+async def check_execution_status(veritable: VeritableSpec, job_name: str) -> bool:
     """
     :return:
     """
@@ -80,7 +93,10 @@ class ProvisioningJob(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, veritable: VeritableSpec) -> None:
+    def __init__(self: "ProvisioningJob", veritable: VeritableSpec) -> None:
+        """
+        Constructor
+        """
         self.veritable: VeritableSpec = veritable
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
@@ -91,7 +107,10 @@ class ProvisioningJob(K8sResourceBaseClass):
         self.job_type = "provisioning"
         self.postgres_user = f"veritable_{veritable.tenant}"
 
-    def payload(self):
+    def payload(self: "ProvisioningJob") -> dict:
+        """
+        Payload
+        """
         body = V1Job(
             api_version="batch/v1",
             kind=ResourceKindEnum.Job.value,
@@ -112,20 +131,21 @@ class ProvisioningJob(K8sResourceBaseClass):
                                         name="POSTGRES__PASSWORD",
                                         value_from=V1EnvVarSource(
                                             secret_key_ref=V1SecretKeySelector(
-                                                key="password",
-                                                name="veritable-postgres"
+                                                key="password", name="veritable-postgres"
                                             )
-                                        )
+                                        ),
                                     ),
                                     V1EnvVar(name="POSTGRES__USER", value=self.postgres_user),
                                     V1EnvVar(name="RELEASE_VERSION", value=self.veritable.imageTag),
-                                    V1EnvVar(name="PROVISIONING_CONFIG", value="/provisioningConfig/provisioning-config.json") # noqa
+                                    V1EnvVar(
+                                        name="PROVISIONING_CONFIG", value="/provisioningConfig/provisioning-config.json"
+                                    ),
                                 ],
                                 volume_mounts=[
                                     V1VolumeMount(
                                         name="veritable-provisioning-config",
                                         mount_path="/provisioningConfig",
-                                        read_only=True
+                                        read_only=True,
                                     )
                                 ],
                                 image=f"registry.314ecorp.tech/veritable-server:{self.veritable.imageTag}",
@@ -141,38 +161,36 @@ class ProvisioningJob(K8sResourceBaseClass):
                                 name="veritable-provisioning-config",
                                 config_map=V1ConfigMapVolumeSource(
                                     name="veritable-provisioning-config",
-                                    items=[V1KeyToPath(
-                                        key="provisioning-config.json",
-                                        path="provisioning-config.json")
+                                    items=[
+                                        V1KeyToPath(key="provisioning-config.json", path="provisioning-config.json")
                                     ],
-                                )
+                                ),
                             )
                         ],
                         restart_policy="Never",
                     )
                 )
-            )
+            ),
         )
 
-        job_body = self.k8s_dynamic_client.client.sanitize_for_serialization(body)
-        return job_body
+        return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    async def put(self):
+    async def put(self: "ProvisioningJob") -> None:
+        """
+        Put
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
         if not await check_execution_status(self.veritable, self.job_name):
             self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.veritable.tenant)
             raise Exception(f"Provisioning Job execution failed for {self.veritable.tenant}")
 
-    def delete(self):
+    def delete(self: "ProvisioningJob") -> None:
+        """
+        Delete
+        """
         try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name=self.job_name,
-                namespace=self.veritable.tenant
-            )
-        except NotFoundError as e:
+            self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.veritable.tenant)
+        except NotFoundError:
             logger.error(f"Provisioning job not found for {self.veritable.tenant}")

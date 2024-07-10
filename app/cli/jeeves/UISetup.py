@@ -11,7 +11,7 @@ from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(jeeves: JeevesSpec):
+def deploy_ui(jeeves: JeevesSpec) -> None:
     """
 
     :param jeeves:
@@ -30,16 +30,16 @@ def deploy_ui(jeeves: JeevesSpec):
     else:
         dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
-    s3_client: boto3.client = get_storage_client(config=config)
+    s3_client: boto3.client = get_storage_client(
+        config=config, access_key=config.s3.access_key, secret_key=config.s3.secret_key
+    )
 
     try:
         # Copy file from source to temporary folder
         with tempfile.TemporaryDirectory() as tmp_dir:
-
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
-                config=config,
                 storage_client=s3_client,
                 bucket_name="artifacts",
             )
@@ -50,14 +50,14 @@ def deploy_ui(jeeves: JeevesSpec):
             # Upload the files to S3
             copy_files_to_s3(
                 input_path=os.path.join(tmp_dir, "bundle", "dist", "admin"),
-                output_path=f"{config.s3.rclone_remote}:static/{dest_dir}",
+                output_path=f"{config.s3.rclone_remote}/static/{dest_dir}",
                 config=config,
             )
 
             if environment == "production":
                 copy_files_to_s3(
                     input_path=os.path.join(tmp_dir, "bundle", "dist", "admin", "index.html"),
-                    output_path=f"{config.s3.rclone_remote}:static/{dest_dir}/custom/index.html",
+                    output_path=f"{config.s3.rclone_remote}/static/{dest_dir}/custom/index.html",
                     config=config,
                 )
 
@@ -66,7 +66,7 @@ def deploy_ui(jeeves: JeevesSpec):
         raise e
 
 
-def delete_ui_bundle(jeeves: JeevesSpec):
+def delete_ui_bundle(jeeves: JeevesSpec) -> None:
     """
 
     :param jeeves
@@ -106,3 +106,17 @@ class UISetup:
         Delete UI bundle from S3
         """
         delete_ui_bundle(jeeves=self.jeeves)
+
+
+if __name__ == "__main__":
+    jeeves_ = JeevesSpec(
+        **{
+            "email": "sridhar.s@314ecorp.com",
+            "lastname": "S",
+            "firstName": "Sridhar",
+            "tenant": "jee",
+            "organization": "launchpad",
+            "contactNumber": "1234567890",
+        }
+    )
+    UISetup(jeeves=jeeves_).deploy()

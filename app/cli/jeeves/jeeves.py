@@ -10,7 +10,7 @@ class JeevesWorkflow(ProductWorkflow):
     """
 
     @staticmethod
-    async def onboard(schema: dict):
+    async def onboard(schema: dict) -> None:
         """
         onboard method
         """
@@ -22,11 +22,11 @@ class JeevesWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=JeevesSpec(**schema),
             workflow=JeevesOnboardingWorkflow,
-            queue=product_config.temporal_jeeves_onboarding_task_queue
+            queue=product_config.temporal_jeeves_onboarding_task_queue,
         )
 
     @staticmethod
-    async def deboard(schema: dict):
+    async def deboard(schema: dict) -> None:
         """
         deprovision method
         """
@@ -38,29 +38,29 @@ class JeevesWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=JeevesSpec(**schema),
             workflow=JeevesDeProvisioningWorkflow,
-            queue=product_config.temporal_jeeves_deboarding_task_queue
+            queue=product_config.temporal_jeeves_deboarding_task_queue,
         )
 
     @staticmethod
-    async def approve(schema: dict):
+    async def approve(schema: dict) -> None:
         """
         approve method
         """
         from app.cli.temporal.jeeves.starter import get_workflow_handle
         from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
 
-        handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema),workflow=JeevesOnboardingWorkflow)
+        handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)
 
         await handle.signal(JeevesOnboardingWorkflow.approve)
 
     @staticmethod
-    async def decline(schema: dict):
+    async def decline(schema: dict) -> None:
         """
         decline method
         """
         from app.cli.temporal.jeeves.starter import get_workflow_handle
         from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
 
-        handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema),workflow=JeevesOnboardingWorkflow)
+        handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)
 
         await handle.signal(JeevesOnboardingWorkflow.deny)

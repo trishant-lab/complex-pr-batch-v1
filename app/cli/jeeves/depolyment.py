@@ -16,7 +16,10 @@ class DeploymentServer(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "DeploymentServer", jeeves: JeevesSpec) -> None:
+        """
+        Constructor for DeploymentServer class
+        """
         self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
@@ -35,14 +38,17 @@ class DeploymentServer(K8sResourceBaseClass):
 
         self.tika_server_endpoint = self.config.jeeves.tika_server_endpoint
         self.dynamic_url_hash_key = OnePasswordUtil(
-            tenant="PRODUCTION_COMMON_CONFIG" if self.env == "production" else f"INTEGRATION_COMMON_CONFIG",
+            tenant="PRODUCTION_COMMON_CONFIG" if self.env == "production" else "INTEGRATION_COMMON_CONFIG",
             server_item="application-config",
             vault="Jeeves",
         ).get_key("dynamic_url_hash_key")
         self.dynamic_url_enabled = "True"
         self.image_tag = "production" if self.env == "production" else "sprint"
 
-    def payload(self):
+    def payload(self: "DeploymentServer") -> dict:
+        """
+        Payload for DeploymentServer
+        """
         body = k8s_client.V1Deployment(
             api_version="apps/v1",
             kind="Deployment",
@@ -52,13 +58,9 @@ class DeploymentServer(K8sResourceBaseClass):
             ),
             spec=k8s_client.V1DeploymentSpec(
                 replicas=1,
-                selector=k8s_client.V1LabelSelector(
-                    match_labels={"app": ProductName}
-                ),
+                selector=k8s_client.V1LabelSelector(match_labels={"app": ProductName}),
                 template=k8s_client.V1PodTemplateSpec(
-                    metadata=k8s_client.V1ObjectMeta(
-                        labels={"app": ProductName}
-                    ),
+                    metadata=k8s_client.V1ObjectMeta(labels={"app": ProductName}),
                     spec=k8s_client.V1PodSpec(
                         image_pull_secrets=[k8s_client.V1LocalObjectReference(name="registrycred")],
                         node_selector={"app": "314e"},
@@ -70,36 +72,28 @@ class DeploymentServer(K8sResourceBaseClass):
                                 resources=k8s_client.V1ResourceRequirements(
                                     requests={
                                         "cpu": self.jeeves.serverSpec.request_cpu,
-                                        "memory": self.jeeves.serverSpec.request_memory
+                                        "memory": self.jeeves.serverSpec.request_memory,
                                     },
                                     limits={
                                         "cpu": self.jeeves.serverSpec.limit_cpu,
-                                        "memory": self.jeeves.serverSpec.limit_memory
+                                        "memory": self.jeeves.serverSpec.limit_memory,
                                     },
                                 ),
                                 security_context=k8s_client.V1SecurityContext(privileged=True),
-                                ports=[
-                                    k8s_client.V1ContainerPort(
-                                        name="http",
-                                        protocol="TCP",
-                                        container_port=8000
-                                    )
-                                ],
+                                ports=[k8s_client.V1ContainerPort(name="http", protocol="TCP", container_port=8000)],
                                 volume_mounts=[
                                     k8s_client.V1VolumeMount(
                                         name="tenant-volume",
                                         mount_path="/config/tenant-config.json",
-                                        sub_path="tenant-config.json"
+                                        sub_path="tenant-config.json",
                                     ),
                                     k8s_client.V1VolumeMount(
-                                        name="rclone-volume",
-                                        mount_path="/root/.config/rclone/",
-                                        read_only=True
+                                        name="rclone-volume", mount_path="/root/.config/rclone/", read_only=True
                                     ),
                                     k8s_client.V1VolumeMount(
                                         name="statestore-volume",
                                         mount_path="/root/.dapr/components/statestore.yaml",
-                                        sub_path="statestore.yaml"
+                                        sub_path="statestore.yaml",
                                     ),
                                 ],
                                 env=[
@@ -112,7 +106,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                     k8s_client.V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=self.tika_server_endpoint),
                                     k8s_client.V1EnvVar(name="DYNAMIC_URL_HASH_KEY", value=self.dynamic_url_hash_key),
                                     k8s_client.V1EnvVar(name="DYNAMIC_URL_ENABLED", value=self.dynamic_url_enabled),
-                                ]
+                                ],
                             )
                         ],
                         volumes=[
@@ -120,60 +114,53 @@ class DeploymentServer(K8sResourceBaseClass):
                                 name="tenant-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="jeeves-tenant-config",
-                                    items=[k8s_client.V1KeyToPath(
-                                        key="tenant-config.json", path="tenant-config.json"
-                                    )]
-                                )
+                                    items=[k8s_client.V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+                                ),
                             ),
                             k8s_client.V1Volume(
                                 name="rclone-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="jeeves-rclone-config",
-                                    items=[k8s_client.V1KeyToPath(
-                                        key="rclone.conf", path="rclone.conf"
-                                    )]
-                                )
+                                    items=[k8s_client.V1KeyToPath(key="rclone.conf", path="rclone.conf")],
+                                ),
                             ),
                             k8s_client.V1Volume(
                                 name="statestore-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="jeeves-statestore-config",
-                                    items=[k8s_client.V1KeyToPath(
-                                        key="statestore.yaml", path="statestore.yaml"
-                                    )]
-                                )
+                                    items=[k8s_client.V1KeyToPath(key="statestore.yaml", path="statestore.yaml")],
+                                ),
                             ),
                             k8s_client.V1Volume(
                                 name="vespa-volume",
                                 persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
                                     claim_name="jeeves-vespa-pvc"
-                                )
-                            )
+                                ),
+                            ),
                         ],
-                    )
-                )
-            )
+                    ),
+                ),
+            ),
         )
 
-        deployment_body = self.k8s_dynamic_client.client.sanitize_for_serialization(body)
-        return deployment_body
+        return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "DeploymentServer") -> None:
+        """
+        Put
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "DeploymentServer") -> None:
+        """
+        Delete
+        """
         try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name=ProductName,
-                namespace=self.jeeves.tenant
-            )
+            self.k8s_dynamic_client.delete(resource=self.resource, name=ProductName, namespace=self.jeeves.tenant)
         except NotFoundError:
-            logger.error(f"jeeves deployment doesn't exist")
+            logger.error("jeeves deployment doesn't exist")
 
 
 class DeploymentCli(K8sResourceBaseClass):
@@ -181,7 +168,10 @@ class DeploymentCli(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "DeploymentCli", jeeves: JeevesSpec) -> None:
+        """
+        Constructor for DeploymentCli class
+        """
         self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
@@ -200,30 +190,29 @@ class DeploymentCli(K8sResourceBaseClass):
 
         self.tika_server_endpoint = self.config.jeeves.tika_server_endpoint
         self.dynamic_url_hash_key = OnePasswordUtil(
-            tenant="PRODUCTION_COMMON_CONFIG" if self.env == "production" else f"INTEGRATION_COMMON_CONFIG",
+            tenant="PRODUCTION_COMMON_CONFIG" if self.env == "production" else "INTEGRATION_COMMON_CONFIG",
             server_item="application-config",
             vault="Jeeves",
         ).get_key("dynamic_url_hash_key")
         self.dynamic_url_enabled = "True"
         self.image_tag = "production" if self.env == "production" else "sprint"
 
-    def payload(self):
+    def payload(self: "DeploymentCli") -> dict:
+        """
+        Payload
+        """
         body = k8s_client.V1Deployment = k8s_client.V1Deployment(
             api_version="apps/v1",
             kind="Deployment",
             metadata=k8s_client.V1ObjectMeta(
-                name=f"jeeves-cli",
+                name="jeeves-cli",
                 namespace=self.jeeves.tenant,
             ),
             spec=k8s_client.V1DeploymentSpec(
                 replicas=1,
-                selector=k8s_client.V1LabelSelector(
-                    match_labels={"app": "jeeves-cli"}
-                ),
+                selector=k8s_client.V1LabelSelector(match_labels={"app": "jeeves-cli"}),
                 template=k8s_client.V1PodTemplateSpec(
-                    metadata=k8s_client.V1ObjectMeta(
-                        labels={"app": "jeeves-cli"}
-                    ),
+                    metadata=k8s_client.V1ObjectMeta(labels={"app": "jeeves-cli"}),
                     spec=k8s_client.V1PodSpec(
                         image_pull_secrets=[k8s_client.V1LocalObjectReference(name="registrycred")],
                         node_selector={"app": "314e"},
@@ -234,42 +223,32 @@ class DeploymentCli(K8sResourceBaseClass):
                                 resources=k8s_client.V1ResourceRequirements(
                                     requests={
                                         "cpu": self.jeeves.cliSpec.request_cpu,
-                                        "memory": self.jeeves.cliSpec.request_memory
+                                        "memory": self.jeeves.cliSpec.request_memory,
                                     },
                                     limits={
                                         "cpu": self.jeeves.cliSpec.limit_cpu,
-                                        "memory": self.jeeves.cliSpec.limit_memory
+                                        "memory": self.jeeves.cliSpec.limit_memory,
                                     },
                                 ),
-                                ports=[
-                                    k8s_client.V1ContainerPort(
-                                        name="http",
-                                        protocol="TCP",
-                                        container_port=8000
-                                    )
-                                ],
+                                ports=[k8s_client.V1ContainerPort(name="http", protocol="TCP", container_port=8000)],
                                 image_pull_policy="Always",
                                 volume_mounts=[
                                     k8s_client.V1VolumeMount(
                                         name="tenant-volume",
                                         mount_path="/config/tenant-config.json",
-                                        sub_path="tenant-config.json"
+                                        sub_path="tenant-config.json",
                                     ),
                                     k8s_client.V1VolumeMount(
-                                        name="vector-volume",
-                                        mount_path="/vector",
-                                        read_only=True
+                                        name="vector-volume", mount_path="/vector", read_only=True
                                     ),
                                     k8s_client.V1VolumeMount(
-                                        name="rclone-volume",
-                                        mount_path="/root/.config/rclone/",
-                                        read_only=True
+                                        name="rclone-volume", mount_path="/root/.config/rclone/", read_only=True
                                     ),
                                     k8s_client.V1VolumeMount(
                                         name="statestore-volume",
                                         mount_path="/root/.dapr/components/statestore.yaml",
-                                        sub_path="statestore.yaml"
-                                    )
+                                        sub_path="statestore.yaml",
+                                    ),
                                 ],
                                 env=[
                                     k8s_client.V1EnvVar(name="DEPLOYMENT", value=self.env),
@@ -281,7 +260,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                     k8s_client.V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=self.tika_server_endpoint),
                                     k8s_client.V1EnvVar(name="DYNAMIC_URL_HASH_KEY", value=self.dynamic_url_hash_key),
                                     k8s_client.V1EnvVar(name="DYNAMIC_URL_ENABLED", value=self.dynamic_url_enabled),
-                                ]
+                                ],
                             )
                         ],
                         volumes=[
@@ -289,65 +268,57 @@ class DeploymentCli(K8sResourceBaseClass):
                                 name="tenant-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="jeeves-tenant-config",
-                                    items=[k8s_client.V1KeyToPath(
-                                        key="tenant-config.json", path="tenant-config.json"
-                                    )]
-                                )
+                                    items=[k8s_client.V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+                                ),
                             ),
                             k8s_client.V1Volume(
                                 name="rclone-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="jeeves-rclone-config",
-                                    items=[k8s_client.V1KeyToPath(
-                                        key="rclone.conf", path="rclone.conf"
-                                    )]
-                                )
+                                    items=[k8s_client.V1KeyToPath(key="rclone.conf", path="rclone.conf")],
+                                ),
                             ),
                             k8s_client.V1Volume(
                                 name="vector-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="jeeves-cli-vector-config",
-                                    items=[k8s_client.V1KeyToPath(
-                                        key="vector-config.toml", path="vector-config.toml"
-                                    )]
-                                )
+                                    items=[k8s_client.V1KeyToPath(key="vector-config.toml", path="vector-config.toml")],
+                                ),
                             ),
                             k8s_client.V1Volume(
                                 name="statestore-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="jeeves-statestore-config",
-                                    items=[k8s_client.V1KeyToPath(
-                                        key="statestore.yaml", path="statestore.yaml"
-                                    )]
-                                )
+                                    items=[k8s_client.V1KeyToPath(key="statestore.yaml", path="statestore.yaml")],
+                                ),
                             ),
                             k8s_client.V1Volume(
                                 name="vespa-volume",
                                 persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
                                     claim_name="jeeves-vespa-pvc"
-                                )
-                            )
+                                ),
+                            ),
                         ],
-                    )
-                )
-            )
+                    ),
+                ),
+            ),
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "DeploymentCli") -> None:
+        """
+        Put
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "DeploymentCli") -> None:
+        """
+        Delete
+        """
         try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource,
-                name=f"jeeves-cli",
-                namespace=self.jeeves.tenant
-            )
+            self.k8s_dynamic_client.delete(resource=self.resource, name="jeeves-cli", namespace=self.jeeves.tenant)
         except NotFoundError:
-            logger.error(f"jeeves-cli deployment doesn't exist")
+            logger.error("jeeves-cli deployment doesn't exist")

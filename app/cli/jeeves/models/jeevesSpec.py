@@ -1,35 +1,33 @@
-import dataclasses
-
-from app.cli.temporal.core.base import IODataclass
+from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 
 
-@dataclasses.dataclass
-class ResourceSpec:
+class ResourceSpec(LaunchpadCLIBaseModel):
     """
     ResourceSpec dataclass
     """
+
     request_memory: str = "500Mi"
     request_cpu: str = "500m"
     limit_memory: str = "3000Mi"
     limit_cpu: str = "3000m"
 
 
-@dataclasses.dataclass
-class CustomerDetails(IODataclass):
+class CustomerDetails(LaunchpadCLIBaseModel):
     """
     CustomerDetails dataclass
     """
-    userName: str
-    email: str
-    organization: str
 
 
-@dataclasses.dataclass
-class JeevesSpec(IODataclass):
+class JeevesSpec(LaunchpadCLIBaseModel):
     """
     JeevesSpec dataclass
     """
+
     tenant: str
-    customerDetails: None | CustomerDetails = None
-    serverSpec: None | ResourceSpec = dataclasses.field(default_factory=ResourceSpec)
-    cliSpec: None | ResourceSpec = dataclasses.field(default_factory=ResourceSpec)
+    firstName: str
+    lastname: str
+    email: str
+    organization: str
+    contactNumber: str
+    serverSpec: None | ResourceSpec = ResourceSpec()
+    cliSpec: None | ResourceSpec = ResourceSpec()

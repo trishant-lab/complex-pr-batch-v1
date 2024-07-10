@@ -1,44 +1,46 @@
-from loguru import logger
-
+from app.cli.temporal.core.log import log_info
 from app.core.db import DBManager
 
 
 class PostgresUtils:
     """
-
+    PostgresUtils class
     """
-    def __init__(self, db: DBManager):
+
+    def __init__(self: "PostgresUtils", db: DBManager) -> None:
+        """
+        Constructor
+        """
         self.db: DBManager = db
 
-    async def create_user(self: "PostgresUtils", username: str, password: str):
+    async def create_user(self: "PostgresUtils", username: str, password: str) -> None:
         """
         Create a new user in the database
         """
-
         await self.db.execute_raw_sql(
             query=f"CREATE ROLE {username} NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN PASSWORD '{password}';",
         )
-        logger.info(f"User {username} created successfully")
+        log_info(f"Created user {username} successfully.")
 
-    async def update_user_password(self: "PostgresUtils", username: str, password: str):
+    async def update_user_password(self: "PostgresUtils", username: str, password: str) -> None:
         """
         Update user password in the database
         """
         await self.db.execute_raw_sql(
             query=f"ALTER USER {username} WITH PASSWORD '{password}';",
         )
-        logger.info(f"Password updated successfully for user {username}")
+        log_info(f"Updated password for user {username} successfully.")
 
-    async def create_schema(self: "PostgresUtils", schema_name: str, username: str):
+    async def create_schema(self: "PostgresUtils", schema_name: str, username: str) -> None:
         """
         Create a new schema in the database
         """
         await self.db.execute_raw_sql(
             f"CREATE SCHEMA IF NOT EXISTS { schema_name } AUTHORIZATION { username };",
         )
-        logger.info(f"Schema {schema_name} created successfully")
+        log_info(f"Created schema {schema_name} successfully.")
 
-    async def check_if_user_exists(self: "PostgresUtils", username: str):
+    async def check_if_user_exists(self: "PostgresUtils", username: str) -> dict:
         """
         Check if the user already exists in the database
         """
@@ -46,38 +48,68 @@ class PostgresUtils:
             sqlfile="checkIfUserExists.sql",
             username=username,
         )
-        logger.info(f"User {username} exists: {response}")
-        return response
+        return dict(response) if response else {}
 
-    async def grant_user_to_connect_and_create(self: "PostgresUtils", username: str, database: str):
-
+    async def grant_user_to_connect_and_create(self: "PostgresUtils", username: str, database: str) -> None:
+        """
+        Grant user to connect and create on the database
+        """
         # Grant permissions
         await self.db.execute_raw_sql(
             query=f"GRANT CONNECT, CREATE ON DATABASE {database} TO {username};",
         )
+        log_info(f"Granted user {username} to connect and create on database {database} successfully.")
 
-    async def grant_user_all_privileges_on_schema(self: "PostgresUtils", username: str, schema_name: str):
+    async def grant_user_all_privileges_on_schema(self: "PostgresUtils", username: str, schema_name: str) -> None:
+        """
+        Grant all privileges on the schema to the user
+        """
         # Grant permissions
         await self.db.execute_raw_sql(
             query=f"GRANT ALL ON SCHEMA {schema_name} TO {username}",
         )
+        log_info(f"Granted user {username} all privileges on schema {schema_name} successfully.")
 
-    async def create_user_mapping_for_keycloak(self, username, keycloak_password):
+    async def create_user_mapping_for_keycloak(self: "PostgresUtils", username: str, keycloak_password: str) -> None:
+        """
+        Create user mapping for keycloak
+        """
         await self.db.execute_raw_sql(
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {username} SERVER keycloak_server OPTIONS  "
-                  f"(user 'keyclock_fdw', password '{keycloak_password}');",
+            f"(user 'keyclock_fdw', password '{keycloak_password}');",
         )
-        logger.info(f"User mapping created successfully for user {username}")
+        log_info("Created user mapping for keycloak database successfully.")
 
-    async def grant_user_all_privileges_on_table(self: "PostgresUtils", username: str, table: str):
+    async def grant_user_all_privileges_on_table(self: "PostgresUtils", username: str, table: str) -> None:
+        """
+        Grant all privileges on the table to the user
+        """
         # Grant permissions
         await self.db.execute_raw_sql(
             query=f"GRANT ALL PRIVILEGES ON TABLE {table} TO {username};",
         )
+        log_info("Granted user {username} all privileges on table {table} successfully.")
 
-    async def create_user_mapping_for_matomo(self, username, matomo_password):
+    async def create_user_mapping_for_matomo(self: "PostgresUtils", username: str, matomo_password: str) -> None:
+        """
+        Create user mapping for matomo
+        """
         await self.db.execute_raw_sql(
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {username} SERVER matomo_server OPTIONS  "
-                  f"(username 'matomo_fdw', password '{matomo_password}');",
+            f"(username 'matomo_fdw', password '{matomo_password}');",
         )
-        logger.info(f"User mapping created successfully for user {username}")
+        log_info("Created user mapping for matomo database successfully.")
+
+
+# async def main():
+#     from app.core.db import get_db_manager
+#     db_: DBManager = await get_db_manager(dsn="postgresql://pgadmin:lXCTy1PJsAmOyTx7IZGg@localhost:54321/launchpad")
+#     ps_ = PostgresUtils(db=db_)
+#     await ps_.create_user_mapping_for_keycloak(
+#         username="launchpad", keycloak_password="oe2DkHvGRWuWDCiwThMwmXdhqpWHb83cae7FzUHika9N"
+#     )
+#
+#
+# if __name__ == "__main__":
+#     import asyncio
+#     asyncio.run(main())

@@ -1,10 +1,10 @@
 from loguru import logger
 
-from app.cli.temporal.core.base import IODataclass, Workflow
+from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Workflow
 from app.cli.temporal.core.connection import get_temporal_client
 
 
-async def trigger_workflow(workflow_input: IODataclass, workflow: type[Workflow], queue: str) -> None:
+async def trigger_workflow(workflow_input: LaunchpadCLIBaseModel, workflow: type[Workflow], queue: str) -> None:
     """
     Run the workflow with the specified input
     """

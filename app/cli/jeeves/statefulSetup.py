@@ -2,9 +2,22 @@ import asyncio
 import base64
 
 from kubernetes.client import (
-    V1StatefulSet, V1ObjectMeta, V1StatefulSetSpec, V1PodTemplateSpec, V1PodSpec, V1LocalObjectReference, V1Container,
-    V1ContainerPort, V1EnvVar, V1EnvVarSource, V1SecretKeySelector, V1Service, V1ServiceSpec, V1ServicePort
+    V1StatefulSet,
+    V1ObjectMeta,
+    V1StatefulSetSpec,
+    V1PodTemplateSpec,
+    V1PodSpec,
+    V1LocalObjectReference,
+    V1Container,
+    V1ContainerPort,
+    V1EnvVar,
+    V1EnvVarSource,
+    V1SecretKeySelector,
+    V1Service,
+    V1ServiceSpec,
+    V1ServicePort,
 )
+from kubernetes.dynamic import DynamicClient
 from loguru import logger
 from redis import Redis
 
@@ -17,8 +30,9 @@ from app.onepasswordutil import OnePasswordUtil
 CACHE_HOST = "cache-new.{tenant}.svc.cluster.local"
 
 
-def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
+def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client: DynamicClient) -> None:
     """
+    Create namespace in redis
     """
     redis_host = CACHE_HOST.format(tenant=jeeves.tenant)
     redis_port = 6379
@@ -46,8 +60,9 @@ def create_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
     ).create_or_replace(key="redis_password", value=redis_tenant_password)
 
 
-def delete_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client):
+def delete_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client: DynamicClient) -> None:
     """
+    Delete namespace in redis
     """
     redis_host = CACHE_HOST.format(tenant=jeeves.tenant)
     redis_port = 6379
@@ -73,14 +88,20 @@ class RedisService(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "RedisService", jeeves: JeevesSpec) -> None:
+        """
+        Constructor
+        """
         self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Service, api_version="v1"
         )
 
-    def payload(self):
+    def payload(self: "RedisService") -> None:
+        """
+        k8s resource payload
+        """
         body = V1Service(
             api_version="v1",
             kind=ResourceKindEnum.Service.value,
@@ -99,27 +120,36 @@ class RedisService(K8sResourceBaseClass):
                         target_port=6379,
                     )
                 ],
-            )
+            ),
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
+    def put(self: "RedisService") -> None:
+        """
+        k8s server side apply
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
 
-    def delete(self):
+    def delete(self: "RedisService") -> None:
+        """
+        Don't delete Service
+        """
         # Don't delete Service
         pass
 
 
 class StateFullSet(K8sResourceBaseClass):
     """
+    StatefulSet class
     """
-    def __init__(self, jeeves: JeevesSpec) -> None:
+
+    def __init__(self: "StateFullSet", jeeves: JeevesSpec) -> None:
+        """
+        Constructor
+        """
         self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
@@ -127,23 +157,20 @@ class StateFullSet(K8sResourceBaseClass):
         )
         self.name = "cache-new"
 
-    def payload(self):
+    def payload(self: "StateFullSet") -> dict:
+        """
+        k8s resource payload
+        """
         body = V1StatefulSet(
             api_version="apps/v1",
             kind=ResourceKindEnum.StatefulSet.value,
-            metadata=V1ObjectMeta(
-                    namespace=self.jeeves.tenant,
-                    name=self.name,
-                    labels={"app": self.name}
-            ),
+            metadata=V1ObjectMeta(namespace=self.jeeves.tenant, name=self.name, labels={"app": self.name}),
             spec=V1StatefulSetSpec(
                 replicas=1,
                 selector={"matchLabels": {"app": self.name, "kind": "redis"}},
                 service_name="cache-new-service",
                 template=V1PodTemplateSpec(
-                    metadata=V1ObjectMeta(
-                        labels={"app": self.name, "kind": "redis"}
-                    ),
+                    metadata=V1ObjectMeta(labels={"app": self.name, "kind": "redis"}),
                     spec=V1PodSpec(
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
                         containers=[
@@ -158,32 +185,32 @@ class StateFullSet(K8sResourceBaseClass):
                                         name="REDIS_PASSWORD",
                                         value_from=V1EnvVarSource(
                                             secret_key_ref=V1SecretKeySelector(
-                                                key="REDIS_PASSWORD",
-                                                name="cache-secret"
+                                                key="REDIS_PASSWORD", name="cache-secret"
                                             )
-                                        )
+                                        ),
                                     )
-                                ]
+                                ],
                             )
                         ],
-                    )
+                    ),
                 ),
-            )
+            ),
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    async def put(self):
+    async def put(self: "StateFullSet") -> None:
+        """
+        k8s server side apply
+        """
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
         RedisService(self.jeeves).put()
-        # await asyncio.sleep(30)
-        # create_product_namespace(self.jeeves, self.k8s_dynamic_client)
+        await asyncio.sleep(30)
+        create_product_namespace(self.jeeves, self.k8s_dynamic_client)
 
-    def delete(self):
+    def delete(self: "StateFullSet") -> None:
         """
         Don't delete StatefulSet, delete the namespace instead
         """

@@ -6,11 +6,13 @@ p, PUBLIC, /metrics, GET
 
 p, PUBLIC, /api/v1/openapi.json, GET
 
-p, ADMINS, /api/v1/product/listAllProducts, GET
-p, ADMINS, /api/v1/product/getProduct, GET
+p, ADMINS, /api/v1/product, GET
+p, ADMINS, /api/v1/product/getProductByName, GET
+p, ADMINS, /api/v1/product/updateProductSchema, POST
+p, ADMINS, /api/v1/product/renderForm, GET
 
 p, ADMINS, /api/v1/tenant, POST
-p, ADMINS, /api/v1/tenant/listAllTenantsPerProduct, GET
+p, ADMINS, /api/v1/tenant, GET
 p, ADMINS, /api/v1/tenant/updateRequestorDetails, PUT
 p, PUBLIC, /api/v1/tenant/suggestTenantNames, GET
 p, PUBLIC, /api/v1/tenant/{tenant_name}, GET
@@ -20,6 +22,14 @@ p, ADMINS, /api/v1/provisioning/approveOrDecline, POST
 p, ADMINS, /api/v1/provisioning/retryProvisioning, POST
 
 p, ADMINS, /api/v1/deprovisioning, POST
+
+
+p, ADMINS, /api/v1/User, POST
+p, ADMINS, /api/v1/User, PUT
+p, ADMINS, /api/v1/User/allUsers, GET
+p, ADMINS, /api/v1/User/getUserById, GET
+p, ADMINS, /api/v1/User/roles, GET
+p, ADMINS, /api/v1/User/getGSuiteUsersList, GET
 
 
 g, ADMINS, Admin

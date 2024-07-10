@@ -8,7 +8,7 @@ from app.core.settings import AppSettings, get_settings
 from app.cli.temporal.veritable.workflows.postgres import VeritablePostgresSetupWorkflow
 
 
-async def veritable_postgres_setup_worker():
+async def veritable_postgres_setup_worker() -> None:
     """
     Workflow worker for veritable onboarding
     """
@@ -23,7 +23,7 @@ async def veritable_postgres_setup_worker():
         task_queue=config.veritable.temporal_veritable_postgres_setup_task_queue,
         workflows=[VeritablePostgresSetupWorkflow],
         activities=VeritablePostgresSetupWorkflow.get_activities(),
-        debug_mode=True
+        debug_mode=True,
     )
     await worker.run()
 
