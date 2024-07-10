@@ -7,7 +7,7 @@ from typing import Final
 import loguru
 import orjson
 import requests
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
 
 from app.core.log import setup_logging
@@ -119,6 +119,29 @@ class SendGridSettings(BaseModel):
     api_key: str = ""
     email_from: str = "developer@314ecorp.com"
     category: str = "provisioning"
+
+
+class GSuiteModel(BaseSettings):
+    type: str = "service_account"
+    project_id: str = "e235711"
+
+    private_key_id: SecretStr = ""
+    private_key: SecretStr = ""
+
+    client_email: str = ""
+
+    client_id: str = ""
+    customer_id: str = ""
+    gsuite_admin: str = "kesav@314ecorp.com"
+
+    auth_uri: str = "https://accounts.google.com/o/oauth2/auth"
+    token_uri: str = "https://oauth2.googleapis.com/token"
+    auth_provider_x509_cert_url: str = "https://www.googleapis.com/oauth2/v1/certs"
+    client_x509_cert_url: str = (
+        "https://www.googleapis.com/robot/v1/metadata/x509/app-314e%40e235711.iam.gserviceaccount.com"
+    )
+
+    model_config = ConfigDict(extra="ignore")
 
 
 class VeritableSettings(BaseModel):
@@ -300,6 +323,8 @@ class AppSettings(BaseSettings):
     log_path: str = "/var/log" if os.getuid() == 0 else tempfile.gettempdir()
     log_file_path: str = os.path.join(log_path, "launchpad_app.log")
 
+    gsuite: GSuiteModel = GSuiteModel()
+
     model_config = ConfigDict(extra="ignore")
 
 
@@ -310,6 +335,7 @@ class IntegrationSettings(AppSettings):
 
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+    gsuite: GSuiteModel = GSuiteModel()
 
     app_url: str = "https://launchpad.314ecorp.tech/sprint"
 

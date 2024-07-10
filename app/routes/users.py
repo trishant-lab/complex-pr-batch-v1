@@ -1,6 +1,8 @@
 import uuid
+from functools import lru_cache
 from uuid import UUID
 
+import httpx
 import orjson
 from fastapi import APIRouter, Depends
 from keycloak import urls_patterns
@@ -8,11 +10,18 @@ from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
+from authlib.integrations.httpx_client import AsyncAssertionClient
 
 from app.cli.common.keycloakUtils import KeycloakAdminClient
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
-from app.models.users import RoleResponseModel, UserResponseModel, CreateUserRequestModel, UpdateUserRequestModel
+from app.models.users import (
+    RoleResponseModel,
+    UserResponseModel,
+    CreateUserRequestModel,
+    UpdateUserRequestModel,
+    GSuiteUser,
+)
 
 user_router = APIRouter()
 
@@ -177,9 +186,6 @@ async def post_user(
         "enabled": user.enabled,
         "firstName": user.firstName,
         "lastName": user.lastName,
-        "credentials": [
-            {"type": "password", "temporary": True, "value": user.temp_password},
-        ],
     }
 
     user_details = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm)
@@ -220,3 +226,67 @@ async def update_user(
         config=config,
         kc_agent=kc_agent,
     )
+
+
+@lru_cache
+def get_g_suite_client(
+    scope: str = "https://www.googleapis.com/auth/admin.directory.user",
+) -> AsyncAssertionClient:
+    """
+
+    :param scope: OAuth Scope
+    :return:
+    """
+    config: AppSettings = get_settings()
+    subject: str = config.gsuite.gsuite_admin
+    header = {"alg": "RS256", "kid": config.gsuite.private_key_id.get_secret_value()}
+    claims = {"scope": scope}
+    timeout = httpx.Timeout(10 * 60)
+    return AsyncAssertionClient(
+        token_endpoint=config.gsuite.token_uri,
+        issuer=config.gsuite.client_email,
+        audience=config.gsuite.token_uri,
+        claims=claims,
+        subject=subject,
+        scope=None,
+        key=config.gsuite.private_key.get_secret_value(),
+        header=header,
+        timeout=timeout,
+    )
+
+
+@user_router.get(
+    "/getGSuiteUsersList",
+    response_model=list[GSuiteUser],
+    summary="retrieves a list of all GSuite Users",
+    description="Gets a list of all GSuite Users which includes userID, emails, and name",
+    operation_id="getGSuiteUsersList",
+)
+async def get_g_suite_users_list(_: dict = Depends(get_oauth_scheme())) -> list:
+    """
+
+    :return:  List of all GSuite Users
+    """
+    config: AppSettings = get_settings()
+    client = get_g_suite_client()
+    users_list: list = []
+    next_page_token: str = ""
+    while True:
+        parameters: dict = {"customer": config.gsuite.customer_id, "pageToken": next_page_token}
+        res = await client.get("https://www.googleapis.com/admin/directory/v1/users", params=parameters)
+        if res.status_code != 200:
+            raise HTTPException(status_code=400, detail="GSuite API Error")
+        else:
+            result: dict = res.json()
+            users_list.extend(result["users"]) if "users" in result.keys() else None
+            if res.json().get("nextPageToken", ""):
+                next_page_token = res.json().get("nextPageToken")
+            else:
+                break
+    # extracting only id, email and name of each GSuite User
+    return [
+        {key, user.get(key)}
+        for key in ["id", "primaryEmail", "name", "aliases"]
+        for user in users_list
+        if "314e" in user["primaryEmail"]
+    ]

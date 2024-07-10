@@ -28,6 +28,7 @@ p, ADMINS, /api/v1/User, PUT
 p, ADMINS, /api/v1/User/allUsers, GET
 p, ADMINS, /api/v1/User/getUserById, GET
 p, ADMINS, /api/v1/User/roles, GET
+p, ADMINS, /api/v1/User/getGSuiteUsersList, GET
 
 
 g, ADMINS, Admin

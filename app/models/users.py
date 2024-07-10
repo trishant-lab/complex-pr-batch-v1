@@ -44,7 +44,6 @@ class CreateUserRequestModel(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     roles: list[RoleResponseModel] | None = None
-    temp_password: str
 
 
 class UpdateUserRequestModel(BaseModel):
@@ -54,3 +53,15 @@ class UpdateUserRequestModel(BaseModel):
     email: str | None = None
     added_roles: list[RoleResponseModel] | None = None
     deleted_roles: list[RoleResponseModel] | None = None
+
+
+class GSuiteUser(BaseModel):
+    class Name(BaseModel):
+        givenName: str = None
+        familyName: str = None
+        fullName: str = None
+
+    id: float
+    primaryEmail: str
+    name: Name = None
+    aliases: list[str] | None = None
