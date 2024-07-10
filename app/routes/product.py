@@ -11,6 +11,7 @@ from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
+from app.form_render import form_render_for_product
 from app.models.product import ProductEnum
 
 product_router = APIRouter()
@@ -19,7 +20,7 @@ product_router = APIRouter()
 class ProductResponseModel(BaseModel):
     id: uuid.UUID
     name: str
-    product_schema: dict
+    product_schema: list
     created: datetime
     lastmodified: datetime
     approvalRequired: bool
@@ -77,7 +78,7 @@ async def get_product(product: ProductEnum, _param: dict = Depends(get_oauth_sch
 
 @product_router.post("/updateProductSchema", operation_id="updateProductSchema", response_model=dict)
 async def update_product_schema(
-    product: ProductEnum, product_schema: dict, _param: dict = Depends(get_oauth_scheme())
+    product: ProductEnum, product_schema: list[dict], _param: dict = Depends(get_oauth_scheme())
 ) -> dict:
     """
     @param product:
@@ -98,3 +99,13 @@ async def update_product_schema(
     except Exception as e:
         logger.error(f"Error updating product schema: {e}")
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating product schema")
+
+
+@product_router.get("/renderForm", operation_id="renderForm")
+async def render_form(product: ProductEnum, _: dict = Depends(get_oauth_scheme())) -> dict:
+    """
+    @param product:
+    @param _:
+    @return:
+    """
+    return await form_render_for_product(product.value.lower())
