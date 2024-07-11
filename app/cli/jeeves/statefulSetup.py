@@ -24,6 +24,7 @@ from redis import Redis
 from app.cli.jeeves.jeeves import JeevesSpec, ProductName
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+from app.cli.temporal.core.log import log_info
 from app.common import generate_password
 from app.onepasswordutil import OnePasswordUtil
 
@@ -132,6 +133,7 @@ class RedisService(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info("Service cache-new-service created successfully")
 
     def delete(self: "RedisService") -> None:
         """
@@ -206,9 +208,12 @@ class StateFullSet(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+
+        log_info(f"StatefulSet {self.name} created successfully")
         RedisService(self.jeeves).put()
         await asyncio.sleep(30)
         create_product_namespace(self.jeeves, self.k8s_dynamic_client)
+        log_info(f"Cache Namespace {ProductName} created successfully")
 
     def delete(self: "StateFullSet") -> None:
         """

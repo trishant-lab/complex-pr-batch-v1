@@ -1,6 +1,7 @@
 from app.cli.jeeves import TemplatePath
 from app.cli.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.common.keycloakUtils import KeycloakAdminClient
+from app.cli.temporal.core.log import log_info
 from app.common import generate_password
 from app.core.settings import AppSettings, get_settings
 from app.sendgrid_utils import send_mail
@@ -73,4 +74,6 @@ def onboard_success(jeeves: JeevesSpec) -> None:
     password = generate_password(10)
     reset_keycloak_user_password(jeeves=jeeves, password=password)
     send_customer_password_mail(jeeves=jeeves, password=password)
+
+    log_info(f"Tenant temporary credentials were sent {jeeves.email}")
     return

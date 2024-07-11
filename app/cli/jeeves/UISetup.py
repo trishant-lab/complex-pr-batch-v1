@@ -7,6 +7,7 @@ import boto3
 from loguru import logger
 
 from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
@@ -61,6 +62,8 @@ def deploy_ui(jeeves: JeevesSpec) -> None:
                     config=config,
                 )
 
+        log_info(f"UI deployed successfully to {dest_dir}")
+
     except Exception as e:
         logger.error(f"Failed to deploy UI: {e}")
         raise e
@@ -106,17 +109,3 @@ class UISetup:
         Delete UI bundle from S3
         """
         delete_ui_bundle(jeeves=self.jeeves)
-
-
-if __name__ == "__main__":
-    jeeves_ = JeevesSpec(
-        **{
-            "email": "sridhar.s@314ecorp.com",
-            "lastname": "S",
-            "firstName": "Sridhar",
-            "tenant": "jee",
-            "organization": "launchpad",
-            "contactNumber": "1234567890",
-        }
-    )
-    UISetup(jeeves=jeeves_).deploy()

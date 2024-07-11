@@ -4,6 +4,7 @@ from loguru import logger
 from app.cli.jeeves.jeeves import JeevesSpec, ProductName
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+from app.cli.temporal.core.log import log_info
 
 
 class VMPodScrapperServer(K8sResourceBaseClass):
@@ -57,6 +58,7 @@ class VMPodScrapperServer(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(f"VMPodScrapperServer created in namespace {self.jeeves.tenant}")
 
     def delete(self: "VMPodScrapperServer") -> None:
         """

@@ -4,6 +4,7 @@ from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, Notificati
 from novu.dto import IntegrationDto
 
 from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
 
@@ -671,3 +672,5 @@ class NovuSetup:
 
         # add the integration provider
         add_integration_provider(config=config, novu_api_key=api_keys)
+
+        log_info(f"Novu environment setup completed for tenant: {self.jeeves.tenant}")

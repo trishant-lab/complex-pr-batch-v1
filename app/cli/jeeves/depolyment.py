@@ -7,6 +7,7 @@ from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.jeeves.jeeves import ProductName
 from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.core.log import log_info
 from app.core.settings import get_settings, AppSettings
 from app.onepasswordutil import OnePasswordUtil
 
@@ -152,6 +153,7 @@ class DeploymentServer(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(f"Deployment {ProductName} created in namespace {self.jeeves.tenant}")
 
     def delete(self: "DeploymentServer") -> None:
         """
@@ -313,6 +315,7 @@ class DeploymentCli(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(f"Deployment jeeves-cli created in namespace {self.jeeves.tenant}")
 
     def delete(self: "DeploymentCli") -> None:
         """

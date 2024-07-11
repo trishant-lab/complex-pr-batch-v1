@@ -1,5 +1,7 @@
 import abc
 
+from temporalio.client import WorkflowHandle
+
 
 class ProductWorkflow(abc.ABC):
     """
@@ -33,5 +35,12 @@ class ProductWorkflow(abc.ABC):
     async def decline(schema: dict) -> None:
         """
         Decline a product
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    async def get_workflow_handle(schema: dict) -> WorkflowHandle:
+        """
+        Retry a product
         """
         raise NotImplementedError

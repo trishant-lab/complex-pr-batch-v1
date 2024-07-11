@@ -310,7 +310,7 @@ class AppSettings(BaseSettings):
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.314ecorp.tech"
 
-    grafana_url: str = ""
+    grafana_url: str = "https://monitor.314ecorp.tech"
     grafana_token: str = ""
 
     supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"

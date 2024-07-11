@@ -1,5 +1,6 @@
 from loguru import logger
 
+from app.cli.temporal.core.log import log_info
 from app.onepasswordutil import OnePasswordUtil
 from app.cli.jeeves.jeeves import JeevesSpec, ProductName
 from app.cli.postgresUtils import PostgresUtils
@@ -80,6 +81,8 @@ async def setup_postgres(jeeves: JeevesSpec) -> None:
         await postgres_utils.grant_user_all_privileges_on_table(
             table="matomo_log_link_visit_action_view", username=db_username
         )
+
+        log_info(f"Postgres setup for tenant {jeeves.tenant} completed successfully")
 
         return
     except Exception as e:

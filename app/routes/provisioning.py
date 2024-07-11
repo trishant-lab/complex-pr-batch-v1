@@ -1,12 +1,16 @@
+import datetime
+import re
 import uuid
 from typing import TYPE_CHECKING
 
 import orjson
+import requests
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from loguru import logger
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
+from temporalio.client import WorkflowHandle
 
 from .product import get_product
 from .tenant import create_tenant, TenantCreateRequestModel
@@ -215,3 +219,103 @@ async def retry_provisioning(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error retrying provisioning",
         )
+
+
+async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetime.datetime) -> dict:
+    """
+    Get Grafana logs
+    """
+    url = f"{config.grafana_url}/api/ds/query"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {config.grafana_token}"}
+    expr = f'{{name="launchpad_custom_logs"}} |= `workflow_id={workflow_id}` | json'
+
+    from_ = int(from_.timestamp()) * 1000
+    to_ = int(datetime.datetime.utcnow().timestamp()) * 1000
+
+    payload = orjson.dumps(
+        {
+            "queries": [
+                {
+                    "expr": expr,
+                    "queryType": "range",
+                    "refId": "loki-data-samples",
+                    "maxLines": 10,
+                    "supportingQueryType": "dataSample",
+                    "legendFormat": "",
+                    "datasource": {"type": "loki", "uid": "e4hhV8CGk"},
+                    "datasourceId": 2,
+                    "intervalMs": 10800000,
+                }
+            ],
+            "from": str(from_),
+            "to": str(to_),
+        }
+    )
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    response.raise_for_status()
+
+    logs = {}
+    for log in response.json()["results"]["loki-data-samples"]["frames"][0]["data"]["values"][0]:
+        loglevel_match = re.search(r"loglevel=(\w+)", log["message"])
+        activity_log = re.search(r"activity_name:[^ ]+ (.+)", log["message"])
+        activity_name = re.search(r"activity_name:([^ ]+)", log["message"])
+
+        loglevel = loglevel_match.group(1) if loglevel_match else None
+        activity_name_ = activity_name.group(1) if activity_name else None
+        activity_log_ = activity_log.group(1) if activity_log else None
+
+        if activity_name_ in logs:
+            logs[activity_name_].append({"loglevel": loglevel, "log": activity_log_})
+        else:
+            logs[activity_name_] = [{"loglevel": loglevel, "log": activity_log_}]
+    return logs
+
+
+@provisioning_router.get("/workflowSteps", operation_id="workflowSteps")
+async def get_workflow_steps(
+    product: ProductEnum,
+    tenant_id: uuid.UUID,
+    _param: dict = Depends(get_oauth_scheme()),
+) -> list[dict]:
+    """
+    Get workflow steps and logs
+    """
+    config: AppSettings = get_settings()
+    try:
+        db: DBManager = await get_db_manager(config.postgres.dsn)
+        response = await db.fetch_one("getTenant.sql", tenant_id=str(tenant_id))
+        schema = orjson.loads(response["schema"])
+    except Exception as e:
+        logger.error(f"Error fetching tenant: {e}")
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
+
+    product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
+
+    workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=schema)
+
+    history = await workflow_handle.fetch_history()
+
+    workflow_steps = {}
+    for event in history.to_json_dict()["events"]:
+        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_SCHEDULED"]:
+            workflow_steps[event["eventId"]] = {
+                "activityName": event["activityTaskScheduledEventAttributes"]["activityType"]["name"],
+                "status": "scheduled",
+            }
+
+        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_STARTED"]:
+            workflow_steps.get(event["activityTaskStartedEventAttributes"]["scheduledEventId"]).update(
+                {"status": "started"}
+            )
+        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_COMPLETED"]:
+            workflow_steps.get(event["activityTaskCompletedEventAttributes"]["scheduledEventId"]).update(
+                {"status": "completed"}
+            )
+
+    logs = await get_grafana_logs(config, workflow_id=workflow_handle.id, from_=response.get("created"))
+
+    [activity.update({"logs": logs.get(activity["activityName"], [])}) for activity in workflow_steps.values()]
+
+    return list(workflow_steps.values())
