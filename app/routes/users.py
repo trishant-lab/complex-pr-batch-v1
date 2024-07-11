@@ -39,16 +39,21 @@ def get_roles(kc_agent: KeycloakAdminClient, user_id: UUID, config: AppSettings)
 
 
 @user_router.get(
-    "/allUsers",
+    "",
     response_model=list[UserResponseModel] | None,
-    operation_id="getAllUsers",
+    operation_id="getUsers",
     summary="Returns all users in the keycloak realm",
 )
-async def get_keycloak_users(_: dict = Depends(get_oauth_scheme())) -> list[UserResponseModel]:
+async def get_keycloak_users(
+    user_id: None | str = None, _: dict = Depends(get_oauth_scheme())
+) -> list[UserResponseModel]:
     """
     Returns all users in the keycloak realm
     :return:
     """
+    if user_id:
+        return [await get_user_by_id(user_id=user_id)]
+
     config: AppSettings = get_settings()
 
     keycloak_admin_client = KeycloakAdminClient(config=config.keycloak)
