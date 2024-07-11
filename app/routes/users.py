@@ -216,7 +216,6 @@ async def update_user(
 
     config: AppSettings = get_settings()
     payload: dict = {
-        "username": user.email.lower() if user.email else None,
         "email": user.email.lower() if user.email else None,
         "firstName": user.first_name if user.first_name else None,
         "lastName": user.last_name if user.last_name else None,

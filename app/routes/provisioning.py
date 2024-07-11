@@ -7,7 +7,7 @@ import orjson
 import requests
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from loguru import logger
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 from starlette.requests import Request
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
 from temporalio.client import WorkflowHandle
@@ -221,6 +221,17 @@ async def retry_provisioning(
         )
 
 
+class Logs(BaseModel):
+    loglevel: str
+    log: str
+
+
+class WorkflowSteps(BaseModel):
+    activityName: str
+    status: str
+    logs: list[Logs]
+
+
 async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetime.datetime) -> dict:
     """
     Get Grafana logs
@@ -230,7 +241,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
     expr = f'{{name="launchpad_custom_logs"}} |= `workflow_id={workflow_id}` | json'
 
     from_ = int(from_.timestamp()) * 1000
-    to_ = int(datetime.datetime.utcnow().timestamp()) * 1000
+    to_ = int(datetime.datetime.now().timestamp()) * 1000
 
     payload = orjson.dumps(
         {
@@ -250,7 +261,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
             "from": str(from_),
             "to": str(to_),
         }
-    )
+    ).decode()
 
     response = requests.request("POST", url, headers=headers, data=payload)
 
@@ -264,7 +275,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
 
         loglevel = loglevel_match.group(1) if loglevel_match else None
         activity_name_ = activity_name.group(1) if activity_name else None
-        activity_log_ = activity_log.group(1) if activity_log else None
+        activity_log_ = activity_log.group(1).strip().replace('"', "") if activity_log else None
 
         if activity_name_ in logs:
             logs[activity_name_].append({"loglevel": loglevel, "log": activity_log_})
@@ -278,7 +289,7 @@ async def get_workflow_steps(
     product: ProductEnum,
     tenant_id: uuid.UUID,
     _param: dict = Depends(get_oauth_scheme()),
-) -> list[dict]:
+) -> list[WorkflowSteps]:
     """
     Get workflow steps and logs
     """
@@ -318,4 +329,4 @@ async def get_workflow_steps(
 
     [activity.update({"logs": logs.get(activity["activityName"], [])}) for activity in workflow_steps.values()]
 
-    return list(workflow_steps.values())
+    return [WorkflowSteps(**activity) for activity in workflow_steps.values()]
