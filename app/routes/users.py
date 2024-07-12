@@ -35,7 +35,11 @@ def get_roles(kc_agent: KeycloakAdminClient, user_id: UUID, config: AppSettings)
     )
     assigned_roles = kc_agent.kc_client.connection.raw_get(url)
 
-    return [RoleResponseModel.json_to_model(role) for role in assigned_roles.json()]
+    return [
+        RoleResponseModel.json_to_model(role)
+        for role in assigned_roles.json()
+        if role["name"] not in ["default-roles-launchpad", "uma_authorization", "offline_access"]
+    ]
 
 
 @user_router.get(
@@ -221,8 +225,6 @@ async def update_user(
         "lastName": user.last_name if user.last_name else None,
         "enabled": user.status,
     }
-
-    print(payload)
 
     kc_agent.kc_client.realm_name = config.keycloak.realm
     kc_agent.kc_client.update_user(user_id=user.user_id, payload=payload)
