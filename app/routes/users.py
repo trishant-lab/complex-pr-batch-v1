@@ -99,7 +99,9 @@ def fetch_assignable_roles(keycloak_admin_client: KeycloakAdminClient, config: A
     fetch assignable roles for the user
     """
     return [
-        RoleResponseModel(**role) for role in keycloak_admin_client.get_realm_roles(realm_name=config.keycloak.realm)
+        RoleResponseModel(**role)
+        for role in keycloak_admin_client.get_realm_roles(realm_name=config.keycloak.realm)
+        if role["name"] not in ["default-roles-launchpad", "uma_authorization", "offline_access"]
     ]
 
 
@@ -185,18 +187,16 @@ async def post_user(
 
     config: AppSettings = get_settings()
     payload: dict = {
-        "username": user.email.lower(),
+        "username": user.username,
         "email": user.email.lower(),
-        "emailVerified": user.emailVerified,
-        "enabled": user.enabled,
-        "firstName": user.firstName,
-        "lastName": user.lastName,
+        "firstName": user.first_name,
+        "lastName": user.last_name,
+        "enabled": user.status,
     }
 
-    user_details = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm)
-    update_roles(
-        user_id=user_details["user_id"], added_roles=user.roles, deleted_roles=None, config=config, kc_agent=kc_agent
-    )
+    user_id: str = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm)
+
+    update_roles(user_id=UUID(user_id), added_roles=user.roles, deleted_roles=None, config=config, kc_agent=kc_agent)
 
 
 @user_router.put(
@@ -219,7 +219,10 @@ async def update_user(
         "email": user.email.lower() if user.email else None,
         "firstName": user.first_name if user.first_name else None,
         "lastName": user.last_name if user.last_name else None,
+        "enabled": user.status,
     }
+
+    print(payload)
 
     kc_agent.kc_client.realm_name = config.keycloak.realm
     kc_agent.kc_client.update_user(user_id=user.user_id, payload=payload)

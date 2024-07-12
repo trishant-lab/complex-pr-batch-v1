@@ -46,6 +46,7 @@ class CreateUserRequestModel(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     roles: list[RoleResponseModel] | None = None
+    status: bool = True
 
 
 class UpdateUserRequestModel(BaseModel):
@@ -55,6 +56,7 @@ class UpdateUserRequestModel(BaseModel):
     email: str | None = None
     added_roles: list[RoleResponseModel] | None = None
     deleted_roles: list[RoleResponseModel] | None = None
+    status: bool = True
 
 
 class GSuiteUser(BaseModel):
