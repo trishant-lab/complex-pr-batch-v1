@@ -4003,95 +4003,85 @@ jQuery(($) => {
         markup.formRender(formRenderOpts);
 
         const script1 = `
-          const asterick=document.querySelectorAll(".formbuilder-required");
+          let asterick=document.querySelectorAll(".formbuilder-required");
           if(asterick.length>0){
           asterick.forEach((ele)=>ele.innerText=" *");
           }
 
-          const organizationLabel=document.getElementById("organization-label");
+          let organizationLabel=document.getElementById("organization-label");
           if(organizationLabel){
-          const x=document.createElement("span");
+          let x=document.createElement("span");
           x.innerText="Organization";
           organizationLabel.insertBefore(x,organizationLabel.firstChild);
           }
 
-          const tenantNameLabel=document.getElementById("tenant-name-label");
+          let tenantNameLabel=document.getElementById("tenant-name-label");
           if(tenantNameLabel){
-          const x=document.createElement("span");
+          let x=document.createElement("span");
           x.innerText="Tenant Name";
           tenantNameLabel.insertBefore(x,tenantNameLabel.firstChild);
           }
 
-        const suggestionsContainer = document.createElement("div");
+          function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        let suggestionsContainer = document.createElement("div");
         suggestionsContainer.classList.add("suggestions-container");
-        const updateSuggestions = (suggestions) => {
+        let updateSuggestions = (suggestions) => {
         if (suggestions.length === 0) {
           suggestionsContainer.innerHTML = "";
           return;
         }
         suggestionsContainer.innerHTML = "Suggestions: ";
         suggestions.forEach((suggestion, index) => {
-      const suggestionItem = document.createElement("span");
+      let suggestionItem = document.createElement("span");
       suggestionItem.style.cursor = "pointer";
       suggestionItem.style.color = "blue";
       suggestionItem.innerText = suggestion;
       suggestionItem.addEventListener("click", () => {
-        const tenantSuggestions = document.querySelector(".tenant-name-input");
+        let tenantSuggestions = document.querySelector(".tenant-name-input");
         tenantSuggestions.value = suggestion;
       });
       suggestionsContainer.appendChild(suggestionItem);
       if (index < suggestions.length - 1) {
         suggestionsContainer.appendChild(document.createTextNode(", "));
       }
-    });
-    const tenantParentEle = document.getElementById("parent-div");
-    if (tenantParentEle) {
-      tenantParentEle.appendChild(suggestionsContainer);
-    }
-  };
-    const input = document.querySelector(".organization-input");
-          input.addEventListener("input", async (event) => {
-            const query = event.target.value;
-            if (query.length > 2) {
-              try {
-                const response = await fetch(\`https://launchpad.314ecorp.tech/api/v1/tenant/suggestTenantNames?organization=\${query}\`);
-                const suggestions = await response.json();
-                updateSuggestions(suggestions);
-              } catch (error) {
-                console.error("Error fetching suggestions:", error);
-              }
-            } else {
-              updateSuggestions([]);
-            }
-          });
-        `;
+     });
+      let tenantParentEle = document.getElementById("parent-div");
+      if (tenantParentEle) {
+        tenantParentEle.appendChild(suggestionsContainer);
+      }
+    };
 
-        const styles = `
-            .form-control{
-            font-family:'Inter' !important;
-            color:#262626;
-            margin-top:4px;
-            border:1px solid #d9d9d9;
+      async function fetchSuggestions(query) {
+            if (query.length > 2) {
+                try {
+                    let response = await fetch(\`https://launchpad.314ecorp.tech/api/v1/tenant/suggestTenantNames?organization=\${query}\`);
+                    let suggestions = await response.json();
+                    updateSuggestions(suggestions);
+                } catch (error) {
+                    console.error("Error fetching suggestions:", error);
+                }
+            } else {
+                updateSuggestions([]);
             }
-            .form-control:focus-visible{
-            border:1px solid #262626;
-            }
-            .suggestions-container,
-            label{
-            font-family:'Inter';
-            font-size: 14px;
-            color:#262626;
-            }
-            .suggestions-container{
-            overflow-x:scroll;
-            white-space:nowrap;
-            }
-            .rendered-form{
-            padding:24px;
-            }
-            .form-control:focus{
-            box-shadow:none !important;
-            }
+        }
+
+        const debouncedFetchSuggestions = debounce(fetchSuggestions, 500);
+
+        document.querySelector(".organization-input").addEventListener("input", (event) => {
+            let query = event.target.value;
+            debouncedFetchSuggestions(query);
+        });
         `;
 
         finalHtml = `${markup.formRender("html")}`;
@@ -4102,7 +4092,7 @@ jQuery(($) => {
 
         fs.writeFile(
           `${outputDir}/${path.parse(file).name}.json`,
-          JSON.stringify({ html: finalHtml, script: script1, styles: styles }),
+          JSON.stringify({ html: finalHtml, script: script1 }),
           (err) => {
             // In case of a error throw err.
             if (err) throw err;
@@ -4169,10 +4159,10 @@ const tenantName = (data) => {
   input.classList.add("tenant-name-input");
   input.classList.add("form-control");
   input.required = true;
-  input.placeholder = data.placeholder || "";
+  input.ariaRequired = true;
+  input.placeholder = "Enter the tenant name";
 
   parent.appendChild(label);
-  parent.appendChild(document.createElement("br"));
   parent.appendChild(input);
   container.appendChild(parent);
   return container;
@@ -4198,10 +4188,10 @@ const organization = (data) => {
   input.classList.add("form-control");
   input.classList.add("organization-input");
   input.required = true;
-  input.placeholder = data.placeholder || "";
+  input.ariaRequired = true;
+  input.placeholder = "Enter the organization name";
 
   parent.appendChild(label);
-  parent.appendChild(document.createElement("br"));
   parent.appendChild(input);
 
   return parent;
