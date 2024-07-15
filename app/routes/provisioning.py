@@ -210,6 +210,7 @@ async def retry_provisioning(
         schema = orjson.loads(response["schema"])
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(schema)
+        await product_workflow.approve(schema)
 
         # await product_workflow.approve(schema)
         logger.info(f"Retried provisioning workflow for tenant: {response['name']}")
