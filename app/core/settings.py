@@ -186,7 +186,7 @@ class JeevesSettings(BaseModel):
 
     r2_url: str = ""
     r2_access_key: str = ""
-    r2_secret_key: str = ""
+    r2_secret: str = ""
     r2_bucket: str = ""
 
 

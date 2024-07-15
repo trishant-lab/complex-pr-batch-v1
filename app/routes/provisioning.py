@@ -327,8 +327,21 @@ async def get_workflow_steps(
                 {"status": "completed"}
             )
 
+        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_FAILED"]:
+            workflow_steps.get(event["activityTaskFailedEventAttributes"]["scheduledEventId"]).update(
+                {
+                    "status": "failed",
+                    "logs": [
+                        {"log": event["activityTaskFailedEventAttributes"]["failure"]["message"], "loglevel": "ERROR"}
+                    ],
+                }
+            )
+
     logs = await get_grafana_logs(config, workflow_id=workflow_handle.id, from_=response.get("created"))
 
-    [activity.update({"logs": logs.get(activity["activityName"], [])}) for activity in workflow_steps.values()]
+    [
+        activity.update({"logs": logs.get(activity["activityName"], activity.get("logs", []))})
+        for activity in workflow_steps.values()
+    ]
 
     return [WorkflowSteps(**activity) for activity in workflow_steps.values()]
