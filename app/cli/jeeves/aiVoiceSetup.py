@@ -16,6 +16,6 @@ def add_ai_voices_to_storage(jeeves: JeevesSpec) -> None:
     copy_files_to_s3(input_path=source_folder_path, output_path=dest_folder_path, config=config)
 
     os.system(f"mc alias set r2 {config.jeeves.r2_url} {config.jeeves.r2_access_key} {config.jeeves.r2_secret_key}")  # nosec
-    os.system(f"mc mirror --remove --overwrite {source_folder_path} {dest_folder_path}")  # nosec
+    os.system(f"mc cp -r {source_folder_path} {dest_folder_path}")  # nosec
 
     log_info("AI voices are added successfully.")

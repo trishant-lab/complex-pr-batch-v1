@@ -250,7 +250,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
                     "expr": expr,
                     "queryType": "range",
                     "refId": "loki-data-samples",
-                    "maxLines": 10,
+                    "maxLines": 5000,
                     "supportingQueryType": "dataSample",
                     "legendFormat": "",
                     "datasource": {"type": "loki", "uid": "e4hhV8CGk"},
