@@ -278,7 +278,8 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
         activity_log_ = activity_log.group(1).strip().replace('"', "") if activity_log else None
 
         if activity_name_ in logs:
-            logs[activity_name_].append({"loglevel": loglevel, "log": activity_log_})
+            if activity_log_ not in [log["log"] for log in logs[activity_name_]]:
+                logs[activity_name_].append({"loglevel": loglevel, "log": activity_log_})
         else:
             logs[activity_name_] = [{"loglevel": loglevel, "log": activity_log_}]
     return logs
