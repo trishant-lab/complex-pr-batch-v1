@@ -74,12 +74,12 @@ async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict =
 
 
 @tenant_router.get(
-    "",
+    "/{product}",
     operation_id="Tenants",
     response_model=list[TenantResponseModel] | None,
 )
 async def list_tenants(
-    product: ProductEnum, tenant_id: uuid.UUID | None = None, _param: dict = Depends(get_oauth_scheme())
+    product: ProductEnum = Path(...), tenant_id: uuid.UUID | None = None, _param: dict = Depends(get_oauth_scheme())
 ) -> list[TenantResponseModel]:
     """
     @param product:
@@ -87,24 +87,25 @@ async def list_tenants(
     @param _param:
     @return:
     """
-    config: AppSettings = get_settings()
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        parameters = {"tenant_id": str(tenant_id) if tenant_id else None, "product": product.value.lower()}
-        response = await db.fetch_all("listTenants.sql", **parameters)
-
-        output_response = []
-        for tenant in response:
-            tenant = dict(tenant)
-            tenant["requestor"] = orjson.loads(tenant["requestor_details"])
-            tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
-            output_response.append(TenantResponseModel(**tenant))
-
-        return output_response
-
-    except Exception as e:
-        logger.error(f"Error fetching tenants: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants")
+    pass
+    # config: AppSettings = get_settings()
+    # try:
+    #     db: DBManager = await get_db_manager(config.postgres.dsn)
+    #     parameters = {"tenant_id": str(tenant_id) if tenant_id else None, "product": product.value.lower()}
+    #     response = await db.fetch_all("listTenants.sql", **parameters)
+    #
+    #     output_response = []
+    #     for tenant in response:
+    #         tenant = dict(tenant)
+    #         tenant["requestor"] = orjson.loads(tenant["requestor_details"])
+    #         tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
+    #         output_response.append(TenantResponseModel(**tenant))
+    #
+    #     return output_response
+    #
+    # except Exception as e:
+    #     logger.error(f"Error fetching tenants: {e}")
+    #     raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants")
 
 
 @tenant_router.get(
@@ -216,7 +217,7 @@ async def suggest_tenant_names(organization: str) -> list:
 
 
 @tenant_router.get(
-    "/{tenant_name}",
+    "validateTenantName/{tenant_name}",
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(

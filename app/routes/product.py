@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 import orjson
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from loguru import logger
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
@@ -76,9 +76,9 @@ async def get_product(product: ProductEnum, _param: dict = Depends(get_oauth_sch
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching product")
 
 
-@product_router.post("/updateProductSchema", operation_id="updateProductSchema", response_model=dict)
+@product_router.post("/updateProductSchema/{product}", operation_id="updateProductSchema", response_model=dict)
 async def update_product_schema(
-    product: ProductEnum, product_schema: list[dict], _param: dict = Depends(get_oauth_scheme())
+    product_schema: list[dict], product: ProductEnum = Path(...), _param: dict = Depends(get_oauth_scheme())
 ) -> dict:
     """
     @param product:
@@ -102,10 +102,9 @@ async def update_product_schema(
 
 
 @product_router.get("/renderForm", operation_id="renderForm")
-async def render_form(product: ProductEnum, _: dict = Depends(get_oauth_scheme())) -> dict:
+async def render_form(product: ProductEnum) -> dict:
     """
     @param product:
-    @param _:
     @return:
     """
     return await form_render_for_product(product.value.lower())

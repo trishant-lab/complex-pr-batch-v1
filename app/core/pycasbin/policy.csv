@@ -6,16 +6,24 @@ p, PUBLIC, /metrics, GET
 
 p, PUBLIC, /api/v1/openapi.json, GET
 
-p, ADMINS, /api/v1/product, GET
-p, ADMINS, /api/v1/product/getProductByName, GET
-p, ADMINS, /api/v1/product/updateProductSchema, POST
-p, ADMINS, /api/v1/product/renderForm, GET
+p, product_view, /api/v1/product, GET
+p, product_view, /api/v1/product/getProductByName, GET
+
+p, ADMINS, /api/v1/product/updateProductSchema/{product}, POST
+p, jeeves_edit, /api/v1/product/updateProductSchema/Jeeves, POST
+p, dexit_edit, /api/v1/product/updateProductSchema/Dexit, POST
+
+p, PUBLIC, /api/v1/product/renderForm, GET
 
 p, ADMINS, /api/v1/tenant, POST
-p, ADMINS, /api/v1/tenant, GET
+
+p, ADMINS, /api/v1/tenant/{product}, GET
+p, jeeves_view, /api/v1/tenant/Jeeves, GET
+p, dexit_view, /api/v1/tenant/Dexit, GET
+
 p, ADMINS, /api/v1/tenant/updateRequestorDetails, PUT
 p, PUBLIC, /api/v1/tenant/suggestTenantNames, GET
-p, PUBLIC, /api/v1/tenant/{tenant_name}, GET
+p, PUBLIC, /api/v1/tenant/validateTenantName/{tenant_name}, GET
 
 p, ADMINS, /api/v1/provisioning, POST
 p, ADMINS, /api/v1/provisioning/approveOrDecline, POST
@@ -34,4 +42,15 @@ p, ADMINS, /api/v1/User/getGSuiteUsersList, GET
 
 
 g, ADMINS, Admin
+
+g, product_view, Admin
+g, product_view, JEEVES_VIEW
+g, product_view, DEXIT_VIEW
+
+g, jeeves_view, JEEVES_VIEW
+g, jeeves_edit, JEEVES_EDIT
+
+g, dexit_view, DEXIT_VIEW
+g, dexit_edit, DEXIT_EDIT
+
 g, PUBLIC, NO_AUTH
