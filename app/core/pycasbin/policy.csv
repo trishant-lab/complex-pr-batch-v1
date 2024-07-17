@@ -32,6 +32,9 @@ p, ADMINS, /api/v1/User/getUserById, GET
 p, ADMINS, /api/v1/User/roles, GET
 p, ADMINS, /api/v1/User/getGSuiteUsersList, GET
 
+p, ADMINS, /api/v1/EmailTemplate/{product}, GET
+p, ADMINS, /api/v1/EmailTemplate/{product}, PUT
+
 
 g, ADMINS, Admin
 g, PUBLIC, NO_AUTH

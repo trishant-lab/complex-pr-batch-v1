@@ -304,6 +304,10 @@ async def get_workflow_steps(
         logger.error(f"Error fetching tenant: {e}")
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
 
+    # if created date is more than 30days, return empty list
+    if datetime.datetime.now() - response.get("created").days >= 30:
+        return []
+
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=schema)
