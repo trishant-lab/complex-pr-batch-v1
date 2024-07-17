@@ -29,6 +29,8 @@ p, ADMINS, /api/v1/deprovisioning, POST
 p, ADMINS, /api/v1/User, POST
 p, ADMINS, /api/v1/User, PUT
 p, ADMINS, /api/v1/User, GET
+p, ADMINS, /api/v1/User, DELETE
+
 p, ADMINS, /api/v1/User/getUserById, GET
 p, ADMINS, /api/v1/User/roles, GET
 p, ADMINS, /api/v1/User/getGSuiteUsersList, GET
