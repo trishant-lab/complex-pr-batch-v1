@@ -17,7 +17,8 @@ p, ADMINS, /api/v1/tenant/updateRequestorDetails, PUT
 p, PUBLIC, /api/v1/tenant/suggestTenantNames, GET
 p, PUBLIC, /api/v1/tenant/{tenant_name}, GET
 
-p, ADMINS, /api/v1/provisioning, POST
+p, PUBLIC, /api/v1/provisioning, POST
+
 p, ADMINS, /api/v1/provisioning/approveOrDecline, POST
 p, ADMINS, /api/v1/provisioning/retryProvisioning, POST
 p, ADMINS, /api/v1/provisioning/workflowSteps, GET
