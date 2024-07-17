@@ -32,7 +32,7 @@ class DexitSpec(LaunchpadCLIBaseModel):
 
     tenant: str
     firstName: str
-    lastname: str
+    lastName: str
     email: str
     organization: str
     contactNumber: str
