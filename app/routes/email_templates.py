@@ -52,4 +52,4 @@ async def update_email_template(
         logger.error(f"Error updating template: {e}")
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating email template")
 
-    return {"message": f"Email template updated successfully for product: {product}"}
+    return {"message": f"Email template updated successfully for product: {product.value}"}
