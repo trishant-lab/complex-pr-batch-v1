@@ -93,7 +93,6 @@ async def provisioning(
     schema: dict,
     request: Request,
     skip_approval: bool = False,
-    _param: dict = Depends(get_oauth_scheme()),
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ) -> None:
     """
@@ -108,7 +107,7 @@ async def provisioning(
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid schema")
 
     user_id: dict = request.scope.get("user", {}).get("sub")
-    product_details = await get_product(product=product, _param=_param)
+    product_details = await get_product(product=product)
     if not product_details:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
     product_details = dict(product_details)
@@ -130,7 +129,6 @@ async def provisioning(
             approvedBy=user_id if skip_approval else None,
             schema_=orjson.dumps(schema).decode("utf-8"),
         ),
-        _param=_param,
     )
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()

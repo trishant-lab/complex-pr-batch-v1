@@ -20,7 +20,7 @@ from app.models.tenant import (
 tenant_router = APIRouter()
 
 
-async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def create_requestor(requestor: dict) -> dict:
     """
     @param requestor:
     @param _param:
@@ -49,15 +49,14 @@ async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_sch
     "",
     operation_id="createTenant",
 )
-async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
     """
     @param tenant_details:
-    @param _param:
     @return:
     """
     config: AppSettings = get_settings()
 
-    requestor = await create_requestor(tenant_details.requestor, _param=_param)
+    requestor = await create_requestor(tenant_details.requestor)
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
         return dict(
