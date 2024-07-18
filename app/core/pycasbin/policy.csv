@@ -9,7 +9,7 @@ p, PUBLIC, /api/v1/openapi.json, GET
 p, ADMINS, /api/v1/product, GET
 p, ADMINS, /api/v1/product/getProductByName, GET
 p, ADMINS, /api/v1/product/updateProductSchema, POST
-p, ADMINS, /api/v1/product/renderForm, GET
+p, PUBLIC, /api/v1/product/renderForm, GET
 
 p, PUBLIC, /api/v1/tenant, POST
 p, ADMINS, /api/v1/tenant, GET

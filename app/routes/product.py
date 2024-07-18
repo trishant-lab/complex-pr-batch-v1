@@ -102,7 +102,7 @@ async def update_product_schema(
 
 
 @product_router.get("/renderForm", operation_id="renderForm")
-async def render_form(product: ProductEnum, _: dict = Depends(get_oauth_scheme())) -> dict:
+async def render_form(product: ProductEnum) -> dict:
     """
     @param product:
     @param _:
