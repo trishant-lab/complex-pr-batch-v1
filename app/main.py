@@ -38,7 +38,8 @@ origins: list = [
     "https://api-definitions.314ecorp.tech",
     "https://softwareartistry.github.io",
     "https://launchpad.314ecorp.tech",
-    "https://test.314e-website.pages.dev" "https://314e.com",
+    "https://test.314e-website.pages.dev",
+    "https://314e.com",
 ]
 
 
