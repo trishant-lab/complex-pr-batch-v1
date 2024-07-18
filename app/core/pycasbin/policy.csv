@@ -18,6 +18,7 @@ p, PUBLIC, /api/v1/tenant/suggestTenantNames, GET
 p, PUBLIC, /api/v1/tenant/{tenant_name}, GET
 
 p, PUBLIC, /api/v1/provisioning, POST
+p, PUBLIC, /api/v1/provisioning/validateEmail, GET
 
 p, ADMINS, /api/v1/provisioning/approveOrDecline, POST
 p, ADMINS, /api/v1/provisioning/retryProvisioning, POST
