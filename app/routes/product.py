@@ -1,13 +1,15 @@
+import tempfile
 import uuid
 from datetime import datetime
 
 import orjson
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from loguru import logger
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
+from app import s3_utils
 from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
@@ -76,13 +78,38 @@ async def get_product(product: ProductEnum, _param: dict = Depends(get_oauth_sch
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching product")
 
 
+async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
+    """
+    @param product:
+    @return:
+    """
+    config: AppSettings = get_settings()
+    form: dict = await form_render_for_product(product.value.lower())
+
+    boto3_client = s3_utils.get_r2_storage_client(config=config)
+    form_path = f"{product.value.lower()}/form.json"
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        form_file_path = f"{tmp_dir}/form.json"
+        with open(form_file_path, "w") as f:
+            f.write(orjson.dumps(form).decode("utf-8"))
+
+        s3_utils.upload_file_to_storage(
+            file_path=form_file_path, object_name=form_path, bucket_name=config.r2.bucket, storage_client=boto3_client
+        )
+
+
 @product_router.post("/updateProductSchema", operation_id="updateProductSchema", response_model=dict)
 async def update_product_schema(
-    product: ProductEnum, product_schema: list[dict], _param: dict = Depends(get_oauth_scheme())
+    product: ProductEnum,
+    product_schema: list[dict],
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    _param: dict = Depends(get_oauth_scheme()),
 ) -> dict:
     """
     @param product:
     @param product_schema:
+    @param background_tasks:
     @param _param:
     @return:
     """
@@ -94,6 +121,8 @@ async def update_product_schema(
             product_name=product.value.lower(),
             product_schema=orjson.dumps(product_schema).decode("utf-8"),
         )
+
+        background_tasks.add_task(upload_form_to_r2_bucket, product)
 
         return {"message": "Updated product schema successfully"}
     except Exception as e:
