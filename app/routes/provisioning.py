@@ -84,6 +84,29 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     send_slack_msg(text=text, blocks=blocks)
 
 
+def validate_email(email: str) -> bool:
+    """
+    Validate email address
+    """
+    # List of public domains to exclude
+    public_domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
+
+    # Regular expression for basic email validation
+    email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+
+    if not re.match(email_regex, email):
+        return False
+
+    # Extract the domain part of the email
+    domain = email.split("@")[1]
+
+    # Check if the domain is in the list of public domains
+    if domain in public_domains:
+        return False
+
+    return True
+
+
 @provisioning_router.post(
     "",
     operation_id="provisioning",
@@ -98,6 +121,11 @@ async def provisioning(
     """
     Trigger provisioning workflow for the given product
     """
+    if not validate_email(schema.get("email")):
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST, detail="Invalid email address, Please provide a valid work email address"
+        )
+
     try:
         schema["tenant"] = schema.get("tenantName") if schema.get("tenantName") else schema.get("tenant")
         product_model = ProductEnum.get_input_model_class(product)
