@@ -34,7 +34,11 @@ async def get_email_template(
 
 @email_template_router.put("/{product}", operation_id="updateEmailTemplate")
 async def update_email_template(
-    template: str, template_id: UUID, product: ProductEnum = Path(...), _param: dict = Depends(get_oauth_scheme())
+    template: str,
+    subject: str,
+    template_id: UUID,
+    product: ProductEnum = Path(...),
+    _param: dict = Depends(get_oauth_scheme()),
 ) -> dict:
     """
     Update email template
@@ -46,6 +50,7 @@ async def update_email_template(
             "product": product.value,
             "template_id": str(template_id) if template_id else None,
             "template": template,
+            "subject": subject,
         }
         await db.fetch_one("updateEmailTemplate.sql", **parameters)
     except Exception as e:
