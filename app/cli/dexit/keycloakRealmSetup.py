@@ -143,7 +143,7 @@ def create_tenant_customer_admin_user(
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_user.json")
     user_config = template.render(
-        username=f"{dexit.firstName}_{dexit.lastname}",
+        username=f"{dexit.firstName}_{dexit.lastName}",
         email=dexit.email,
     )
     keycloak_client.refresh_token()
@@ -153,12 +153,12 @@ def create_tenant_customer_admin_user(
 
     keycloak_client.assign_client_role(
         client_id=client_uuid,
-        user_id=keycloak_client.get_user_id(username=f"{dexit.firstName}_{dexit.lastname}", realm_name=realm_name),
+        user_id=keycloak_client.get_user_id(username=f"{dexit.firstName}_{dexit.lastName}", realm_name=realm_name),
         roles=roles,
         realm_name=realm_name,
     )
 
-    log_info(f"Created customer admin user {dexit.firstName}_{dexit.lastname} successfully.")
+    log_info(f"Created customer admin user {dexit.firstName}_{dexit.lastName} successfully.")
 
 
 def create_client_roles(client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:

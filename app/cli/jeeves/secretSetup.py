@@ -3,6 +3,7 @@ from kubernetes.client import V1ObjectMeta, V1Secret
 from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+from app.cli.temporal.core.log import log_info
 
 
 class Secret(K8sResourceBaseClass):
@@ -58,6 +59,7 @@ class Secret(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(f"Secret {self.name} created successfully")
 
     def delete(self: "Secret") -> None:
         """

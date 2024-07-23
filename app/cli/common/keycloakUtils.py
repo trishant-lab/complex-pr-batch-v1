@@ -61,7 +61,7 @@ class KeycloakAdminClient:
             self.kc_client.delete_realm(realm_name)
         return
 
-    def create_user(self: "KeycloakAdminClient", user_config: dict, realm_name: str) -> dict:
+    def create_user(self: "KeycloakAdminClient", user_config: dict, realm_name: str) -> str | dict:
         """
         Create keycloak user
         """

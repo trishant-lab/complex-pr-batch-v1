@@ -46,7 +46,7 @@ class NamespaceSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="namespace_setup_activity")
+    @activity.defn(name="NamespaceSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -71,7 +71,7 @@ class ConfigmapSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="configmap_setup_activity")
+    @activity.defn(name="ConfigmapSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -98,7 +98,7 @@ class PVCSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="pvc_setup_activity")
+    @activity.defn(name="PVCSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -123,7 +123,7 @@ class SecretSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="secret_setup_activity")
+    @activity.defn(name="SecretSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -164,7 +164,7 @@ class StateFullSetSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="state_full_set_setup_activity")
+    @activity.defn(name="StateFullSetSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -189,7 +189,7 @@ class DnsSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="dns_setup_activity")
+    @activity.defn(name="DnsSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -214,7 +214,7 @@ class UiSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="ui_setup_activity")
+    @activity.defn(name="UiSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -239,7 +239,7 @@ class KeycloakRealmSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="keycloak_realm_setup_activity")
+    @activity.defn(name="KeycloakRealmSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -264,7 +264,7 @@ class NovuSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="novu_setup_activity")
+    @activity.defn(name="NovuSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -289,7 +289,7 @@ class ProvisioningJobActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="provisioning_job_activity")
+    @activity.defn(name="ProvisioningJobActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -320,7 +320,7 @@ class KubernetesServiceActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="kubernetes_service_activity")
+    @activity.defn(name="KubernetesServiceActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -345,7 +345,7 @@ class KubernetesVirtualServiceActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="kubernetes_virtual_service_activity")
+    @activity.defn(name="KubernetesVirtualServiceActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -370,7 +370,7 @@ class DeploymentActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="deployment_activity")
+    @activity.defn(name="DeploymentActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -396,7 +396,7 @@ class VmPodScraperActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="vm_pod_scraper_activity")
+    @activity.defn(name="VmPodScraperActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -432,7 +432,7 @@ class UpdateTenantStatusActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="update_tenant_status_activity")
+    @activity.defn(name="UpdateTenantStatusActivity")
     async def defn(activity_input: TenantStatus) -> None:
         """
         Callable for the activity
@@ -466,7 +466,7 @@ class ChatwootSetupActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="chatwoot_setup_activity")
+    @activity.defn(name="ChatwootSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -491,7 +491,7 @@ class TemporalNamespaceCreationActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="temporal_namespace_creation_activity")
+    @activity.defn(name="TemporalNamespaceCreationActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -512,11 +512,11 @@ class AiVoiceSetupActivity(Activity):
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
             maximum_interval=timedelta(seconds=10),
-            maximum_attempts=5,
+            maximum_attempts=2,
         )
 
     @staticmethod
-    @activity.defn(name="ai_voice_setup_activity")
+    @activity.defn(name="AiVoiceSetupActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -541,7 +541,7 @@ class SendMailActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="send_mail_activity")
+    @activity.defn(name="SendMailActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity

@@ -28,4 +28,9 @@ RUN pip install --upgrade pip && \
 
 EXPOSE 8000
 
+WORKDIR /app/formrender
+RUN npm i
+
+WORKDIR /app
+
 ENTRYPOINT [ "/init" ]

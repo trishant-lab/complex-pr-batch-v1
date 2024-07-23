@@ -1,3 +1,5 @@
+from temporalio.client import WorkflowHandle
+
 from app.cli.dexit.models.dexitSpec import DexitSpec
 from app.cli.workflowbase import ProductWorkflow
 
@@ -52,3 +54,25 @@ class DexitWorkflow(ProductWorkflow):
         handle = await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
 
         await handle.signal(DexitOnboardingWorkflow.approve)
+
+    @staticmethod
+    async def decline(schema: dict) -> None:
+        """
+        decline method
+        """
+        from app.cli.temporal.dexit.starter import get_workflow_handle
+        from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
+
+        handle = await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
+
+        await handle.signal(DexitOnboardingWorkflow.decline)
+
+    @staticmethod
+    async def get_workflow_handle(schema: dict) -> WorkflowHandle:
+        """
+        get_workflow_handle method
+        """
+        from app.cli.temporal.dexit.starter import get_workflow_handle
+        from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
+
+        return await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)

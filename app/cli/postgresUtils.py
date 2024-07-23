@@ -88,7 +88,7 @@ class PostgresUtils:
         await self.db.execute_raw_sql(
             query=f"GRANT ALL PRIVILEGES ON TABLE {table} TO {username};",
         )
-        log_info("Granted user {username} all privileges on table {table} successfully.")
+        log_info(f"Granted user {username} all privileges on table {table} successfully.")
 
     async def create_user_mapping_for_matomo(self: "PostgresUtils", username: str, matomo_password: str) -> None:
         """

@@ -36,7 +36,7 @@ def send_customer_password_mail(dexit: DexitSpec, password: str) -> None:
 
     subject = "Your Dexit Environment is Ready"
     content = provisioning_success_mail(
-        name=f"{dexit.firstName}_{dexit.lastname}",
+        name=f"{dexit.firstName} {dexit.lastName}",
         email=dexit.email,
         link=f"https://{dexit.tenant}.{domain_name}",
         password=password,

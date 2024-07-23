@@ -1,12 +1,16 @@
+import datetime
+import re
 import uuid
 from typing import TYPE_CHECKING
 
 import orjson
+import requests
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from loguru import logger
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 from starlette.requests import Request
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
+from temporalio.client import WorkflowHandle
 
 from .product import get_product
 from .tenant import create_tenant, TenantCreateRequestModel
@@ -80,6 +84,35 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     send_slack_msg(text=text, blocks=blocks)
 
 
+@provisioning_router.get(
+    "/validateEmail",
+    operation_id="validateEmail",
+)
+def validate_email(email: str) -> None:
+    """
+    Validate email address
+    """
+    # List of public domains to exclude
+    public_domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
+
+    # Regular expression for basic email validation
+    email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+
+    if not re.match(email_regex, email):
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST, detail="Invalid email address, Please provide a valid work email address"
+        )
+
+    # Extract the domain part of the email
+    domain = email.split("@")[1]
+
+    # Check if the domain is in the list of public domains
+    if domain in public_domains:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST, detail="Invalid email address, Please provide a valid work email address"
+        )
+
+
 @provisioning_router.post(
     "",
     operation_id="provisioning",
@@ -89,7 +122,6 @@ async def provisioning(
     schema: dict,
     request: Request,
     skip_approval: bool = False,
-    _param: dict = Depends(get_oauth_scheme()),
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ) -> None:
     """
@@ -104,7 +136,7 @@ async def provisioning(
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid schema")
 
     user_id: dict = request.scope.get("user", {}).get("sub")
-    product_details = await get_product(product=product, _param=_param)
+    product_details = await get_product(product=product)
     if not product_details:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
     product_details = dict(product_details)
@@ -126,7 +158,6 @@ async def provisioning(
             approvedBy=user_id if skip_approval else None,
             schema_=orjson.dumps(schema).decode("utf-8"),
         ),
-        _param=_param,
     )
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
@@ -206,6 +237,7 @@ async def retry_provisioning(
         schema = orjson.loads(response["schema"])
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(schema)
+        await product_workflow.approve(schema)
 
         # await product_workflow.approve(schema)
         logger.info(f"Retried provisioning workflow for tenant: {response['name']}")
@@ -215,3 +247,132 @@ async def retry_provisioning(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error retrying provisioning",
         )
+
+
+class Logs(BaseModel):
+    loglevel: str
+    log: str
+
+
+class WorkflowSteps(BaseModel):
+    activityName: str
+    status: str
+    logs: list[Logs]
+
+
+async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetime.datetime) -> dict:
+    """
+    Get Grafana logs
+    """
+    url = f"{config.grafana_url}/api/ds/query"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {config.grafana_token}"}
+    expr = f'{{name="launchpad_custom_logs"}} |= `workflow_id={workflow_id}` | json'
+
+    from_ = int(from_.timestamp()) * 1000
+    to_ = int(datetime.datetime.now().timestamp()) * 1000
+
+    payload = orjson.dumps(
+        {
+            "queries": [
+                {
+                    "expr": expr,
+                    "queryType": "range",
+                    "refId": "loki-data-samples",
+                    "maxLines": 5000,
+                    "supportingQueryType": "dataSample",
+                    "legendFormat": "",
+                    "datasource": {"type": "loki", "uid": "e4hhV8CGk"},
+                    "datasourceId": 2,
+                    "intervalMs": 10800000,
+                }
+            ],
+            "from": str(from_),
+            "to": str(to_),
+        }
+    ).decode()
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    response.raise_for_status()
+
+    logs = {}
+    for log in response.json()["results"]["loki-data-samples"]["frames"][0]["data"]["values"][0]:
+        loglevel_match = re.search(r"loglevel=(\w+)", log["message"])
+        activity_log = re.search(r"activity_name:[^ ]+ (.+)", log["message"])
+        activity_name = re.search(r"activity_name:([^ ]+)", log["message"])
+
+        loglevel = loglevel_match.group(1) if loglevel_match else None
+        activity_name_ = activity_name.group(1) if activity_name else None
+        activity_log_ = activity_log.group(1).strip().replace('"', "") if activity_log else None
+
+        if activity_name_ in logs:
+            if activity_log_ not in [log["log"] for log in logs[activity_name_]]:
+                logs[activity_name_].append({"loglevel": loglevel, "log": activity_log_})
+        else:
+            logs[activity_name_] = [{"loglevel": loglevel, "log": activity_log_}]
+    return logs
+
+
+@provisioning_router.get("/workflowSteps", operation_id="workflowSteps")
+async def get_workflow_steps(
+    product: ProductEnum,
+    tenant_id: uuid.UUID,
+    _param: dict = Depends(get_oauth_scheme()),
+) -> list[WorkflowSteps]:
+    """
+    Get workflow steps and logs
+    """
+    config: AppSettings = get_settings()
+    try:
+        db: DBManager = await get_db_manager(config.postgres.dsn)
+        response = await db.fetch_one("getTenant.sql", tenant_id=str(tenant_id))
+        schema = orjson.loads(response["schema"])
+    except Exception as e:
+        logger.error(f"Error fetching tenant: {e}")
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
+
+    # if created date is more than 30days, return empty list
+    if (datetime.datetime.now(tz=datetime.UTC) - response.get("created")).days >= 30:
+        return []
+
+    product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
+
+    workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=schema)
+
+    history = await workflow_handle.fetch_history()
+
+    workflow_steps = {}
+    for event in history.to_json_dict()["events"]:
+        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_SCHEDULED"]:
+            workflow_steps[event["eventId"]] = {
+                "activityName": event["activityTaskScheduledEventAttributes"]["activityType"]["name"],
+                "status": "scheduled",
+            }
+
+        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_STARTED"]:
+            workflow_steps.get(event["activityTaskStartedEventAttributes"]["scheduledEventId"]).update(
+                {"status": "started"}
+            )
+        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_COMPLETED"]:
+            workflow_steps.get(event["activityTaskCompletedEventAttributes"]["scheduledEventId"]).update(
+                {"status": "completed"}
+            )
+
+        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_FAILED"]:
+            workflow_steps.get(event["activityTaskFailedEventAttributes"]["scheduledEventId"]).update(
+                {
+                    "status": "failed",
+                    "logs": [
+                        {"log": event["activityTaskFailedEventAttributes"]["failure"]["message"], "loglevel": "ERROR"}
+                    ],
+                }
+            )
+
+    logs = await get_grafana_logs(config, workflow_id=workflow_handle.id, from_=response.get("created"))
+
+    [
+        activity.update({"logs": logs.get(activity["activityName"], activity.get("logs", []))})
+        for activity in workflow_steps.values()
+    ]
+
+    return [WorkflowSteps(**activity) for activity in workflow_steps.values()]

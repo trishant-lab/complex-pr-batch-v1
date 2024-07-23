@@ -1,3 +1,5 @@
+from temporalio.client import WorkflowHandle
+
 from app.cli.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.workflowbase import ProductWorkflow
 
@@ -64,3 +66,13 @@ class JeevesWorkflow(ProductWorkflow):
         handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)
 
         await handle.signal(JeevesOnboardingWorkflow.deny)
+
+    @staticmethod
+    async def get_workflow_handle(schema: dict) -> WorkflowHandle:
+        """
+        get_workflow_handle method
+        """
+        from app.cli.temporal.jeeves.starter import get_workflow_handle
+        from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+
+        return await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)

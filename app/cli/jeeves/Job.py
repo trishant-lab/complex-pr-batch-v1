@@ -19,6 +19,7 @@ from loguru import logger
 from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+from app.cli.temporal.core.log import log_info
 from app.core.settings import get_settings
 from app.onepasswordutil import OnePasswordUtil
 
@@ -112,6 +113,7 @@ class AlembicJob(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(f"Alembic Job created for {self.jeeves.tenant}")
 
     def delete(self: "AlembicJob") -> None:
         """
@@ -211,6 +213,7 @@ class VespaJob(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(f"Vespa Job created for {self.jeeves.tenant}")
 
     def delete(self: "VespaJob") -> None:
         """

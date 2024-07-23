@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+import aiohttp
 import jwt
 import requests
 from casbin.enforcer import Enforcer
@@ -12,6 +13,8 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from app.core.settings import AppSettings, get_settings, get_security_config
 
 config: AppSettings = get_settings()
+
+security_config = get_security_config()
 
 
 class CredentialException(Exception):
@@ -89,8 +92,8 @@ class AuthenticationMiddleware:
         try:
             _, token = get_token(request)
             if token:
-                await self._validate_token(token)
-                scope["user"] = get_user(token)
+                latest_token = await self._validate_token(request)
+                scope["user"] = latest_token
                 roles = scope["user"].get("realm_access", {}).get("roles", [])
                 roles.append("NO_AUTH")
                 scope["user"].get("realm_access", {}).update({"roles": roles})
@@ -102,16 +105,25 @@ class AuthenticationMiddleware:
             response = ORJSONResponse(status_code=HTTP_401_UNAUTHORIZED, content={"message": "Unauthorized"})
             await response(scope, receive, send)
 
-    async def _validate_token(self: "AuthenticationMiddleware", token: str) -> None:
-        response = await self.keycloak_client.get(
-            "",
-            headers={"Authorization": f"Bearer {token}"},
-            follow_redirects=True,
-        )
-        if response.status_code == 401:
-            raise CredentialException("Unauthorized")
-        if response.status_code == 403:
-            raise CredentialException("Forbidden")
+    @staticmethod
+    async def _validate_token(request: Request) -> None | dict:
+        """
+        Validate token
+        """
+        scheme, token = get_token(request)
+        if not token:
+            return None
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                resp = await session.get(
+                    security_config["userinfo_endpoint"], headers={"Authorization": f"{scheme} {token}"}
+                )
+                if resp.status == 200:
+                    return await resp.json()
+                return None
+            except aiohttp.ClientError:
+                return None
 
 
 class AuthorizationMiddleware:

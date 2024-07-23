@@ -35,20 +35,29 @@ def get_roles(kc_agent: KeycloakAdminClient, user_id: UUID, config: AppSettings)
     )
     assigned_roles = kc_agent.kc_client.connection.raw_get(url)
 
-    return [RoleResponseModel.json_to_model(role) for role in assigned_roles.json()]
+    return [
+        RoleResponseModel.json_to_model(role)
+        for role in assigned_roles.json()
+        if role["name"] not in ["default-roles-launchpad", "uma_authorization", "offline_access"]
+    ]
 
 
 @user_router.get(
-    "/allUsers",
+    "",
     response_model=list[UserResponseModel] | None,
-    operation_id="getAllUsers",
+    operation_id="getUsers",
     summary="Returns all users in the keycloak realm",
 )
-async def get_keycloak_users(_: dict = Depends(get_oauth_scheme())) -> list[UserResponseModel]:
+async def get_keycloak_users(
+    user_id: None | str = None, _: dict = Depends(get_oauth_scheme())
+) -> list[UserResponseModel]:
     """
     Returns all users in the keycloak realm
     :return:
     """
+    if user_id:
+        return [await get_user_by_id(user_id=user_id)]
+
     config: AppSettings = get_settings()
 
     keycloak_admin_client = KeycloakAdminClient(config=config.keycloak)
@@ -94,7 +103,9 @@ def fetch_assignable_roles(keycloak_admin_client: KeycloakAdminClient, config: A
     fetch assignable roles for the user
     """
     return [
-        RoleResponseModel(**role) for role in keycloak_admin_client.get_realm_roles(realm_name=config.keycloak.realm)
+        RoleResponseModel(**role)
+        for role in keycloak_admin_client.get_realm_roles(realm_name=config.keycloak.realm)
+        if role["name"] not in ["default-roles-launchpad", "uma_authorization", "offline_access"]
     ]
 
 
@@ -180,18 +191,16 @@ async def post_user(
 
     config: AppSettings = get_settings()
     payload: dict = {
-        "username": user.email.lower(),
+        "username": user.username,
         "email": user.email.lower(),
-        "emailVerified": user.emailVerified,
-        "enabled": user.enabled,
-        "firstName": user.firstName,
-        "lastName": user.lastName,
+        "firstName": user.first_name,
+        "lastName": user.last_name,
+        "enabled": user.status,
     }
 
-    user_details = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm)
-    update_roles(
-        user_id=user_details["user_id"], added_roles=user.roles, deleted_roles=None, config=config, kc_agent=kc_agent
-    )
+    user_id: str = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm)
+
+    update_roles(user_id=UUID(user_id), added_roles=user.roles, deleted_roles=None, config=config, kc_agent=kc_agent)
 
 
 @user_router.put(
@@ -211,10 +220,10 @@ async def update_user(
 
     config: AppSettings = get_settings()
     payload: dict = {
-        "username": user.email.lower() if user.email else None,
         "email": user.email.lower() if user.email else None,
         "firstName": user.first_name if user.first_name else None,
         "lastName": user.last_name if user.last_name else None,
+        "enabled": user.status,
     }
 
     kc_agent.kc_client.realm_name = config.keycloak.realm
@@ -289,3 +298,24 @@ async def get_g_suite_users_list(_: dict = Depends(get_oauth_scheme())) -> list:
         for user in users_list
         if "314e" in user["primaryEmail"]
     ]
+
+
+@user_router.delete(
+    "",
+    operation_id="deleteUser",
+    summary="Deletes a user",
+)
+async def delete_user(
+    user_id: str,
+    _: dict = Depends(get_oauth_scheme()),
+) -> None:
+    """
+    ## Deletes user
+    """
+    config: AppSettings = get_settings()
+    kc_agent: KeycloakAdminClient = KeycloakAdminClient(config=config.keycloak)
+    kc_agent.refresh_token()
+
+    kc_agent.kc_client.connection.realm_name = config.keycloak.realm
+    kc_agent.kc_client.delete_user(user_id=user_id)
+    return

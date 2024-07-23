@@ -27,6 +27,7 @@ class UserResponseModel(BaseModel):
     firstName: str = Field(description="First Name of User")
     lastName: str = Field(description="Last Name of User")
     roles: None | list[RoleResponseModel] = Field(None, description="User roles")
+    status: bool = Field(description="User status")
     created: datetime = Field(description="Initial creation time")
 
     @classmethod
@@ -35,6 +36,7 @@ class UserResponseModel(BaseModel):
         Parse dict
         """
         data["created"] = data["createdTimestamp"]
+        data["status"] = data["enabled"]
         return cls.parse_obj(data)
 
 
@@ -44,6 +46,7 @@ class CreateUserRequestModel(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     roles: list[RoleResponseModel] | None = None
+    status: bool = True
 
 
 class UpdateUserRequestModel(BaseModel):
@@ -53,6 +56,7 @@ class UpdateUserRequestModel(BaseModel):
     email: str | None = None
     added_roles: list[RoleResponseModel] | None = None
     deleted_roles: list[RoleResponseModel] | None = None
+    status: bool = True
 
 
 class GSuiteUser(BaseModel):

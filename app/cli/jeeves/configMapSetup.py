@@ -9,6 +9,7 @@ from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.jeeves import TemplatePath
 from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.core.log import log_info
 from app.core.settings import get_settings
 from app.onepasswordutil import secret_inject
 from app.template_env import get_env
@@ -83,6 +84,7 @@ class ConfigMapClass(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
+        log_info(f"ConfigMap {self.config_map['name']} created successfully.")
 
     def delete(self: "ConfigMapClass") -> None:
         """
