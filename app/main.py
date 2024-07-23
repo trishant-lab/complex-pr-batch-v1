@@ -12,6 +12,7 @@ from .core.pycasbin.enforcer import enforcer
 from .core.settings import AppSettings, get_settings
 from .middleware.auth import AuthenticationMiddleware, AuthorizationMiddleware
 from .routes.email_templates import email_template_router
+from .routes.jeevesReports import jeeves_report_router
 
 from .routes.product import product_router
 from .routes.tenant import tenant_router
@@ -117,3 +118,4 @@ fastapi_app.include_router(provisioning_router, prefix=f"{api_prefix}/provisioni
 fastapi_app.include_router(de_provisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])
 fastapi_app.include_router(user_router, prefix=f"{api_prefix}/User", tags=["User"])
 fastapi_app.include_router(email_template_router, prefix=f"{api_prefix}/EmailTemplate", tags=["EmailTemplate"])
+fastapi_app.include_router(jeeves_report_router, prefix=f"{api_prefix}/jeevesReports", tags=["JeevesReports"])
