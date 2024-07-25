@@ -6,6 +6,11 @@ class AssetsViewedResponseModel(BaseModel):
     assets_viewed_per_user: int | None
 
 
+class AssetsDownloadResponseModel(BaseModel):
+    total_assets_downloaded: int
+    assets_downloaded_per_user: int | None
+
+
 class QueriesReportResponseModel(BaseModel):
     total_queries: int
     queries_per_user: int | None
@@ -19,3 +24,8 @@ class UserReportResponseModel(BaseModel):
 class SessionReportResponseModel(BaseModel):
     total_sessions: int
     average_session_duration: str | None
+
+
+class AssignmentsCreatedResponseModel(BaseModel):
+    total_assignments_created: int
+    overdue_assignments: int

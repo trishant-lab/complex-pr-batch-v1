@@ -13,6 +13,7 @@ from app.models.jeevesReports import (
     QueriesReportResponseModel,
     UserReportResponseModel,
     SessionReportResponseModel,
+    AssetsDownloadResponseModel,
 )
 
 jeeves_report_router = APIRouter()
@@ -62,6 +63,53 @@ async def assets_viewed_details(
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch assets views details. Please try again in sometime",
+        ) from e
+
+
+@jeeves_report_router.get(
+    "/assetsDownloadSummary",
+    response_model=AssetsDownloadResponseModel | None,
+    operation_id="reportGetAssetsDownloadSummary",
+    summary="Returns details of assets downloaded",
+)
+async def assets_download_details(
+    tenant: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    _params: dict = Depends(get_oauth_scheme()),
+) -> AssetsDownloadResponseModel:
+    """
+    Return total assets download, number of users who downloaded assets and assets downloaded per user
+    :param tenant: tenant name
+    :param start_date: format YYYY-MM-DD
+    :param end_date: format YYYY-MM-DD
+    :param _params:
+    :return:
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+
+    try:
+        result: list = await db.fetch_all(
+            "assetDownloadedPerUser.sql",
+            tenant=tenant,
+            site_id=config.jeeves.reporting_site_id,
+            startdate=start_date.isoformat() if start_date else None,
+            enddate=end_date.isoformat() if end_date else None,
+        )
+
+        total_downloads: int = sum(row["downloads"] for row in result)
+        total_users: int = len(result)
+
+        return AssetsDownloadResponseModel(
+            total_assets_downloaded=total_downloads,
+            assets_downloaded_per_user=int(total_downloads / total_users) if total_users else None,
+        )
+    except Exception as e:
+        logger.error(f"Error while fetching download details for assets : {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch assets downloaded details. Please try again in sometime",
         ) from e
 
 

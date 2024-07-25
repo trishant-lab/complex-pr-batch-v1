@@ -43,6 +43,7 @@ p, ADMINS, /api/v1/jeevesReports/assetsViewedSummary, GET
 p, ADMINS, /api/v1/jeevesReports/query, GET
 p, ADMINS, /api/v1/jeevesReports/user, GET
 p, ADMINS, /api/v1/jeevesReports/session, GET
+p, ADMINS, /api/v1/jeevesReports/assetsDownloadSummary, GET
 
 
 g, ADMINS, Admin
