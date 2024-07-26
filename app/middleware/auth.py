@@ -89,9 +89,8 @@ class AuthenticationMiddleware:
             return await self.app(scope, receive, send)
         request = Request(scope, receive)
         try:
-            _, token = get_token(request)
-            if token:
-                latest_token = await self._validate_token(request)
+            latest_token = await self._validate_token(request)
+            if latest_token:
                 scope["user"] = latest_token
                 roles = scope["user"].get("realm_access", {}).get("roles", [])
                 roles.append("NO_AUTH")

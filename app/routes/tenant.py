@@ -96,6 +96,10 @@ async def list_tenants(
         for tenant in response:
             tenant = dict(tenant)
             tenant["requestor"] = orjson.loads(tenant["requestor_details"])
+            tenant["product_schema"] = orjson.loads(tenant["schema"]) if tenant.get("schema") else None
+            tenant["product_schema"].pop("tenant") if tenant["product_schema"] and tenant.get("product_schema", {}).get(
+                "tenant"
+            ) else None
             tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
             output_response.append(TenantResponseModel(**tenant))
 

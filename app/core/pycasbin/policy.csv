@@ -44,6 +44,8 @@ p, ADMINS, /api/v1/jeevesReports/query, GET
 p, ADMINS, /api/v1/jeevesReports/user, GET
 p, ADMINS, /api/v1/jeevesReports/session, GET
 p, ADMINS, /api/v1/jeevesReports/assetsDownloadSummary, GET
+p, ADMINS, /api/v1/jeevesReports/assetsShared, GET
+p, ADMINS, /api/v1/jeevesReports/AssignmentsCreated, GET
 
 
 g, ADMINS, Admin

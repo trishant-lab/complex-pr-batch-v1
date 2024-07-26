@@ -1,6 +1,4 @@
-SELECT
-    users,
-    COUNT(*) AS count_
+SELECT users, COUNT(*) AS count_
 FROM
 (
 	SELECT
@@ -18,9 +16,9 @@ FROM
 	    matomo_log_action la_name ON lva.idaction_name = la_name.idaction
 	WHERE
 	    lva.idsite = {{ site_id | sqlsafe }}
-	    AND (la_category.name = {{event_category}} COLLATE "C")
-	    AND( la_action.name = {{event_action}} COLLATE "C")
-	    AND lv.custom_dimension_2 = '{{ tenant | sqlsafe }}'
+	    AND (la_category.name = 'Assignments' COLLATE "C")
+	    AND( la_action.name = 'Create' COLLATE "C")
+	    AND lv.custom_dimension_2 = {{ tenant | sqlsafe }}
 	    {% if startdate and enddate %}
         AND CAST(lva.server_time AT TIME ZONE 'UTC' AS DATE) BETWEEN '{{ startdate | sqlsafe }}' AND '{{ enddate | sqlsafe }}'
         {% elif startdate %}

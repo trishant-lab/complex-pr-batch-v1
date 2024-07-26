@@ -14,6 +14,8 @@ from app.models.jeevesReports import (
     UserReportResponseModel,
     SessionReportResponseModel,
     AssetsDownloadResponseModel,
+    AssignmentsCreatedResponseModel,
+    AssetsSharedResponseModel,
 )
 
 jeeves_report_router = APIRouter()
@@ -110,6 +112,50 @@ async def assets_download_details(
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch assets downloaded details. Please try again in sometime",
+        ) from e
+
+
+@jeeves_report_router.get(
+    "/assetsShared",
+    response_model=AssetsSharedResponseModel | None,
+    operation_id="reportGetAssetsShared",
+    summary="Returns details of assets shared",
+)
+async def assets_shared_details(
+    tenant: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    _params: dict = Depends(get_oauth_scheme()),
+) -> AssetsSharedResponseModel:
+    """
+    Return total assets shared, number of users who shared assets and assets shared per user
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+
+    try:
+        result: list = await db.fetch_all(
+            "jeevesReportsPerUser.sql",
+            tenant=tenant,
+            event_category="Assets",
+            event_action="Share",
+            site_id=config.jeeves.reporting_site_id,
+            startdate=start_date.isoformat() if start_date else None,
+            enddate=end_date.isoformat() if end_date else None,
+        )
+
+        total_shared: int = sum(row["count_"] for row in result)
+        total_users: int = len(result)
+
+        return AssetsSharedResponseModel(
+            total_assets_shared=total_shared,
+            assets_shared_per_user=int(total_shared / total_users) if total_users else None,
+        )
+    except Exception as e:
+        logger.error(f"Error while fetching shared details for assets : {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch assets shared details. Please try again in sometime",
         ) from e
 
 
@@ -236,4 +282,51 @@ async def session_duration_details(
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch session duration details. Please try again in sometime",
+        ) from e
+
+
+@jeeves_report_router.get(
+    "/AssignmentsCreated",
+    operation_id="reportGetAssignmentsCreated",
+    summary="Returns details of assignments created",
+    response_model=AssignmentsCreatedResponseModel | None,
+)
+async def assignments_created_details(
+    tenant: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    _params: dict = Depends(get_oauth_scheme()),
+) -> AssignmentsCreatedResponseModel:
+    """
+    Return total assignments created number and their average duration
+    :param start_date: format YYYY-MM-DD
+    :param end_date: format YYYY-MM-DD
+    :param tenant:
+    :param _params:
+    :return:
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+    try:
+        result = await db.fetch_all(
+            "jeevesReportsPerUser.sql",
+            tenant=tenant,
+            site_id=config.jeeves.reporting_site_id,
+            event_category="Assignments",
+            event_action="Create",
+            startdate=start_date.isoformat() if start_date else None,
+            enddate=end_date.isoformat() if end_date else None,
+        )
+        total_assignments_created: int = sum(row["count_"] for row in result)
+        total_users: int = len(result)
+
+        return AssignmentsCreatedResponseModel(
+            total_assignments_created=total_assignments_created,
+            assignments_per_user=int(total_assignments_created / total_users) if total_users else None,
+        )
+    except Exception as e:
+        logger.error(f"Error while fetching assignments created details : {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch assignments created details. Please try again in sometime",
         ) from e

@@ -11,6 +11,11 @@ class AssetsDownloadResponseModel(BaseModel):
     assets_downloaded_per_user: int | None
 
 
+class AssetsSharedResponseModel(BaseModel):
+    total_assets_shared: int
+    assets_shared_per_user: int | None
+
+
 class QueriesReportResponseModel(BaseModel):
     total_queries: int
     queries_per_user: int | None
@@ -28,4 +33,4 @@ class SessionReportResponseModel(BaseModel):
 
 class AssignmentsCreatedResponseModel(BaseModel):
     total_assignments_created: int
-    overdue_assignments: int
+    assignments_per_user: int

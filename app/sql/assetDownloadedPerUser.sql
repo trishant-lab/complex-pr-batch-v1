@@ -1,4 +1,4 @@
-SELECT users, COUNT(*) AS views
+SELECT users, COUNT(*) AS downloads
 FROM (
     SELECT
         m.idvisit,
