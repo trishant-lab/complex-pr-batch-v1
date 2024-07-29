@@ -5,7 +5,7 @@ select
         'HH24:MI:SS'
     ) AS average_session_duration
 from
-  matomo_log_visit
+  matomo_log_visit_view
 where
   idsite = {{ site_id | sqlsafe }}
   and custom_dimension_2 = '{{ tenant | sqlsafe }}'

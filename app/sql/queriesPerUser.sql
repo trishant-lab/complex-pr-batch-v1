@@ -2,9 +2,9 @@ SELECT
     v.custom_dimension_3 as user_name,
     count(*) as searches
 FROM
-    matomo_log_visit as v
-    LEFT JOIN matomo_log_link_visit_action as va on va.idvisit = v.idvisit
-    LEFT JOIN matomo_log_action as ea on va.idaction_event_action = ea.idaction
+    matomo_log_visit_view as v
+    LEFT JOIN matomo_log_link_visit_action_view as va on va.idvisit = v.idvisit
+    LEFT JOIN matomo_log_action_view as ea on va.idaction_event_action = ea.idaction
 WHERE
     v.idsite = {{ site_id | sqlsafe }}
     AND v.custom_dimension_2 = '{{ tenant | sqlsafe }}'

@@ -2,7 +2,7 @@ select
   count(distinct(idvisitor)) as total_users,
   COUNT(DISTINCT idvisit) / NULLIF(COUNT(DISTINCT idvisitor), 0) AS session_per_user
 from
-  matomo_log_visit
+  matomo_log_visit_view
 where
   idsite = {{ site_id | sqlsafe }}
   and custom_dimension_2 = '{{ tenant | sqlsafe }}'

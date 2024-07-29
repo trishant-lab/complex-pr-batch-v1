@@ -4,8 +4,8 @@ FROM (
         m.idvisit,
         v.custom_dimension_3 AS users
     FROM
-        matomo_log_media AS m
-    INNER JOIN matomo_log_visit AS v ON v.idvisit = m.idvisit
+        matomo_log_media_view AS m
+    INNER JOIN matomo_log_visit_view AS v ON v.idvisit = m.idvisit
     WHERE
         m.idsite = {{ site_id | sqlsafe }}
         AND v.custom_dimension_2 = '{{ tenant | sqlsafe }}'
@@ -24,9 +24,9 @@ FROM (
         v.idvisit,
         v.custom_dimension_3 AS users
     FROM
-        matomo_log_link_visit_action AS va
-    INNER JOIN matomo_log_visit AS v ON v.idvisit = va.idvisit
-    INNER JOIN matomo_log_action AS a ON a.idaction = va.idaction_event_action
+        matomo_log_link_visit_action_view AS va
+    INNER JOIN matomo_log_visit_view AS v ON v.idvisit = va.idvisit
+    INNER JOIN matomo_log_action_view AS a ON a.idaction = va.idaction_event_action
     WHERE
         v.idsite = {{ site_id | sqlsafe }}
         AND v.custom_dimension_2 = '{{ tenant | sqlsafe }}'
