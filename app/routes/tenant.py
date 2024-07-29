@@ -22,7 +22,6 @@ tenant_router = APIRouter()
 async def create_requestor(requestor: dict) -> dict:
     """
     @param requestor:
-    @param _param:
     @return:
     """
     config: AppSettings = get_settings()
