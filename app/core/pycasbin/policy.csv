@@ -6,29 +6,45 @@ p, PUBLIC, /metrics, GET
 
 p, PUBLIC, /api/v1/openapi.json, GET
 
-p, product_view, /api/v1/product, GET
-p, product_view, /api/v1/product/getProductByName, GET
+p, ADMINS, /api/v1/product, GET
+p, ADMINS, /api/v1/product/getProductByName/{product}, GET
+p, JEEVES_VIEW_GROUP, /api/v1/product/getProductByName/Jeeves, GET
+p, DEXIT_VIEW_GROUP, /api/v1/product/getProductByName/Dexit, GET
 
 p, ADMINS, /api/v1/product/updateProductSchema/{product}, POST
-p, jeeves_edit, /api/v1/product/updateProductSchema/Jeeves, POST
-p, dexit_edit, /api/v1/product/updateProductSchema/Dexit, POST
+p, JEEVES_EDIT_GROUP, /api/v1/product/updateProductSchema/Jeeves, POST
+p, DEXIT_EDIT_GROUP, /api/v1/product/updateProductSchema/Dexit, POST
 
 p, PUBLIC, /api/v1/product/renderForm, GET
 
-p, ADMINS, /api/v1/tenant, POST
-
 p, ADMINS, /api/v1/tenant/{product}, GET
-p, jeeves_view, /api/v1/tenant/Jeeves, GET
-p, dexit_view, /api/v1/tenant/Dexit, GET
+p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves, GET
+p, DEXIT_VIEW_GROUP, /api/v1/tenant/Dexit, GET
 
-p, ADMINS, /api/v1/tenant/updateRequestorDetails, PUT
+
+p, ADMINS, /api/v1/tenant/updateTenantDetails/{product}, PUT
+p, JEEVES_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Jeeves, PUT
+p, DEXIT_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Dexit, PUT
+
+
 p, PUBLIC, /api/v1/tenant/suggestTenantNames, GET
-p, PUBLIC, /api/v1/tenant/validateTenantName/{tenant_name}, GET
+p, PUBLIC, /api/v1/tenant/{tenant_name}, GET
 
-p, ADMINS, /api/v1/provisioning, POST
-p, ADMINS, /api/v1/provisioning/approveOrDecline, POST
-p, ADMINS, /api/v1/provisioning/retryProvisioning, POST
-p, ADMINS, /api/v1/provisioning/workflowSteps, GET
+p, PUBLIC, /api/v1/provisioning, POST
+p, PUBLIC, /api/v1/provisioning/validateEmail, GET
+
+p, ADMINS, /api/v1/provisioning/approveOrDecline/{product}, POST
+p, JEEVES_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Jeeves, POST
+p, DEXIT_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Dexit, POST
+
+
+p, ADMINS, /api/v1/provisioning/retryProvisioning/{product}, POST
+p, JEEVES_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Jeeves, POST
+p, DEXIT_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Dexit, POST
+
+p, ADMINS, /api/v1/provisioning/workflowSteps/{product}, GET
+p, JEEVES_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Jeeves, GET
+p, DEXIT_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Dexit, GET
 
 p, ADMINS, /api/v1/deprovisioning, POST
 
@@ -36,21 +52,39 @@ p, ADMINS, /api/v1/deprovisioning, POST
 p, ADMINS, /api/v1/User, POST
 p, ADMINS, /api/v1/User, PUT
 p, ADMINS, /api/v1/User, GET
+p, ADMINS, /api/v1/User, DELETE
+
 p, ADMINS, /api/v1/User/getUserById, GET
 p, ADMINS, /api/v1/User/roles, GET
 p, ADMINS, /api/v1/User/getGSuiteUsersList, GET
 
+p, ADMINS, /api/v1/EmailTemplate/{product}, GET
+p, JEEVES_VIEW_GROUP, /api/v1/EmailTemplate/Jeeves,  GET
+p, DEXIT_VIEW_GROUP, /api/v1/EmailTemplate/Dexit,  GET
+
+p, ADMINS, /api/v1/EmailTemplate/{product}, PUT
+p, JEEVES_EDIT_GROUP, /api/v1/EmailTemplate/Jeeves,  PUT
+p, DEXIT_EDIT_GROUP, /api/v1/EmailTemplate/Dexit,  PUT
+
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsViewedSummary, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/query, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/user, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/session, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsDownloadSummary, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsShared, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssignmentsCreated, GET
+
 
 g, ADMINS, Admin
+g, JEEVES_VIEW_GROUP, JeevesView
+g, JEEVES_VIEW_GROUP, JeevesEdit
+g, JEEVES_EDIT_GROUP, JeevesEdit
+g, DEXIT_VIEW_GROUP, DexitView
+g, DEXIT_VIEW_GROUP, DexitEdit
+g, DEXIT_EDIT_GROUP, DexitEdit
 
-g, product_view, Admin
-g, product_view, JEEVES_VIEW
-g, product_view, DEXIT_VIEW
-
-g, jeeves_view, JEEVES_VIEW
-g, jeeves_edit, JEEVES_EDIT
-
-g, dexit_view, DEXIT_VIEW
-g, dexit_edit, DEXIT_EDIT
+g, JEEVES_VIEW_GROUP, JeevesView
+g, JEEVES_VIEW_GROUP, JeevesEdit
+g, JEEVES_VIEW_GROUP, Admin
 
 g, PUBLIC, NO_AUTH

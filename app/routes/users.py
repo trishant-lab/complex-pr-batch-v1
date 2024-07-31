@@ -298,3 +298,24 @@ async def get_g_suite_users_list(_: dict = Depends(get_oauth_scheme())) -> list:
         for user in users_list
         if "314e" in user["primaryEmail"]
     ]
+
+
+@user_router.delete(
+    "",
+    operation_id="deleteUser",
+    summary="Deletes a user",
+)
+async def delete_user(
+    user_id: str,
+    _: dict = Depends(get_oauth_scheme()),
+) -> None:
+    """
+    ## Deletes user
+    """
+    config: AppSettings = get_settings()
+    kc_agent: KeycloakAdminClient = KeycloakAdminClient(config=config.keycloak)
+    kc_agent.refresh_token()
+
+    kc_agent.kc_client.connection.realm_name = config.keycloak.realm
+    kc_agent.kc_client.delete_user(user_id=user_id)
+    return

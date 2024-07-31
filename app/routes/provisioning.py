@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import orjson
 import requests
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Path
 from loguru import logger
 from pydantic import ValidationError, BaseModel
 from starlette.requests import Request
@@ -84,6 +84,35 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     send_slack_msg(text=text, blocks=blocks)
 
 
+@provisioning_router.get(
+    "/validateEmail",
+    operation_id="validateEmail",
+)
+def validate_email(email: str) -> None:
+    """
+    Validate email address
+    """
+    # List of public domains to exclude
+    public_domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
+
+    # Regular expression for basic email validation
+    email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+
+    if not re.match(email_regex, email):
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST, detail="Invalid email address, Please provide a valid work email address"
+        )
+
+    # Extract the domain part of the email
+    domain = email.split("@")[1]
+
+    # Check if the domain is in the list of public domains
+    if domain in public_domains:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST, detail="Invalid email address, Please provide a valid work email address"
+        )
+
+
 @provisioning_router.post(
     "",
     operation_id="provisioning",
@@ -93,7 +122,6 @@ async def provisioning(
     schema: dict,
     request: Request,
     skip_approval: bool = False,
-    _param: dict = Depends(get_oauth_scheme()),
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ) -> None:
     """
@@ -108,7 +136,7 @@ async def provisioning(
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid schema")
 
     user_id: dict = request.scope.get("user", {}).get("sub")
-    product_details = await get_product(product=product, _param=_param)
+    product_details = await get_product(product=product)
     if not product_details:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
     product_details = dict(product_details)
@@ -130,7 +158,6 @@ async def provisioning(
             approvedBy=user_id if skip_approval else None,
             schema_=orjson.dumps(schema).decode("utf-8"),
         ),
-        _param=_param,
     )
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
@@ -150,12 +177,12 @@ async def provisioning(
         await product_workflow.approve(schema)
 
 
-@provisioning_router.post("/approveOrDecline", operation_id="approveOrDecline")
+@provisioning_router.post("/approveOrDecline/{product}", operation_id="approveOrDecline")
 async def approve_tenant(
-    product: ProductEnum,
     approval: bool,
     tenant_id: uuid.UUID,
     request: Request,
+    product: ProductEnum = Path(...),
     _param: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
@@ -188,10 +215,10 @@ async def approve_tenant(
         logger.info(f"Declined {response['product_name']} workflow for tenant: {response['name']}")
 
 
-@provisioning_router.post("/retryProvisioning", operation_id="retryProvisioning")
+@provisioning_router.post("/retryProvisioning/{product}", operation_id="retryProvisioning")
 async def retry_provisioning(
-    product: ProductEnum,
     tenant_id: uuid.UUID,
+    product: ProductEnum = Path(...),
     _param: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
@@ -286,10 +313,10 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
     return logs
 
 
-@provisioning_router.get("/workflowSteps", operation_id="workflowSteps")
+@provisioning_router.get("/workflowSteps/{product}", operation_id="workflowSteps")
 async def get_workflow_steps(
-    product: ProductEnum,
     tenant_id: uuid.UUID,
+    product: ProductEnum = Path(...),
     _param: dict = Depends(get_oauth_scheme()),
 ) -> list[WorkflowSteps]:
     """
@@ -303,6 +330,10 @@ async def get_workflow_steps(
     except Exception as e:
         logger.error(f"Error fetching tenant: {e}")
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
+
+    # if created date is more than 30days, return empty list
+    if (datetime.datetime.now(tz=datetime.UTC) - response.get("created")).days >= 30:
+        return []
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 

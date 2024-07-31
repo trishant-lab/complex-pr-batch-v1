@@ -11,6 +11,21 @@ from rclone_python.remote_types import RemoteTypes
 from app.core.settings import AppSettings
 
 
+def get_r2_storage_client(config: AppSettings) -> boto3.client:
+    """
+    Get s3 client object to connect with buckets
+    :param config:
+    :return:
+    """
+    return boto3.client(
+        "s3",
+        endpoint_url=config.r2.endpoint,
+        aws_access_key_id=config.r2.access_key,
+        aws_secret_access_key=config.r2.secret_key,
+        use_ssl=config.r2.use_ssl,
+    )
+
+
 def get_storage_client(config: AppSettings, access_key: str, secret_key: str) -> boto3.client:
     """
     Get s3 client object to connect with buckets
@@ -26,6 +41,17 @@ def get_storage_client(config: AppSettings, access_key: str, secret_key: str) ->
         aws_secret_access_key=secret_key,
         use_ssl=config.s3.use_ssl,
     )
+
+
+def upload_file_to_storage(file_path: str, object_name: str, bucket_name: str, storage_client: BaseClient) -> None:
+    """
+    Upload file to s3
+    """
+    try:
+        storage_client.upload_file(Filename=file_path, Bucket=bucket_name, Key=object_name)
+        logger.info(f"uploaded objects to s3 path: {object_name}")
+    except ClientError as e:
+        logger.error(f"failed to upload file to s3 object name: {object_name}, error: {e}")
 
 
 def download_file_from_storage(

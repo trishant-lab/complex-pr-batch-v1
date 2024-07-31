@@ -101,6 +101,7 @@ class S3Settings(BaseModel):
     region: str = "us-east-1"
     use_ssl: bool = True
     rclone_remote: str = "s3_rclone_remote"
+    bucket: str = ""
 
 
 class SlackSettings(BaseModel):
@@ -188,6 +189,8 @@ class JeevesSettings(BaseModel):
     r2_access_key: str = ""
     r2_secret: str = ""
     r2_bucket: str = ""
+
+    reporting_site_id: str = "1"
 
 
 class DexitAIOcrEngines(str, Enum):
@@ -306,6 +309,7 @@ class AppSettings(BaseSettings):
 
     temporal: TemporalSettings = TemporalSettings()
     s3: S3Settings = S3Settings()
+    r2: S3Settings = S3Settings()
 
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.314ecorp.tech"

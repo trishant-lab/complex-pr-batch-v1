@@ -14,16 +14,14 @@ from app.models.product import ProductEnum
 from app.models.tenant import (
     TenantCreateRequestModel,
     TenantResponseModel,
-    UpdateRequestorModel,
 )
 
 tenant_router = APIRouter()
 
 
-async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def create_requestor(requestor: dict) -> dict:
     """
     @param requestor:
-    @param _param:
     @return:
     """
     config: AppSettings = get_settings()
@@ -45,25 +43,20 @@ async def create_requestor(requestor: dict, _param: dict = Depends(get_oauth_sch
         )
 
 
-@tenant_router.post(
-    "",
-    operation_id="createTenant",
-)
-async def create_tenant(tenant_details: TenantCreateRequestModel, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
     """
     @param tenant_details:
-    @param _param:
     @return:
     """
     config: AppSettings = get_settings()
 
-    requestor = await create_requestor(tenant_details.requestor, _param=_param)
+    requestor = await create_requestor(tenant_details.requestor)
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
         return dict(
             await db.fetch_one(
                 "createTenant.sql",
-                **tenant_details.dict(),
+                **tenant_details.model_dump(),
                 requestor_id=requestor["id"],
             )
         )
@@ -87,70 +80,88 @@ async def list_tenants(
     @param _param:
     @return:
     """
-    pass
-    # config: AppSettings = get_settings()
-    # try:
-    #     db: DBManager = await get_db_manager(config.postgres.dsn)
-    #     parameters = {"tenant_id": str(tenant_id) if tenant_id else None, "product": product.value.lower()}
-    #     response = await db.fetch_all("listTenants.sql", **parameters)
-    #
-    #     output_response = []
-    #     for tenant in response:
-    #         tenant = dict(tenant)
-    #         tenant["requestor"] = orjson.loads(tenant["requestor_details"])
-    #         tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
-    #         output_response.append(TenantResponseModel(**tenant))
-    #
-    #     return output_response
-    #
-    # except Exception as e:
-    #     logger.error(f"Error fetching tenants: {e}")
-    #     raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants")
-
-
-@tenant_router.get(
-    "/getTenantById",
-    operation_id="getTenantById",
-    response_model=TenantResponseModel,
-)
-async def get_tenant(tenant_id: uuid.UUID, _param: dict = Depends(get_oauth_scheme())) -> TenantResponseModel:
-    """
-    @param tenant_id:
-    @param _param:
-    @return:
-    """
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getTenantById.sql", tenant_id=str(tenant_id))
+        parameters = {"tenant_id": str(tenant_id) if tenant_id else None, "product": product.value.lower()}
+        response = await db.fetch_all("listTenants.sql", **parameters)
 
-        tenant: dict = dict(response)
-        tenant["requestor"] = orjson.loads(tenant["requestor_details"])
-        tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
+        output_response = []
+        for tenant in response:
+            tenant = dict(tenant)
+            tenant["requestor"] = orjson.loads(tenant["requestor_details"])
+            tenant["product_schema"] = orjson.loads(tenant["schema"]) if tenant.get("schema") else None
+            tenant["product_schema"].pop("tenant") if tenant["product_schema"] and tenant.get("product_schema", {}).get(
+                "tenant"
+            ) else None
+            tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
+            output_response.append(TenantResponseModel(**tenant))
 
-        return TenantResponseModel(**tenant)
+        return output_response
 
     except Exception as e:
-        logger.error(f"Error fetching tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
+        logger.error(f"Error fetching tenants: {e}")
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants")
+
+
+# @tenant_router.get(
+#     "/getTenantById/{product}",
+#     operation_id="getTenantById",
+#     response_model=TenantResponseModel,
+# )
+# async def get_tenant(
+#         tenant_id: uuid.UUID,
+#         _product: ProductEnum = Path(..., alias="product"),
+#         _param: dict = Depends(get_oauth_scheme())
+# ) -> TenantResponseModel:
+#     """
+#     @param tenant_id:
+#     @param _product:
+#     @param _param:
+#     @return:
+#     """
+#     config: AppSettings = get_settings()
+#     try:
+#         db: DBManager = await get_db_manager(config.postgres.dsn)
+#         response = await db.fetch_one("getTenantById.sql", tenant_id=str(tenant_id))
+#
+#         tenant: dict = dict(response)
+#         tenant["requestor"] = orjson.loads(tenant["requestor_details"])
+#         tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
+#
+#         return TenantResponseModel(**tenant)
+#
+#     except Exception as e:
+#         logger.error(f"Error fetching tenant: {e}")
+#         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
 
 
 @tenant_router.put(
-    "/updateRequestorDetails",
-    operation_id="updateRequestorDetails",
+    "/updateTenantDetails/{product}",
+    operation_id="updateTenantDetails",
 )
-async def update_tenant(requestor_details: UpdateRequestorModel, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def update_tenant(
+    tenant_id: str,
+    tenant_details: dict,
+    _product: ProductEnum = Path(..., alias="product"),
+    _param: dict = Depends(get_oauth_scheme()),
+) -> dict:
     """
-    @param requestor_details:
+    @param tenant_id:
+    @param tenant_details:
+    @param _product:
     @param _param:
     @return:
     """
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("updateRequestor.sql", **requestor_details.dict())
+        tenant_details = orjson.dumps(tenant_details).decode("utf-8")
+        response = await db.fetch_one("updateTenantDetails.sql", schema_=tenant_details, tenant_id=tenant_id)
 
-        return {"message": "Requestor details updated successfully", "data": response}
+        # todo: trigger temporal workflow
+
+        return {"message": "Tenant details are updated successfully", "data": response}
 
     except Exception as e:
         logger.error(f"Error updating tenant: {e}")
@@ -217,7 +228,7 @@ async def suggest_tenant_names(organization: str) -> list:
 
 
 @tenant_router.get(
-    "validateTenantName/{tenant_name}",
+    "/{tenant_name}",
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(
