@@ -549,4 +549,4 @@ class SendMailActivity(Activity):
         # Send mail to customer
         from app.cli.jeeves.mail import onboard_success
 
-        onboard_success(jeeves=jeeves)
+        await onboard_success(jeeves=jeeves)
