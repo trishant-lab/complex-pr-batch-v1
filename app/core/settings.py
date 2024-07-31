@@ -190,6 +190,8 @@ class JeevesSettings(BaseModel):
     r2_secret: str = ""
     r2_bucket: str = ""
 
+    reporting_site_id: str = "1"
+
 
 class DexitAIOcrEngines(str, Enum):
     """OCR Engine"""

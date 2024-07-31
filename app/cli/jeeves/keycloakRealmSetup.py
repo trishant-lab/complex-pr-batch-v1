@@ -25,8 +25,6 @@ ROLES = [
     "_access-screen-recorder",
     "_allow-standalone-launch",
     "_allow-publish-assets",
-    "_can-report-issues",
-    "_access-chatbot",
     "_can-manage-activities",
     "_allow-add-edit-courses",
     "_allow-delete-courses",

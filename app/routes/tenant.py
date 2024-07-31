@@ -14,7 +14,6 @@ from app.models.product import ProductEnum
 from app.models.tenant import (
     TenantCreateRequestModel,
     TenantResponseModel,
-    UpdateRequestorModel,
 )
 
 tenant_router = APIRouter()
@@ -23,7 +22,6 @@ tenant_router = APIRouter()
 async def create_requestor(requestor: dict) -> dict:
     """
     @param requestor:
-    @param _param:
     @return:
     """
     config: AppSettings = get_settings()
@@ -96,6 +94,10 @@ async def list_tenants(
         for tenant in response:
             tenant = dict(tenant)
             tenant["requestor"] = orjson.loads(tenant["requestor_details"])
+            tenant["product_schema"] = orjson.loads(tenant["schema"]) if tenant.get("schema") else None
+            tenant["product_schema"].pop("tenant") if tenant["product_schema"] and tenant.get("product_schema", {}).get(
+                "tenant"
+            ) else None
             tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
             output_response.append(TenantResponseModel(**tenant))
 
@@ -134,21 +136,23 @@ async def get_tenant(tenant_id: uuid.UUID, _param: dict = Depends(get_oauth_sche
 
 
 @tenant_router.put(
-    "/updateRequestorDetails",
-    operation_id="updateRequestorDetails",
+    "/updateTenantDetails",
+    operation_id="updateTenantDetails",
 )
-async def update_tenant(requestor_details: UpdateRequestorModel, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def update_tenant(tenant_id: str, tenant_details: dict, _param: dict = Depends(get_oauth_scheme())) -> dict:
     """
-    @param requestor_details:
+    @param tenant_id:
+    @param tenant_details:
     @param _param:
     @return:
     """
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("updateRequestor.sql", **requestor_details.dict())
+        tenant_details = orjson.dumps(tenant_details).decode("utf-8")
+        response = await db.fetch_one("updateTenantDetails.sql", schema_=tenant_details, tenant_id=tenant_id)
 
-        return {"message": "Requestor details updated successfully", "data": response}
+        return {"message": "Tenant details are updated successfully", "data": response}
 
     except Exception as e:
         logger.error(f"Error updating tenant: {e}")

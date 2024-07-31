@@ -81,6 +81,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                 ],
                                 env=[
                                     k8s_client.V1EnvVar(name="DEPLOYMENT", value=self.env),
+                                    k8s_client.V1EnvVar(name="WEB_CONCURRENCY", value="5"),
                                     k8s_client.V1EnvVar(
                                         name="POSTGRES_PASSWORD",
                                         value_from=k8s_client.V1EnvVarSource(

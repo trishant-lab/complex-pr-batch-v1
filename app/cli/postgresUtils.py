@@ -99,17 +99,3 @@ class PostgresUtils:
             f"(username 'matomo_fdw', password '{matomo_password}');",
         )
         log_info("Created user mapping for matomo database successfully.")
-
-
-# async def main():
-#     from app.core.db import get_db_manager
-#     db_: DBManager = await get_db_manager(dsn="postgresql://pgadmin:lXCTy1PJsAmOyTx7IZGg@localhost:54321/launchpad")
-#     ps_ = PostgresUtils(db=db_)
-#     await ps_.create_user_mapping_for_keycloak(
-#         username="launchpad", keycloak_password="oe2DkHvGRWuWDCiwThMwmXdhqpWHb83cae7FzUHika9N"
-#     )
-#
-#
-# if __name__ == "__main__":
-#     import asyncio
-#     asyncio.run(main())

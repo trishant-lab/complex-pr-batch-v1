@@ -99,6 +99,7 @@ class DeploymentServer(K8sResourceBaseClass):
                                 ],
                                 env=[
                                     k8s_client.V1EnvVar(name="DEPLOYMENT", value=self.env),
+                                    k8s_client.V1EnvVar(name="WEB_CONCURRENCY", value="5"),
                                     k8s_client.V1EnvVar(name="CLIENT_CODE", value=self.jeeves.tenant),
                                     k8s_client.V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
                                     k8s_client.V1EnvVar(name="POSTGRES_PASSWORD", value=self.postgres_password),
