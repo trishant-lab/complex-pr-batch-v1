@@ -7,6 +7,9 @@ p, PUBLIC, /metrics, GET
 p, PUBLIC, /api/v1/openapi.json, GET
 
 p, ADMINS, /api/v1/product/listAllProducts, GET
+p, JEEVES_VIEW_GROUP, /api/v1/product/listAllProducts, GET
+p, DEXIT_VIEW_GROUP, /api/v1/product/listAllProducts, GET
+
 p, JEEVES_VIEW_GROUP, /api/v1/product/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/Dexit, GET
 
