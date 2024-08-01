@@ -2,5 +2,5 @@
 set -e
 if [[ "$IS_CLI" == "FALSE" ]]; then
     echo "Starting gunicornserver in $DEPLOYMENT"
-    gunicorn app.main:fastapi_app --config /app/app/gunicorn_conf.py --reload -k uvicorn.workers.UvicornWorker
+    uvicorn app.main:fastapi_app --host 0.0.0.0 --port 8000
 fi
