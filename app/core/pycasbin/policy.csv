@@ -6,7 +6,10 @@ p, PUBLIC, /metrics, GET
 
 p, PUBLIC, /api/v1/openapi.json, GET
 
-p, ADMINS, /api/v1/product, GET
+p, ADMINS, /api/v1/product/listAllProducts, GET
+p, JEEVES_VIEW_GROUP, /api/v1/product/Jeeves, GET
+p, DEXIT_VIEW_GROUP, /api/v1/product/Dexit, GET
+
 p, ADMINS, /api/v1/product/getProductByName/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/product/getProductByName/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/getProductByName/Dexit, GET
@@ -15,7 +18,7 @@ p, ADMINS, /api/v1/product/updateProductSchema/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/product/updateProductSchema/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/product/updateProductSchema/Dexit, POST
 
-p, PUBLIC, /api/v1/product/renderForm, GET
+p, PUBLIC, /api/v1/product/renderForm/{product}, GET
 
 p, ADMINS, /api/v1/tenant/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves, GET

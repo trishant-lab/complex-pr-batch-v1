@@ -130,8 +130,8 @@ async def update_product_schema(
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating product schema")
 
 
-@product_router.get("/renderForm", operation_id="renderForm")
-async def render_form(product: ProductEnum) -> dict:
+@product_router.get("/renderForm/{product}", operation_id="renderForm")
+async def render_form(product: ProductEnum = Path(...)) -> dict:
     """
     @param product:
     @param _:
