@@ -245,10 +245,10 @@ async def get_valid_tenant_names(tenant_names: list) -> list:
 
 
 @tenant_router.get(
-    "/suggestTenantNames",
+    "/suggestTenantNames/{organization}",
     operation_id="suggestTenantNames",
 )
-async def suggest_tenant_names(organization: str) -> list:
+async def suggest_tenant_names(organization: str = Path(...)) -> list:
     """
     @param organization:
     @return:
@@ -260,7 +260,7 @@ async def suggest_tenant_names(organization: str) -> list:
 
 
 @tenant_router.get(
-    "/{tenant_name}",
+    "/validateTenantName/{tenant_name}",
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(

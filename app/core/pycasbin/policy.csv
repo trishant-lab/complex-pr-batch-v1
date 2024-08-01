@@ -33,8 +33,8 @@ p, JEEVES_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Jeeves, PUT
 p, DEXIT_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Dexit, PUT
 
 
-p, PUBLIC, /api/v1/tenant/suggestTenantNames, GET
-p, PUBLIC, /api/v1/tenant/{tenant_name}, GET
+p, PUBLIC, /api/v1/tenant/suggestTenantNames/{organization}, GET
+p, PUBLIC, /api/v1/tenant/validateTenantName/{tenant_name}, GET
 
 p, PUBLIC, /api/v1/provisioning, POST
 p, PUBLIC, /api/v1/provisioning/validateEmail, GET
