@@ -34,3 +34,18 @@ class SessionReportResponseModel(BaseModel):
 class AssignmentsCreatedResponseModel(BaseModel):
     total_assignments_created: int
     assignments_per_user: int
+
+
+class AssetsUploadResponseModel(BaseModel):
+    total_assets_uploaded: int
+    assets_uploaded_per_user: int | None
+
+
+class AssetsRecordedResponseModel(BaseModel):
+    total_assets_recorded: int
+    assets_recorded_per_user: int | None
+
+
+class AssetsTipSheetCreatedResponseModel(BaseModel):
+    total_tipsheet_created: int
+    tipsheet_created_per_user: int | None

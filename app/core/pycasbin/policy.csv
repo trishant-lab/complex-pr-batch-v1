@@ -79,6 +79,8 @@ p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/session, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsDownloadSummary, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsShared, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssignmentsCreated, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetRecord, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetUpload, GET
 
 
 g, ADMINS, Admin

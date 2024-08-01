@@ -16,6 +16,8 @@ from app.models.jeevesReports import (
     AssetsDownloadResponseModel,
     AssignmentsCreatedResponseModel,
     AssetsSharedResponseModel,
+    AssetsUploadResponseModel,
+    AssetsRecordedResponseModel,
 )
 
 jeeves_report_router = APIRouter()
@@ -93,9 +95,11 @@ async def assets_download_details(
 
     try:
         result: list = await db.fetch_all(
-            "assetDownloadedPerUser.sql",
+            "jeevesReportsPerUser.sql",
             tenant=tenant,
             site_id=config.jeeves.reporting_site_id,
+            event_category="Assets",
+            event_action="Download",
             startdate=start_date.isoformat() if start_date else None,
             enddate=end_date.isoformat() if end_date else None,
         )
@@ -329,4 +333,93 @@ async def assignments_created_details(
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch assignments created details. Please try again in sometime",
+        ) from e
+
+
+@jeeves_report_router.get(
+    "/AssetUpload",
+    operation_id="reportAssetUpload",
+    summary="Returns details of uploaded assets",
+    response_model=AssignmentsCreatedResponseModel | None,
+)
+async def add_asset_upload_details(
+    tenant: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    _params: dict = Depends(get_oauth_scheme()),
+) -> AssetsUploadResponseModel:
+    """
+    Return total assets uploaded number and their average duration
+    :param start_date: format YYYY-MM-DD
+    :param end_date: format YYYY-MM-DD
+    :param tenant:
+    :param _params:
+    :return:
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+    try:
+        result = await db.fetch_all(
+            "jeevesReportsPerUser.sql",
+            tenant=tenant,
+            site_id=config.jeeves.reporting_site_id,
+            event_category="Add Asset",
+            event_action="Upload Video",
+            startdate=start_date.isoformat() if start_date else None,
+            enddate=end_date.isoformat() if end_date else None,
+        )
+        total_assets_uploaded: int = sum(row["count_"] for row in result)
+        total_users: int = len(result)
+
+        return AssetsUploadResponseModel(
+            total_assets_uploaded=total_assets_uploaded,
+            assets_uploaded_per_user=int(total_assets_uploaded / total_users) if total_users else None,
+        )
+    except Exception as e:
+        logger.error(f"Error while fetching asset upload details : {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch asset upload details. Please try again in sometime",
+        ) from e
+
+
+@jeeves_report_router.get(
+    "/AssetRecord",
+    operation_id="reportAssetRecord",
+    summary="Returns details of recorded assets",
+    response_model=AssetsRecordedResponseModel | None,
+)
+async def add_asset_record_details(
+    tenant: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    _params: dict = Depends(get_oauth_scheme()),
+) -> AssetsRecordedResponseModel:
+    """
+    Return total assets recorded number and their average duration
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+    try:
+        result = await db.fetch_all(
+            "jeevesReportsPerUser.sql",
+            tenant=tenant,
+            site_id=config.jeeves.reporting_site_id,
+            event_category="Add Asset",
+            event_action="Record Video",
+            startdate=start_date.isoformat() if start_date else None,
+            enddate=end_date.isoformat() if end_date else None,
+        )
+        total_assets_recorded: int = sum(row["count_"] for row in result)
+        total_users: int = len(result)
+
+        return AssetsRecordedResponseModel(
+            total_assets_recorded=total_assets_recorded,
+            assets_recorded_per_user=int(total_assets_recorded / total_users) if total_users else None,
+        )
+    except Exception as e:
+        logger.error(f"Error while fetching asset record details : {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch asset record details. Please try again in sometime",
         ) from e
