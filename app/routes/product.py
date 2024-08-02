@@ -134,7 +134,6 @@ async def update_product_schema(
 async def render_form(product: ProductEnum = Path(...)) -> dict:
     """
     @param product:
-    @param _:
     @return:
     """
     return await form_render_for_product(product.value.lower())

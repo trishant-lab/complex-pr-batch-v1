@@ -13,7 +13,12 @@ from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUES
 from temporalio.client import WorkflowHandle
 
 from .product import get_product
-from .tenant import create_tenant, TenantCreateRequestModel
+from .tenant import (
+    create_tenant,
+    TenantCreateRequestModel,
+    suggest_tenant_names,
+    get_valid_tenant_names,
+)
 from ..core.db import get_db_manager, DBManager
 from ..core.oauth2 import get_oauth_scheme
 from ..core.settings import get_settings, AppSettings
@@ -113,6 +118,39 @@ def validate_email(email: str) -> None:
         )
 
 
+async def prepare_schema(schema: dict) -> dict:
+    """
+    Prepare schema
+    """
+    email = schema.get("workEmail") if schema.get("workEmail") else schema.get("email")
+    schema["email"] = email
+
+    company_domain: str = email.split("@")[1].split(".")[0]
+
+    existing_tenant_names = await get_valid_tenant_names([company_domain.lower()])
+
+    if not company_domain[0].isdigit() and not existing_tenant_names:
+        tenant_name = company_domain
+    else:
+        suggested_tenant_names = await suggest_tenant_names(company_domain)
+        tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
+
+    if not tenant_name:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail="Tenant name not available",
+        )
+
+    schema["tenant"] = tenant_name
+    schema["organization"] = (
+        schema.get("organizationName") if schema.get("organizationName") else schema.get("organization")
+    )
+    team_members = {"members": value for key, value in schema.items() if key.lower().__contains__("teammembers")}  # noqa
+
+    schema["teamMembers"] = team_members.get("members") if team_members else None
+    return schema
+
+
 @provisioning_router.post(
     "",
     operation_id="provisioning",
@@ -128,7 +166,8 @@ async def provisioning(
     Trigger provisioning workflow for the given product
     """
     try:
-        schema["tenant"] = schema.get("tenantName") if schema.get("tenantName") else schema.get("tenant")
+        schema = prepare_schema(schema)
+
         product_model = ProductEnum.get_input_model_class(product)
         product_model.model_validate(schema)
     except ValidationError as e:

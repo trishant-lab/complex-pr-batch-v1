@@ -196,6 +196,7 @@ async def post_user(
         "firstName": user.first_name,
         "lastName": user.last_name,
         "enabled": user.status,
+        "emailVerified": True,
     }
 
     user_id: str = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm)
