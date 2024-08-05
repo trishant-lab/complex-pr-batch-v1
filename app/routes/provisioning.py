@@ -145,9 +145,7 @@ async def prepare_schema(schema: dict) -> dict:
     schema["organization"] = (
         schema.get("organizationName") if schema.get("organizationName") else schema.get("organization")
     )
-    team_members = {"members": value for key, value in schema.items() if key.lower().__contains__("teammembers")}  # noqa
 
-    schema["teamMembers"] = team_members.get("members") if team_members else None
     return schema
 
 
@@ -166,7 +164,7 @@ async def provisioning(
     Trigger provisioning workflow for the given product
     """
     try:
-        schema = prepare_schema(schema)
+        schema: dict = await prepare_schema(schema)
 
         product_model = ProductEnum.get_input_model_class(product)
         product_model.model_validate(schema)
