@@ -37,10 +37,8 @@ async def setup_supavisor_poll_user(db_username: str, database_name: str, db_pas
     )
 
     if response.status_code < 200 or response.status_code >= 299:
-        logger.error(f"Supavisor user creation failed with status code: {
-                     response.status_code}")
-        raise Exception(f"Supavisor user creation failed with status code: {
-                        response.status_code}")
+        logger.error(f"Supavisor user creation failed with status code: {response.status_code}")
+        raise Exception(f"Supavisor user creation failed with status code: {response.status_code}")
     logger.info(f"Supervisor poll user created: {db_username}")
 
 
@@ -121,8 +119,7 @@ async def setup_postgres(jeeves: JeevesSpec) -> None:
             table="matomo_log_link_visit_action_view", username=db_username
         )
 
-        log_info(f"Postgres setup for tenant {
-                 jeeves.tenant} completed successfully")
+        log_info(f"Postgres setup for tenant {jeeves.tenant} completed successfully")
 
         return
     except Exception as e:

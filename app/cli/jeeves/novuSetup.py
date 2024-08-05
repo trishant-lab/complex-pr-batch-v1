@@ -23,18 +23,55 @@ def get_default_notification_group_id(config: AppSettings, novu_api_key: str) ->
     return None
 
 
-def get_default_notification_layout_id(config: AppSettings, novu_api_key: str) -> str | None:
+def get_default_notification_layout_id(
+        config: AppSettings,
+        novu_api_key: str,
+        layout_name: str = "Jeeves Layout",
+) -> str | None:
     """
 
     :return:
     """
-    layout_name: str = "Default Layout"
     layout_client = LayoutApi(url=config.jeeves.novu_url, api_key=novu_api_key)
     response = layout_client.list()
     for layout in response.data:
         if layout.name == layout_name:
             return layout._id
     return None
+
+
+def create_novu_notification_layout(
+        config: AppSettings,
+        novu_api_key: str,
+        layout_name: str,
+        layout_content: str,
+        is_default: str = False,
+) -> int | None:
+    """
+    create novu notification layout
+    :param config:
+    :param novu_api_key:
+    :param layout_name:
+    :param layout_content:
+    :param is_default:
+    :return:
+    """
+    headers: dict = {
+        "Authorization": f"ApiKey {novu_api_key}",
+        "Content-Type": "application/json",
+    }
+    data: dict = {
+        "name": layout_name,
+        "identifier": layout_name.lower().replace(" ", "-"),
+        "description": layout_name,
+        "content": layout_content,
+        "isDefault": is_default,
+    }
+    response = requests.post(url=f"{config.novu_url}/v1/layouts", json=data, headers=headers, timeout=60)
+    response_json = response.json()
+    if response.status_code >= 400:
+        logger.error(f"Failed to create novu layout : {response_json}")
+    return response.status_code
 
 
 def integrate_provider(
@@ -198,6 +235,15 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     :return:
     """
     template_names: list = list_novu_notification_template(config=config, novu_api_key=novu_api_key)
+    jeeves_layout: str | None = get_default_notification_layout_id(config=config, novu_api_key=novu_api_key)
+    if jeeves_layout is None:
+        layout_content = '<html> <head> <style> .content-container { background-color: #FFFFFF; text-align: center; margin: 30px auto; max-width: 600px; overflow: auto; height:auto; } .header img { height: 70px; width: 600px; } .container { background: #F0F0F0; text-align: center; padding: 16px 0; } .container img { margin-bottom: 16px; } </style> </head> <body style="background:#f6f6f6;max-height: 476px;"> <div class="content-container"> <div class="header"> <img src="https://lh7-us.googleusercontent.com/3bnmDGQiiB8YRKxTLdv6mYmWv10dXbCyx0DATLSbgmJLzqa2PilPOI-3a_71yu51ePodUKKFl6JhI_9KK9uLOo_3Sqq5E4QLEovovmLjFNZM4LYOgQ1BrbxCnBXzS8_YNiBsz0wqcHkwv_Ov1HaP7ww" alt="Jeeves Logo"> </div> <div style="margin:28px 28px"> {{{body}}} </div> <div class="container"> <img src="https://lh7-us.googleusercontent.com/k2Tx_FF2fhgoAnJombKAAW9SvmG8QrwaxPdXRBd8h10XKHxnwK_hFkNvwQBEV_tCZmf2V-F4npUaDwGyTeRMhxcUlPBQLgTjmqVyer40xaViWOrGRgYotgIK1T8FmJNR11p5eaqN8YacqXdwyf1w13M" alt="jeeves-favicon" style="height:24px"></img> <div> <p style="color: #434343; font-weight: 300;margin: 0px;">(C) 2024 314e Corporation. All rights reserved. This email is sent by 314e Corporation,</p> <p style="color: #434343; font-weight: 300;margin: 5px 0px;">301 Oxford Valley Rd., Ste 1303B, Yardley, PA 19067</p> </div> </div> </div> </body> </html>'
+        create_novu_notification_layout(
+            config=config,
+            novu_api_key=novu_api_key,
+            layout_name="Jeeves Layout",
+            layout_content=layout_content,
+        )
 
     # jeeves-assignment-created
     if "jeeves-assignment-created" not in template_names:
@@ -543,8 +589,8 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             channel="email",
             credentials={
                 "apiKey": config.sendgrid.api_key,
-                "from": "developer@314ecorp.com",
-                "senderName": "Jeeves",
+                "from": config.jeeves.novu_sendgrid_sender_email,
+                "senderName": config.jeeves.novu_sendgrid_sender_name,
             },
             active=True,
             config=config,

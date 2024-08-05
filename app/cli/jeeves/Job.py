@@ -24,12 +24,12 @@ from app.core.settings import get_settings
 from app.onepasswordutil import OnePasswordUtil
 
 
-class AlembicJob(K8sResourceBaseClass):
+class DatabaseSchemaMigrationJob(K8sResourceBaseClass):
     """
     Namespace class
     """
 
-    def __init__(self: "AlembicJob", jeeves: JeevesSpec) -> None:
+    def __init__(self: "DatabaseSchemaMigrationJob", jeeves: JeevesSpec) -> None:
         """
         Constructor
         """
@@ -39,8 +39,8 @@ class AlembicJob(K8sResourceBaseClass):
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="v1"
         )
         self.env = get_settings().env
-        self.job_name = "jeeves-alembic-migration-job"
-        self.job_type = "alembic"
+        self.job_name = "jeeves-db-schema-migration-job"
+        self.job_type = "atlas"
         self.postgres_user = f"jeeves_{jeeves.tenant}"
         self.postgres_password = OnePasswordUtil(
             tenant=f"Jeeves_{jeeves.tenant}",
@@ -49,7 +49,7 @@ class AlembicJob(K8sResourceBaseClass):
         ).get_key("pg_password")
         self.image_tag = "production" if self.env == "production" else "sprint"
 
-    def payload(self: "AlembicJob") -> dict:
+    def payload(self: "DatabaseSchemaMigrationJob") -> dict:
         """
         Job Payload
         """
@@ -86,7 +86,7 @@ class AlembicJob(K8sResourceBaseClass):
                                     )
                                 ],
                                 command=["/bin/sh", "-c"],
-                                args=["python3 /app/provisioning/alembic_migration.py"],
+                                args=["python3 /app/provisioning/atlas_migration.py"],
                             )
                         ],
                         volumes=[
@@ -106,7 +106,7 @@ class AlembicJob(K8sResourceBaseClass):
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self: "AlembicJob") -> None:
+    def put(self: "DatabaseSchemaMigrationJob") -> None:
         """
         Put method
         """
@@ -115,7 +115,7 @@ class AlembicJob(K8sResourceBaseClass):
         )
         log_info(f"Alembic Job created for {self.jeeves.tenant}")
 
-    def delete(self: "AlembicJob") -> None:
+    def delete(self: "DatabaseSchemaMigrationJob") -> None:
         """
         Delete method
         """

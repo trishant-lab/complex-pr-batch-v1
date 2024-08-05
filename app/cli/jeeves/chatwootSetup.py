@@ -107,7 +107,7 @@ class ChatwootSetup:
         data: dict = {
             "name": "Jeeves AI Bot",
             "description": "Jeeves AI Bot",
-            "outgoing_url": f"{server_url}/public/api/v1/jeevesAgent/jeevesChatbot",
+            "outgoing_url": f"{server_url}/public/api/v1/agent/jeevesChatbot",
         }
         response = requests.post(url=url, headers=headers, json=data, timeout=20)
         if response.status_code >= 400:

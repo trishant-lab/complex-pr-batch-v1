@@ -175,6 +175,8 @@ class JeevesSettings(BaseModel):
     novu_url: str = "https://alerting.314ecorp.tech"
     novu_admin_user: str = "jeeves.assistant@314ecorp.com"
     novu_admin_password: str = ""
+    novu_sendgrid_sender_email: str = "noreply@okjeeves.com"
+    novu_sendgrid_sender_name: str = "Jeeves Support"
 
     chatwoot_base_url: str = "https://jeeves-agent.314ecorp.tech/"
     chatwoot_platform_api_token: str = ""
@@ -326,6 +328,9 @@ class AppSettings(BaseSettings):
 
     log_path: str = "/var/log" if os.getuid() == 0 else tempfile.gettempdir()
     log_file_path: str = os.path.join(log_path, "launchpad_app.log")
+    log_auth_token: str = ""
+    slack_channel_id_prod: str = "C04J9J9NH6X"  # error-jeeves-production
+    slack_channel_id_int: str = "C07CPMV91KP"  # error-jeeves-integration
 
     gsuite: GSuiteModel = GSuiteModel()
 
