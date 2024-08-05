@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import orjson
 import requests
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Path
 from loguru import logger
 from pydantic import ValidationError, BaseModel
 from starlette.requests import Request
@@ -13,7 +13,12 @@ from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUES
 from temporalio.client import WorkflowHandle
 
 from .product import get_product
-from .tenant import create_tenant, TenantCreateRequestModel
+from .tenant import (
+    create_tenant,
+    TenantCreateRequestModel,
+    suggest_tenant_names,
+    get_valid_tenant_names,
+)
 from ..core.db import get_db_manager, DBManager
 from ..core.oauth2 import get_oauth_scheme
 from ..core.settings import get_settings, AppSettings
@@ -113,6 +118,39 @@ def validate_email(email: str) -> None:
         )
 
 
+async def prepare_schema(schema: dict) -> dict:
+    """
+    Prepare schema
+    """
+    email = schema.get("workEmail") if schema.get("workEmail") else schema.get("email")
+    schema["email"] = email
+
+    company_domain: str = email.split("@")[1].split(".")[0]
+
+    existing_tenant_names = await get_valid_tenant_names([company_domain.lower()])
+
+    if not company_domain[0].isdigit() and not existing_tenant_names:
+        tenant_name = company_domain
+    else:
+        suggested_tenant_names = await suggest_tenant_names(company_domain)
+        tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
+
+    if not tenant_name:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail="Tenant name not available",
+        )
+
+    schema["tenant"] = tenant_name
+    schema["organization"] = (
+        schema.get("organizationName") if schema.get("organizationName") else schema.get("organization")
+    )
+    team_members = {"members": value for key, value in schema.items() if key.lower().__contains__("teammembers")}  # noqa
+
+    schema["teamMembers"] = team_members.get("members") if team_members else None
+    return schema
+
+
 @provisioning_router.post(
     "",
     operation_id="provisioning",
@@ -128,7 +166,8 @@ async def provisioning(
     Trigger provisioning workflow for the given product
     """
     try:
-        schema["tenant"] = schema.get("tenantName") if schema.get("tenantName") else schema.get("tenant")
+        schema = prepare_schema(schema)
+
         product_model = ProductEnum.get_input_model_class(product)
         product_model.model_validate(schema)
     except ValidationError as e:
@@ -177,12 +216,12 @@ async def provisioning(
         await product_workflow.approve(schema)
 
 
-@provisioning_router.post("/approveOrDecline", operation_id="approveOrDecline")
+@provisioning_router.post("/approveOrDecline/{product}", operation_id="approveOrDecline")
 async def approve_tenant(
-    product: ProductEnum,
     approval: bool,
     tenant_id: uuid.UUID,
     request: Request,
+    product: ProductEnum = Path(...),
     _param: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
@@ -215,10 +254,10 @@ async def approve_tenant(
         logger.info(f"Declined {response['product_name']} workflow for tenant: {response['name']}")
 
 
-@provisioning_router.post("/retryProvisioning", operation_id="retryProvisioning")
+@provisioning_router.post("/retryProvisioning/{product}", operation_id="retryProvisioning")
 async def retry_provisioning(
-    product: ProductEnum,
     tenant_id: uuid.UUID,
+    product: ProductEnum = Path(...),
     _param: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
@@ -313,10 +352,10 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
     return logs
 
 
-@provisioning_router.get("/workflowSteps", operation_id="workflowSteps")
+@provisioning_router.get("/workflowSteps/{product}", operation_id="workflowSteps")
 async def get_workflow_steps(
-    product: ProductEnum,
     tenant_id: uuid.UUID,
+    product: ProductEnum = Path(...),
     _param: dict = Depends(get_oauth_scheme()),
 ) -> list[WorkflowSteps]:
     """

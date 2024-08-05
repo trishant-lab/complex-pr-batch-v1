@@ -6,7 +6,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to Kubernetes
+    name: Build Launchpad Base Image
     runs-on: [self-hosted, python3.9]
     steps:
       - name: Checkout

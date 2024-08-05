@@ -30,10 +30,10 @@ def get_token(request: Request, error: bool = True) -> str | None:
     """
     authorization: str = request.headers.get("Authorization")
     scheme, param = get_authorization_scheme_param(authorization)
-    if not authorization or scheme.lower() != "bearer":
-        if error:
-            raise Exception("Unauthorized")
-        return None
+    # if not authorization or scheme.lower() != "bearer":
+    #     if error:
+    #         raise Exception("Unauthorized")
+    #     return None
     return param
 
 

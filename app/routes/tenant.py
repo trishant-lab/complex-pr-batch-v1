@@ -2,11 +2,13 @@ import uuid
 from itertools import filterfalse
 
 import orjson
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, BackgroundTasks
 from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
+from typing import TYPE_CHECKING
 
+from temporalio.client import WorkflowHandle
 from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
@@ -15,6 +17,9 @@ from app.models.tenant import (
     TenantCreateRequestModel,
     TenantResponseModel,
 )
+
+if TYPE_CHECKING:
+    from app.cli.workflowbase import ProductWorkflow
 
 tenant_router = APIRouter()
 
@@ -43,10 +48,6 @@ async def create_requestor(requestor: dict) -> dict:
         )
 
 
-@tenant_router.post(
-    "",
-    operation_id="createTenant",
-)
 async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
     """
     @param tenant_details:
@@ -60,7 +61,7 @@ async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
         return dict(
             await db.fetch_one(
                 "createTenant.sql",
-                **tenant_details.dict(),
+                **tenant_details.model_dump(),
                 requestor_id=requestor["id"],
             )
         )
@@ -71,12 +72,12 @@ async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
 
 
 @tenant_router.get(
-    "",
+    "/{product}",
     operation_id="Tenants",
     response_model=list[TenantResponseModel] | None,
 )
 async def list_tenants(
-    product: ProductEnum, tenant_id: uuid.UUID | None = None, _param: dict = Depends(get_oauth_scheme())
+    product: ProductEnum = Path(...), tenant_id: uuid.UUID | None = None, _param: dict = Depends(get_oauth_scheme())
 ) -> list[TenantResponseModel]:
     """
     @param product:
@@ -108,49 +109,89 @@ async def list_tenants(
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants")
 
 
-@tenant_router.get(
-    "/getTenantById",
-    operation_id="getTenantById",
-    response_model=TenantResponseModel,
-)
-async def get_tenant(tenant_id: uuid.UUID, _param: dict = Depends(get_oauth_scheme())) -> TenantResponseModel:
+# @tenant_router.get(
+#     "/getTenantById/{product}",
+#     operation_id="getTenantById",
+#     response_model=TenantResponseModel,
+# )
+# async def get_tenant(
+#         tenant_id: uuid.UUID,
+#         _product: ProductEnum = Path(..., alias="product"),
+#         _param: dict = Depends(get_oauth_scheme())
+# ) -> TenantResponseModel:
+#     """
+#     @param tenant_id:
+#     @param _product:
+#     @param _param:
+#     @return:
+#     """
+#     config: AppSettings = get_settings()
+#     try:
+#         db: DBManager = await get_db_manager(config.postgres.dsn)
+#         response = await db.fetch_one("getTenantById.sql", tenant_id=str(tenant_id))
+#
+#         tenant: dict = dict(response)
+#         tenant["requestor"] = orjson.loads(tenant["requestor_details"])
+#         tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
+#
+#         return TenantResponseModel(**tenant)
+#
+#     except Exception as e:
+#         logger.error(f"Error fetching tenant: {e}")
+#         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
+
+
+async def update_provisioning_workflow(product: ProductEnum, tenant_details: dict) -> None:
     """
-    @param tenant_id:
-    @param _param:
+    @param product:
+    @param tenant_details:
     @return:
     """
-    config: AppSettings = get_settings()
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getTenantById.sql", tenant_id=str(tenant_id))
+    tenant_details["tenant"] = (
+        tenant_details.get("tenantName") if tenant_details.get("tenantName") else tenant_details.get("tenant")
+    )
+    product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
-        tenant: dict = dict(response)
-        tenant["requestor"] = orjson.loads(tenant["requestor_details"])
-        tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
+    workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=tenant_details)
 
-        return TenantResponseModel(**tenant)
+    response = await workflow_handle.describe()
 
-    except Exception as e:
-        logger.error(f"Error fetching tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
+    if response.status.name == "RUNNING":
+        # terminate the workflow
+        await workflow_handle.terminate()
+
+    # start the workflow
+    await product_workflow.onboard(tenant_details)
+
+    logger.info(f"Triggered provisioning workflow for product: {product.value}")
 
 
 @tenant_router.put(
-    "/updateTenantDetails",
+    "/updateTenantDetails/{product}",
     operation_id="updateTenantDetails",
 )
-async def update_tenant(tenant_id: str, tenant_details: dict, _param: dict = Depends(get_oauth_scheme())) -> dict:
+async def update_tenant(
+    tenant_id: str,
+    tenant_details: dict,
+    product: ProductEnum = Path(..., alias="product"),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    _param: dict = Depends(get_oauth_scheme()),
+) -> dict:
     """
+    @param product:
     @param tenant_id:
     @param tenant_details:
+    @param background_tasks:
     @param _param:
     @return:
     """
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        tenant_details = orjson.dumps(tenant_details).decode("utf-8")
-        response = await db.fetch_one("updateTenantDetails.sql", schema_=tenant_details, tenant_id=tenant_id)
+        tenant_details_str = orjson.dumps(tenant_details).decode("utf-8")
+        response = await db.fetch_one("updateTenantDetails.sql", schema_=tenant_details_str, tenant_id=tenant_id)
+
+        background_tasks.add_task(update_provisioning_workflow, product, tenant_details)
 
         return {"message": "Tenant details are updated successfully", "data": response}
 
@@ -204,10 +245,10 @@ async def get_valid_tenant_names(tenant_names: list) -> list:
 
 
 @tenant_router.get(
-    "/suggestTenantNames",
+    "/suggestTenantNames/{organization}",
     operation_id="suggestTenantNames",
 )
-async def suggest_tenant_names(organization: str) -> list:
+async def suggest_tenant_names(organization: str = Path(...)) -> list:
     """
     @param organization:
     @return:
@@ -219,7 +260,7 @@ async def suggest_tenant_names(organization: str) -> list:
 
 
 @tenant_router.get(
-    "/{tenant_name}",
+    "/validateTenantName/{tenant_name}",
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(
