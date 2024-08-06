@@ -175,6 +175,8 @@ class JeevesSettings(BaseModel):
     novu_url: str = "https://alerting.314ecorp.tech"
     novu_admin_user: str = "jeeves.assistant@314ecorp.com"
     novu_admin_password: str = ""
+    novu_sendgrid_sender_email: str = "noreply@okjeeves.com"
+    novu_sendgrid_sender_name: str = "Jeeves Support"
 
     chatwoot_base_url: str = "https://jeeves-agent.314ecorp.tech/"
     chatwoot_platform_api_token: str = ""
@@ -191,6 +193,10 @@ class JeevesSettings(BaseModel):
     r2_bucket: str = ""
 
     reporting_site_id: str = "1"
+
+    log_auth_token: str = ""
+    slack_channel_id_prod: str = "C04J9J9NH6X"  # error-jeeves-production
+    slack_channel_id_int: str = "C07CPMV91KP"  # error-jeeves-integration
 
 
 class DexitAIOcrEngines(str, Enum):
