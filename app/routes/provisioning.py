@@ -13,12 +13,7 @@ from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUES
 from temporalio.client import WorkflowHandle
 
 from .product import get_product
-from .tenant import (
-    create_tenant,
-    TenantCreateRequestModel,
-    suggest_tenant_names,
-    get_valid_tenant_names,
-)
+from .tenant import create_tenant, TenantCreateRequestModel
 from ..core.db import get_db_manager, DBManager
 from ..core.oauth2 import get_oauth_scheme
 from ..core.settings import get_settings, AppSettings
@@ -125,23 +120,23 @@ async def prepare_schema(schema: dict) -> dict:
     email = schema.get("workEmail") if schema.get("workEmail") else schema.get("email")
     schema["email"] = email
 
-    company_domain: str = email.split("@")[1].split(".")[0]
+    # company_domain: str = email.split("@")[1].split(".")[0]
+    #
+    # existing_tenant_names = await get_valid_tenant_names([company_domain.lower()])
+    #
+    # if not company_domain[0].isdigit() and not existing_tenant_names:
+    #     tenant_name = company_domain
+    # else:
+    #     suggested_tenant_names = await suggest_tenant_names(company_domain)
+    #     tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
 
-    existing_tenant_names = await get_valid_tenant_names([company_domain.lower()])
+    # if not tenant_name:
+    #     raise HTTPException(
+    #         status_code=HTTP_400_BAD_REQUEST,
+    #         detail="Tenant name not available",
+    #     )
 
-    if not company_domain[0].isdigit() and not existing_tenant_names:
-        tenant_name = company_domain
-    else:
-        suggested_tenant_names = await suggest_tenant_names(company_domain)
-        tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
-
-    if not tenant_name:
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-            detail="Tenant name not available",
-        )
-
-    schema["tenant"] = tenant_name
+    schema["tenant"] = schema["portalName"]
     schema["organization"] = (
         schema.get("organizationName") if schema.get("organizationName") else schema.get("organization")
     )

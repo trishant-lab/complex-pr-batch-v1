@@ -16,6 +16,7 @@ from app.models.product import ProductEnum
 from app.models.tenant import (
     TenantCreateRequestModel,
     TenantResponseModel,
+    SuggestTenantNamesResponseModel,
 )
 
 if TYPE_CHECKING:
@@ -245,18 +246,22 @@ async def get_valid_tenant_names(tenant_names: list) -> list:
 
 
 @tenant_router.get(
-    "/suggestTenantNames/{organization}",
+    "/suggestTenantNames/{product}",
     operation_id="suggestTenantNames",
 )
-async def suggest_tenant_names(organization: str = Path(...)) -> list:
+async def suggest_tenant_names(organization: str, product: ProductEnum = Path(...)) -> SuggestTenantNamesResponseModel:
     """
     @param organization:
+    @param product:
     @return:
     """
     combinations = generate_combinations(organization=organization)
     existing_tenants = await get_valid_tenant_names(combinations)
     existing_tenants.extend(["auth", "accounts"])
-    return list(filterfalse(existing_tenants.__contains__, combinations))
+    return SuggestTenantNamesResponseModel(
+        tenant_names=list(filterfalse(existing_tenants.__contains__, combinations)),
+        domain=ProductEnum.get_domain(product.value),
+    )
 
 
 @tenant_router.get(

@@ -50,3 +50,8 @@ class UpdateRequestorModel(BaseModel):
     username: str
     email: str
     organization: str
+
+
+class SuggestTenantNamesResponseModel(BaseModel):
+    tenant_names: list[str]
+    domain: str
