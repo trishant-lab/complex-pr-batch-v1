@@ -136,7 +136,7 @@ async def prepare_schema(product: ProductEnum, schema: dict) -> dict:
     if existing_tenant_names:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
-            detail=f"{product.value} Environment Already Exist with this email domain '{company_domain}'",
+            detail="An active free trial exists for your organization. Please contact the admin to gain access.",
         )
 
     if not company_domain[0].isdigit():
