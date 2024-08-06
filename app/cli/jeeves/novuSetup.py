@@ -67,7 +67,7 @@ def create_novu_notification_layout(
         "content": layout_content,
         "isDefault": is_default,
     }
-    response = requests.post(url=f"{config.novu_url}/v1/layouts", json=data, headers=headers, timeout=60)
+    response = requests.post(url=f"{config.jeeves.novu_url}/v1/layouts", json=data, headers=headers, timeout=60)
     response_json = response.json()
     if response.status_code >= 400:
         logger.error(f"Failed to create novu layout : {response_json}")

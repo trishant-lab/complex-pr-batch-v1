@@ -56,9 +56,9 @@ class ConfigMapClass(K8sResourceBaseClass):
         output = template.render(
             tenant=self.jeeves.tenant,
             redis_admin_password=self.config_.cache_admin_password,
-            log_auth_token=self.config_.log_auth_token,
-            slack_channel_id=self.config_.slack_channel_id_prod if self.env == "production" else
-            self.config_.slack_channel_id_int,
+            log_auth_token=self.config_.jeeves.log_auth_token,
+            slack_channel_id=self.config_.jeeves.slack_channel_id_prod if self.env == "production" else
+            self.config_.jeeves.slack_channel_id_int,
         )
 
         with TemporaryDirectory() as temp_dir:
