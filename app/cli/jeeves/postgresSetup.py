@@ -22,8 +22,7 @@ async def setup_supavisor_poll_user(db_username: str, database_name: str, db_pas
 
     jinja_env = get_env(template_path=TemplatePath)
     template = jinja_env.get_template(f"{environment}-supavisor-user.json")
-    rendered_template = template.render(
-        DATABASE=database_name, DB_USER=db_username, DB_PASSWORD=db_password)
+    rendered_template = template.render(DATABASE=database_name, DB_USER=db_username, DB_PASSWORD=db_password)
 
     response = requests.put(
         url=f"{config.supavisor_url}/api/tenants/{db_username}",
@@ -37,10 +36,8 @@ async def setup_supavisor_poll_user(db_username: str, database_name: str, db_pas
     )
 
     if response.status_code < 200 or response.status_code >= 299:
-        logger.error(f"Supavisor user creation failed with status code: {
-                     response.status_code}")
-        raise Exception(f"Supavisor user creation failed with status code: {
-                        response.status_code}")
+        logger.error(f"Supavisor user creation failed with status code: {response.status_code}")
+        raise Exception(f"Supavisor user creation failed with status code: {response.status_code}")
     logger.info(f"Supervisor poll user created: {db_username}")
 
 
@@ -121,8 +118,7 @@ async def setup_postgres(jeeves: JeevesSpec) -> None:
             table="matomo_log_link_visit_action_view", username=db_username
         )
 
-        log_info(f"Postgres setup for tenant {
-                 jeeves.tenant} completed successfully")
+        log_info(f"Postgres setup for tenant {jeeves.tenant} completed successfully")
 
         return
     except Exception as e:
