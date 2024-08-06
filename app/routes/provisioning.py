@@ -241,6 +241,7 @@ async def approve_tenant(
     approval: bool,
     tenant_id: uuid.UUID,
     request: Request,
+    tenant_name: None | str = None,
     product: ProductEnum = Path(...),
     _param: dict = Depends(get_oauth_scheme()),
 ) -> None:
@@ -264,11 +265,28 @@ async def approve_tenant(
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error approving tenant")
 
     schema = orjson.loads(response["schema"])
+
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     if approval:
-        await product_workflow.approve(schema)
-        logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
+        if tenant_name and schema["tenant"] != tenant_name:
+            workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=schema)
+
+            response = await workflow_handle.describe()
+
+            if response.status.name == "RUNNING":
+                # terminate the workflow
+                await workflow_handle.terminate()
+
+            # start the workflow
+            schema["tenant"] = tenant_name
+            await product_workflow.onboard(schema)
+            await product_workflow.approve(schema)
+
+        else:
+            await product_workflow.approve(schema)
+            logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
+
     else:
         await product_workflow.decline(schema)
         logger.info(f"Declined {response['product_name']} workflow for tenant: {response['name']}")
