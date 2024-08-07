@@ -44,7 +44,9 @@ async def send_customer_password_mail(jeeves: JeevesSpec, password: str) -> None
 
     # get template
     try:
-        response = await db.fetch_one("getEmailTemplateByProduct.sql", product="Jeeves", template_name="Provisioned")
+        response = await db.fetch_one(
+            "getEmailTemplateByProduct.sql", product="Jeeves", template_name="AfterProvisioning"
+        )
         response = dict(response)
     except Exception as e:
         log_error(f"Error fetching template: {e}")
