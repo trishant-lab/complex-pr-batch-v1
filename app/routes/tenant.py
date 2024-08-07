@@ -6,7 +6,7 @@ import orjson
 from fastapi import APIRouter, Depends, Path, BackgroundTasks
 from loguru import logger
 from starlette.exceptions import HTTPException
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
 from temporalio.client import WorkflowHandle
 
 from app.core.db import DBManager, get_db_manager
@@ -264,21 +264,23 @@ async def suggest_tenant_names(organization: str, product: ProductEnum = Path(..
     )
 
 
-# @tenant_router.get(
-#     "/validateTenantName/{tenant_name}",
-#     operation_id="validateTenantName",
-# )
-# async def verify_tenant_name(
-#     tenant_name: str = Path(min_length=3, max_length=15, regex="^[a-zA-Z]*$"),
-# ) -> None:
-#     """
-#     @param tenant_name:
-#     @return:
-#     """
-#     tenant_names = await get_valid_tenant_names([tenant_name.lower()])
-#     if tenant_names:
-#         raise HTTPException(
-#             status_code=HTTP_400_BAD_REQUEST,
-#             detail=f"Tenant name {tenant_name} already exists",
-#         )
-#     return
+@tenant_router.get(
+    "/validateTenantName/{tenant_name}",
+    operation_id="validateTenantName",
+)
+async def verify_tenant_name(
+    product: ProductEnum,
+    tenant_name: str = Path(min_length=3, max_length=15, regex="^[a-zA-Z]*$"),
+) -> None:
+    """
+    @param product:
+    @param tenant_name:
+    @return:
+    """
+    tenant_names = await get_valid_tenant_names(product=product, tenant_names=[tenant_name.lower()])
+    if tenant_names:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail=f"Tenant name {tenant_name} already exists",
+        )
+    return
