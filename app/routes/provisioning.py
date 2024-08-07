@@ -281,7 +281,10 @@ async def approve_tenant(
             # start the workflow
             schema["tenant"] = tenant_name
             await db.fetch_one(
-                "updateTenantName.sql", tenant_id=str(tenant_id), tenant_name=tenant_name, product_schema=schema
+                "updateTenantName.sql",
+                tenant_id=str(tenant_id),
+                tenant_name=tenant_name,
+                product_schema=orjson.dumps(schema).decode("utf-8"),
             )
 
             await product_workflow.onboard(schema)
