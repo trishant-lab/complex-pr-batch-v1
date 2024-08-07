@@ -74,9 +74,9 @@ class DeleteProvisioningJobActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.Job import AlembicJob, VespaJob
+        from app.cli.jeeves.Job import DatabaseSchemaMigrationJob, VespaJob
 
-        AlembicJob(jeeves=jeeves).delete()
+        DatabaseSchemaMigrationJob(jeeves=jeeves).delete()
         VespaJob(jeeves=jeeves).delete()
 
 

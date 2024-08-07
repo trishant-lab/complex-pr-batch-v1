@@ -295,9 +295,9 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.jeeves.Job import AlembicJob, VespaJob
+        from app.cli.jeeves.Job import DatabaseSchemaMigrationJob, VespaJob
 
-        alembic_job = AlembicJob(jeeves=jeeves)
+        alembic_job = DatabaseSchemaMigrationJob(jeeves=jeeves)
         alembic_job.delete()
         alembic_job.put()
 
