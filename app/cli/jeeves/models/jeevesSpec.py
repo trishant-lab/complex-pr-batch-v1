@@ -27,6 +27,6 @@ class JeevesSpec(LaunchpadCLIBaseModel):
     firstName: str
     lastName: str
     email: str
-    organization: str
+    organization: None | str = None
     serverSpec: None | ResourceSpec = ResourceSpec()
     cliSpec: None | ResourceSpec = ResourceSpec()
