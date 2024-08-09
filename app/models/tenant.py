@@ -38,7 +38,7 @@ class TenantResponseModel(BaseModel):
     name: str
     status: TenantStatusEnum
     source: None | str = None
-    requestor: RequestorModel
+    requestor: None | dict = None
     product_schema: None | dict = None
     approvedBy: None | str = None
     created: datetime
