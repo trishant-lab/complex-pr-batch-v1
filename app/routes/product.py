@@ -87,7 +87,7 @@ async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
     form: dict = await form_render_for_product(product.value.lower())
 
     boto3_client = s3_utils.get_r2_storage_client(config=config)
-    form_path = f"{product.value.lower()}/form.json"
+    form_path = f"{product.value}/form.json"
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         form_file_path = f"{tmp_dir}/form.json"

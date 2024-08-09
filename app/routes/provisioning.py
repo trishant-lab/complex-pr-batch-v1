@@ -13,12 +13,7 @@ from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUES
 from temporalio.client import WorkflowHandle
 
 from .product import get_product
-from .tenant import (
-    create_tenant,
-    TenantCreateRequestModel,
-    suggest_tenant_names,
-    get_valid_tenant_names,
-)
+from .tenant import create_tenant, TenantCreateRequestModel, get_valid_tenant_names
 from ..core.db import get_db_manager, DBManager
 from ..core.oauth2 import get_oauth_scheme
 from ..core.settings import get_settings, AppSettings
@@ -118,7 +113,7 @@ def validate_email(email: str) -> None:
         )
 
 
-async def prepare_schema(schema: dict) -> dict:
+async def prepare_schema(product: ProductEnum, schema: dict) -> dict:
     """
     Prepare schema
     """
@@ -127,27 +122,52 @@ async def prepare_schema(schema: dict) -> dict:
 
     company_domain: str = email.split("@")[1].split(".")[0]
 
-    existing_tenant_names = await get_valid_tenant_names([company_domain.lower()])
+    prefix = "portal"
+    existing_tenant_names = await get_valid_tenant_names(
+        product=product, tenant_names=[company_domain.lower(), f"{prefix}{company_domain.lower()}"]
+    )
 
-    if not company_domain[0].isdigit() and not existing_tenant_names:
-        tenant_name = company_domain
-    else:
-        suggested_tenant_names = await suggest_tenant_names(company_domain)
-        tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
+    # if not company_domain[0].isdigit() and not existing_tenant_names:
+    #     tenant_name = company_domain
+    # else:
+    #     suggested_tenant_names = await suggest_tenant_names(company_domain)
+    #     tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
 
-    if not tenant_name:
+    if existing_tenant_names:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
-            detail="Tenant name not available",
+            detail="An active free trial exists for your organization. Please contact the admin to gain access.",
         )
+
+    if not company_domain[0].isdigit():
+        tenant_name = company_domain
+    else:
+        tenant_name = f"{prefix}{company_domain}"
+
+    # if not company_domain[0].isdigit():
+    #     if not existing_tenant_names:
+    #         tenant_name = company_domain
+    #     else:
+    #         suggested_tenant_names = await suggest_tenant_names(company_domain)
+    #         tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
+    # else:
+    #     if not existing_tenant_names:
+    #         tenant_name = f"{prefix}{company_domain}"
+    #     else:
+    #         suggested_tenant_names = await suggest_tenant_names(f"{prefix}{company_domain}")
+    #         tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
+
+    # if not tenant_name:
+    #     raise HTTPException(
+    #         status_code=HTTP_400_BAD_REQUEST,
+    #         detail="Tenant name not available",
+    #     )
 
     schema["tenant"] = tenant_name
     schema["organization"] = (
         schema.get("organizationName") if schema.get("organizationName") else schema.get("organization")
     )
-    team_members = {"members": value for key, value in schema.items() if key.lower().__contains__("teammembers")}  # noqa
 
-    schema["teamMembers"] = team_members.get("members") if team_members else None
     return schema
 
 
@@ -166,7 +186,7 @@ async def provisioning(
     Trigger provisioning workflow for the given product
     """
     try:
-        schema = prepare_schema(schema)
+        schema: dict = await prepare_schema(product=product, schema=schema)
 
         product_model = ProductEnum.get_input_model_class(product)
         product_model.model_validate(schema)
@@ -221,6 +241,7 @@ async def approve_tenant(
     approval: bool,
     tenant_id: uuid.UUID,
     request: Request,
+    tenant_name: None | str = None,
     product: ProductEnum = Path(...),
     _param: dict = Depends(get_oauth_scheme()),
 ) -> None:
@@ -244,11 +265,35 @@ async def approve_tenant(
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error approving tenant")
 
     schema = orjson.loads(response["schema"])
+
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     if approval:
-        await product_workflow.approve(schema)
-        logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
+        if tenant_name and schema["tenant"] != tenant_name:
+            workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=schema)
+
+            response = await workflow_handle.describe()
+
+            if response.status.name == "RUNNING":
+                # terminate the workflow
+                await workflow_handle.terminate()
+
+            # start the workflow
+            schema["tenant"] = tenant_name
+            await db.fetch_one(
+                "updateTenantName.sql",
+                tenant_id=str(tenant_id),
+                tenant_name=tenant_name,
+                product_schema=orjson.dumps(schema).decode("utf-8"),
+            )
+
+            await product_workflow.onboard(schema)
+            await product_workflow.approve(schema)
+
+        else:
+            await product_workflow.approve(schema)
+            logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
+
     else:
         await product_workflow.decline(schema)
         logger.info(f"Declined {response['product_name']} workflow for tenant: {response['name']}")

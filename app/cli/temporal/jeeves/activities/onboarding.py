@@ -527,6 +527,31 @@ class AiVoiceSetupActivity(Activity):
         add_ai_voices_to_storage(jeeves=jeeves)
 
 
+class BeforeProvisioningMailActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=2,
+        )
+
+    @staticmethod
+    @activity.defn(name="BeforeProvisioningMailActivity")
+    async def defn(jeeves: JeevesSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Send mail to customer
+        from app.cli.jeeves.mail import send_before_provisioning_mail
+
+        await send_before_provisioning_mail(jeeves=jeeves)
+
+
 class SendMailActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:

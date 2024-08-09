@@ -41,7 +41,13 @@ def send_customer_password_mail(dexit: DexitSpec, password: str) -> None:
         link=f"https://{dexit.tenant}.{domain_name}",
         password=password,
     )
-    send_mail(to_email=dexit.email, subject=subject, content=content, from_name="314e Support")
+    send_mail(
+        to_email=dexit.email,
+        subject=subject,
+        content=content,
+        from_name="314e Support",
+        email_from="developer@314ecorp.com",
+    )
 
     log_info(f"Sent provisioning success mail to {dexit.email}")
 

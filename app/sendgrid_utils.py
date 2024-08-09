@@ -73,6 +73,7 @@ class Sendgrid(metaclass=Singleton):
         self: "Sendgrid",
         subject: str,
         content: str,
+        email_from: str,
         to_email: str | list | None = None,
         bcc_email: str | list | None = None,
         attachments: list[Attachment] | None = None,
@@ -83,6 +84,7 @@ class Sendgrid(metaclass=Singleton):
         @param to_email:
         @param subject:
         @param content:
+        @param email_from:
         @param attachments:
         @param from_name:
         @param mime_type:
@@ -99,7 +101,7 @@ class Sendgrid(metaclass=Singleton):
             personalization.add_to(To(recipient))
             mail.add_personalization(personalization)
 
-        mail.from_email = From(email=self.sendgrid_config.email_from, name=from_name)
+        mail.from_email = From(email=email_from, name=from_name)
         mail.subject = Subject(subject=subject)
         mail.content = [Content(mime_type=mime_type, content=content)]
         if bcc_email:
@@ -157,6 +159,7 @@ class Sendgrid(metaclass=Singleton):
         subject: str,
         content: str,
         from_name: str,
+        email_from: str,
         to_email: str | list | None = None,
         bcc_email: str | list | None = None,
         attachments: list | None = None,
@@ -168,6 +171,7 @@ class Sendgrid(metaclass=Singleton):
         @param subject:
         @param content:
         @param from_name:
+        @param email_from:
         @param attachments:
         @param mime_type:
         @return:
@@ -178,6 +182,7 @@ class Sendgrid(metaclass=Singleton):
             subject=subject,
             content=content,
             from_name=from_name,
+            email_from=email_from,
             mime_type=mime_type,
             attachments=attachments,
         )
@@ -201,6 +206,7 @@ def send_mail(
     subject: str,
     content: str,
     from_name: str,
+    email_from: str,
     to_email: str | list | None = None,
     bcc_email: str | list | None = None,
     attachments: list | None = None,
@@ -213,6 +219,7 @@ def send_mail(
     @param subject:
     @param content:
     @param from_name:
+    @param email_from:
     @param attachments:
     @param attachment_with_url:
     @param mime_type:
@@ -224,6 +231,7 @@ def send_mail(
         subject=subject,
         content=content,
         from_name=from_name,
+        email_from=email_from,
         to_email=to_email,
         bcc_email=bcc_email,
         attachments=attachments,

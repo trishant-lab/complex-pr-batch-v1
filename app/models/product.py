@@ -42,3 +42,21 @@ class ProductEnum(str, Enum):
                 return DexitSpec
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
+
+    @classmethod
+    def get_domain(cls: "ProductEnum", enum_value: "ProductEnum") -> str:
+        """
+        Get the domain for the given enum value
+        """
+        from ..core.settings import AppSettings, get_settings
+
+        config: AppSettings = get_settings()
+        match enum_value:
+            case cls.jeeves:
+                return config.jeeves.domain_name
+            case cls.veritable:
+                return config.veritable.domain_name
+            case cls.dexit:
+                return config.dexit.domain_name
+            case _:
+                raise ValueError(f"Unknown enum value: {enum_value}")

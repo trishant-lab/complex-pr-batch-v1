@@ -18,6 +18,7 @@ from app.models.jeevesReports import (
     AssetsSharedResponseModel,
     AssetsUploadResponseModel,
     AssetsRecordedResponseModel,
+    AssetsTipSheetCreatedResponseModel,
 )
 
 jeeves_report_router = APIRouter()
@@ -342,7 +343,7 @@ async def assignments_created_details(
     summary="Returns details of uploaded assets",
     response_model=AssignmentsCreatedResponseModel | None,
 )
-async def add_asset_upload_details(
+async def asset_upload_details(
     tenant: str,
     start_date: date | None = None,
     end_date: date | None = None,
@@ -389,7 +390,7 @@ async def add_asset_upload_details(
     summary="Returns details of recorded assets",
     response_model=AssetsRecordedResponseModel | None,
 )
-async def add_asset_record_details(
+async def asset_record_details(
     tenant: str,
     start_date: date | None = None,
     end_date: date | None = None,
@@ -422,4 +423,44 @@ async def add_asset_record_details(
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch asset record details. Please try again in sometime",
+        ) from e
+
+
+@jeeves_report_router.get(
+    "/AssetTipSheet",
+    operation_id="reportAssetTipSheet",
+    summary="Returns details of the Tip Sheet",
+    response_model=AssignmentsCreatedResponseModel | None,
+)
+async def asset_tip_sheet_details(
+    tenant: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    _params: dict = Depends(get_oauth_scheme()),
+) -> AssetsTipSheetCreatedResponseModel:
+    """
+    Return total assets tip sheet number and their average duration
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+    try:
+        result = await db.fetch_all(
+            "jeevesTipSheetReportsPerUser.sql",
+            tenant=tenant,
+            site_id=config.jeeves.reporting_site_id,
+            startdate=start_date.isoformat() if start_date else None,
+            enddate=end_date.isoformat() if end_date else None,
+        )
+        total_assets_tip_sheet: int = sum(row["count_"] for row in result)
+        total_users: int = len(result)
+
+        return AssetsTipSheetCreatedResponseModel(
+            total_assets_tip_sheet=total_assets_tip_sheet,
+            assets_tip_sheet_per_user=int(total_assets_tip_sheet / total_users) if total_users else None,
+        )
+    except Exception as e:
+        logger.error(f"Error while fetching asset tip sheet details : {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch asset tip sheet details. Please try again in sometime",
         ) from e

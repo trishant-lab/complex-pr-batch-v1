@@ -1,14 +1,14 @@
 import uuid
 from itertools import filterfalse
+from typing import TYPE_CHECKING
 
 import orjson
 from fastapi import APIRouter, Depends, Path, BackgroundTasks
 from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
-from typing import TYPE_CHECKING
-
 from temporalio.client import WorkflowHandle
+
 from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
@@ -16,6 +16,7 @@ from app.models.product import ProductEnum
 from app.models.tenant import (
     TenantCreateRequestModel,
     TenantResponseModel,
+    SuggestTenantNamesResponseModel,
 )
 
 if TYPE_CHECKING:
@@ -226,8 +227,9 @@ def generate_combinations(organization: str) -> list:
     return sorted(combinations, key=len)
 
 
-async def get_valid_tenant_names(tenant_names: list) -> list:
+async def get_valid_tenant_names(product: ProductEnum, tenant_names: list) -> list:
     """
+    @param product:
     @param tenant_names:
     @return:
     """
@@ -235,28 +237,31 @@ async def get_valid_tenant_names(tenant_names: list) -> list:
     tenant_name_clause = ",".join([f"'{val.lower()}'" for val in tenant_names])
     if tenant_name_clause:
         params = {
-            "table": "tenant",
-            "columns": ["name"],
-            "where": f"name in ({tenant_name_clause})",
+            "tenant_name_clause": tenant_name_clause,
+            "product": product.value.lower(),
         }
         db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
-        return [data["name"] for data in await db.fetch_all("get.sql", **params)]
+        return [data["name"] for data in await db.fetch_all("getValidTenantNames.sql", **params)]
     return []
 
 
 @tenant_router.get(
-    "/suggestTenantNames/{organization}",
+    "/suggestTenantNames/{product}",
     operation_id="suggestTenantNames",
 )
-async def suggest_tenant_names(organization: str = Path(...)) -> list:
+async def suggest_tenant_names(organization: str, product: ProductEnum = Path(...)) -> SuggestTenantNamesResponseModel:
     """
     @param organization:
+    @param product:
     @return:
     """
     combinations = generate_combinations(organization=organization)
-    existing_tenants = await get_valid_tenant_names(combinations)
+    existing_tenants = await get_valid_tenant_names(product=product, tenant_names=combinations)
     existing_tenants.extend(["auth", "accounts"])
-    return list(filterfalse(existing_tenants.__contains__, combinations))
+    return SuggestTenantNamesResponseModel(
+        tenant_names=list(filterfalse(existing_tenants.__contains__, combinations)),
+        domain=ProductEnum.get_domain(product.value),
+    )
 
 
 @tenant_router.get(
@@ -264,13 +269,15 @@ async def suggest_tenant_names(organization: str = Path(...)) -> list:
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(
+    product: ProductEnum,
     tenant_name: str = Path(min_length=3, max_length=15, regex="^[a-zA-Z]*$"),
 ) -> None:
     """
+    @param product:
     @param tenant_name:
     @return:
     """
-    tenant_names = await get_valid_tenant_names([tenant_name.lower()])
+    tenant_names = await get_valid_tenant_names(product=product, tenant_names=[tenant_name.lower()])
     if tenant_names:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
