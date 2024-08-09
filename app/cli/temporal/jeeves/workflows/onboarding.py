@@ -85,7 +85,7 @@ class JeevesOnboardingWorkflow(Workflow):
         Run workflow
         """
         try:
-            if not jeeves.emailSent:
+            if not pydash.get(jeeves, "emailSent"):
                 await workflow.execute_activity(
                     activity=BeforeProvisioningMailActivity.defn,
                     arg=jeeves,
