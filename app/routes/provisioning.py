@@ -287,6 +287,7 @@ async def approve_tenant(
                 product_schema=orjson.dumps(schema).decode("utf-8"),
             )
 
+            schema["emailSent"] = True
             await product_workflow.onboard(schema)
             await product_workflow.approve(schema)
 
