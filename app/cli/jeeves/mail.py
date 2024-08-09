@@ -60,7 +60,13 @@ async def send_customer_password_mail(jeeves: JeevesSpec, password: str) -> None
         password=password,
         email_template=response["template"],
     )
-    send_mail(to_email=jeeves.email, subject=subject, content=content, from_name="314e Support")
+    send_mail(
+        to_email=jeeves.email,
+        subject=subject,
+        content=content,
+        from_name="Jeeves Support",
+        email_from="support@okjeeves.com",
+    )
 
 
 def reset_keycloak_user_password(jeeves: JeevesSpec, password: str) -> str:
@@ -96,3 +102,42 @@ async def onboard_success(jeeves: JeevesSpec) -> None:
 
     log_info(f"Tenant temporary credentials were sent {jeeves.email}")
     return
+
+
+async def send_before_provisioning_mail(jeeves: JeevesSpec) -> None:
+    """
+    Send mail to customer before provisioning
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(config.postgres.dsn)
+
+    # get template
+    try:
+        response = await db.fetch_one(
+            "getEmailTemplateByProduct.sql", product="Jeeves", template_name="BeforeProvisioning"
+        )
+        response = dict(response)
+    except Exception as e:
+        log_error(f"Error fetching template: {e}")
+        raise Exception("Error fetching email template")
+
+    subject = response["subject"]
+
+    with TemporaryDirectory() as temp_dir:
+        with open(f"{temp_dir}/before_provisioning_mail.html", "w") as f:
+            f.write(response["template"])
+
+        template_env = get_env(template_path=temp_dir)
+        template = template_env.get_template("before_provisioning_mail.html")
+        content = template.render(
+            user_name=f"{jeeves.firstName} {jeeves.lastName}",
+        )
+
+    send_mail(
+        to_email=jeeves.email,
+        subject=subject,
+        content=content,
+        from_name="Jeeves Support",
+        email_from="support@okjeeves.com",
+    )
+    log_info(f"Sent before provisioning mail to {jeeves.email}")
