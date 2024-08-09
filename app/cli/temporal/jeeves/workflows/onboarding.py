@@ -85,12 +85,13 @@ class JeevesOnboardingWorkflow(Workflow):
         Run workflow
         """
         try:
-            await workflow.execute_activity(
-                activity=BeforeProvisioningMailActivity.defn,
-                arg=jeeves,
-                retry_policy=BeforeProvisioningMailActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
+            if not pydash.get(jeeves, "emailSent"):
+                await workflow.execute_activity(
+                    activity=BeforeProvisioningMailActivity.defn,
+                    arg=jeeves,
+                    retry_policy=BeforeProvisioningMailActivity.get_retry_policy(),
+                    start_to_close_timeout=timedelta(seconds=120),
+                )
 
             await workflow.wait_condition(lambda: self.approved or self.deny)
 
