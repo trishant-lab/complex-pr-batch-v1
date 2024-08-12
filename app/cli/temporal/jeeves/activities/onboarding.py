@@ -575,3 +575,28 @@ class SendMailActivity(Activity):
         from app.cli.jeeves.mail import onboard_success
 
         await onboard_success(jeeves=jeeves)
+
+
+class PreLoadAssetsJobActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PreLoadAssetsJobActivity")
+    async def defn(jeeves: JeevesSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Preload assets
+        from app.cli.jeeves.preLoadAssetsJob import PreLoadAssetsJob
+
+        await PreLoadAssetsJob(jeeves=jeeves).put()
