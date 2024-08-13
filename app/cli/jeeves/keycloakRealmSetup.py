@@ -76,7 +76,7 @@ def create_tenant_customer_admin_user(
 
     keycloak_client.assign_client_role(
         client_id=client_uuid,
-        user_id=keycloak_client.get_user_id(username=f"{jeeves.firstName}_{jeeves.lastName}", realm_name=realm_name),
+        user_id=keycloak_client.get_user_id(username=jeeves.email, realm_name=realm_name),
         roles=roles,
         realm_name=realm_name,
     )
