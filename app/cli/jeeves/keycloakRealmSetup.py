@@ -121,7 +121,7 @@ def create_internal_users(client_uuid: str, keycloak_client: KeycloakAdminClient
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_tenant_internal_user.json")
 
-    with open(f"{TemplatePath}/internal_users.json") as f:
+    with open(f"{TemplatePath}/internal_admin_users.json") as f:
         users = orjson.loads(f.read())
 
     for user in users:
