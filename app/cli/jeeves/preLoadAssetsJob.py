@@ -147,7 +147,10 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
                                         mount_path="/config/tenant-config.json",
                                         sub_path="tenant-config.json",
                                         read_only=True,
-                                    )
+                                    ),
+                                    V1VolumeMount(
+                                        name="rclone-volume", mount_path="/root/.config/rclone/", read_only=True
+                                    ),
                                 ],
                                 command=["/bin/sh", "-c"],
                                 args=["python3 /app/provisioning/asset_preload.py"],
@@ -155,12 +158,19 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
                         ],
                         volumes=[
                             V1Volume(
+                                name="rclone-volume",
+                                config_map=V1ConfigMapVolumeSource(
+                                    name="jeeves-rclone-config",
+                                    items=[V1KeyToPath(key="rclone.conf", path="rclone.conf")],
+                                ),
+                            ),
+                            V1Volume(
                                 name="jeeves-tenant-config",
                                 config_map=V1ConfigMapVolumeSource(
                                     name="jeeves-tenant-config",
                                     items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
                                 ),
-                            )
+                            ),
                         ],
                         restart_policy="Never",
                     )
