@@ -70,5 +70,6 @@
   "livekit_url": "wss://jeeves-72g8zphp.livekit.cloud",
   "livekit_api_key": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/livekit_api_key{{ close_brackets }}",
   "livekit_api_secrete": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/livekit_api_secret{{ close_brackets }}",
-  "atlas_token": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/atlas_token{{ close_brackets }}"
+  "atlas_token": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/atlas_token{{ close_brackets }}",
+  "atlas_pg_dsn": "postgresql://jeeves_{{tenant}}:{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/pg_password{{ close_brackets }}@db-cluster-ha.postgresql.svc.cluster.local/jeeves"
 }

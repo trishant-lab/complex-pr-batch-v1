@@ -12,7 +12,7 @@
   },
   "redis_dsn": "redis://redis:@cache-new.{{tenant}}.svc.cluster.local",
   "redis_password": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/redis_password{{ close_brackets }}",
-  "pg_dsn":"postgresql://jeeves_{{tenant}}:{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/pg_password{{ close_brackets }}@db-cluster-ha.postgresql.svc.cluster.local/jeeves",
+  "pg_dsn":"postgresql://jeeves_{{tenant}}:{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/pg_password{{ close_brackets }}@db-cluster-ha.postgres16.svc.cluster.local/jeeves",
   "db_schema_name": "{{tenant}}",
   "dynamic_url_hash_key": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/dynamic_url_hash_key{{ close_brackets }}",
   "dynamic_url_enabled": true,
@@ -70,5 +70,6 @@
   "livekit_url": "wss://jeeves-72g8zphp.livekit.cloud",
   "livekit_api_key": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_key{{ close_brackets }}",
   "livekit_api_secrete": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_secret{{ close_brackets }}",
-  "atlas_token": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/atlas_token{{ close_brackets }}"
+  "atlas_token": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/atlas_token{{ close_brackets }}",
+  "atlas_pg_dsn": "postgresql://jeeves_{{tenant}}:{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/pg_password{{ close_brackets }}@db-cluster-ha.postgres16.svc.cluster.local/jeeves"
 }

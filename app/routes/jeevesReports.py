@@ -25,6 +25,30 @@ jeeves_report_router = APIRouter()
 
 
 @jeeves_report_router.get(
+    "/listTenants",
+    response_model=list[str],
+    operation_id="reportGetTenants",
+    summary="Returns list of tenants",
+)
+async def list_tenants(_params: dict = Depends(get_oauth_scheme())) -> list[str]:
+    """
+    Returns list of tenants
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
+
+    try:
+        result: list = await db.fetch_all("getJeevesTenants.sql")
+        return [row["tenant"] for row in result]
+    except Exception as e:
+        logger.error(f"Error while fetching tenants : {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch tenants. Please try again in sometime",
+        ) from e
+
+
+@jeeves_report_router.get(
     "/assetsViewedSummary",
     response_model=AssetsViewedResponseModel | None,
     operation_id="reportGetAssetsViewedSummary",
