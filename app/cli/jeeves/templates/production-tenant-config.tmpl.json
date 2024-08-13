@@ -49,7 +49,7 @@
   "vespa_host": "http://vespa.vespa.svc.cluster.local",
   "vespa_port_address": "8080",
   "vespa_deploy_port_address": "19071",
-  "s3_access_key": "05229c6fb6d58fdb21873c35735e2a50",
+  "s3_access_key": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/r2_access_key{{ close_brackets }}",
   "s3_secret_key": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/r2_secret_key{{ close_brackets }}",
   "s3_endpoint": "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com",
   "s3_public_endpoint": "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com",
