@@ -71,6 +71,7 @@ class JeevesOnboardingWorkflow(Workflow):
             TemporalNamespaceCreationActivity.defn,
             UpdateTenantStatusActivity.defn,
             BeforeProvisioningMailActivity.defn,
+            PreLoadAssetsJobActivity.defn,
         ]
 
     @classmethod
