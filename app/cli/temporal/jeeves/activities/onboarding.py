@@ -146,7 +146,7 @@ class SecretSetupActivity(Activity):
         Secret(
             jeeves=jeeves,
             name="cache-secret",
-            data={"REDIS_PASSWORD": config.cache_admin_password},
+            string_data={"REDIS_PASSWORD": config.cache_admin_password},
         ).put()
 
 
