@@ -81,6 +81,7 @@ p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsShared, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssignmentsCreated, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetRecord, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetUpload, GET
+p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetTipSheet, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/listTenants, GET
 
 
