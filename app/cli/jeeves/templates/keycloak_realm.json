@@ -1416,15 +1416,15 @@
     "password": "{{sendgrid_api_key}}",
     "port": "587",
     "host": "smtp.sendgrid.net",
-    "replyTo": "support@okjeeves.com",
-    "from": "support@okjeeves.com",
+    "replyTo": "noreply@okjeeves.com",
+    "from": "noreply@okjeeves.com",
     "fromDisplayName": "Jeeves Support",
     "user": "apikey"
   },
   "loginTheme": "jeeves-login-theme",
   "accountTheme": "",
   "adminTheme": "",
-  "emailTheme": "jeeves-email",
+  "emailTheme": "jeeves-email-theme",
   "eventsEnabled": true,
   "eventsExpiration": 63072000,
   "eventsListeners": [

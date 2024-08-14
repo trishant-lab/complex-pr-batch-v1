@@ -33,10 +33,10 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     Send Slack notification
     """
     config: AppSettings = get_settings()
-    text = (
-        f"A new {product.value} tenant has been requested by "
-        f"{schema.get('email')} from {schema.get('organization')}"
+    schema_details = "\n".join(
+        [f"{key}: {value}" for key, value in schema.items() if value and key != "termsAndConditions[]"]
     )
+    text = f"A new {product.value} tenant has been requested by " f"{schema_details}"
     blocks = [
         {"type": "divider"},
         {
@@ -164,9 +164,6 @@ async def prepare_schema(product: ProductEnum, schema: dict) -> dict:
     #     )
 
     schema["tenant"] = tenant_name
-    schema["organization"] = (
-        schema.get("organizationName") if schema.get("organizationName") else schema.get("organization")
-    )
 
     return schema
 
