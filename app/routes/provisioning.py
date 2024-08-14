@@ -320,6 +320,7 @@ async def retry_provisioning(
             product=product.value,
         )
         schema = orjson.loads(response["schema"])
+        schema["emailSent"] = True
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(schema)
         await product_workflow.approve(schema)

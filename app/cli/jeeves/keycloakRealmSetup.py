@@ -64,8 +64,10 @@ def create_tenant_customer_admin_user(
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_tenant_customer_admin.json")
     user_config = template.render(
-        username=f"{jeeves.firstName}_{jeeves.lastName}",
+        username=jeeves.email,
         email=jeeves.email,
+        firstname=jeeves.firstName,
+        lastname=jeeves.lastName,
     )
     keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
@@ -74,7 +76,7 @@ def create_tenant_customer_admin_user(
 
     keycloak_client.assign_client_role(
         client_id=client_uuid,
-        user_id=keycloak_client.get_user_id(username=f"{jeeves.firstName}_{jeeves.lastName}", realm_name=realm_name),
+        user_id=keycloak_client.get_user_id(username=jeeves.email, realm_name=realm_name),
         roles=roles,
         realm_name=realm_name,
     )
@@ -108,6 +110,43 @@ def create_client_roles(client_uuid: str, keycloak_client: KeycloakAdminClient, 
     log_info("Keycloak client roles created successfully")
 
 
+def create_internal_users(client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:
+    """
+    Create internal users
+    """
+    """
+    Create tenant customer admin user
+    """
+    # Create tenant admin customer user
+    jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
+    template = jinja_env.get_template("keycloak_tenant_internal_user.json")
+
+    with open(f"{TemplatePath}/internal_admin_users.json") as f:
+        users = orjson.loads(f.read())
+
+    for user in users:
+        user_config = template.render(
+            username=user["username"],
+            email=user["email"],
+            firstname=user["firstname"],
+            lastname=user["lastname"],
+        )
+        keycloak_client.refresh_token()
+        keycloak_client.create_user(orjson.loads(user_config), realm_name)
+
+        roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=realm_name)
+
+        keycloak_client.assign_client_role(
+            client_id=client_uuid,
+            user_id=keycloak_client.get_user_id(username=user["username"], realm_name=realm_name),
+            roles=roles,
+            realm_name=realm_name,
+        )
+        log_info(f"Internal admin user {user['username']} created successfully")
+
+    log_info("Internal admin user created successfully")
+
+
 async def create_realm_and_users(jeeves: JeevesSpec) -> None:
     """
     Create keycloak realm and users
@@ -137,3 +176,5 @@ async def create_realm_and_users(jeeves: JeevesSpec) -> None:
     create_tenant_customer_admin_user(
         client_uuid=client_uuid, jeeves=jeeves, keycloak_client=keycloak_client, realm_name=realm_name
     )
+
+    create_internal_users(client_uuid=client_uuid, keycloak_client=keycloak_client, realm_name=realm_name)

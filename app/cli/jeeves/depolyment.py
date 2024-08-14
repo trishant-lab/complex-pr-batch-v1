@@ -208,14 +208,14 @@ class DeploymentCli(K8sResourceBaseClass):
             api_version="apps/v1",
             kind="Deployment",
             metadata=k8s_client.V1ObjectMeta(
-                name="jeeves-cli",
+                name="jeeves-worker",
                 namespace=self.jeeves.tenant,
             ),
             spec=k8s_client.V1DeploymentSpec(
                 replicas=1,
-                selector=k8s_client.V1LabelSelector(match_labels={"app": "jeeves-cli"}),
+                selector=k8s_client.V1LabelSelector(match_labels={"app": "jeeves-worker"}),
                 template=k8s_client.V1PodTemplateSpec(
-                    metadata=k8s_client.V1ObjectMeta(labels={"app": "jeeves-cli"}),
+                    metadata=k8s_client.V1ObjectMeta(labels={"app": "jeeves-worker"}),
                     spec=k8s_client.V1PodSpec(
                         image_pull_secrets=[k8s_client.V1LocalObjectReference(name="registrycred")],
                         node_selector={"app": "314e"},
@@ -316,13 +316,13 @@ class DeploymentCli(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
-        log_info(f"Deployment jeeves-cli created in namespace {self.jeeves.tenant}")
+        log_info(f"Deployment jeeves-worker created in namespace {self.jeeves.tenant}")
 
     def delete(self: "DeploymentCli") -> None:
         """
         Delete
         """
         try:
-            self.k8s_dynamic_client.delete(resource=self.resource, name="jeeves-cli", namespace=self.jeeves.tenant)
+            self.k8s_dynamic_client.delete(resource=self.resource, name="jeeves-worker", namespace=self.jeeves.tenant)
         except NotFoundError:
-            logger.error("jeeves-cli deployment doesn't exist")
+            logger.error("jeeves-worker deployment doesn't exist")

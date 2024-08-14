@@ -30,6 +30,7 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     UpdateTenantStatusActivity,
     TenantStatus,
     BeforeProvisioningMailActivity,
+    PreLoadAssetsJobActivity,
 )
 
 
@@ -70,6 +71,7 @@ class JeevesOnboardingWorkflow(Workflow):
             TemporalNamespaceCreationActivity.defn,
             UpdateTenantStatusActivity.defn,
             BeforeProvisioningMailActivity.defn,
+            PreLoadAssetsJobActivity.defn,
         ]
 
     @classmethod
@@ -249,6 +251,14 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=jeeves,
                 retry_policy=AiVoiceSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=300),
+            )
+
+            # PreLoadAssetsJob
+            await workflow.execute_activity(
+                activity=PreLoadAssetsJobActivity.defn,
+                arg=jeeves,
+                retry_policy=PreLoadAssetsJobActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=400),
             )
 
             # Update Tenant Status
