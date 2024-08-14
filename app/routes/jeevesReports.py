@@ -25,6 +25,30 @@ jeeves_report_router = APIRouter()
 
 
 @jeeves_report_router.get(
+    "/listTenants",
+    response_model=list[str],
+    operation_id="reportGetTenants",
+    summary="Returns list of tenants",
+)
+async def list_tenants(_params: dict = Depends(get_oauth_scheme())) -> list[str]:
+    """
+    Returns list of tenants
+    """
+    config: AppSettings = get_settings()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
+
+    try:
+        result: list = await db.fetch_all("getJeevesTenants.sql")
+        return [row["tenant"] for row in result]
+    except Exception as e:
+        logger.error(f"Error while fetching tenants : {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch tenants. Please try again in sometime",
+        ) from e
+
+
+@jeeves_report_router.get(
     "/assetsViewedSummary",
     response_model=AssetsViewedResponseModel | None,
     operation_id="reportGetAssetsViewedSummary",
@@ -61,7 +85,7 @@ async def assets_viewed_details(
 
         return AssetsViewedResponseModel(
             total_assets_viewed=total_views,
-            assets_viewed_per_user=int(total_views / total_users) if total_users else None,
+            assets_viewed_per_user=int(total_views / total_users) if total_users else 0,
         )
     except Exception as e:
         logger.error(f"Error while fetching view details for assets : {e}")
@@ -105,12 +129,12 @@ async def assets_download_details(
             enddate=end_date.isoformat() if end_date else None,
         )
 
-        total_downloads: int = sum(row["downloads"] for row in result)
+        total_downloads: int = sum(row["count_"] for row in result)
         total_users: int = len(result)
 
         return AssetsDownloadResponseModel(
             total_assets_downloaded=total_downloads,
-            assets_downloaded_per_user=int(total_downloads / total_users) if total_users else None,
+            assets_downloaded_per_user=int(total_downloads / total_users) if total_users else 0,
         )
     except Exception as e:
         logger.error(f"Error while fetching download details for assets : {e}")
@@ -154,7 +178,7 @@ async def assets_shared_details(
 
         return AssetsSharedResponseModel(
             total_assets_shared=total_shared,
-            assets_shared_per_user=int(total_shared / total_users) if total_users else None,
+            assets_shared_per_user=int(total_shared / total_users) if total_users else 0,
         )
     except Exception as e:
         logger.error(f"Error while fetching shared details for assets : {e}")
@@ -201,7 +225,7 @@ async def queries_details(
 
         return QueriesReportResponseModel(
             total_queries=total_queries,
-            queries_per_user=int(total_queries / total_users) if total_users else None,
+            queries_per_user=int(total_queries / total_users) if total_users else 0,
         )
     except Exception as e:
         logger.error(f"Error while fetching queries details : {e}")
@@ -327,7 +351,7 @@ async def assignments_created_details(
 
         return AssignmentsCreatedResponseModel(
             total_assignments_created=total_assignments_created,
-            assignments_per_user=int(total_assignments_created / total_users) if total_users else None,
+            assignments_per_user=int(total_assignments_created / total_users) if total_users else 0,
         )
     except Exception as e:
         logger.error(f"Error while fetching assignments created details : {e}")
@@ -341,7 +365,7 @@ async def assignments_created_details(
     "/AssetUpload",
     operation_id="reportAssetUpload",
     summary="Returns details of uploaded assets",
-    response_model=AssignmentsCreatedResponseModel | None,
+    response_model=AssetsUploadResponseModel | None,
 )
 async def asset_upload_details(
     tenant: str,
@@ -374,7 +398,7 @@ async def asset_upload_details(
 
         return AssetsUploadResponseModel(
             total_assets_uploaded=total_assets_uploaded,
-            assets_uploaded_per_user=int(total_assets_uploaded / total_users) if total_users else None,
+            assets_uploaded_per_user=int(total_assets_uploaded / total_users) if total_users else 0,
         )
     except Exception as e:
         logger.error(f"Error while fetching asset upload details : {e}")
@@ -416,7 +440,7 @@ async def asset_record_details(
 
         return AssetsRecordedResponseModel(
             total_assets_recorded=total_assets_recorded,
-            assets_recorded_per_user=int(total_assets_recorded / total_users) if total_users else None,
+            assets_recorded_per_user=int(total_assets_recorded / total_users) if total_users else 0,
         )
     except Exception as e:
         logger.error(f"Error while fetching asset record details : {e}")
@@ -430,7 +454,7 @@ async def asset_record_details(
     "/AssetTipSheet",
     operation_id="reportAssetTipSheet",
     summary="Returns details of the Tip Sheet",
-    response_model=AssignmentsCreatedResponseModel | None,
+    response_model=AssetsTipSheetCreatedResponseModel | None,
 )
 async def asset_tip_sheet_details(
     tenant: str,
@@ -455,8 +479,8 @@ async def asset_tip_sheet_details(
         total_users: int = len(result)
 
         return AssetsTipSheetCreatedResponseModel(
-            total_assets_tip_sheet=total_assets_tip_sheet,
-            assets_tip_sheet_per_user=int(total_assets_tip_sheet / total_users) if total_users else None,
+            total_tipsheet_created=total_assets_tip_sheet,
+            tipsheet_created_per_user=int(total_assets_tip_sheet / total_users) if total_users else 0,
         )
     except Exception as e:
         logger.error(f"Error while fetching asset tip sheet details : {e}")

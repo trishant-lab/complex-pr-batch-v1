@@ -95,7 +95,7 @@ class IstioVirtualService(K8sResourceBaseClass):
             ],
             "match": [
                 {
-                    "uri": {"prefix": "/analytics/"},
+                    "uri": {"prefix": "/insights/"},
                 }
             ],
             "rewrite": {"uri": "/"},

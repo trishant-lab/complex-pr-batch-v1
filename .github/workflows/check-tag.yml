@@ -1,0 +1,28 @@
+name: "Check which tag is deployed to production"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Check which tag is deployed to production
+    runs-on:
+      - self-hosted
+      - proddeploy
+    steps:
+      - name: Check Username
+        run: |
+          allowed_usernames=("sridhar-shivraj", "kyogesha")
+
+          echo "Workflow triggered by: ${{ github.triggering_actor }}"
+          if ! [[ " ${allowed_usernames[*]} " =~ ${{ github.triggering_actor }} ]]; then
+            exit 1
+          fi
+
+      - name: Check which tag is deployed to production
+        run: |
+          POD_NAME=$(kubectl get pod -l app=launchpad -n launchpad --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}") 
+          kubectl get pod $POD_NAME -n launchpad -o jsonpath="{.spec.containers[*].image}"
+          
+          POD_NAME=$(kubectl get pod -l app=launchpad-cli -n launchpad --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+          kubectl get pod $POD_NAME -n launchpad -o jsonpath="{.spec.containers[*].image}"
