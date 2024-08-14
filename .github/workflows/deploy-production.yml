@@ -1,0 +1,25 @@
+name: "Deploy Launchpad Server Production"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on:
+      - self-hosted
+      - proddeploy
+    steps:
+      - name: Check Username
+        run: |
+          allowed_usernames=("sridhar-shivraj", "kyogesha")
+
+          echo "Workflow triggered by: ${{ github.triggering_actor }}"
+          if ! [[ " ${allowed_usernames[*]} " =~ ${{ github.triggering_actor }} ]]; then
+            exit 1
+          fi
+
+      - name: Deploy to Kubernetes Production
+        run: |
+          kubectl rollout restart deployment launchpad -n launchpad
+          kubectl rollout restart deployment launchpad-cli -n launchpad
