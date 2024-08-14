@@ -1416,7 +1416,7 @@
     "password": "{{sendgrid_api_key}}",
     "port": "587",
     "host": "smtp.sendgrid.net",
-    "replyTo": "noreply@okjeeves.com",
+    "replyTo": "",
     "from": "noreply@okjeeves.com",
     "fromDisplayName": "Jeeves Support",
     "user": "apikey"
