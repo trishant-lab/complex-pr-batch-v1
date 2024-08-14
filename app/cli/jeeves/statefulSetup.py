@@ -72,7 +72,7 @@ def delete_product_namespace(jeeves: JeevesSpec, k8s_dynamic_client: DynamicClie
 
     secret = base64.b64decode(
         k8s_dynamic_client.get(resource, namespace=jeeves.tenant, name="cache-secret").data.get("REDIS_PASSWORD")
-    ).decode()
+    )
 
     redis = Redis(host=redis_host, port=redis_port, password=secret)
 
