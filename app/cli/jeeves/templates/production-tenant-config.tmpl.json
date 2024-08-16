@@ -1,7 +1,7 @@
 {
   "keycloak": {
     "keycloak_realm": "{{tenant}}",
-    "keycloak_auth_url": "https://auth.314ecorp.tech",
+    "keycloak_auth_url": "https://auth.314ecorp.com",
     "keycloak_client_id": "jeeves"
   },
   "gsuite": {
@@ -12,7 +12,7 @@
   },
   "redis_dsn": "redis://redis:@cache-new.{{tenant}}.svc.cluster.local",
   "redis_password": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/redis_password{{ close_brackets }}",
-  "pg_dsn":"postgresql://jeeves_{{tenant}}:{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/pg_password{{ close_brackets }}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/jeeves",
+  "pg_dsn":"postgresql://jeeves_{{tenant}}.jeeves_{{tenant}}:{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/pg_password{{ close_brackets }}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/jeeves",
   "db_schema_name": "{{tenant}}",
   "dynamic_url_hash_key": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/dynamic_url_hash_key{{ close_brackets }}",
   "dynamic_url_enabled": true,
@@ -39,7 +39,7 @@
   "reporting_db_user": "root",
   "reporting_db_pass": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/reporting_db_pass{{ close_brackets }}",
   "reporting_db_name": "analytics",
-  "reporting_site_id": 1,
+  "reporting_site_id": 2,
   "reporting_enabled": true,
   "sendgrid_smtp_host": "smtp.sendgrid.net",
   "sendgrid_smtp_port": 587,
@@ -63,7 +63,7 @@
   "openai_gpt_16k_model": "gpt-4-1106-preview",
   "max_token_in_output": 4095,
   "resemble_api_key": "{{ open_brackets }}op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/resemble_api_key{{ close_brackets }}",
-  "chatwoot_base_url": "https://jeeves-agent.314ecorp.tech",
+  "chatwoot_base_url": "https://jeeves-agent.314ecorp.com",
   "chatwoot_api_key": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/chatwoot_api_key{{ close_brackets }}",
   "chatwoot_account_id": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/chatwoot_account_id{{ close_brackets }}",
   "chatwoot_bot_token": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/chatwoot_bot_token{{ close_brackets }}",
