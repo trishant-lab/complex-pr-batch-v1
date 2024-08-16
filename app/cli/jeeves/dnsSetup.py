@@ -12,7 +12,7 @@ async def dns_setup(jeeves: JeevesSpec) -> None:
     domain_name: str = config.jeeves.domain_name
 
     google_dns = Googledns(
-        cname=f"{config.google_dns_cname}.", fqdn=f"{jeeves.tenant}.{domain_name}.", zone_name="e314ecorptech"
+        cname=f"{config.google_dns_cname}.", fqdn=f"{jeeves.tenant}.{domain_name}.", zone_name=config.jeeves.zone_name
     )
 
     # create dns
