@@ -32,7 +32,10 @@ def deploy_ui(jeeves: JeevesSpec) -> None:
         dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
     s3_int_client: boto3.client = get_storage_client(
-        config=config, access_key=config.s3.access_key, secret_key=config.s3.secret_key
+        config=config,
+        access_key=config.s3_int.access_key,
+        secret_key=config.s3_int.secret_key,
+        endpoint=config.s3_int.endpoint,
     )
 
     try:

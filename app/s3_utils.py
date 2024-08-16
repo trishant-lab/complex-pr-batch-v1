@@ -26,17 +26,20 @@ def get_r2_storage_client(config: AppSettings) -> boto3.client:
     )
 
 
-def get_storage_client(config: AppSettings, access_key: str, secret_key: str) -> boto3.client:
+def get_storage_client(
+    config: AppSettings, access_key: str, secret_key: str, endpoint: None | str = None
+) -> boto3.client:
     """
     Get s3 client object to connect with buckets
     :param access_key:
     :param secret_key:
+    :param endpoint:
     :param config:
     :return:
     """
     return boto3.client(
         "s3",
-        endpoint_url=config.s3.endpoint,
+        endpoint_url=endpoint if endpoint else config.s3.endpoint,
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
         use_ssl=config.s3.use_ssl,
