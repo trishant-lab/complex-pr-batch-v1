@@ -31,7 +31,7 @@ def deploy_ui(jeeves: JeevesSpec) -> None:
     else:
         dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
-    s3_client: boto3.client = get_storage_client(
+    s3_int_client: boto3.client = get_storage_client(
         config=config, access_key=config.s3.access_key, secret_key=config.s3.secret_key
     )
 
@@ -41,7 +41,7 @@ def deploy_ui(jeeves: JeevesSpec) -> None:
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
-                storage_client=s3_client,
+                storage_client=s3_int_client,
                 bucket_name="artifacts",
             )
             # Unzip the file
