@@ -315,6 +315,7 @@ class AppSettings(BaseSettings):
     dexit: DexitSettings = DexitSettings()
 
     temporal: TemporalSettings = TemporalSettings()
+    s3_int: S3Settings = S3Settings()
     s3: S3Settings = S3Settings()
     r2: S3Settings = S3Settings()
 
