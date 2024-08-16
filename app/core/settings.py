@@ -167,6 +167,7 @@ class JeevesSettings(BaseModel):
 
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "jeeves.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
     # grafana: GrafanaSettings = GrafanaSettings()
 
     temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
