@@ -36,7 +36,7 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     schema_details = "\n".join(
         [f"{key}: {value}" for key, value in schema.items() if value and key != "termsAndConditions[]"]
     )
-    text = f"A new {product.value} tenant has been requested by " f"{schema_details}"
+    text = f"A new {product.value} tenant has been requested by \n" f"{schema_details}"
     blocks = [
         {"type": "divider"},
         {
