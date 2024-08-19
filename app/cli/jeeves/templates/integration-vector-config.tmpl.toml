@@ -1,6 +1,6 @@
 [log_schema]
 host_key = "host"
-nmessage_key = "message"
+message_key = "message"
 source_type_key = "source_type"
 timestamp_key = "timestamp"
 
@@ -13,7 +13,7 @@ fingerprint.strategy = "device_and_inode"
 [sinks.vector_sink]
 type = "loki"
 inputs = ["custom_logs"]
-endpoint = "http://loki.monitoring-system.svc.cluster.local:3100
+endpoint = "http://loki.monitoring-system.svc.cluster.local:3100"
 
 [sinks.vector_sink.encoding]
 codec = "json"
