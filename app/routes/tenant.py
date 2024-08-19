@@ -101,6 +101,7 @@ async def list_tenants(
                 "tenant"
             ) else None
             tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
+            tenant["approvedBy"] = tenant.get("approver")
             output_response.append(TenantResponseModel(**tenant))
 
         return output_response
