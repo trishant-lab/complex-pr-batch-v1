@@ -195,10 +195,6 @@ class JeevesSettings(BaseModel):
 
     reporting_site_id: str = "1"
 
-    log_auth_token: str = ""
-    slack_channel_id_prod: str = "C04J9J9NH6X"  # error-jeeves-production
-    slack_channel_id_int: str = "C07CPMV91KP"  # error-jeeves-integration
-
 
 class DexitAIOcrEngines(str, Enum):
     """OCR Engine"""
