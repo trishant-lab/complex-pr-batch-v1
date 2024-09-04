@@ -153,7 +153,7 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
                                     ),
                                 ],
                                 command=["/bin/sh", "-c"],
-                                args=["python3 /app/provisioning/asset_preload.py"],
+                                args=[f"python3 /app/provisioning/preload_asset_and_assignment.py {self.jeeves.email}"],
                             )
                         ],
                         volumes=[
