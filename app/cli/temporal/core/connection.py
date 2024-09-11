@@ -1,4 +1,3 @@
-import async_lru
 from google.protobuf.duration_pb2 import Duration
 from loguru import logger
 from temporalio import client

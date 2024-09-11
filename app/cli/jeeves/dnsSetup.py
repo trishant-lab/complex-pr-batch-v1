@@ -1,17 +1,18 @@
 from app.core.settings import AppSettings, get_settings
-from app.cli.common.googleDNS import GoogleDNS
-from app.cli.jeeves.jeeves import JeevesSpec, ProductName
+from app.cli.common.GoogleDNS import Googledns
+from app.cli.jeeves.jeeves import JeevesSpec
 
 
-async def dns_setup(jeeves: JeevesSpec):
+async def dns_setup(jeeves: JeevesSpec) -> None:
+    """
+    Dns setup
+    """
     config: AppSettings = get_settings()
 
     domain_name: str = config.jeeves.domain_name
 
-    google_dns = GoogleDNS(
-        cname=f"{config.google_dns_cname}.",
-        fqdn=f"{jeeves.tenant}.{domain_name}.",
-        zone_name="e314ecorptech"
+    google_dns = Googledns(
+        cname=f"{config.google_dns_cname}.", fqdn=f"{jeeves.tenant}.{domain_name}.", zone_name=config.jeeves.zone_name
     )
 
     # create dns
@@ -21,15 +22,16 @@ async def dns_setup(jeeves: JeevesSpec):
     await google_dns.check_dns_propagation()
 
 
-async def dns_teardown(tenant_name: str):
+async def dns_teardown(tenant_name: str) -> None:
+    """
+    Dns teardown
+    """
     config: AppSettings = get_settings()
 
     domain_name: str = config.jeeves.domain_name
 
-    google_dns = GoogleDNS(
-        cname=f"{config.google_dns_cname}.",
-        fqdn=f"{tenant_name}.{domain_name}.",
-        zone_name="e314ecorptech"
+    google_dns = Googledns(
+        cname=f"{config.google_dns_cname}.", fqdn=f"{tenant_name}.{domain_name}.", zone_name="e314ecorptech"
     )
 
     # delete dns

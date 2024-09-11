@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-uvicorn = "^0.29.0"
+uvicorn = "^0.30.3"
 fastapi = "^0.110.0"
 loguru = "^0.7.2"
 pydantic = "^2.6.4"
@@ -26,7 +26,7 @@ pyyaml = "^6.0.1"
 kubernetes = "^29.0.0"
 google-cloud-dns = "^0.35.0"
 boto3 = "^1.34.82"
-cryptography = "^42.0.5"
+cryptography = "^43.0.1"
 rclone-python = "^0.1.12"
 novu = "1.14.0"
 redis = "^5.0.4"
@@ -37,6 +37,13 @@ httpx = "^0.27.0"
 aiohttp = "^3.9.5"
 gunicorn = "^22.0.0"
 slack-sdk = "^3.27.2"
+huggingface-hub = "0.20.2"
+python-http-client = "^3.3.7"
+sendgrid = "^6.11.0"
+grpcio = "^1.64.1"
+authlib = "^1.3.1"
+email-validator = "^2.2.0"
+fastapi-cli = "^0.0.4"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.3"
@@ -49,3 +56,116 @@ pytest-order = "^1.2.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+
+target-version = "py311"
+
+lint.flake8-quotes = {inline-quotes = 'double', multiline-quotes = 'double'}
+
+lint.allowed-confusables = ["−", "ρ", "∗"]
+
+lint.dummy-variable-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_"
+
+# (optional) list included tests here:
+lint.select = [
+  "A", # flake8-builtins
+  "B", # flake8-bugbear
+  "C", # flake8-comprehensions
+  "D", # pydocstyle
+  "E", # pycodestyle ( Error )
+  "F", # Pyflakes
+  "FBT", # flake8-boolean-trap
+  "I", # isort
+  "N", # pep8-naming
+  "Q", # flake8-quotes
+  "RUF", # Ruff-specific rules
+  "S", # flake8-bandit
+  "W", # pycodestyle ( Warning )
+  "UP", # pyupgrade
+  "YTT", # flake8-2020
+  "BLE", # flake8-blind-except
+  "RET", # flake8-return
+#  "COM", # flake8-commas
+  "EXE", # flake8-executable
+  "ANN", # flake8-annotations
+  "G", # flake8-logging-format
+  "INT", # flake8-gettext
+  "TID", # flake8-tidy-imports
+  "TCH", # flake8-type-checking
+  "TRY" # tryceratops
+]
+
+
+# (optional) list skipped tests here:
+lint.ignore = [
+  "B007", # Loop control variable not used within loop body
+  "B008", # Do not perform function call in argument defaults
+  "B023", # Function definition does not bind loop variable {name}
+  "B904", # Within an except clause, raise exceptions with raise ... from err or raise ... from None to distinguish them from errors in exception handling
+  "C408", # Unnecessary {obj_type} call (rewrite as a literal)
+  "E402", # Module level import not at top of file
+  "E731", # Do not assign a lambda expression, use a def
+  "N802", # Function name should be lowercase
+  "N815", # Variable name in function should be lowercase
+  "RUF001", # String contains ambiguous unicode character
+  "RUF003", # Comment contains ambiguous unicode character
+  "UP006", # Use {} for type annotations
+  "Q000", # Double quotes found but single quotes preferred
+  "D100", # Missing docstring in public module
+  "D101", # Missing docstring in public class
+  "D213", # Multi-line docstring summary should start at the second line
+  "B027", # {name} is an empty method in an abstract base class, but has no abstract decorator
+  "S102", # Use of exec detected
+  "C901", # {name} is too complex ({complexity} > {max_complexity})
+  "FBT003", # Boolean positional value in function call
+  "S101", # Use of assert detected
+  "TID252", # Relative imports from parent modules are banned
+  "FBT001", # Boolean positional arg in function definition
+  "FBT002", # Boolean default value in function definition
+  "E402", # Module level import not at top of file
+  "A001", # Variable {name} is shadowing a python builtin
+  "A002", # Argument {name} is shadowing a python builtin
+  "A003", # Class attribute {name} is shadowing a python builtin
+  "S105", # Possible hardcoded-password-string
+  "S106", # Possible hardcoded-password-func-arg
+  "N818", # Exception name {name} should be named with an Error suffix
+  "W292", # No newline at end of file
+  "D400", # First line should end with a period
+  "D200", # One-line docstring should fit on one line
+  "D203", # 1 blank line required before class docstring
+  "D415", # First line should end with a period, question mark, or exclamation point
+  "D205", # 1 blank line required between summary line and description
+  "D212", # Multi-line docstring summary should start at the first line
+  "D107", # Missing docstring in __init__
+  "D206", # Docstring should be indented with spaces, not tabs
+  "BLE001", # Do not catch blind exception
+  "D404", # First word of the docstring should not be "This"
+  "TRY300", # use`else` block in try except
+  "D401", # First line of docstring should be in imperative mood
+  "TRY003", # suppress long exception messages
+  "S320",  # Using `lxml` to parse untrusted data is known to be vulnerable to XML attacks
+  "I001", # ignore unorganized imports
+  "D106", # ignore missing docstring for nested classes
+  "TCH003", # ignore moving types under type checking block
+  "TCH002", # ignore moving types under type checking block
+  "RET505", # ignore `elif` after `return` statement
+  "TRY002", # ignore using `except Exception`
+  "S603", # ignore using `os.system`
+  "TRY201", # ignore using `except Exception`
+  "N999", # ignore invalid module name
+  "RET506", # ignore using `else` after `return`
+]
+
+
+# (optional) list skipped tests for each files here:
+[tool.ruff.lint.per-file-ignores]
+"app/gunicorn_conf.py" = ["S104", "T201"]
+"app/core/jinjasql.py" = [
+  "ANN001", "ANN201", "ANN101", "S311", "ANN202", "S701", "ANN204", "UP031", "UP038", "RET505", "RET507"
+]
+"app/middleware/auth.py" = ["RET505"]
+"app/cli/jeeves/novuSetup.py" = ["E501"]
+"app/s3_utils.py" = ["S605"]
+"app/cli/jeeves/aiVoiceSetup.py" = ["S605"]

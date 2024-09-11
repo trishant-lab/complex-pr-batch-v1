@@ -22,11 +22,12 @@ class DeleteKubernetesServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteKubernetesServiceActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.serviceSetup import Service
+
         Service(jeeves=jeeves).delete()
 
 
@@ -45,11 +46,12 @@ class DeleteKubernetesVirtualServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteKubernetesVirtualServiceActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.istioVitualService import IstioVirtualService
+
         IstioVirtualService(jeeves).delete()
 
 
@@ -68,12 +70,13 @@ class DeleteProvisioningJobActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteProvisioningJobActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.jeeves.Job import AlembicJob, VespaJob
-        AlembicJob(jeeves=jeeves).delete()
+        from app.cli.jeeves.Job import DatabaseSchemaMigrationJob, VespaJob
+
+        DatabaseSchemaMigrationJob(jeeves=jeeves).delete()
         VespaJob(jeeves=jeeves).delete()
 
 
@@ -92,11 +95,12 @@ class DeleteDeploymentActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteDeploymentActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.depolyment import DeploymentServer, DeploymentCli
+
         DeploymentServer(jeeves=jeeves).delete()
         DeploymentCli(jeeves=jeeves).delete()
 
@@ -116,11 +120,12 @@ class DeleteConfigMapActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteConfigMapActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.configMapSetup import ConfigMapClass
+
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.TENANT_CONFIG).delete()
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.RCLONE_CONFIG).delete()
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.STATE_STORE_CONFIG).delete()
@@ -142,11 +147,12 @@ class DeletePVCActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeletePVCActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.pvcSetup import PVC
+
         PVC(jeeves=jeeves).delete()
 
 
@@ -165,11 +171,12 @@ class DropUIBundlesActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DropUIBundlesActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.UISetup import UISetup
+
         UISetup(jeeves=jeeves).delete()
 
 
@@ -188,11 +195,12 @@ class DeleteDNSActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteDNSActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.dnsSetup import dns_teardown
+
         await dns_teardown(tenant_name=jeeves.tenant)
 
 
@@ -211,11 +219,12 @@ class DeleteVMScraperActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteVMScraperActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.vmPodScraper import VMPodScrapperServer
+
         VMPodScrapperServer(jeeves=jeeves).delete()
 
 
@@ -234,11 +243,12 @@ class DeleteRedisNamespace(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteRedisNamespace")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.statefulSetup import StateFullSet
+
         StateFullSet(jeeves=jeeves).delete()
 
 
@@ -257,9 +267,10 @@ class DeleteStatefulSetActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteStatefulSetActivity")
-    async def defn(jeeves: JeevesSpec):
+    async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
         """
         from app.cli.jeeves.statefulSetup import StateFullSet
+
         StateFullSet(jeeves=jeeves).delete()

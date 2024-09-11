@@ -8,7 +8,7 @@ from app.core.settings import AppSettings, get_settings
 from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvisioningWorkflow
 
 
-async def veritable_deprovisioning_worker():
+async def veritable_deprovisioning_worker() -> None:
     """
     Workflow worker for veritable onboarding
     """
@@ -23,7 +23,7 @@ async def veritable_deprovisioning_worker():
         task_queue=config.veritable.temporal_veritable_deboarding_task_queue,
         workflows=[VeritableDeProvisioningWorkflow],
         activities=VeritableDeProvisioningWorkflow.get_activities(),
-        debug_mode=True
+        debug_mode=True,
     )
     await worker.run()
 

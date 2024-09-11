@@ -1,19 +1,51 @@
-import os
-
 from loguru import logger
 
+import os
+import requests
+
+from app.cli.temporal.core.log import log_info
 from app.onepasswordutil import OnePasswordUtil
+from app.cli.jeeves import TemplatePath
 from app.cli.jeeves.jeeves import JeevesSpec, ProductName
 from app.cli.postgresUtils import PostgresUtils
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
-from app.core.settings import get_settings, JeevesSettings
+from app.core.settings import get_settings, AppSettings, JeevesSettings
+from app.template_env import get_env
 
 
-async def setup_postgres(jeeves: JeevesSpec):
+async def setup_supavisor_poll_user(db_username: str, database_name: str, db_password: str, environment: str) -> None:
+    """
+    Setup supervisor poll user for jeeves tenant
+    """
+    config: AppSettings = get_settings()
+
+    jinja_env = get_env(template_path=TemplatePath)
+    template = jinja_env.get_template(f"{environment}-supavisor-user.json")
+    rendered_template = template.render(DATABASE=database_name, DB_USER=db_username, DB_PASSWORD=db_password)
+
+    response = requests.put(
+        url=f"{config.supavisor_url}/api/tenants/{db_username}",
+        headers={
+            "Authorization": f"Bearer {config.supavisor_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        data=rendered_template,
+        timeout=120,
+    )
+
+    if response.status_code < 200 or response.status_code >= 299:
+        logger.error(f"Supavisor user creation failed with status code: {response.status_code}")
+        raise Exception(f"Supavisor user creation failed with status code: {response.status_code}")
+    logger.info(f"Supervisor poll user created: {db_username}")
+
+
+async def setup_postgres(jeeves: JeevesSpec) -> None:
     """
     Setup postgres database for jeeves tenant
     """
+    environment = os.getenv("DEPLOYMENT", "integration").lower()
     database_name = f"{ProductName}"
     schema_name = jeeves.tenant
 
@@ -43,6 +75,10 @@ async def setup_postgres(jeeves: JeevesSpec):
             server_item="application-config",
             vault="Jeeves",
         ).create_or_replace("pg_password", password)
+
+        await setup_supavisor_poll_user(
+            db_username=db_username, database_name=database_name, db_password=password, environment=environment
+        )
 
         # Create schema in the database
         await postgres_utils.create_schema(schema_name=schema_name, username=db_username)
@@ -75,13 +111,14 @@ async def setup_postgres(jeeves: JeevesSpec):
         await postgres_utils.grant_user_all_privileges_on_table(
             table="matomo_log_link_visit_action", username=db_username
         )
-
         await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_visit_view", username=db_username)
         await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_action_view", username=db_username)
         await postgres_utils.grant_user_all_privileges_on_table(table="matomo_log_media_view", username=db_username)
         await postgres_utils.grant_user_all_privileges_on_table(
             table="matomo_log_link_visit_action_view", username=db_username
         )
+
+        log_info(f"Postgres setup for tenant {jeeves.tenant} completed successfully")
 
         return
     except Exception as e:

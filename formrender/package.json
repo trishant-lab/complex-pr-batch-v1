@@ -1,0 +1,14 @@
+{
+  "name": "formrender",
+  "version": "1.0.0",
+  "description": "Form renderer part",
+  "main": "formRender.js",
+  "author": "Vikhyat Singh <vikhyat.singh@314ecorp.com>",
+  "license": "MIT",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "jquery": "^3.7.0",
+    "jsdom": "^22.1.0",
+    "path": "^0.12.7"
+  }
+}

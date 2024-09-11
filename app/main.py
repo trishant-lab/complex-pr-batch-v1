@@ -11,14 +11,17 @@ from starlette_prometheus import PrometheusMiddleware, metrics
 from .core.pycasbin.enforcer import enforcer
 from .core.settings import AppSettings, get_settings
 from .middleware.auth import AuthenticationMiddleware, AuthorizationMiddleware
+from .routes.email_templates import email_template_router
+from .routes.jeevesReports import jeeves_report_router
 
 from .routes.product import product_router
 from .routes.tenant import tenant_router
 from .routes.provisioning import provisioning_router
 from .routes.deprovisioning import de_provisioning_router
+from .routes.users import user_router
 
 api_prefix = "/api/v1"
-TITLE = f"Launchpad APP"
+TITLE = "Launchpad APP"
 
 config: AppSettings = get_settings()
 
@@ -31,10 +34,13 @@ origins: list = [
     "http://localhost:8000",
     "http://localhost:2000",
     "http://localhost:3000",
+    "http://localhost:1313",
     config.keycloak.auth_url,
     "https://api-definitions.314ecorp.tech",
     "https://softwareartistry.github.io",
     "https://launchpad.314ecorp.tech",
+    "https://test.314e-website.pages.dev",
+    "https://314e.com",
 ]
 
 
@@ -110,3 +116,6 @@ fastapi_app.include_router(product_router, prefix=f"{api_prefix}/product", tags=
 fastapi_app.include_router(tenant_router, prefix=f"{api_prefix}/tenant", tags=["Tenant"])
 fastapi_app.include_router(provisioning_router, prefix=f"{api_prefix}/provisioning", tags=["Provisioning"])
 fastapi_app.include_router(de_provisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])
+fastapi_app.include_router(user_router, prefix=f"{api_prefix}/User", tags=["User"])
+fastapi_app.include_router(email_template_router, prefix=f"{api_prefix}/EmailTemplate", tags=["EmailTemplate"])
+fastapi_app.include_router(jeeves_report_router, prefix=f"{api_prefix}/jeevesReports", tags=["JeevesReports"])

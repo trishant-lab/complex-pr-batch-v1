@@ -38,7 +38,8 @@ class TenantResponseModel(BaseModel):
     name: str
     status: TenantStatusEnum
     source: None | str = None
-    requestor: RequestorModel
+    requestor: None | dict = None
+    product_schema: None | dict = None
     approvedBy: None | str = None
     created: datetime
     provisionedDateTime: None | datetime = None
@@ -49,3 +50,8 @@ class UpdateRequestorModel(BaseModel):
     username: str
     email: str
     organization: str
+
+
+class SuggestTenantNamesResponseModel(BaseModel):
+    tenant_names: list[str]
+    domain: str

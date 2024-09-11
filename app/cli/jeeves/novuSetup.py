@@ -4,6 +4,7 @@ from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, Notificati
 from novu.dto import IntegrationDto
 
 from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
 
@@ -22,18 +23,55 @@ def get_default_notification_group_id(config: AppSettings, novu_api_key: str) ->
     return None
 
 
-def get_default_notification_layout_id(config: AppSettings, novu_api_key: str) -> str | None:
+def get_default_notification_layout_id(
+        config: AppSettings,
+        novu_api_key: str,
+        layout_name: str = "Jeeves Layout",
+) -> str | None:
     """
 
     :return:
     """
-    layout_name: str = "Default Layout"
     layout_client = LayoutApi(url=config.jeeves.novu_url, api_key=novu_api_key)
     response = layout_client.list()
     for layout in response.data:
         if layout.name == layout_name:
             return layout._id
     return None
+
+
+def create_novu_notification_layout(
+        config: AppSettings,
+        novu_api_key: str,
+        layout_name: str,
+        layout_content: str,
+        is_default: str = False,
+) -> int | None:
+    """
+    create novu notification layout
+    :param config:
+    :param novu_api_key:
+    :param layout_name:
+    :param layout_content:
+    :param is_default:
+    :return:
+    """
+    headers: dict = {
+        "Authorization": f"ApiKey {novu_api_key}",
+        "Content-Type": "application/json",
+    }
+    data: dict = {
+        "name": layout_name,
+        "identifier": layout_name.lower().replace(" ", "-"),
+        "description": layout_name,
+        "content": layout_content,
+        "isDefault": is_default,
+    }
+    response = requests.post(url=f"{config.jeeves.novu_url}/v1/layouts", json=data, headers=headers, timeout=60)
+    response_json = response.json()
+    if response.status_code >= 400:
+        logger.error(f"Failed to create novu layout : {response_json}")
+    return response.status_code
 
 
 def integrate_provider(
@@ -55,7 +93,9 @@ def integrate_provider(
         "active": active,
     }
     integration = IntegrationDto(**integration)
-    res = novu_client.create(integration=integration,)
+    res = novu_client.create(
+        integration=integration,
+    )
     return res._id
 
 
@@ -183,7 +223,7 @@ def list_novu_notification_template(
     """
     novu_client = NotificationTemplateApi(url=config.jeeves.novu_url, api_key=novu_api_key)
     response = novu_client.list(page=page, limit=limit)
-    template_names: list = [template.to_camel_case().get("name", "")for template in response.data if response]
+    template_names: list = [template.to_camel_case().get("name", "") for template in response.data if response]
     return template_names
 
 
@@ -194,15 +234,23 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     :param novu_api_key:
     :return:
     """
-
     template_names: list = list_novu_notification_template(config=config, novu_api_key=novu_api_key)
+    jeeves_layout: str | None = get_default_notification_layout_id(config=config, novu_api_key=novu_api_key)
+    if jeeves_layout is None:
+        layout_content = '<html> <head> <style> .content-container { background-color: #FFFFFF; text-align: center; margin: 30px auto; max-width: 600px; overflow: auto; height:auto; } .header img { height: 70px; width: 600px; } .container { background: #F0F0F0; text-align: center; padding: 16px 0; } .container img { margin-bottom: 16px; } </style> </head> <body style="background:#f6f6f6;max-height: 476px;"> <div class="content-container"> <div class="header"> <img src="https://lh7-us.googleusercontent.com/3bnmDGQiiB8YRKxTLdv6mYmWv10dXbCyx0DATLSbgmJLzqa2PilPOI-3a_71yu51ePodUKKFl6JhI_9KK9uLOo_3Sqq5E4QLEovovmLjFNZM4LYOgQ1BrbxCnBXzS8_YNiBsz0wqcHkwv_Ov1HaP7ww" alt="Jeeves Logo"> </div> <div style="margin:28px 28px"> {{{body}}} </div> <div class="container"> <img src="https://lh7-us.googleusercontent.com/k2Tx_FF2fhgoAnJombKAAW9SvmG8QrwaxPdXRBd8h10XKHxnwK_hFkNvwQBEV_tCZmf2V-F4npUaDwGyTeRMhxcUlPBQLgTjmqVyer40xaViWOrGRgYotgIK1T8FmJNR11p5eaqN8YacqXdwyf1w13M" alt="jeeves-favicon" style="height:24px"></img> <div> <p style="color: #434343; font-weight: 300;margin: 0px;">(C) 2024 314e Corporation. All rights reserved. This email is sent by 314e Corporation,</p> <p style="color: #434343; font-weight: 300;margin: 5px 0px;">301 Oxford Valley Rd., Ste 1303B, Yardley, PA 19067</p> </div> </div> </div> </body> </html>'
+        create_novu_notification_layout(
+            config=config,
+            novu_api_key=novu_api_key,
+            layout_name="Jeeves Layout",
+            layout_content=layout_content,
+        )
 
     # jeeves-assignment-created
     if "jeeves-assignment-created" not in template_names:
-        assignment_created_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>The following assignments created in Jeeves.</span></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.name}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due date: {{assignment.duedate}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'  # noqa
+        assignment_created_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>The following assignments created in Jeeves.</span></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.name}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due date: {{assignment.duedate}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         assignment_created_subject: str = "Assignments are created in Jeeves"
-        assignment_created_chat_content: str = "Assignments are created in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"  # noqa
-        assignment_created_inapp_content: str = "Assignments are created in Jeeves.\n<br />\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nDue on: {{assignment.duedate}}\n<br />\n{{/each}}"  # noqa
+        assignment_created_chat_content: str = "Assignments are created in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"
+        assignment_created_inapp_content: str = "Assignments are created in Jeeves.\n<br />\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nDue on: {{assignment.duedate}}\n<br />\n{{/each}}"
 
         create_novu_workflow_template(
             event_name="jeeves-assignment-created",
@@ -211,14 +259,14 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=assignment_created_chat_content,
             inapp_content=assignment_created_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-assignment-updated
     if "jeeves-assignment-updated" not in template_names:
-        assignment_updated_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>The following assignments updated in Jeeves.</span></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.name}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due date: {{assignment.duedate}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'  # noqa
+        assignment_updated_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>The following assignments updated in Jeeves.</span></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Assignment Title: </span><a href="{{assignment.link}}" class="editor-link"><span>{{assignment.name}}</span></a></p><p class="editor-paragraph" dir="ltr"><span>Due date: {{assignment.duedate}}</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         assignment_updated_subject: str = "Assignments are updated in Jeeves"
-        assignment_updated_chat_content: str = "Assignments are updated in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"  # noqa
+        assignment_updated_chat_content: str = "Assignments are updated in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"
         assignment_updated_inapp_content: str = "Assignments are updated in Jeeves.\n<br />\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nDue on: {{assignment.duedate}}\n<br />\n{{/each}}"
 
         create_novu_workflow_template(
@@ -228,7 +276,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=assignment_updated_chat_content,
             inapp_content=assignment_updated_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-asset-created
@@ -245,7 +293,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=asset_created_chat_content,
             inapp_content=aasset_created_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-assignment-due-in-15-days
@@ -262,7 +310,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=assignment_due_15_chat_content,
             inapp_content=assignment_due_15_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-assignment-due-in-7-days
@@ -279,7 +327,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=assignment_due_7_chat_content,
             inapp_content=assignment_due_7_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-assignment-due-in-1-day
@@ -296,7 +344,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=assignment_due_1_chat_content,
             inapp_content=assignment_due_1_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-assignment-overdue
@@ -312,7 +360,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=assignment_over_due_chat_content,
             inapp_content=assignment_over_due_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-asset-expiring-in-7-days
@@ -328,7 +376,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=asset_expiring_7_chat_content,
             inapp_content=asset_expiring_7_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-asset-expiring-in-30-days
@@ -344,7 +392,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=asset_expiring_30_chat_content,
             inapp_content=asset_expiring_30_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-asset-expiring-in-1-days
@@ -360,7 +408,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=asset_expiring_1_chat_content,
             inapp_content=asset_expiring_1_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-asset-expired
@@ -377,7 +425,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=asset_expired_chat_content,
             inapp_content=asset_expired_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-asset-deleted
@@ -394,7 +442,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=asset_deleted_chat_content,
             inapp_content=asset_deleted_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-asset-updated
@@ -411,7 +459,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=asset_updated_chat_content,
             inapp_content=asset_updated_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-asset-published
@@ -428,7 +476,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             chat_content=asset_published_chat_content,
             inapp_content=asset_published_inapp_content,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-assignment-assigned
@@ -449,7 +497,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             in_app_redirect_url="/sprint/my-assignments/{{todo_id}}"
             if config.env == "integration"
             else "/my-assignments/{{todo_id}}",
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-account-created
@@ -467,7 +515,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             inapp_content=account_created_inapp_content,
             config=config,
             digest=False,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
     # jeeves-feedback-created
@@ -487,7 +535,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             inapp_content=feedback_created_inapp_content,
             config=config,
             digest=False,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
 
@@ -540,13 +588,13 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             provider="sendgrid",
             channel="email",
             credentials={
-                "apiKey": config.sendgrid_api_key,
-                "from": "developer@314ecorp.com",
-                "senderName": "Jeeves",
+                "apiKey": config.sendgrid.api_key,
+                "from": config.jeeves.novu_sendgrid_sender_email,
+                "senderName": config.jeeves.novu_sendgrid_sender_name,
             },
             active=True,
             config=config,
-            novu_api_key=novu_api_key
+            novu_api_key=novu_api_key,
         )
 
         if integration_id:
@@ -555,12 +603,7 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
     # adding in app provider novu
     if not in_app_exist:
         integrate_provider(
-            provider="novu",
-            channel="in_app",
-            credentials={},
-            active=True,
-            config=config,
-            novu_api_key=novu_api_key
+            provider="novu", channel="in_app", credentials={}, active=True, config=config, novu_api_key=novu_api_key
         )
 
 
@@ -568,52 +611,42 @@ class NovuSetup:
     """
     This class will be used to setup the Novu environment
     """
-    def __init__(self, jeeves: JeevesSpec) -> None:
+
+    def __init__(self: "NovuSetup", jeeves: JeevesSpec) -> None:
         self.jeeves: JeevesSpec = jeeves
         self.config: AppSettings = get_settings()
 
-    def get_access_token(self):
+    def get_access_token(self: "NovuSetup") -> str:
         """
         Get the access token for the Novu environment
         """
         url = f"{self.config.jeeves.novu_url}/v1/auth/login"
 
-        payload = {
-            "email": self.config.jeeves.novu_admin_user,
-            "password": self.config.jeeves.novu_admin_password
-        }
+        payload = {"email": self.config.jeeves.novu_admin_user, "password": self.config.jeeves.novu_admin_password}
 
-        response = requests.post(
-            url=url,
-            json=payload
-        )
+        response = requests.post(url=url, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get access token for Novu environment")
+            raise Exception("Failed to get access token for Novu environment")
 
-        return response.json()['data']['token']
+        return response.json()["data"]["token"]
 
-    def get_organizations_by_name(self, organization_name: str, token: str):
+    def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
         List the organizations in the Novu environment
         """
         url = f"{self.config.jeeves.novu_url}/v1/organizations"
 
-        response = requests.get(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {token}"
-            }
-        )
+        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
             raise Exception(f"Failed to get organization by name: {organization_name}")
 
-        return [row for row in response.json()['data'] if row['name'] == organization_name]
+        return [row for row in response.json()["data"] if row["name"] == organization_name]
 
-    def create_organization(self, token: str, org_name: str):
+    def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
-
+        Create an organization in the Novu environment
         """
         url = f"{self.config.jeeves.novu_url}/v1/organizations"
 
@@ -621,56 +654,40 @@ class NovuSetup:
             "name": org_name,
         }
 
-        response = requests.post(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {token}"
-            },
-            json=payload
-        )
+        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
 
         if response.status_code >= 300:
             raise Exception(f"Failed to create organization: {org_name}")
 
         return response.json()
 
-    def get_organization_api_key(self, token: str):
+    def get_organization_api_key(self: "NovuSetup", token: str) -> str:
         """
         Get the API keys for the organization
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments/api-keys"
 
-        response = requests.get(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {token}"
-            }
-        )
+        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
             raise Exception(f"Failed to get API keys for organization status_code:{response.status_code}")
 
-        return response.json()['data'][0]['key']
+        return response.json()["data"][0]["key"]
 
-    def switch_organization(self, organization_id: str, token: str):
+    def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
         Switch the organization
         """
         url = f"{self.config.jeeves.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
-        response = requests.post(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {token}"
-            },
-        )
+        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
             raise Exception(f"Failed to switch organization: {organization_id}")
 
-        return response.json()['data']
+        return response.json()["data"]
 
-    def setup_novu(self):
+    def setup_novu(self: "NovuSetup") -> None:
         """
         Setup the Novu environment
         """
@@ -681,10 +698,10 @@ class NovuSetup:
         organization = self.get_organizations_by_name(organization_name=organization_name, token=access_token)
         if not organization:
             organization = self.create_organization(token=access_token, org_name=organization_name)
-            organization_id = organization['data']['id']
+            organization_id = organization["data"]["id"]
         else:
             organization = organization[0]
-            organization_id = organization['_id']
+            organization_id = organization["_id"]
 
         organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
         api_keys = self.get_organization_api_key(token=organization_token)
@@ -701,3 +718,5 @@ class NovuSetup:
 
         # add the integration provider
         add_integration_provider(config=config, novu_api_key=api_keys)
+
+        log_info(f"Novu environment setup completed for tenant: {self.jeeves.tenant}")

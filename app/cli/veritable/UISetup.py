@@ -11,7 +11,7 @@ from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(veritable: VeritableSpec):
+def deploy_ui(veritable: VeritableSpec) -> None:
     """
 
     :param veritable:
@@ -32,16 +32,16 @@ def deploy_ui(veritable: VeritableSpec):
     else:
         dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
-    s3_client: boto3.client = get_storage_client(config=config)
+    s3_client: boto3.client = get_storage_client(
+        config=config, access_key=config.s3.access_key, secret_key=config.s3.secret_key
+    )
 
     try:
         # Copy file from source to temporary folder
         with tempfile.TemporaryDirectory() as tmp_dir:
-
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
-                config=config,
                 storage_client=s3_client,
                 bucket_name="artifacts",
             )
@@ -49,7 +49,7 @@ def deploy_ui(veritable: VeritableSpec):
             with zipfile.ZipFile(Path(tmp_dir, "bundle.zip").as_posix(), "r") as zip_ref:
                 zip_ref.extractall(os.path.join(tmp_dir, "bundle"))
 
-            delete_ui_bundle(veritable=veritable)
+            # delete_ui_bundle(veritable=veritable)
             # Upload the files to S3
             copy_files_to_s3(
                 input_path=os.path.join(tmp_dir, "bundle", "dist"),
@@ -62,7 +62,7 @@ def deploy_ui(veritable: VeritableSpec):
         raise e
 
 
-def delete_ui_bundle(veritable: VeritableSpec):
+def delete_ui_bundle(veritable: VeritableSpec) -> None:
     """
 
     :param veritable

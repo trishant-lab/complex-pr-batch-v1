@@ -1,4 +1,6 @@
+from app.cli.temporal.core.log import log_info, log_error
 from kubernetes.client import V1ObjectMeta, V1Secret
+from kubernetes.dynamic.exceptions import ConflictError
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
@@ -11,12 +13,12 @@ class Secret(K8sResourceBaseClass):
     """
 
     def __init__(
-            self,
-            dexit: DexitSpec,
-            name: str,
-            type: None | str = None,
-            data: None | dict = None,
-            string_data: None | dict = None
+        self: "Secret",
+        dexit: DexitSpec,
+        name: str,
+        type: None | str = None,
+        data: None | dict = None,
+        string_data: None | dict = None,
     ) -> None:
         """
         dexit: DexitSpec
@@ -36,29 +38,37 @@ class Secret(K8sResourceBaseClass):
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1"
         )
 
-    def payload(self):
+    def payload(self: "Secret") -> dict:
+        """
+        Payload
+        """
         body: V1Secret = V1Secret(
             api_version="v1",
             kind=ResourceKindEnum.Secret.value,
-            metadata=V1ObjectMeta(
-                namespace=self.dexit.tenant,
-                name=self.name
-            ),
+            metadata=V1ObjectMeta(namespace=self.dexit.tenant, name=self.name),
             type=self.type,
             data=self.data,
-            string_data=self.string_data
+            string_data=self.string_data,
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self):
-        self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource,
-            body=self.payload(),
-            field_manager="kubectl-client-side-apply"
-        )
+    def put(self: "Secret") -> None:
+        """
+        Put
+        """
+        try:
+            self.k8s_dynamic_client.server_side_apply(
+                resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
+            )
+            log_info(message=f"Secret {self.name} created successfully.")
+        except ConflictError:
+            log_error(message=f"Secret {self.name} already exists in namespace {self.dexit.tenant}")
 
-    def delete(self):
+    def delete(self: "Secret") -> None:
+        """
+        Delete
+        """
         # Don't delete secret.
         # Work with devops team to secret if needed
         pass

@@ -1,39 +1,39 @@
-from dataclasses import dataclass, field
-from uuid import UUID
-
-from app.cli.temporal.core.base import IODataclass
+from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 
 OnepasswordVaultName: str = "dexit"
 OnepasswordItemName: str = "dexit-tenant-config-{environment}"
 
 
-@dataclass
-class ResourceSpec:
+class ResourceSpec(LaunchpadCLIBaseModel):
     """
     ResourceSpec dataclass
     """
+
     request_memory: str = "500Mi"
     request_cpu: str = "500m"
     limit_memory: str = "3000Mi"
     limit_cpu: str = "3000m"
 
 
-@dataclass
-class CustomerDetails(IODataclass):
+class CustomerDetails(LaunchpadCLIBaseModel):
     """
     CustomerDetails dataclass
     """
+
     userName: str
     email: str
     organization: str
 
 
-@dataclass
-class DexitSpec(IODataclass):
+class DexitSpec(LaunchpadCLIBaseModel):
     """
     DexitSpec dataclass
     """
+
     tenant: str
-    customerDetails: None | CustomerDetails = None
-    serverSpec: None | ResourceSpec = field(default_factory=ResourceSpec)
-    cliSpec: None | ResourceSpec = field(default_factory=ResourceSpec)
+    firstName: str
+    lastName: str
+    email: str
+    organization: None | str = None
+    serverSpec: None | ResourceSpec = ResourceSpec()
+    cliSpec: None | ResourceSpec = ResourceSpec()

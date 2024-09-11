@@ -8,17 +8,14 @@ from app.core.db import DBManager, get_db_manager
 from app.core.settings import get_settings, DexitSettings
 
 
-def create_k8s_postgres_secret(dexit: DexitSpec, password: str):
-    Secret(
-        dexit=dexit,
-        name="dexit-postgres-password",
-        string_data={
-            "POSTGRES_PASSWORD": password
-        }
-    ).put()
+def create_k8s_postgres_secret(dexit: DexitSpec, password: str) -> None:
+    """
+    Create a secret in k8s for the postgres password
+    """
+    Secret(dexit=dexit, name="dexit-postgres-password", string_data={"POSTGRES_PASSWORD": password}).put()
 
 
-async def setup_postgres(dexit: DexitSpec):
+async def setup_postgres(dexit: DexitSpec) -> None:
     """
     Setup postgres database for dexit tenant
     """
@@ -69,7 +66,7 @@ async def setup_postgres(dexit: DexitSpec):
         await postgres_utils.grant_user_all_privileges_on_table(table="keycloak_role", username=db_username)
         await postgres_utils.grant_user_all_privileges_on_table(table="user_role_mapping", username=db_username)
         await postgres_utils.grant_user_all_privileges_on_table(table="user_attribute", username=db_username)
-        # await postgres_utils.grant_user_all_privileges_on_table(table="realm", username=db_username)
+        await postgres_utils.grant_user_all_privileges_on_table(table="realm", username=db_username)
 
         await postgres_utils.create_user_mapping_for_matomo(
             username=db_username, matomo_password=dexit_config.matomo_db_password

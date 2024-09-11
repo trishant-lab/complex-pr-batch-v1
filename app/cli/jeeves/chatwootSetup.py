@@ -2,12 +2,13 @@ import requests
 from loguru import logger
 
 from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
 
 
 class ChatwootSetup:
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "ChatwootSetup", jeeves: JeevesSpec) -> None:
         self.jeeves: JeevesSpec = jeeves
         self.config: AppSettings = get_settings()
         self.chatwoot_base_url = self.config.jeeves.chatwoot_base_url
@@ -20,7 +21,7 @@ class ChatwootSetup:
             vault="Jeeves",
         )
 
-    def create_chatwoot_account(self) -> int:
+    def create_chatwoot_account(self: "ChatwootSetup") -> int:
         """
         Create a chatwoot account
         """
@@ -44,7 +45,7 @@ class ChatwootSetup:
         logger.info(f"chatwoot account created successfully : {self.jeeves.tenant}")
         return response.json().get("id")
 
-    def create_chatwoot_user(self) -> dict:
+    def create_chatwoot_user(self: "ChatwootSetup") -> dict:
         """
         Create a chatwoot user
         """
@@ -68,8 +69,7 @@ class ChatwootSetup:
         logger.info(f"chatwoot user created successfully apiuser {self.jeeves.tenant}")
         return response.json()
 
-    def add_user_to_account(self, user_id: int, account_id: int) -> int:
-
+    def add_user_to_account(self: "ChatwootSetup", user_id: int, account_id: int) -> int:
         """
         Add a user to a chatwoot account
             :return:
@@ -91,11 +91,10 @@ class ChatwootSetup:
         logger.info(f"user added to chatwoot account successfully. user id:{user_id}")
         return response.status_code
 
-    def create_account_agent_bot(self, user_api_key: str, account_id: int) -> dict:
+    def create_account_agent_bot(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
         """
         Create a chatwoot account agent bot
         """
-
         server_url = f"https://{self.jeeves.tenant}.{self.config.jeeves.domain_name}"
 
         headers = {
@@ -108,7 +107,7 @@ class ChatwootSetup:
         data: dict = {
             "name": "Jeeves AI Bot",
             "description": "Jeeves AI Bot",
-            "outgoing_url": f"{server_url}/public/api/v1/jeevesAgent/jeevesChatbot",
+            "outgoing_url": f"{server_url}/public/api/v1/agent/jeevesChatbot",
         }
         response = requests.post(url=url, headers=headers, json=data, timeout=20)
         if response.status_code >= 400:
@@ -117,8 +116,10 @@ class ChatwootSetup:
         logger.info("agent bot created successfully: Jeeves AI Bot")
         return response.json()
 
-    def list_all_inboxes(self, user_api_key: str, account_id: int) -> dict:
-
+    def list_all_inboxes(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
+        """
+        List all the inboxes in a chatwoot account
+        """
         headers = {
             "api_access_token": user_api_key,
             "Content-Type": "application/json",
@@ -134,7 +135,7 @@ class ChatwootSetup:
 
         return response.json()
 
-    def create_chatwoot_inbox(self, user_api_key: str, account_id: int) -> int | None:
+    def create_chatwoot_inbox(self: "ChatwootSetup", user_api_key: str, account_id: int) -> int | None:
         """
         Create a chatwoot inbox
         :return:
@@ -158,7 +159,7 @@ class ChatwootSetup:
         logger.info("chatwoot inbox created successfully: Jeeves")
         return response.json().get("id")
 
-    def update_chatwoot_inbox(self, account_id: int, user_api_key: str, inbox_id: int) -> int:
+    def update_chatwoot_inbox(self: "ChatwootSetup", account_id: int, user_api_key: str, inbox_id: int) -> int:
         """
         Update a chatwoot inbox
         :return:
@@ -184,7 +185,9 @@ class ChatwootSetup:
         logger.info(f"chatwoot inbox updated successfully: inbox id:{inbox_id}")
         return response.status_code
 
-    def add_agent_bot_to_inbox(self, agent_bot_id: int, user_api_key: str, account_id: int, inbox_id: int,) -> int:
+    def add_agent_bot_to_inbox(
+        self: "ChatwootSetup", agent_bot_id: int, user_api_key: str, account_id: int, inbox_id: int
+    ) -> int:
         """
         Add an agent bot to a chatwoot inbox
         :return:
@@ -204,7 +207,7 @@ class ChatwootSetup:
         logger.info(f"agent bot added to inbox successfully: agent bot id :{agent_bot_id}")
         return response.status_code
 
-    def get_inbox_agent_bot(self, user_api_key: str, account_id: int, inbox_id: int) -> dict:
+    def get_inbox_agent_bot(self: "ChatwootSetup", user_api_key: str, account_id: int, inbox_id: int) -> dict:
         """
         Get the agent bot for a chatwoot inbox
         """
@@ -223,7 +226,7 @@ class ChatwootSetup:
 
         return response.json()
 
-    def list_all_agent_bots_in_account(self, user_api_key: str, account_id: int) -> dict:
+    def list_all_agent_bots_in_account(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
         """
         List all the agents in a chatwoot account
         """
@@ -242,7 +245,7 @@ class ChatwootSetup:
 
         return response.json()
 
-    def setup(self):
+    def setup(self: "ChatwootSetup") -> None:
         """
         Setup the Chatwoot environment
         """
@@ -251,41 +254,46 @@ class ChatwootSetup:
         if not account_id:
             account_id = self.create_chatwoot_account()
             self.onepassword_util.insert_if_not_exists(key="chatwoot_account_id", value=str(account_id))
+            log_info(f"chatwoot account created successfully : {self.jeeves.tenant}")
 
         # Create Chatwoot User If not exists
         api_key = self.onepassword_util.get_key("chatwoot_api_key")
         if not api_key:
             user = self.create_chatwoot_user()
-            self.add_user_to_account(user_id=user['id'], account_id=account_id)
+            log_info(f"chatwoot user created successfully : {self.jeeves.tenant}")
+            self.add_user_to_account(user_id=user["id"], account_id=account_id)
+            log_info(f"chatwoot user added to account successfully : {self.jeeves.tenant}")
 
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_api_key", value=user['access_token'])
-            api_key = user['access_token']
+            self.onepassword_util.insert_if_not_exists(key="chatwoot_api_key", value=user["access_token"])
+            api_key = user["access_token"]
 
         # Create Chatwoot Agent Bot If not exists
         agents = self.list_all_agent_bots_in_account(user_api_key=api_key, account_id=account_id)
 
         if not agents:
             agent_bot = self.create_account_agent_bot(user_api_key=api_key, account_id=account_id)
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_bot_token", value=agent_bot['access_token'])
-            agent_bot_id = agent_bot['id']
+            self.onepassword_util.insert_if_not_exists(key="chatwoot_bot_token", value=agent_bot["access_token"])
+            agent_bot_id = agent_bot["id"]
         else:
             agent_bot = agents[0]
-            agent_bot_id = agent_bot['id']
+            agent_bot_id = agent_bot["id"]
+
+        log_info(f"chatwoot agent bot created successfully : {self.jeeves.tenant}")
 
         inboxes = self.list_all_inboxes(user_api_key=api_key, account_id=account_id)
-        if not inboxes['payload']:
+        if not inboxes["payload"]:
             inbox_id = self.create_chatwoot_inbox(user_api_key=api_key, account_id=account_id)
         else:
-            inbox_id = inboxes['payload'][0]['id']
+            inbox_id = inboxes["payload"][0]["id"]
+        log_info(f"chatwoot inbox created successfully : {self.jeeves.tenant}")
 
         if not self.get_inbox_agent_bot(user_api_key=api_key, account_id=account_id, inbox_id=inbox_id):
             # add agent bot to inbox
             self.add_agent_bot_to_inbox(
-                agent_bot_id=agent_bot_id,
-                user_api_key=api_key,
-                account_id=account_id,
-                inbox_id=inbox_id
+                agent_bot_id=agent_bot_id, user_api_key=api_key, account_id=account_id, inbox_id=inbox_id
             )
+            log_info(f"agent bot added to inbox successfully : {self.jeeves.tenant}")
 
         # update inbox
         self.update_chatwoot_inbox(account_id=account_id, user_api_key=api_key, inbox_id=inbox_id)
+        log_info(f"chatwoot inbox updated successfully : {self.jeeves.tenant}")

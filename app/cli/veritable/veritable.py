@@ -1,3 +1,5 @@
+from temporalio.client import WorkflowHandle
+
 from app.cli.temporal.veritable.starter import trigger_workflow
 from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvisioningWorkflow
 from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
@@ -16,7 +18,7 @@ class VeritableWorkflow(ProductWorkflow):
     """
 
     @staticmethod
-    async def onboard(schema: dict):
+    async def onboard(schema: dict) -> None:
         """
         onboard method
         """
@@ -24,11 +26,11 @@ class VeritableWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=VeritableSpec(**schema),
             workflow=VeritableOnboardingWorkflow,
-            queue=product_config.temporal_veritable_onboarding_task_queue
+            queue=product_config.temporal_veritable_onboarding_task_queue,
         )
 
     @staticmethod
-    async def deboard(schema: dict):
+    async def deboard(schema: dict) -> None:
         """
         deprovision method
         """
@@ -36,5 +38,15 @@ class VeritableWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=VeritableSpec(**schema),
             workflow=VeritableDeProvisioningWorkflow,
-            queue=product_config.temporal_veritable_deboarding_task_queue
+            queue=product_config.temporal_veritable_deboarding_task_queue,
         )
+
+    @staticmethod
+    async def get_workflow_handle(schema: dict) -> WorkflowHandle:
+        """
+        get_workflow_handle method
+        """
+        from app.cli.temporal.veritable.starter import get_workflow_handle
+        from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
+
+        return await get_workflow_handle(workflow_input=VeritableSpec(**schema), workflow=VeritableOnboardingWorkflow)

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from jinja2 import Environment
 from jinja2 import Template
 from jinja2.ext import Extension
@@ -32,6 +31,9 @@ class InvalidBindParameterException(JinjaSqlException):
 
 class SqlExtension(Extension):
     def extract_param_name(self, tokens):
+        """
+        Extract the name of the parameter from the token stream
+        """
         name = ""
         for token in tokens:
             if token.test("variable_begin"):
@@ -95,7 +97,8 @@ class SqlExtension(Extension):
 
 def sql_safe(value):
     """Filter to mark the value of an expression as safe for inserting
-    in a SQL statement"""
+    in a SQL statement
+    """
     return Markup(value)
 
 
@@ -108,15 +111,15 @@ def bind(value, name):
     if isinstance(value, Markup):
         return value
     elif requires_in_clause(value):
-        raise MissingInClauseException(
-            """Got a list or tuple. 
-            Did you forget to apply '|inclause' to your query?"""
-        )
+        raise MissingInClauseException("Got a list or tuple.Did you forget to apply '|inclause' to your query?")
     else:
         return _bind_param(_thread_local.bind_params, name, value)
 
 
 def bind_in_clause(value):
+    """
+    A filter that prints %s, and stores the value
+    """
     values = list(value)
     results = []
     is_dict = False
@@ -141,6 +144,9 @@ def bind_in_clause(value):
 
 
 def _bind_param(already_bound, key, value):
+    """
+    Bind a parameter to a key
+    """
     _thread_local.param_index += 1
     new_key = "%s_%s" % (key, _thread_local.param_index)
     already_bound[new_key] = value
@@ -163,14 +169,20 @@ def _bind_param(already_bound, key, value):
 
 
 def requires_in_clause(obj):
+    """
+    Check if the object is a list or tuple
+    """
     return isinstance(obj, (list, tuple))
 
 
 def is_dictionary(obj):
+    """
+    Check if the object is a dictionary
+    """
     return isinstance(obj, dict)
 
 
-class JinjaSql(object):
+class JinjaSql:
     # See PEP-249 for definition
     # qmark "where name = ?"
     # numeric "where name = :1"
@@ -179,19 +191,27 @@ class JinjaSql(object):
     # pyformat "where name = %(name)s"
     VALID_PARAM_STYLES = ("qmark", "numeric", "named", "format", "pyformat", "asyncpg")
 
-    def __init__(self, env=None, param_style="format"):
-        self.env = env or Environment()
+    def __init__(self: "JinjaSql", env=None, param_style="format"):
+        """
+        :param env: Jinja environment
+        """
+        self.env = env or Environment(autoescape=True)
         self._prepare_environment()
         self.param_style = param_style
 
-    def _prepare_environment(self):
-        self.env.autoescape = True
+    def _prepare_environment(self: "JinjaSql"):
+        """
+        Prepare the Jinja environment
+        """
         self.env.add_extension(SqlExtension)
         self.env.filters["bind"] = bind
         self.env.filters["sqlsafe"] = sql_safe
         self.env.filters["inclause"] = bind_in_clause
 
-    def prepare_query(self, source, data):
+    def prepare_query(self: "JinjaSql", source, data):
+        """
+        renders template with data
+        """
         if isinstance(source, Template):
             template = source
         else:
@@ -199,7 +219,10 @@ class JinjaSql(object):
 
         return self._prepare_query(template, data)
 
-    def _prepare_query(self, template, data):
+    def _prepare_query(self: "JinjaSql", template, data):
+        """
+        renders template with data
+        """
         try:
             _thread_local.bind_params = OrderedDict()
             _thread_local.param_style = self.param_style
@@ -225,7 +248,7 @@ def quote_sql_string(value):
     if isinstance(value, string_types):
         new_value = str(value)
         new_value = new_value.replace("'", "''")
-        return "'{}'".format(new_value)
+        return f"'{new_value}'"
     return value
 
 

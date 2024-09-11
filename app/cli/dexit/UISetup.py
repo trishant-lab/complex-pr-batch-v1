@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 
 import boto3
+from app.cli.temporal.core.log import log_info
 from loguru import logger
 
 from app.cli.dexit.dexit import DexitSpec
@@ -11,7 +12,7 @@ from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(dexit: DexitSpec):
+def deploy_ui(dexit: DexitSpec) -> None:
     """
 
     :param dexit:
@@ -30,16 +31,16 @@ def deploy_ui(dexit: DexitSpec):
     else:
         dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
-    s3_client: boto3.client = get_storage_client(config=config)
+    s3_client: boto3.client = get_storage_client(
+        config=config, access_key=config.s3.access_key, secret_key=config.s3.secret_key
+    )
 
     try:
         # Copy file from source to temporary folder
         with tempfile.TemporaryDirectory() as tmp_dir:
-
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
-                config=config,
                 storage_client=s3_client,
                 bucket_name="artifacts",
             )
@@ -47,20 +48,21 @@ def deploy_ui(dexit: DexitSpec):
             with zipfile.ZipFile(Path(tmp_dir, "bundle.zip").as_posix(), "r") as zip_ref:
                 zip_ref.extractall(os.path.join(tmp_dir, "bundle"))
 
-            delete_ui_bundle(dexit=dexit)
+            # delete_ui_bundle(dexit=dexit)
             # Upload the files to S3
             copy_files_to_s3(
                 input_path=os.path.join(tmp_dir, "bundle", "dist", "admin"),
-                output_path=f"{config.s3.rclone_remote}:static/{dest_dir}",
+                output_path=f"{config.s3.rclone_remote}/static/{dest_dir}",
                 config=config,
             )
+        log_info(f"UI deployed successfully for tenant {tenant}")
 
     except Exception as e:
         logger.error(f"Failed to deploy UI: {e}")
         raise e
 
 
-def delete_ui_bundle(dexit: DexitSpec):
+def delete_ui_bundle(dexit: DexitSpec) -> None:
     """
 
     :param dexit

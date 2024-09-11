@@ -1,20 +1,23 @@
 from google.protobuf.duration_pb2 import Duration
-from loguru import logger
 from temporalio import client
 from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
 from temporalio.service import RPCError, RPCStatusCode
 
 from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 
 
 class TemporalNamespaceCreation:
-    def __init__(self, jeeves: JeevesSpec) -> None:
+    def __init__(self: "TemporalNamespaceCreation", jeeves: JeevesSpec) -> None:
+        """
+        Constructor
+        """
         self.jeeves: JeevesSpec = jeeves
         self.config: AppSettings = get_settings()
         self.namespace = f"jeeves_{self.jeeves.tenant}"
 
-    async def create_temporal_namespace(self):
+    async def create_temporal_namespace(self: "TemporalNamespaceCreation") -> None:
         """
         Create Temporal Namespace
         """
@@ -26,9 +29,9 @@ class TemporalNamespaceCreation:
                     workflow_execution_retention_period=Duration(seconds=30 * 24 * 60 * 60),  # 30 days
                 ),
             )
-            logger.info(f"Temporal Namespace {self.namespace} created successfully")
+            log_info(f"Temporal Namespace {self.namespace} created successfully")
         except RPCError as rpc_err:
             if rpc_err.status == RPCStatusCode.ALREADY_EXISTS:
-                logger.info(f"Temporal Namespace {self.namespace} already exists")
+                log_info(f"Temporal Namespace {self.namespace} already exists")
                 return  # update namespace if needed
             raise
