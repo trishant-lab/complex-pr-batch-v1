@@ -1,0 +1,33 @@
+{
+    "keycloak": {
+      "keycloak_realm": "{{tenant}}",
+      "keycloak_auth_url": "https://auth.314ecorp.tech",
+      "keycloak_client_id": "jeeves"
+    },
+    "gsuite": {
+      "client_email": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/gsuite_client_email{{ close_brackets }}",
+      "private_key_id": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/gsuite_private_key_id{{ close_brackets }}",
+      "private_key": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/gsuite_private_key{{ close_brackets }}",
+      "client_id": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/gsuite_client_id{{ close_brackets }}"
+    },
+    "redis_dsn": "redis://redis:@cache-new.{{tenant}}.svc.cluster.local",
+    "redis_password": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/redis_password{{ close_brackets }}",
+    "pg_dsn":"postgresql://jeeves_{{tenant}}:{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/pg_password{{ close_brackets }}@db-cluster-ha.postgresql.svc.cluster.local/jeeves",
+    "db_schema_name": "{{tenant}}",
+    "auth_secret": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/auth_secret{{ close_brackets }}",
+    "ostore_endpoint": "http://ostore-hl.ostore.svc.cluster.local:9000",
+    "ostore_access_key": "ostoreconsole",
+    "ostore_secret_key": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/ostore_secret_key{{ close_brackets }}",
+    "ostore_https": false,
+    "sendgrid_smtp_host": "smtp.sendgrid.net",
+    "sendgrid_smtp_port": 587,
+    "sendgrid_smtp_user": "apikey",
+    "sendgrid_smtp_pass": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/sendgrid_smtp_pass{{ close_brackets }}",
+    "s3_access_key": "05229c6fb6d58fdb21873c35735e2a50",
+    "s3_secret_key": "{{ open_brackets }}op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/r2_secret_key{{ close_brackets }}",
+    "s3_endpoint": "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com",
+    "s3_public_endpoint": "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com",
+    "novu_api_key": "{{ open_brackets }}op://Jeeves/application-config/JEEVES_{{tenant}}/novu_api_key{{ close_brackets }}",
+    "novu_url": "http://api.novu.svc.cluster.local:4000",
+    "temporal_dsn": "temporal-prod-frontend.temporal-system.svc.cluster.local:7233"
+  }

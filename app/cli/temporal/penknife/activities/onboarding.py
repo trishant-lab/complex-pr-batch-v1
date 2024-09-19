@@ -1,11 +1,9 @@
 import dataclasses
 from datetime import timedelta
-
-from temporalio import activity
 from temporalio.common import RetryPolicy
-
-from app.cli.jeeves.jeeves import JeevesSpec
-from app.cli.temporal.core.base import Activity
+from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from temporalio import activity
 
 
 class PostgresSetupActivity(Activity):
@@ -20,17 +18,16 @@ class PostgresSetupActivity(Activity):
             maximum_interval=timedelta(seconds=10),
             maximum_attempts=5,
         )
-
+    
     @staticmethod
     @activity.defn(name="PostgresSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.jeeves.postgresSetup import setup_postgres
+        from app.cli.penknife.postgresSetup import setup_postgres
 
-        await setup_postgres(jeeves=jeeves)
-
+        await setup_postgres(penknife=penknife)
 
 class NamespaceSetupActivity(Activity):
     @staticmethod
@@ -47,15 +44,14 @@ class NamespaceSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="NamespaceSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # create namespace in k8s
-        from app.cli.jeeves.namespaceSetup import Namespace
+        from app.cli.penknife.namespaceSetup import Namespace
 
-        Namespace(jeeves=jeeves).put()
-
+        Namespace(penknife=penknife).put()
 
 class ConfigmapSetupActivity(Activity):
     @staticmethod
@@ -72,17 +68,16 @@ class ConfigmapSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="ConfigmapSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.jeeves.configMapSetup import ConfigMapClass
+        from app.cli.penknife.configMapSetup import ConfigMapClass
 
-        ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.TENANT_CONFIG).put()
-        ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.RCLONE_CONFIG).put()
-        ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.VECTOR_CONFIG).put()
-        ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.STATE_STORE_CONFIG).put()
-
+        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.TENANT_CONFIG).put()
+        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.RCLONE_CONFIG).put()
+        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.VECTOR_CONFIG).put()
+        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.STATE_STORE_CONFIG).put()
 
 class PVCSetupActivity(Activity):
     @staticmethod
@@ -99,15 +94,14 @@ class PVCSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="PVCSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # create PVC in k8s for namespace
-        from app.cli.jeeves.pvcSetup import PVC
+        from app.cli.penknife.pvcSetup import PVC
 
-        PVC(jeeves=jeeves).put()
-
+        PVC(penknife=penknife).put()
 
 class SecretSetupActivity(Activity):
     @staticmethod
@@ -124,19 +118,19 @@ class SecretSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="SecretSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # create secret in k8s for namespace
-        from app.cli.jeeves.secretSetup import Secret
+        from app.cli.penknife.secretSetup import Secret
         from app.core.settings import get_settings, AppSettings
 
         config: AppSettings = get_settings()
 
         # Create registry secret for pulling images
         Secret(
-            jeeves=jeeves,
+            penknife=penknife,
             name="registrycred",
             type="kubernetes.io/dockerconfigjson",
             data={".dockerconfigjson": config.docker_image_pull_secret},
@@ -144,11 +138,10 @@ class SecretSetupActivity(Activity):
 
         # Create redis secret for redis password
         Secret(
-            jeeves=jeeves,
+            penknife=penknife,
             name="cache-secret",
-            string_data={"REDIS_PASSWORD": config.cache_admin_password},
+            data={"REDIS_PASSWORD": config.cache_admin_password},
         ).put()
-
 
 class StateFullSetSetupActivity(Activity):
     @staticmethod
@@ -165,114 +158,16 @@ class StateFullSetSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="StateFullSetSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # create stateful set in k8s
-        from app.cli.jeeves.statefulSetup import StateFullSet
+        from app.cli.penknife.statefulSetup import StateFullSet
 
-        await StateFullSet(jeeves=jeeves).put()
+        await StateFullSet(penknife=penknife).put()
 
-
-class DnsSetupActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=5,
-        )
-
-    @staticmethod
-    @activity.defn(name="DnsSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # Create DNS
-        from app.cli.jeeves.dnsSetup import dns_setup
-
-        await dns_setup(jeeves=jeeves)
-
-
-class UiSetupActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=5,
-        )
-
-    @staticmethod
-    @activity.defn(name="UiSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # Deploy ui
-        from app.cli.jeeves.UISetup import UISetup
-
-        UISetup(jeeves=jeeves).deploy()
-
-
-class KeycloakRealmSetupActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=5,
-        )
-
-    @staticmethod
-    @activity.defn(name="KeycloakRealmSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # Deploy keycloak
-        from app.cli.jeeves.keycloakRealmSetup import create_realm_and_users
-
-        await create_realm_and_users(jeeves=jeeves)
-
-
-class NovuSetupActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=5,
-        )
-
-    @staticmethod
-    @activity.defn(name="NovuSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # Setup novu
-        from app.cli.jeeves.novuSetup import NovuSetup
-
-        NovuSetup(jeeves=jeeves).setup_novu()
+# TODO: MISSING
 
 
 class ProvisioningJobActivity(Activity):
@@ -290,21 +185,20 @@ class ProvisioningJobActivity(Activity):
 
     @staticmethod
     @activity.defn(name="ProvisioningJobActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.jeeves.Job import DatabaseSchemaMigrationJob, VespaJob
+        from app.cli.penknife.Job import AlembicJob, VespaJob
 
-        alembic_job = DatabaseSchemaMigrationJob(jeeves=jeeves)
+        alembic_job = AlembicJob(penknife=penknife)
         alembic_job.delete()
         alembic_job.put()
 
-        vespa_job = VespaJob(jeeves=jeeves)
-        vespa_job.delete()
-        vespa_job.put()
-
+        # vespa_job = VespaJob(penknife=penknife)
+        # vespa_job.delete()
+        # vespa_job.put()
 
 class KubernetesServiceActivity(Activity):
     @staticmethod
@@ -321,14 +215,14 @@ class KubernetesServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="KubernetesServiceActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # Create k8s service
-        from app.cli.jeeves.serviceSetup import Service
+        from app.cli.penknife.serviceSetup import Service
 
-        Service(jeeves=jeeves).put()
+        Service(penknife=penknife).put()
 
 class KubernetesVirtualServiceActivity(Activity):
     @staticmethod
@@ -345,15 +239,14 @@ class KubernetesVirtualServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="KubernetesVirtualServiceActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # Create k8s virtual service
-        from app.cli.jeeves.istioVitualService import IstioVirtualService #typo
+        from app.cli.penknife.istioVirtualService import IstioVirtualService
 
-        IstioVirtualService(jeeves=jeeves).put()
-
+        IstioVirtualService(penknife=penknife).put()
 
 class DeploymentActivity(Activity):
     @staticmethod
@@ -370,16 +263,15 @@ class DeploymentActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeploymentActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # Deploy k8s deployment
-        from app.cli.jeeves.depolyment import DeploymentServer, DeploymentCli #typo
+        from app.cli.penknife.deployment import DeploymentServer, DeploymentCli
 
-        DeploymentServer(jeeves=jeeves).put()
-        DeploymentCli(jeeves=jeeves).put()
-
+        DeploymentServer(penknife=penknife).put()
+        DeploymentCli(penknife=penknife).put()
 
 class VmPodScraperActivity(Activity):
     @staticmethod
@@ -396,15 +288,14 @@ class VmPodScraperActivity(Activity):
 
     @staticmethod
     @activity.defn(name="VmPodScraperActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # Scrape pod logs
-        from app.cli.jeeves.vmPodScraper import VMPodScrapperServer #typo
+        from app.cli.penknife.vmPodScrapper import VMPodScrapperServer
 
-        VMPodScrapperServer(jeeves=jeeves).put()
-
+        VMPodScrapperServer(penknife=penknife).put()
 
 @dataclasses.dataclass
 class TenantStatus:
@@ -415,7 +306,6 @@ class TenantStatus:
     tenant_name: str
     status: str
     error_msg: None | str = None
-
 
 class UpdateTenantStatusActivity(Activity):
     @staticmethod
@@ -438,7 +328,7 @@ class UpdateTenantStatusActivity(Activity):
         """
         # Update tenant status
         from app.cli.common.tenantStatus import update_tenant_status
-        from app.cli.jeeves.jeeves import ProductName
+        from app.cli.penknife.penknife import ProductName
         from app.models.tenant import TenantStatusEnum
 
         status = TenantStatusEnum(activity_input.status)
@@ -449,32 +339,6 @@ class UpdateTenantStatusActivity(Activity):
             status=status,
             error_message=activity_input.error_msg,
         )
-
-
-class ChatwootSetupActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=5,
-        )
-
-    @staticmethod
-    @activity.defn(name="ChatwootSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # Setup chatwoot
-        from app.cli.jeeves.chatwootSetup import ChatwootSetup
-
-        ChatwootSetup(jeeves=jeeves).setup()
-
 
 class TemporalNamespaceCreationActivity(Activity):
     @staticmethod
@@ -491,65 +355,14 @@ class TemporalNamespaceCreationActivity(Activity):
 
     @staticmethod
     @activity.defn(name="TemporalNamespaceCreationActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # Create temporal namespace
-        from app.cli.jeeves.temporalNamespaceCreation import TemporalNamespaceCreation
+        from app.cli.penknife.temporalNamespaceCreation import TemporalNamespaceCreation
 
-        await TemporalNamespaceCreation(jeeves=jeeves).create_temporal_namespace()
-
-
-class AiVoiceSetupActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=2,
-        )
-
-    @staticmethod
-    @activity.defn(name="AiVoiceSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # Add AI voices to storage
-        from app.cli.jeeves.aiVoiceSetup import add_ai_voices_to_storage
-
-        add_ai_voices_to_storage(jeeves=jeeves)
-
-
-class BeforeProvisioningMailActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=2,
-        )
-
-    @staticmethod
-    @activity.defn(name="BeforeProvisioningMailActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # Send mail to customer
-        from app.cli.jeeves.mail import send_before_provisioning_mail
-
-        await send_before_provisioning_mail(jeeves=jeeves)
-
+        await TemporalNamespaceCreation(penknife=penknife).create_temporal_namespace()
 
 class SendMailActivity(Activity):
     @staticmethod
@@ -566,36 +379,11 @@ class SendMailActivity(Activity):
 
     @staticmethod
     @activity.defn(name="SendMailActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
         # Send mail to customer
-        from app.cli.jeeves.mail import onboard_success
+        from app.cli.penknife.mail import onboard_success
 
-        await onboard_success(jeeves=jeeves)
-
-
-class PreLoadAssetsJobActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=5,
-        )
-
-    @staticmethod
-    @activity.defn(name="PreLoadAssetsJobActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # Preload assets
-        from app.cli.jeeves.preLoadAssetsJob import PreLoadAssetsJob
-
-        await PreLoadAssetsJob(jeeves=jeeves).put()
+        onboard_success(penknife=penknife)

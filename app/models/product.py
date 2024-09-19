@@ -4,6 +4,8 @@ from app.cli.dexit.dexit import DexitWorkflow
 from app.cli.dexit.models.dexitSpec import DexitSpec
 from app.cli.jeeves.jeeves import JeevesWorkflow
 from app.cli.jeeves.models.jeevesSpec import JeevesSpec
+from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.penknife.penknife import PenknifeWorkflow
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.cli.veritable.veritable import VeritableWorkflow
 
@@ -12,6 +14,7 @@ class ProductEnum(str, Enum):
     jeeves = "Jeeves"
     veritable = "Veritable"
     dexit = "Dexit"
+    penknife = "Penknife"
 
     @classmethod
     def get_class(cls: "ProductEnum", enum_value: "ProductEnum") -> type:
@@ -25,6 +28,8 @@ class ProductEnum(str, Enum):
                 return VeritableWorkflow
             case cls.dexit:
                 return DexitWorkflow
+            case cls.penknife:
+                return PenknifeWorkflow
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -40,6 +45,8 @@ class ProductEnum(str, Enum):
                 return VeritableSpec
             case cls.dexit:
                 return DexitSpec
+            case cls.penknife:
+                return PenknifeSpec
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
