@@ -18,7 +18,7 @@ cffi==1.16.0 ; python_version >= "3.11" and python_version < "4.0" and platform_
 charset-normalizer==3.3.2 ; python_version >= "3.11" and python_version < "4.0"
 click==8.1.7 ; python_version >= "3.11" and python_version < "4.0"
 colorama==0.4.6 ; python_version >= "3.11" and python_version < "4.0" and (sys_platform == "win32" or platform_system == "Windows")
-cryptography==42.0.8 ; python_version >= "3.11" and python_version < "4.0"
+cryptography==43.0.1 ; python_version >= "3.11" and python_version < "4.0"
 dacite==1.8.1 ; python_version >= "3.11" and python_version < "4.0"
 deprecation==2.1.0 ; python_version >= "3.11" and python_version < "4.0"
 dnspython==2.6.1 ; python_version >= "3.11" and python_version < "4.0"
