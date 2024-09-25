@@ -65,6 +65,7 @@ class DatabaseSchemaMigrationJob(K8sResourceBaseClass):
             spec=V1JobSpec(
                 template=V1JobTemplateSpec(
                     spec=V1PodSpec(
+                        node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
                         containers=[
                             V1Container(
@@ -160,6 +161,7 @@ class VespaJob(K8sResourceBaseClass):
             spec=V1JobSpec(
                 template=V1JobTemplateSpec(
                     spec=V1PodSpec(
+                        node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
                         containers=[
                             V1Container(
