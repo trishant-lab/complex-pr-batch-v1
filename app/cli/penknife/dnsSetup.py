@@ -11,16 +11,25 @@ async def dns_setup(penknife: PenknifeSpec) -> None:
 
     domain_name: str = config.penknife.domain_name
 
-    google_dns = Googledns(
+    penknife_google_dns = Googledns(
         cname=f"{config.google_dns_cname}.", fqdn=f"{penknife.tenant}.{domain_name}.", zone_name="e314ecorptech"
     )
 
     # create dns
-    google_dns.create_dns()
+    penknife_google_dns.create_dns()
 
     # check dns propagation
-    await google_dns.check_dns_propagation()
+    await penknife_google_dns.check_dns_propagation()
 
+    careers_google_dns = Googledns(
+        cname=f"{config.google_dns_cname}.", fqdn=f"{penknife.tenant}-careers.{domain_name}.", zone_name="e314ecorptech"
+    )
+
+    # create dns
+    careers_google_dns.create_dns()
+
+    # check dns propagation
+    await careers_google_dns.check_dns_propagation()
 
 async def dns_teardown(tenant_name: str) -> None:
     """
@@ -30,9 +39,16 @@ async def dns_teardown(tenant_name: str) -> None:
 
     domain_name: str = config.penknife.domain_name
 
-    google_dns = Googledns(
+    penknife_google_dns = Googledns(
         cname=f"{config.google_dns_cname}.", fqdn=f"{tenant_name}.{domain_name}.", zone_name="e314ecorptech"
     )
 
     # delete dns
-    google_dns.delete()
+    penknife_google_dns.delete()
+
+    careers_google_dns = Googledns(
+        cname=f"{config.google_dns_cname}.", fqdn=f"{tenant_name}-careers.{domain_name}.", zone_name="e314ecorptech"
+    )
+
+    careers_google_dns.delete()
+

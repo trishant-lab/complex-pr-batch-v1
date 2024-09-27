@@ -134,6 +134,31 @@
                     "userSetupAllowed": false
                 }
             ]
+        },
+        {
+            "alias": "career portal first broker login",
+            "description": "",
+            "providerId": "basic-flow",
+            "topLevel": true,
+            "builtIn": false,
+            "authenticationExecutions": [
+                {
+                    "authenticator": "idp-review-profile",
+                    "authenticatorFlow": false,
+                    "requirement": "REQUIRED",
+                    "priority": 0,
+                    "autheticatorFlow": false,
+                    "userSetupAllowed": false
+                },
+                {
+                    "authenticatorFlow": true,
+                    "requirement": "REQUIRED",
+                    "priority": 1,
+                    "autheticatorFlow": true,
+                    "flowAlias": "user creation or linking",
+                    "userSetupAllowed": false
+                }
+            ]
         }
     ],
     "identityProviders": [

@@ -186,6 +186,10 @@ class KeycloakAdminClient:
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_idp_mappers(idp_alias=idp_alias)
 
+    def get_all_clients(self: "KeycloakAdminClient", realm_name: str) -> list:
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_clients()
+
 
 @lru_cache
 def get_keycloak_manager() -> "KeycloakAdminClient":

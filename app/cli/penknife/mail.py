@@ -34,14 +34,14 @@ def send_customer_password_mail(penknife: PenknifeSpec, password: str) -> None:
 
     domain_name: str = config.penknife.domain_name
 
-    subject = "Your Jeeves Environment is Ready"
+    subject = "Your Penknife Environment is Ready"
     content = provisioning_success_mail(
         name=f"{penknife.firstName} {penknife.lastName}",
         email=penknife.email,
         link=f"https://{penknife.tenant}.{domain_name}",
         password=password,
     )
-    send_mail(to_email=penknife.email, subject=subject, content=content, from_name="314e Support")
+    send_mail(to_email=penknife.email, subject=subject, content=content, from_name="314e Support", email_from="developer@314ecorp.com")
 
 
 def reset_keycloak_user_password(penknife: PenknifeSpec, password: str) -> str:

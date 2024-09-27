@@ -167,7 +167,102 @@ class StateFullSetSetupActivity(Activity):
 
         await StateFullSet(penknife=penknife).put()
 
+class DnsSetupActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="DnsSetupActivity")
+    async def defn(penknife: PenknifeSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Create DNS
+        from app.cli.penknife.dnsSetup import dns_setup
+
+        await dns_setup(penknife=penknife)
+
+class UiSetupActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="UiSetupActivity")
+    async def defn(penknife: PenknifeSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Deploy ui
+        from app.cli.penknife.UISetup import UISetup
+
+        UISetup(penknife=penknife).deploy()
+
+class KeycloakRealmSetupActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="KeycloakRealmSetupActivity")
+    async def defn(penknife: PenknifeSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Deploy keycloak
+        from app.cli.penknife.keycloakRealmSetup import create_realm_and_users
+        await create_realm_and_users(penknife=penknife)
+
 # TODO: MISSING
+
+class NovuSetupActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="NovuSetupActivity")
+    async def defn(penknife: PenknifeSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Setup novu
+        from app.cli.penknife.novuSetup import NovuSetup
+
+        NovuSetup(penknife=penknife).setup_novu()
 
 
 class ProvisioningJobActivity(Activity):
@@ -190,15 +285,11 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.penknife.Job import AlembicJob, VespaJob
+        from app.cli.penknife.Job import DatabaseSchemaMigrationJob
 
-        alembic_job = AlembicJob(penknife=penknife)
-        alembic_job.delete()
-        alembic_job.put()
-
-        # vespa_job = VespaJob(penknife=penknife)
-        # vespa_job.delete()
-        # vespa_job.put()
+        atlas_job = DatabaseSchemaMigrationJob(penknife=penknife)
+        atlas_job.delete()
+        atlas_job.put()
 
 class KubernetesServiceActivity(Activity):
     @staticmethod

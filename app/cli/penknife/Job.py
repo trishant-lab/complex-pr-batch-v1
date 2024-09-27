@@ -24,12 +24,13 @@ from app.core.settings import get_settings
 from app.onepasswordutil import OnePasswordUtil
 
 
-class AlembicJob(K8sResourceBaseClass):
+
+class DatabaseSchemaMigrationJob(K8sResourceBaseClass):
     """
     Namespace class
     """
 
-    def __init__(self: "AlembicJob", penknife: PenknifeSpec) -> None:
+    def __init__(self: "DatabaseSchemaMigrationJob", penknife: PenknifeSpec) -> None:
         """
         Constructor
         """
@@ -39,8 +40,8 @@ class AlembicJob(K8sResourceBaseClass):
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="v1"
         )
         self.env = get_settings().env
-        self.job_name = "penknife-alembic-migration-job"
-        self.job_type = "alembic"
+        self.job_name = "penknife-db-schema-migration-job"
+        self.job_type = "atlas"
         self.postgres_user = f"penknife_{penknife.tenant}"
         self.postgres_password = OnePasswordUtil(
             tenant=f"Penknife_{penknife.tenant}",
@@ -49,7 +50,7 @@ class AlembicJob(K8sResourceBaseClass):
         ).get_key("pg_password")
         self.image_tag = "production" if self.env == "production" else "sprint"
 
-    def payload(self: "AlembicJob") -> dict:
+    def payload(self: "DatabaseSchemaMigrationJob") -> dict:
         """
         Job Payload
         """
@@ -66,6 +67,7 @@ class AlembicJob(K8sResourceBaseClass):
                 template=V1JobTemplateSpec(
                     spec=V1PodSpec(
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                        node_selector={"app": "314e"},
                         containers=[
                             V1Container(
                                 name=self.job_name,
@@ -106,16 +108,16 @@ class AlembicJob(K8sResourceBaseClass):
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-    def put(self: "AlembicJob") -> None:
+    def put(self: "DatabaseSchemaMigrationJob") -> None:
         """
         Put method
         """
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
-        log_info(f"Alembic Job created for {self.penknife.tenant}")
+        log_info(f"Atlas Job created for {self.penknife.tenant}")
 
-    def delete(self: "AlembicJob") -> None:
+    def delete(self: "DatabaseSchemaMigrationJob") -> None:
         """
         Delete method
         """
@@ -123,103 +125,3 @@ class AlembicJob(K8sResourceBaseClass):
             self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.penknife.tenant)
         except NotFoundError:
             logger.error(f"Provisioning job not found for {self.penknife.tenant}")
-
-# TODO: Add when vespa is setup in the project
-# class VespaJob(K8sResourceBaseClass):
-#     """
-#     Vespa Job
-#     """
-
-#     def __init__(self: "VespaJob", penknife: PenknifeSpec) -> None:
-#         """
-#         Constructor
-#         """
-#         self.penknife: PenknifeSpec = penknife
-#         self.k8s_dynamic_client = get_dynamic_client()
-#         self.resource = get_resource(
-#             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="batch/v1"
-#         )
-#         self.env = get_settings().env
-#         self.job_name = "penknife-vespa-job"
-#         self.job_type = "vespa"
-#         self.image_tag = "production" if self.env == "production" else "sprint"
-
-#     def payload(self: "VespaJob") -> dict:
-#         """
-#         Job Payload
-#         """
-#         body = V1Job(
-#             api_version="batch/v1",
-#             kind=ResourceKindEnum.Job.value,
-#             metadata=V1ObjectMeta(
-#                 namespace=self.penknife.tenant,
-#                 name=self.job_name,
-#                 labels={"app": "penknife", "jobKind": self.job_type},
-#                 annotations={"app": "penknife", "jobKind": self.job_type},
-#             ),
-#             spec=V1JobSpec(
-#                 template=V1JobTemplateSpec(
-#                     spec=V1PodSpec(
-#                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-#                         containers=[
-#                             V1Container(
-#                                 name=self.job_name,
-#                                 env=[
-#                                     V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
-#                                     V1EnvVar(name="APP_CONFIG_DIR", value="/config"),
-#                                     V1EnvVar(name="DEPLOYMENT", value=self.env),
-#                                     V1EnvVar(name="CLIENT_CODE", value=self.penknife.tenant),
-#                                 ],
-#                                 volume_mounts=[
-#                                     V1VolumeMount(
-#                                         name="penknife-tenant-config",
-#                                         mount_path="/config/tenant-config.json",
-#                                         sub_path="tenant-config.json",
-#                                         read_only=True,
-#                                     )
-#                                 ],
-#                                 image=f"registry.314ecorp.tech/penknife-app:{self.image_tag}",
-#                                 command=["/bin/sh", "-c"],
-#                                 args=["python3 /app/TODO/vespa_setup.py"], # Path to vespa setup script
-#                             )
-#                         ],
-#                         volumes=[
-#                             V1Volume(
-#                                 name="penknife-tenant-config",
-#                                 config_map=V1ConfigMapVolumeSource(
-#                                     name="penknife-tenant-config",
-#                                     items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
-#                                 ),
-#                             ),
-#                             V1Volume(
-#                                 name="vespa-volume",
-#                                 persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-#                                     claim_name="penknife-vespa-pvc"
-#                                 ),
-#                             ),
-#                         ],
-#                         restart_policy="Never",
-#                     )
-#                 )
-#             ),
-#         )
-
-#         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
-
-#     def put(self: "VespaJob") -> None:
-#         """
-#         Put method
-#         """
-#         self.k8s_dynamic_client.server_side_apply(
-#             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
-#         )
-#         log_info(f"Vespa Job created for {self.penknife.tenant}")
-
-#     def delete(self: "VespaJob") -> None:
-#         """
-#         Delete method
-#         """
-#         try:
-#             self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.penknife.tenant)
-#         except NotFoundError:
-#             logger.error(f"Vespa job not found for {self.penknife.tenant}")

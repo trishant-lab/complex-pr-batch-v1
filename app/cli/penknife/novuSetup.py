@@ -143,7 +143,7 @@ def list_novu_notification_template(
     """
     :return:
     """
-    novu_client = NotificationTemplateApi(url=config.jeeves.novu_url, api_key=novu_api_key)
+    novu_client = NotificationTemplateApi(url=config.penknife.novu_url, api_key=novu_api_key)
     response = novu_client.list(page=page, limit=limit)
     template_names: list = [template.to_camel_case().get("name", "") for template in response.data if response]
     return template_names
@@ -168,6 +168,7 @@ def create_novu_workflow_templates(template_path: str, config: AppSettings, novu
     data: list[dict] = orjson.loads(json_data)
     for workflow in data:
         event_name = workflow.get("name")
+        # check if the workflow with the same name already exists
         if event_name not in template_names:
             workflow.update({"notificationGroupId": notification_group_id})
             for steps in workflow.get("steps", []):
@@ -296,4 +297,4 @@ class NovuSetup:
         # add the integration provider
         add_integration_provider(config=config, novu_api_key=api_keys)
 
-        log_info(f"Novu environment setup completed for tenant: {self.jeeves.tenant}")
+        log_info(f"Novu environment setup completed for tenant: {self.penknife.tenant}")
