@@ -82,9 +82,6 @@ class DeploymentServer(K8sResourceBaseClass):
                                         sub_path="tenant-config.json",
                                     ),
                                     k8s_client.V1VolumeMount(
-                                        name="rclone-volume", mount_path="/root/.config/rclone/", read_only=True
-                                    ),
-                                    k8s_client.V1VolumeMount(
                                         name="statestore-volume",
                                         mount_path="/root/.dapr/components/statestore.yaml",
                                         sub_path="statestore.yaml",
@@ -109,25 +106,12 @@ class DeploymentServer(K8sResourceBaseClass):
                                 ),
                             ),
                             k8s_client.V1Volume(
-                                name="rclone-volume",
-                                config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="penknife-rclone-config",
-                                    items=[k8s_client.V1KeyToPath(key="rclone.conf", path="rclone.conf")],
-                                ),
-                            ),
-                            k8s_client.V1Volume(
                                 name="statestore-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="penknife-statestore-config",
                                     items=[k8s_client.V1KeyToPath(key="statestore.yaml", path="statestore.yaml")],
                                 ),
-                            ),
-                            # k8s_client.V1Volume(
-                            #     name="vespa-volume",
-                            #     persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                            #         claim_name="penknife-vespa-pvc"
-                            #     ),
-                            # ),
+                            )
                         ],
                     ),
                 ),
@@ -227,9 +211,6 @@ class DeploymentCli(K8sResourceBaseClass):
                                         name="vector-volume", mount_path="/vector", read_only=True
                                     ),
                                     k8s_client.V1VolumeMount(
-                                        name="rclone-volume", mount_path="/root/.config/rclone/", read_only=True
-                                    ),
-                                    k8s_client.V1VolumeMount(
                                         name="statestore-volume",
                                         mount_path="/root/.dapr/components/statestore.yaml",
                                         sub_path="statestore.yaml",
@@ -254,13 +235,6 @@ class DeploymentCli(K8sResourceBaseClass):
                                 ),
                             ),
                             k8s_client.V1Volume(
-                                name="rclone-volume",
-                                config_map=k8s_client.V1ConfigMapVolumeSource(
-                                    name="penknife-rclone-config",
-                                    items=[k8s_client.V1KeyToPath(key="rclone.conf", path="rclone.conf")],
-                                ),
-                            ),
-                            k8s_client.V1Volume(
                                 name="vector-volume",
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="penknife-cli-vector-config",
@@ -273,13 +247,7 @@ class DeploymentCli(K8sResourceBaseClass):
                                     name="penknife-statestore-config",
                                     items=[k8s_client.V1KeyToPath(key="statestore.yaml", path="statestore.yaml")],
                                 ),
-                            ),
-                            # k8s_client.V1Volume(
-                            #     name="vespa-volume",
-                            #     persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                            #         claim_name="penknife-vespa-pvc"
-                            #     ),
-                            # ),
+                            )
                         ],
                     ),
                 ),

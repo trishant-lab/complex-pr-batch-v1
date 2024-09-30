@@ -120,6 +120,14 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
+            # keycloak realm setup
+            await workflow.execute_activity(
+                activity=KeycloakRealmSetupActivity.defn,
+                arg=penknife,
+                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
             # configmap setup
             await workflow.execute_activity(
                 activity=ConfigmapSetupActivity.defn,
@@ -149,14 +157,6 @@ class PenknifeOnboardingWorkflow(Workflow):
                 activity=UiSetupActivity.defn,
                 arg=penknife,
                 retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # keycloak realm setup
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
-                arg=penknife,
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
@@ -238,16 +238,16 @@ class PenknifeOnboardingWorkflow(Workflow):
             )
             raise e
         
-        @workflow.signal
-        async def approve(self: "Workflow") -> None:
-            """
-            Signal to approve the workflow
-            """
-            self.approved = True
+    @workflow.signal
+    async def approve(self: "Workflow") -> None:
+        """
+        Signal to approve the workflow
+        """
+        self.approved = True
 
-        @workflow.signal
-        async def deny(self: "Workflow") -> None:
-            """
-            Signal to reject the workflow
-            """
-            self.deny = True
+    @workflow.signal
+    async def deny(self: "Workflow") -> None:
+        """
+        Signal to reject the workflow
+        """
+        self.deny = True

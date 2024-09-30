@@ -285,7 +285,7 @@ class NovuSetup:
 
         # store in 1Password
         OnePasswordUtil(
-            tenant=f"Penknife_{self.penknife.tenant}",
+            tenant=f"PENKNIFE_{self.penknife.tenant}",
             server_item="application-config",
             vault="Penknife",
         ).insert_if_not_exists(key="novu_api_key", value=api_keys)

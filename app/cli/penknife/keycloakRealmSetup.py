@@ -83,7 +83,8 @@ DEFAULT_CLIENT_IDS = set([
     "admin-cli",
     "broker",
     "realm-management",
-    "security-admin-console"
+    "security-admin-console",
+    "auth"
 ])
 
 
@@ -156,20 +157,32 @@ def create_client(
     """
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
 
-    template = jinja_env.get_template("keycloak_client.json")
+    client_template = jinja_env.get_template("keycloak_client.json")
+    client_config = client_template.render(tenant=penknife.tenant, domain=domain)
 
-    auth_credential = generate_password(length=32)
-    OnePasswordUtil(
-        tenant=f"Penknife_{penknife.tenant}",
-        server_item="application-config",
-        vault="Penknife",
-    ).create_or_replace("auth_credential", auth_credential)
-
-    client_config = template.render(tenant=penknife.tenant, domain=domain, auth_credential=auth_credential)
-    for client in orjson.loads(client_config):
-        keycloak_client.create_client(client, realm_name)
-
+    keycloak_client.refresh_token()
+    keycloak_client.create_client(orjson.loads(client_config), realm_name)
     log_info("Keycloak client penknife created successfully")
+
+
+    all_clients = keycloak_client.get_all_clients(realm_name=realm_name)
+    auth_exists = any(True for client in all_clients if client.get("clientId") == "auth")
+
+    # If auth client does not exist, then create it.
+    if not auth_exists:
+        auth_client_template = jinja_env.get_template("keycloak_auth_client.json")
+        auth_credential = generate_password(length=32)
+        OnePasswordUtil(
+            tenant=f"PENKNIFE_{penknife.tenant}",
+            server_item="application-config",
+            vault="Penknife",
+        ).create_or_replace("auth_credential", auth_credential)
+
+        auth_client_config = auth_client_template.render(tenant=penknife.tenant, domain=domain, auth_credential=auth_credential)
+        keycloak_client.refresh_token()
+        keycloak_client.create_client(orjson.loads(auth_client_config), realm_name)
+
+        log_info("Keycloak auth client for penknife created successfully")
 
 
 def create_idp_and_flows(
@@ -276,8 +289,23 @@ async def create_realm_and_users(penknife: PenknifeSpec) -> None:
         realm_name=realm_name,
     )
 
-    # clients = keycloak_client.get_all_clients(realm_name=realm_name)
+async def delete_clients_and_realms(penknife: PenknifeSpec) -> None:
+    """
+    Delete keycloak clients and realm
+    """
 
-    # clients = py_.filter_(clients, lambda x: x.get("clientId") and x.get("clientId") not in DEFAULT_CLIENT_IDS)
-    # print(clients)
+    realm_name = f"{penknife.tenant}"
 
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    all_clients = keycloak_client.get_all_clients(realm_name=realm_name)
+    other_client_exists = any(True for client in all_clients if client.get("clientId") and client.get("clientId") not in DEFAULT_CLIENT_IDS)
+
+    # If there are other client present, delete only the needed client otherwise delete the tenant
+    if other_client_exists:
+        #TODO: Add delete for given client
+        pass
+    else:
+        keycloak_client.delete_realm(realm_name=realm_name)
+        log_info(f"Keycloak realm {realm_name} deleted successfully")
+    

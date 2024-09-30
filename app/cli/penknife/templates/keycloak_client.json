@@ -1,250 +1,89 @@
-[
-  {
-    "clientId": "penknife",
-    "name": "penknife",
-    "description": "PENKNIFE application client",
-    "rootUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
-    "adminUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
-    "baseUrl": "",
-    "surrogateAuthRequired": false,
-    "enabled": true,
-    "alwaysDisplayInConsole": false,
-    "clientAuthenticatorType": "client-secret",
-    "redirectUris": [
-      "https://{{tenant}}.penknife.314ecorp.{{domain}}/*",
-      "http://{{tenant}}.penknife.314ecorp.{{domain}}/*"
-    ],
-    "webOrigins": [
-      "http://{{tenant}}.penknife.314ecorp.{{domain}}",
-      "https://{{tenant}}.penknife.314ecorp.{{domain}}"
-    ],
-    "notBefore": 0,
-    "bearerOnly": false,
-    "consentRequired": false,
-    "standardFlowEnabled": true,
-    "implicitFlowEnabled": true,
-    "directAccessGrantsEnabled": true,
-    "serviceAccountsEnabled": false,
-    "publicClient": true,
-    "frontchannelLogout": false,
-    "protocol": "openid-connect",
-    "attributes": {
-      "saml.force.post.binding": "false",
-      "saml.multivalued.roles": "false",
-      "frontchannel.logout.session.required": "false",
-      "post.logout.redirect.uris": "+",
-      "oauth2.device.authorization.grant.enabled": "false",
-      "backchannel.logout.revoke.offline.tokens": "false",
-      "saml.server.signature.keyinfo.ext": "false",
-      "use.refresh.tokens": "true",
-      "oidc.ciba.grant.enabled": "false",
-      "backchannel.logout.session.required": "true",
-      "client_credentials.use_refresh_token": "false",
-      "require.pushed.authorization.requests": "false",
-      "saml.client.signature": "false",
-      "saml.allow.ecp.flow": "false",
-      "id.token.as.detached.signature": "false",
-      "saml.assertion.signature": "false",
-      "saml.encrypt": "false",
-      "saml.server.signature": "false",
-      "exclude.session.state.from.auth.response": "false",
-      "saml.artifact.binding": "false",
-      "saml_force_name_id_format": "false",
-      "acr.loa.map": "{}",
-      "tls.client.certificate.bound.access.tokens": "false",
-      "saml.authnstatement": "false",
-      "display.on.consent.screen": "false",
-      "token.response.type.bearer.lower-case": "false",
-      "saml.onetimeuse.condition": "false"
-    },
-    "authenticationFlowBindingOverrides": {},
-    "fullScopeAllowed": true,
-    "nodeReRegistrationTimeout": -1,
-    "protocolMappers": [
-      {
-        "name": "docker-v2-allow-all-mapper",
-        "protocol": "docker-v2",
-        "protocolMapper": "docker-v2-allow-all-mapper",
-        "consentRequired": false,
-        "config": {}
-      }
-    ],
-    "defaultClientScopes": [
-      "web-origins",
-      "profile",
-      "roles",
-      "basic",
-      "email"
-    ],
-    "optionalClientScopes": [
-      "address",
-      "phone",
-      "offline_access",
-      "microprofile-jwt"
-    ],
-    "access": {
-      "view": true,
-      "configure": true,
-      "manage": true
-    }
+{
+  "clientId": "penknife",
+  "name": "penknife",
+  "description": "PENKNIFE application client",
+  "rootUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
+  "adminUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
+  "baseUrl": "",
+  "surrogateAuthRequired": false,
+  "enabled": true,
+  "alwaysDisplayInConsole": false,
+  "clientAuthenticatorType": "client-secret",
+  "redirectUris": [
+    "https://{{tenant}}.penknife.314ecorp.{{domain}}/*",
+    "http://{{tenant}}.penknife.314ecorp.{{domain}}/*"
+  ],
+  "webOrigins": [
+    "http://{{tenant}}.penknife.314ecorp.{{domain}}",
+    "https://{{tenant}}.penknife.314ecorp.{{domain}}"
+  ],
+  "notBefore": 0,
+  "bearerOnly": false,
+  "consentRequired": false,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": true,
+  "directAccessGrantsEnabled": true,
+  "serviceAccountsEnabled": false,
+  "publicClient": true,
+  "frontchannelLogout": false,
+  "protocol": "openid-connect",
+  "attributes": {
+    "saml.force.post.binding": "false",
+    "saml.multivalued.roles": "false",
+    "frontchannel.logout.session.required": "false",
+    "post.logout.redirect.uris": "+",
+    "oauth2.device.authorization.grant.enabled": "false",
+    "backchannel.logout.revoke.offline.tokens": "false",
+    "saml.server.signature.keyinfo.ext": "false",
+    "use.refresh.tokens": "true",
+    "oidc.ciba.grant.enabled": "false",
+    "backchannel.logout.session.required": "true",
+    "client_credentials.use_refresh_token": "false",
+    "require.pushed.authorization.requests": "false",
+    "saml.client.signature": "false",
+    "saml.allow.ecp.flow": "false",
+    "id.token.as.detached.signature": "false",
+    "saml.assertion.signature": "false",
+    "saml.encrypt": "false",
+    "saml.server.signature": "false",
+    "exclude.session.state.from.auth.response": "false",
+    "saml.artifact.binding": "false",
+    "saml_force_name_id_format": "false",
+    "acr.loa.map": "{}",
+    "tls.client.certificate.bound.access.tokens": "false",
+    "saml.authnstatement": "false",
+    "display.on.consent.screen": "false",
+    "token.response.type.bearer.lower-case": "false",
+    "saml.onetimeuse.condition": "false"
   },
-  {
-    "clientId": "auth",
-    "name": "",
-    "description": "",
-    "rootUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
-    "adminUrl": "https://dashboard.314ecorp.{{domain}}/",
-    "baseUrl": "",
-    "surrogateAuthRequired": false,
-    "enabled": true,
-    "alwaysDisplayInConsole": false,
-    "clientAuthenticatorType": "client-secret",
-    "secret": "{{auth_credential}}",
-    "redirectUris": [
-      "https://dashboard.314ecorp.{{domain}}/*"
-    ],
-    "webOrigins": [
-      "http://{{tenant}}.penknife.314ecorp.{{domain}}/*",
-      "https://dashboard.314ecorp.{{domain}}/*"
-    ],
-    "notBefore": 0,
-    "bearerOnly": false,
-    "consentRequired": false,
-    "standardFlowEnabled": true,
-    "implicitFlowEnabled": true,
-    "directAccessGrantsEnabled": true,
-    "serviceAccountsEnabled": true,
-    "authorizationServicesEnabled": true,
-    "publicClient": false,
-    "frontchannelLogout": false,
-    "protocol": "openid-connect",
-    "attributes": {
-      "access.token.lifespan": "315360000",
-      "saml.force.post.binding": "false",
-      "saml.multivalued.roles": "false",
-      "post.logout.redirect.uris": "+",
-      "oauth2.device.authorization.grant.enabled": "false",
-      "backchannel.logout.revoke.offline.tokens": "false",
-      "saml.server.signature.keyinfo.ext": "false",
-      "use.refresh.tokens": "true",
-      "oidc.ciba.grant.enabled": "true",
-      "backchannel.logout.session.required": "true",
-      "client_credentials.use_refresh_token": "false",
-      "require.pushed.authorization.requests": "false",
-      "saml.client.signature": "false",
-      "id.token.as.detached.signature": "false",
-      "saml.assertion.signature": "false",
-      "saml.encrypt": "false",
-      "saml.server.signature": "false",
-      "exclude.session.state.from.auth.response": "false",
-      "saml.artifact.binding": "false",
-      "saml_force_name_id_format": "false",
-      "acr.loa.map": "{}",
-      "tls.client.certificate.bound.access.tokens": "false",
-      "saml.authnstatement": "false",
-      "display.on.consent.screen": "false",
-      "token.response.type.bearer.lower-case": "false",
-      "saml.onetimeuse.condition": "false"
-    },
-    "authenticationFlowBindingOverrides": {},
-    "fullScopeAllowed": true,
-    "nodeReRegistrationTimeout": -1,
-    "protocolMappers": [
-      {
-        "name": "Client Host",
-        "protocol": "openid-connect",
-        "protocolMapper": "oidc-usersessionmodel-note-mapper",
-        "consentRequired": false,
-        "config": {
-          "user.session.note": "clientHost",
-          "id.token.claim": "true",
-          "access.token.claim": "true",
-          "claim.name": "clientHost",
-          "jsonType.label": "String",
-          "userinfo.token.claim": "true"
-        }
-      },
-      {
-        "name": "Client IP Address",
-        "protocol": "openid-connect",
-        "protocolMapper": "oidc-usersessionmodel-note-mapper",
-        "consentRequired": false,
-        "config": {
-          "user.session.note": "clientAddress",
-          "id.token.claim": "true",
-          "access.token.claim": "true",
-          "claim.name": "clientAddress",
-          "jsonType.label": "String",
-          "userinfo.token.claim": "true"
-        }
-      },
-      {
-        "name": "Client ID",
-        "protocol": "openid-connect",
-        "protocolMapper": "oidc-usersessionmodel-note-mapper",
-        "consentRequired": false,
-        "config": {
-          "user.session.note": "clientId",
-          "id.token.claim": "true",
-          "access.token.claim": "true",
-          "claim.name": "clientId",
-          "jsonType.label": "String",
-          "userinfo.token.claim": "true"
-        }
-      }
-    ],
-    "defaultClientScopes": [
-      "web-origins",
-      "roles",
-      "profile",
-      "offline_access",
-      "basic"
-    ],
-    "optionalClientScopes": [
-      "address",
-      "phone",
-      "microprofile-jwt",
-      "email"
-    ],
-    "authorizationSettings": {
-      "allowRemoteResourceManagement": true,
-      "policyEnforcementMode": "ENFORCING",
-      "resources": [
-        {
-          "name": "Default Resource",
-          "type": "urn:auth:resources:default",
-          "ownerManagedAccess": false,
-          "attributes": {},
-          "uris": [
-            "/*"
-          ]
-        }
-      ],
-      "policies": [
-        {
-          "name": "Default Policy",
-          "description": "A policy that grants access only for users within this realm",
-          "type": "js",
-          "logic": "POSITIVE",
-          "decisionStrategy": "AFFIRMATIVE",
-          "config": {
-            "code": "// by default, grants any permission associated with this policy\n$evaluation.grant();\n"
-          }
-        },
-        {
-          "name": "Default Permission",
-          "description": "A permission that applies to the default resource type",
-          "type": "resource",
-          "logic": "POSITIVE",
-          "decisionStrategy": "UNANIMOUS",
-          "config": {
-            "defaultResourceType": "urn:auth:resources:default",
-            "applyPolicies": "[\"Default Policy\"]"
-          }
-        }
-      ],
-      "scopes": [],
-      "decisionStrategy": "UNANIMOUS"
+  "authenticationFlowBindingOverrides": {},
+  "fullScopeAllowed": true,
+  "nodeReRegistrationTimeout": -1,
+  "protocolMappers": [
+    {
+      "name": "docker-v2-allow-all-mapper",
+      "protocol": "docker-v2",
+      "protocolMapper": "docker-v2-allow-all-mapper",
+      "consentRequired": false,
+      "config": {}
     }
+  ],
+  "defaultClientScopes": [
+    "web-origins",
+    "profile",
+    "roles",
+    "basic",
+    "email"
+  ],
+  "optionalClientScopes": [
+    "address",
+    "phone",
+    "offline_access",
+    "microprofile-jwt"
+  ],
+  "access": {
+    "view": true,
+    "configure": true,
+    "manage": true
   }
-]
+}

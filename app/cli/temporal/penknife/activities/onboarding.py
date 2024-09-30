@@ -75,7 +75,6 @@ class ConfigmapSetupActivity(Activity):
         from app.cli.penknife.configMapSetup import ConfigMapClass
 
         ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.TENANT_CONFIG).put()
-        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.RCLONE_CONFIG).put()
         ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.VECTOR_CONFIG).put()
         ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.STATE_STORE_CONFIG).put()
 

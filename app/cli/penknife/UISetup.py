@@ -55,13 +55,6 @@ def deploy_ui(penknife: PenknifeSpec) -> None:
                 config=config,
             )
 
-            if environment == "production":
-                copy_files_to_s3(
-                    input_path=os.path.join(tmp_dir, "bundle", "dist", "admin", "index.html"),
-                    output_path=f"{config.s3.rclone_remote}/static/{dest_dir}/custom/index.html",
-                    config=config,
-                )
-
         log_info(f"UI deployed successfully to {dest_dir}")
 
     except Exception as e:

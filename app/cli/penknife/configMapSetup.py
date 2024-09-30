@@ -20,10 +20,6 @@ class ConfigMapClass(K8sResourceBaseClass):
         "name": "penknife-tenant-config",
         "key": "tenant-config.json",
     }
-    RCLONE_CONFIG: Final[dict[str, str]] = {
-        "name": "penknife-rclone-config",
-        "key": "rclone.conf",
-    }
     VECTOR_CONFIG: Final[dict[str, str]] = {"name": "penknife-cli-vector-config", "key": "vector-config.toml"}
     STATE_STORE_CONFIG: Final[dict[str, str]] = {"name": "penknife-statestore-config", "key": "statestore.yaml"}
 

@@ -36,8 +36,8 @@ async def setup_postgres(penknife: PenknifeSpec) -> None:
             await postgres_utils.update_user_password(username=db_username, password=password)
 
         OnePasswordUtil(
-            tenant=f"Penknife_{penknife.tenant}",
-            server_item="applciation-config",
+            tenant=f"PENKNIFE_{penknife.tenant}",
+            server_item="application-config",
             vault="Penknife",
         ).create_or_replace("pg_password", password)
 
