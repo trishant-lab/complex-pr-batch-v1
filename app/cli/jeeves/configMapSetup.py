@@ -1,6 +1,7 @@
 from tempfile import TemporaryDirectory
 from typing import Final
 
+import boto3
 from kubernetes.client import V1ConfigMap, V1ObjectMeta
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
@@ -12,6 +13,7 @@ from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.log import log_info
 from app.core.settings import get_settings
 from app.onepasswordutil import secret_inject
+from app.s3_utils import download_file_from_storage, get_storage_client
 from app.template_env import get_env
 
 
@@ -52,16 +54,28 @@ class ConfigMapClass(K8sResourceBaseClass):
             .replace('.yaml', '.tmpl.yaml')
             .replace('.conf', '.tmpl.conf')}"""
 
-        template = template_env.get_template(template_file_name)
-        output = template.render(
-            tenant=self.jeeves.tenant,
-            redis_admin_password=self.config_.cache_admin_password,
-            log_auth_token=self.config_.jeeves.log_auth_token,
-            slack_channel_id=self.config_.jeeves.slack_channel_id_prod if self.env == "production" else
-            self.config_.jeeves.slack_channel_id_int,
-        )
-
         with TemporaryDirectory() as temp_dir:
+            s3_client: boto3.client = get_storage_client(
+                config=self.config_, access_key=self.config_.s3.access_key, secret_key=self.config_.s3.secret_key
+            )
+            download_file_from_storage(
+                object_name=f"{template_file_name}",
+                file_path=f"{temp_dir}/{template_file_name}",
+                storage_client=s3_client,
+                bucket_name="jeeves-config",
+            )
+
+            template_env = get_env(template_path=temp_dir)
+
+            template = template_env.get_template(template_file_name)
+            output = template.render(
+                tenant=self.jeeves.tenant,
+                # redis_admin_password=self.config_.cache_admin_password,
+                # log_auth_token=self.config_.jeeves.log_auth_token,
+                # slack_channel_id=self.config_.jeeves.slack_channel_id_prod if self.env == "production" else
+                # self.config_.jeeves.slack_channel_id_int,
+            )
+
             with open(f"{temp_dir}/{template_file_name}", "w") as f:
                 f.write(output)
 

@@ -33,7 +33,7 @@ def check_pod_logs(namespace: str, job_name: str) -> bool:
 
     """
     # TODO: Change the log message to be more specific
-    provisioning_log = f"{namespace.lower()} Provisioning succeeded!"
+    provisioning_log = f"Asset and Assignment preload job completed successfully for the tenant: {namespace}"
 
     k8s_dynamic_client = get_dynamic_client()
     resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Pod, api_version="v1")
@@ -129,6 +129,7 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
             spec=V1JobSpec(
                 template=V1JobTemplateSpec(
                     spec=V1PodSpec(
+                        node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
                         containers=[
                             V1Container(
@@ -153,7 +154,7 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
                                     ),
                                 ],
                                 command=["/bin/sh", "-c"],
-                                args=["python3 /app/provisioning/asset_preload.py"],
+                                args=[f"python3 /app/provisioning/preload_asset_and_assignment.py {self.jeeves.email}"],
                             )
                         ],
                         volumes=[
@@ -189,10 +190,10 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
         )
         log_info(f"PreLoadAssetsJob Job created for {self.jeeves.tenant}")
 
-        await asyncio.sleep(300)
-        # if not await check_execution_status(self.jeeves, self.job_name):
-        #     self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.jeeves.tenant)
-        #     raise Exception(f"Provisioning Job execution failed for {self.jeeves.tenant}")
+        # await asyncio.sleep(300)
+        if not await check_execution_status(self.jeeves, self.job_name):
+            self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.jeeves.tenant)
+            raise Exception(f"Provisioning Job execution failed for {self.jeeves.tenant}")
 
     def delete(self: "PreLoadAssetsJob") -> None:
         """

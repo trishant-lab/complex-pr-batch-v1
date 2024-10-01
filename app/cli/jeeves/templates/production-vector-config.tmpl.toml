@@ -1,6 +1,6 @@
 [log_schema]
 host_key = "host"
-nmessage_key = "message"
+message_key = "message"
 source_type_key = "source_type"
 timestamp_key = "timestamp"
 
@@ -13,7 +13,7 @@ fingerprint.strategy = "device_and_inode"
 [sinks.vector_sink]
 type = "loki"
 inputs = ["custom_logs"]
-endpoint = "http://loki.monitoring-system.svc.cluster.local:3100
+endpoint = "http://loki.monitoring-system.svc.cluster.local:3100"
 
 [sinks.vector_sink.encoding]
 codec = "json"
@@ -30,7 +30,7 @@ condition = 'contains(string!(.file), "stderr")'
 type = "remap"
 inputs = ["jeeves_kubernetes_logs_filter"]
 source = '''
-.channel = "{{slack_channel_id}}"
+.channel = "C04J9J9NH6X"
 
 . |= parse_regex!(.message, r'^(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| (?P<level>\S+)\s+\|')
 if !exists(.time) || !exists(.level) {
@@ -57,7 +57,7 @@ uri = "https://vector-slack-http-sink.314e.workers.dev/"
 method = "post"
 
 [sinks.jeeves_kubernetes_logs_decode_out.request.headers]
-Authorization = "{{log_auth_token}}"
+Authorization = "{{ open_brackets }}op://314e DevOps/Application/slack_bearer_token_vector_toml{{ close_brackets }}"
 
 [sinks.jeeves_kubernetes_logs_decode_out.encoding]
 codec = "json"
