@@ -122,7 +122,6 @@ class DeleteConfigMapActivity(Activity):
         from app.cli.penknife.configMapSetup import ConfigMapClass
 
         ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.TENANT_CONFIG).delete()
-        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.RCLONE_CONFIG).delete()
         ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.STATE_STORE_CONFIG).delete()
         ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.VECTOR_CONFIG).delete()
 
@@ -265,4 +264,25 @@ class DeleteStatefulSetActivity(Activity):
 
         StateFullSet(penknife=penknife).delete()
 
-# TODO: add for keycloak
+class DeleteKeycloakRealmActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=1,
+        )
+    
+    @staticmethod
+    @activity.defn(name="DeleteKeycloakRealmActivity")
+    async def defn(penknife: PenknifeSpec) -> None:
+        """
+        Callable for the activity
+        """
+        from app.cli.penknife.keycloakRealmSetup import delete_clients_and_realms
+
+        await delete_clients_and_realms(penknife=penknife)

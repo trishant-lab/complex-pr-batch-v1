@@ -303,9 +303,19 @@ async def delete_clients_and_realms(penknife: PenknifeSpec) -> None:
 
     # If there are other client present, delete only the needed client otherwise delete the tenant
     if other_client_exists:
-        #TODO: Add delete for given client
-        pass
+        keycloak_client.delete_client("penknife")
+        log_info("Keycloak client penknife deleted successfully")
     else:
         keycloak_client.delete_realm(realm_name=realm_name)
         log_info(f"Keycloak realm {realm_name} deleted successfully")
-    
+
+async def get_keycloak_user_id(penknife: PenknifeSpec) -> str:
+    """
+    Fetch keycloak user id corresponding to tenant email
+    """
+
+    realm_name = f"{penknife.tenant}"
+
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    return keycloak_client.get_user_id(realm_name=realm_name, username=penknife.email)

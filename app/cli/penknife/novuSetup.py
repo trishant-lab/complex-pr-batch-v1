@@ -2,8 +2,8 @@ import os
 import orjson
 import requests
 from loguru import logger
-from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi
-from novu.dto import IntegrationDto
+from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi, SubscriberApi
+from novu.dto import IntegrationDto, SubscriberDto
 
 from app.cli.penknife import TemplatePath
 from app.cli.penknife.models.penknifespec import PenknifeSpec
@@ -298,3 +298,30 @@ class NovuSetup:
         add_integration_provider(config=config, novu_api_key=api_keys)
 
         log_info(f"Novu environment setup completed for tenant: {self.penknife.tenant}")
+
+    def create_subscriber_in_novu(self: "NovuSetup", subscriber_id: str) -> str:
+        """
+        Create subscriber in the new organization
+        """
+        config: AppSettings = get_settings()
+
+        organization_name = f"penknife_{self.penknife.tenant}"
+        access_token = self.get_access_token()
+        organization = self.get_organizations_by_name(organization_name=organization_name, token=access_token)
+        
+        organization = organization[0]
+        organization_id = organization["_id"]
+
+        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
+        api_key = self.get_organization_api_key(token=organization_token)
+
+        novu_client = SubscriberApi(url=config.penknife.novu_url, api_key=api_key)
+        subscriber = {
+            "subscriber_id": subscriber_id,
+            "email": self.penknife.email,
+            "first_name": self.penknife.firstName,
+            "last_name": self.penknife.lastName,
+            "is_online": True,
+        }
+        subscriber = SubscriberDto(**subscriber)
+        novu_client.create(subscriber)

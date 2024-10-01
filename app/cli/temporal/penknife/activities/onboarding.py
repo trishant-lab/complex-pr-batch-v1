@@ -1,5 +1,6 @@
 import dataclasses
 from datetime import timedelta
+from uuid import uuid4
 from temporalio.common import RetryPolicy
 from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
@@ -237,8 +238,6 @@ class KeycloakRealmSetupActivity(Activity):
         from app.cli.penknife.keycloakRealmSetup import create_realm_and_users
         await create_realm_and_users(penknife=penknife)
 
-# TODO: MISSING
-
 class NovuSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -454,6 +453,37 @@ class TemporalNamespaceCreationActivity(Activity):
 
         await TemporalNamespaceCreation(penknife=penknife).create_temporal_namespace()
 
+class SetupUserActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="SetupUserActivity")
+    async def defn(penknife: PenknifeSpec) -> None:
+        """
+        Callable for the activity
+        """
+        from app.cli.penknife.novuSetup import NovuSetup
+        from app.cli.penknife.keycloakRealmSetup import get_keycloak_user_id
+        from app.cli.penknife.postgresSetup import add_user_mapping
+
+        subscriber_id = str(uuid4())
+
+        NovuSetup(penknife=penknife).create_subscriber_in_novu(subscriber_id=subscriber_id)
+
+        keycloak_user_id = await get_keycloak_user_id(penknife=penknife)
+
+        await add_user_mapping(penknife=penknife, keycloak_user_id=keycloak_user_id, novu_subscriber_id=subscriber_id)
+
 class SendMailActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -477,3 +507,4 @@ class SendMailActivity(Activity):
         from app.cli.penknife.mail import onboard_success
 
         onboard_success(penknife=penknife)
+

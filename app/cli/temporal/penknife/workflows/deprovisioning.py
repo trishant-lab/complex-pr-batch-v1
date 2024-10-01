@@ -3,7 +3,7 @@ from collections.abc import Callable
 from datetime import timedelta
 from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.penknife.activities.deprovisioning import DeleteConfigMapActivity, DeleteDNSActivity, DeleteDeploymentActivity, DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeletePVCActivity, DeleteProvisioningJobActivity, DeleteRedisNamespace, DeleteStatefulSetActivity, DeleteVMScraperActivity, DropUIBundlesActivity
+from app.cli.temporal.penknife.activities.deprovisioning import DeleteConfigMapActivity, DeleteDNSActivity, DeleteDeploymentActivity, DeleteKeycloakRealmActivity, DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeletePVCActivity, DeleteProvisioningJobActivity, DeleteRedisNamespace, DeleteStatefulSetActivity, DeleteVMScraperActivity, DropUIBundlesActivity
 
 from temporalio import workflow
 
@@ -30,6 +30,7 @@ class PenknifeDeProvisioningWorkflow(Workflow):
             DeleteVMScraperActivity.defn,
             DeleteRedisNamespace.defn,
             DeleteStatefulSetActivity.defn,
+            DeleteKeycloakRealmActivity.defn
         ]
 
     @classmethod
@@ -131,4 +132,12 @@ class PenknifeDeProvisioningWorkflow(Workflow):
             arg=workflow_input,
             start_to_close_timeout=timedelta(seconds=120),
             retry_policy=DeleteStatefulSetActivity.get_retry_policy(),
+        )
+
+        # delete keycloak client or realm
+        await workflow.execute_activity(
+            DeleteKeycloakRealmActivity.defn,
+            arg=workflow_input,
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteKeycloakRealmActivity.get_retry_policy(),
         )

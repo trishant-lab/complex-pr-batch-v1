@@ -50,7 +50,7 @@ def deploy_ui(penknife: PenknifeSpec) -> None:
 
             # Upload the files to S3
             copy_files_to_s3(
-                input_path=os.path.join(tmp_dir, "bundle", "dist", "admin"),
+                input_path=os.path.join(tmp_dir, "bundle", "dist"),
                 output_path=f"{config.s3.rclone_remote}/static/{dest_dir}",
                 config=config,
             )

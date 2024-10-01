@@ -89,10 +89,9 @@ class DeploymentServer(K8sResourceBaseClass):
                                 ],
                                 env=[
                                     k8s_client.V1EnvVar(name="DEPLOYMENT", value=self.env),
-                                    k8s_client.V1EnvVar(name="CLIENT_CODE", value=self.penknife.tenant),
                                     k8s_client.V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
-                                    k8s_client.V1EnvVar(name="POSTGRES_PASSWORD", value=self.postgres_password),
-                                    k8s_client.V1EnvVar(name="POSTGRES_USER", value=self.postgres_user),
+                                    k8s_client.V1EnvVar(name="IS_CLI", value="FALSE"),
+                                    k8s_client.V1EnvVar(name="WEB_CONCURRENCY", value="5"),
                                     k8s_client.V1EnvVar(name="EXTRACTOR_ENABLED", value="FALSE")
                                 ],
                             )
@@ -218,10 +217,10 @@ class DeploymentCli(K8sResourceBaseClass):
                                 ],
                                 env=[
                                     k8s_client.V1EnvVar(name="DEPLOYMENT", value=self.env),
-                                    k8s_client.V1EnvVar(name="CLIENT_CODE", value=self.penknife.tenant),
                                     k8s_client.V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
-                                    k8s_client.V1EnvVar(name="POSTGRES_PASSWORD", value=self.postgres_password),
-                                    k8s_client.V1EnvVar(name="POSTGRES_USER", value=self.postgres_user),
+                                    k8s_client.V1EnvVar(name="IS_CLI", value="TRUE"),
+                                    k8s_client.V1EnvVar(name="IS_TEMPORAL_WORKER", value="TRUE"),
+                                    k8s_client.V1EnvVar(name="VECTOR_LOG", value="off"),
                                     k8s_client.V1EnvVar(name="EXTRACTOR_ENABLED", value="TRUE")
                                 ],
                             )

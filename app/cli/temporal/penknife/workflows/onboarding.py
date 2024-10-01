@@ -5,7 +5,7 @@ from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Workflow
 from temporalio import workflow
 
-from app.cli.temporal.penknife.activities.onboarding import ConfigmapSetupActivity, DeploymentActivity, DnsSetupActivity, KeycloakRealmSetupActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity, NamespaceSetupActivity, NovuSetupActivity, PVCSetupActivity, PostgresSetupActivity, ProvisioningJobActivity, SecretSetupActivity, SendMailActivity, StateFullSetSetupActivity, TemporalNamespaceCreationActivity, TenantStatus, UiSetupActivity, UpdateTenantStatusActivity, VmPodScraperActivity
+from app.cli.temporal.penknife.activities.onboarding import ConfigmapSetupActivity, DeploymentActivity, DnsSetupActivity, KeycloakRealmSetupActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity, NamespaceSetupActivity, NovuSetupActivity, PVCSetupActivity, PostgresSetupActivity, ProvisioningJobActivity, SecretSetupActivity, SendMailActivity, SetupUserActivity, StateFullSetSetupActivity, TemporalNamespaceCreationActivity, TenantStatus, UiSetupActivity, UpdateTenantStatusActivity, VmPodScraperActivity
 
 
 @workflow.defn
@@ -42,6 +42,7 @@ class PenknifeOnboardingWorkflow(Workflow):
             VmPodScraperActivity.defn,
             SendMailActivity.defn,
             TemporalNamespaceCreationActivity.defn,
+            SetupUserActivity.defn,
             UpdateTenantStatusActivity.defn
         ]
 
@@ -205,6 +206,14 @@ class PenknifeOnboardingWorkflow(Workflow):
                 activity=TemporalNamespaceCreationActivity.defn,
                 arg=penknife,
                 retry_policy=TemporalNamespaceCreationActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            # Add user entry in postgres
+            await workflow.execute_activity(
+                activity=SetupUserActivity.defn,
+                arg=penknife,
+                retry_policy=SetupUserActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 

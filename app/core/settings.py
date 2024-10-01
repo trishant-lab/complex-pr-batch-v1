@@ -17,8 +17,9 @@ CONFIG_FILE_NAMES: Final[list[str]] = [
     "veritable.json",
     "jeeves.json",
     "dexit.json",
+    "penknife.json"
 ]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -211,12 +212,12 @@ class PenknifeSettings(BaseModel):
 
     keycloak_db_password: str = ""
 
-    r2_url: str = ""
-    r2_access_key: str = ""
-    r2_secret: str = ""
-    r2_bucket: str = ""
+    # r2_url: str = ""
+    # r2_access_key: str = ""
+    # r2_secret: str = ""
+    # r2_bucket: str = ""
 
-    reporting_site_id: str = "1"
+    # reporting_site_id: str = "1"
 
 class DexitAIOcrEngines(str, Enum):
     """OCR Engine"""
