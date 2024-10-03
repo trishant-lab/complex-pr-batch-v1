@@ -319,6 +319,7 @@ class AppSettings(BaseSettings):
     google_dns_cname: str = "k8s.314ecorp.tech"
 
     grafana_url: str = "https://monitor.314ecorp.tech"
+    grafana_datasource_uid: str = "e4hhV8CGk"
     grafana_token: str = ""
 
     supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"
@@ -359,6 +360,7 @@ class ProductionSettings(AppSettings):
     postgres: PostgresSettings = PostgresSettings()
 
     app_url: str = "https://launchpad.314ecorp.com"
+    grafana_datasource_uid: str = "LTvkszRVk"
 
     model_config = ConfigDict(extra="ignore")
 
