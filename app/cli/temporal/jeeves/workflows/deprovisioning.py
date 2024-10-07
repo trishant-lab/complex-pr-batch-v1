@@ -10,7 +10,7 @@ from app.cli.temporal.jeeves.activities.deprovisioning import (
     DeleteProvisioningJobActivity,
     DeleteDeploymentActivity,
     DeleteConfigMapActivity,
-    DeletePVCActivity,
+    # DeletePVCActivity,
     DropUIBundlesActivity,
     DeleteDNSActivity,
     DeleteVMScraperActivity,
@@ -99,13 +99,13 @@ class JeevesDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteConfigMapActivity.get_retry_policy(),
         )
 
-        # delete pvc
-        await workflow.execute_activity(
-            DeletePVCActivity.defn,
-            arg=workflow_input,
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeletePVCActivity.get_retry_policy(),
-        )
+        # # delete pvc
+        # await workflow.execute_activity(
+        #     DeletePVCActivity.defn,
+        #     arg=workflow_input,
+        #     start_to_close_timeout=timedelta(seconds=120),
+        #     retry_policy=DeletePVCActivity.get_retry_policy(),
+        # )
 
         # drop ui bundles
         await workflow.execute_activity(
