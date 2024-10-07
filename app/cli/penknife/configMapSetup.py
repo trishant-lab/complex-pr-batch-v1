@@ -1,6 +1,7 @@
 from tempfile import TemporaryDirectory
 from typing import Final
 
+import boto3
 from kubernetes.client import V1ConfigMap, V1ObjectMeta
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
@@ -10,8 +11,9 @@ from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.penknife import TemplatePath
 from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.log import log_info
-from app.core.settings import get_settings
+from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import secret_inject
+from app.s3_utils import download_file_from_storage, get_storage_client
 from app.template_env import get_env
 
 
@@ -29,7 +31,7 @@ class ConfigMapClass(K8sResourceBaseClass):
         """
         self.penknife: PenknifeSpec = penknife
         self.config_map: dict[str, str] = config_map
-        self.config_ = get_settings()
+        self.config_: AppSettings = get_settings()
         self.env: str = self.config_.env
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
@@ -48,13 +50,25 @@ class ConfigMapClass(K8sResourceBaseClass):
             .replace('.yaml', '.tmpl.yaml')
             .replace('.conf', '.tmpl.conf')}"""
 
-        template = template_env.get_template(template_file_name)
-        output = template.render(
-            tenant=self.penknife.tenant,
-            redis_admin_password=self.config_.cache_admin_password,
-        )
-
         with TemporaryDirectory() as temp_dir:
+            s3_client: boto3.client = get_storage_client(
+                config=self.config_, access_key=self.config_.s3.access_key, secret_key=self.config_.s3.secret_key
+            )
+
+            download_file_from_storage(
+                object_name=f"{template_file_name}",
+                file_path=f"{temp_dir}/{template_file_name}",
+                storage_client=s3_client,
+                bucket_name="penknife-config",
+            )
+
+            template_env = get_env(template_path=temp_dir)
+            template = template_env.get_template(template_file_name)
+
+            output = template.render(
+                tenant=self.penknife.tenant,
+            )
+
             with open(f"{temp_dir}/{template_file_name}", "w") as f:
                 f.write(output)
 

@@ -333,9 +333,10 @@ class KubernetesVirtualServiceActivity(Activity):
         Callable for the activity
         """
         # Create k8s virtual service
-        from app.cli.penknife.istioVirtualService import IstioVirtualService
+        from app.cli.penknife.istioVirtualService import IstioVirtualService, IstioCareersVirtualService
 
         IstioVirtualService(penknife=penknife).put()
+        IstioCareersVirtualService(penknife=penknife).put()
 
 class DeploymentActivity(Activity):
     @staticmethod

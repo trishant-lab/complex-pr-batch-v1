@@ -49,9 +49,10 @@ class DeleteKubernetesVirtualServiceActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.penknife.istioVirtualService import IstioVirtualService
+        from app.cli.penknife.istioVirtualService import IstioVirtualService, IstioCareersVirtualService
 
         IstioVirtualService(penknife=penknife).delete()
+        IstioCareersVirtualService(penknife=penknife).delete()
 
 class DeleteProvisioningJobActivity(Activity):
     @staticmethod

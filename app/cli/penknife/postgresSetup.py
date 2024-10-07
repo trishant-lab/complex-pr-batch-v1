@@ -51,8 +51,9 @@ async def add_user_mapping(penknife: PenknifeSpec, keycloak_user_id: str, novu_s
         db: DBManager = await get_db_manager(dsn=penknife_config.postgres.dsn)
 
         attributes = orjson.dumps({"email": penknife.email}).decode("utf-8")
-        db.execute_raw_sql(f"INSERT INTO {schema_name}.subscriptionmapping (keycloakuserid, subscriberid, attributes) VALUES ($${keycloak_user_id}$$, $${novu_subscriber_id}$$, $${attributes}$$);")
-        db.execute_raw_sql(f"""INSERT INTO {schema_name}.useraudit ("user", creationdate, enabled, needemailscope, hideuseremails) VALUES ($${penknife.email}$$, $${datetime.now()}$$, true, false, false);""")
+        await db.execute_raw_sql("""SELECT set_config('myvars.user_email', 'api@penknife.app', false);""")
+        await db.execute_raw_sql(f"INSERT INTO {schema_name}.subscriptionmapping (keycloakuserid, subscriberid, attributes) VALUES ($${keycloak_user_id}$$, $${novu_subscriber_id}$$, $${attributes}$$);")
+        await db.execute_raw_sql(f"""INSERT INTO {schema_name}.useraudit ("user", creationdate, enabled, needemailscope, hideuseremails) VALUES ($${penknife.email}$$, $${datetime.now()}$$, true, false, false);""")
 
         log_info("User detail is added to postgres")
         return
