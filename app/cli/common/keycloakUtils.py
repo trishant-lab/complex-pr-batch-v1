@@ -8,7 +8,7 @@ from app.core.settings import KeycloakSettings, get_settings
 class KeycloakAdminClient:
     def __init__(self: "KeycloakAdminClient", config: KeycloakSettings) -> None:
         self.kc_client: KeycloakAdmin = KeycloakAdmin(
-            server_url=f"{config.auth_url}/auth/",
+            server_url=f"{config.internal_auth_url}/auth/",
             client_id=config.admin_client_id,
             username=config.username,
             password=config.password,
@@ -192,7 +192,7 @@ class KeycloakAdminClient:
         """
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_clients()
-    
+
     def delete_client(self: "KeycloakAdminClient", realm_name: str, client_name: str) -> None:
         """
 
