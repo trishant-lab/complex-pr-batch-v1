@@ -65,24 +65,24 @@ class IstioVirtualService(K8sResourceBaseClass):
         http_list.append(http_api)
 
         # http_log_collect router
-        http_log_collect = {
-            "name": "penknife-log-collect",
-            "route": [
-                {
-                    "destination": {
-                        "host": "grafana-agent.monitoring-system.svc.cluster.local",
-                        "port": {"number": 12347},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/logcollect"},
-                }
-            ],
-            "rewrite": {"uri": "/collect"},
-        }
-        http_list.append(http_log_collect)
+        # http_log_collect = {
+        #     "name": "penknife-log-collect",
+        #     "route": [
+        #         {
+        #             "destination": {
+        #                 "host": "grafana-agent.monitoring-system.svc.cluster.local",
+        #                 "port": {"number": 12347},
+        #             }
+        #         }
+        #     ],
+        #     "match": [
+        #         {
+        #             "uri": {"prefix": "/logcollect"},
+        #         }
+        #     ],
+        #     "rewrite": {"uri": "/collect"},
+        # }
+        # http_list.append(http_log_collect)
 
         # # http analytics router
         # http_analytics = {
@@ -105,43 +105,43 @@ class IstioVirtualService(K8sResourceBaseClass):
         # http_list.append(http_analytics)
 
         # http alerting router
-        http_alerting = {
-            "name": "penknife-alerting",
-            "route": [
-                {
-                    "destination": {
-                        "host": "api.novu.svc.cluster.local",
-                        "port": {"number": 4000},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/alerting/"},
-                }
-            ],
-            "rewrite": {"uri": "/"},
-        }
-        http_list.append(http_alerting)
+        # http_alerting = {
+        #     "name": "penknife-alerting",
+        #     "route": [
+        #         {
+        #             "destination": {
+        #                 "host": "api.novu.svc.cluster.local",
+        #                 "port": {"number": 4000},
+        #             }
+        #         }
+        #     ],
+        #     "match": [
+        #         {
+        #             "uri": {"prefix": "/alerting/"},
+        #         }
+        #     ],
+        #     "rewrite": {"uri": "/"},
+        # }
+        # http_list.append(http_alerting)
 
         # novu socket router
-        novu_socket = {
-            "name": "novu-socket",
-            "route": [
-                {
-                    "destination": {
-                        "host": "ws.novu.svc.cluster.local",
-                        "port": {"number": 3002},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/socket.io/"},
-                }
-            ],
-        }
-        http_list.append(novu_socket)
+        # novu_socket = {
+        #     "name": "novu-socket",
+        #     "route": [
+        #         {
+        #             "destination": {
+        #                 "host": "ws.novu.svc.cluster.local",
+        #                 "port": {"number": 3002},
+        #             }
+        #         }
+        #     ],
+        #     "match": [
+        #         {
+        #             "uri": {"prefix": "/socket.io/"},
+        #         }
+        #     ],
+        # }
+        # http_list.append(novu_socket)
 
         # http_redirect router
         if self.env != "production":

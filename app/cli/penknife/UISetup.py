@@ -31,8 +31,8 @@ def deploy_ui(penknife: PenknifeSpec) -> None:
     else:
         dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
-    s3_client: boto3.client = get_storage_client(
-        config=config, access_key=config.s3.access_key, secret_key=config.s3.secret_key
+    s3__int_client: boto3.client = get_storage_client(
+        config=config, access_key=config.s3_int.access_key, secret_key=config.s3_int.secret_key, endpoint=config.s3_int.endpoint
     )
 
     try:
@@ -41,7 +41,7 @@ def deploy_ui(penknife: PenknifeSpec) -> None:
             download_file_from_storage(
                 object_name=f"{repo_name}/{image_tag}/bundle.zip",
                 file_path=f"{tmp_dir}/bundle.zip",
-                storage_client=s3_client,
+                storage_client=s3__int_client,
                 bucket_name="artifacts",
             )
             # Unzip the file

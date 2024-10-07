@@ -51,14 +51,14 @@ class ConfigMapClass(K8sResourceBaseClass):
             .replace('.conf', '.tmpl.conf')}"""
 
         with TemporaryDirectory() as temp_dir:
-            s3_client: boto3.client = get_storage_client(
-                config=self.config_, access_key=self.config_.s3.access_key, secret_key=self.config_.s3.secret_key
+            s3_int_client: boto3.client = get_storage_client(
+                config=self.config_, access_key=self.config_.s3_int.access_key, secret_key=self.config_.s3_int.secret_key, endpoint=self.config_.s3_int.endpoint
             )
 
             download_file_from_storage(
                 object_name=f"{template_file_name}",
                 file_path=f"{temp_dir}/{template_file_name}",
-                storage_client=s3_client,
+                storage_client=s3_int_client,
                 bucket_name="penknife-config",
             )
 
