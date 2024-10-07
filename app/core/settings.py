@@ -17,8 +17,9 @@ CONFIG_FILE_NAMES: Final[list[str]] = [
     "veritable.json",
     "jeeves.json",
     "dexit.json",
+    "penknife.json"
 ]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -195,6 +196,28 @@ class JeevesSettings(BaseModel):
 
     reporting_site_id: str = "1"
 
+class PenknifeSettings(BaseModel):
+    """
+    Penknife Settings
+    """
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "penknife.314ecorp.tech"
+
+    temporal_penknife_onboarding_task_queue: str = "temporal_penknife_onboarding_task_queue"
+    temporal_penknife_deboarding_task_queue: str = "temporal_penknife_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = ""
+    novu_admin_password: str = ""
+
+    keycloak_db_password: str = ""
+
+    # r2_url: str = ""
+    # r2_access_key: str = ""
+    # r2_secret: str = ""
+    # r2_bucket: str = ""
+
+    # reporting_site_id: str = "1"
 
 class DexitAIOcrEngines(str, Enum):
     """OCR Engine"""
@@ -309,6 +332,7 @@ class AppSettings(BaseSettings):
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
     dexit: DexitSettings = DexitSettings()
+    penknife: PenknifeSettings = PenknifeSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
