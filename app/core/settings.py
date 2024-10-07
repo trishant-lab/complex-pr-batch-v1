@@ -12,13 +12,7 @@ from pydantic_settings import BaseSettings
 
 from app.core.log import setup_logging
 
-CONFIG_FILE_NAMES: Final[list[str]] = [
-    "settings.json",
-    "veritable.json",
-    "jeeves.json",
-    "dexit.json",
-    "penknife.json"
-]
+CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
 PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
 
 
@@ -36,6 +30,7 @@ class KeycloakSettings(BaseModel):
 
     client_id: str = "app"
     auth_url: str = "https://auth.314ecorp.tech"
+    internal_auth_url: str = "http://keycloak-service.keycloak.svc.cluster.local:8080"
     auth_user: str = "installer"
     auth_secret: str = ""
 
@@ -196,10 +191,12 @@ class JeevesSettings(BaseModel):
 
     reporting_site_id: str = "1"
 
+
 class PenknifeSettings(BaseModel):
     """
     Penknife Settings
     """
+
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "penknife.314ecorp.tech"
 
@@ -218,6 +215,7 @@ class PenknifeSettings(BaseModel):
     # r2_bucket: str = ""
 
     # reporting_site_id: str = "1"
+
 
 class DexitAIOcrEngines(str, Enum):
     """OCR Engine"""
