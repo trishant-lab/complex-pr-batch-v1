@@ -133,12 +133,12 @@ class DeploymentServer(K8sResourceBaseClass):
                                     items=[k8s_client.V1KeyToPath(key="statestore.yaml", path="statestore.yaml")],
                                 ),
                             ),
-                            k8s_client.V1Volume(
-                                name="vespa-volume",
-                                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                                    claim_name="jeeves-vespa-pvc"
-                                ),
-                            ),
+                            # k8s_client.V1Volume(
+                            #     name="vespa-volume",
+                            #     persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
+                            #         claim_name="jeeves-vespa-pvc"
+                            #     ),
+                            # ),
                         ],
                     ),
                 ),
@@ -295,12 +295,12 @@ class DeploymentCli(K8sResourceBaseClass):
                                     items=[k8s_client.V1KeyToPath(key="statestore.yaml", path="statestore.yaml")],
                                 ),
                             ),
-                            k8s_client.V1Volume(
-                                name="vespa-volume",
-                                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                                    claim_name="jeeves-vespa-pvc"
-                                ),
-                            ),
+                            # k8s_client.V1Volume(
+                            #     name="vespa-volume",
+                            #     persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
+                            #         claim_name="jeeves-vespa-pvc"
+                            #     ),
+                            # ),
                         ],
                     ),
                 ),
