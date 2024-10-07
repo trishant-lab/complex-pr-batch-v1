@@ -1,0 +1,63 @@
+{
+  "client_code": "{{tenant}}",
+  "keycloak": {
+      "realm": "{{tenant}}",
+      "client_id": "penknife",
+      "auth_url": "https://auth.314ecorp.tech",
+      "auth_credential": "{{ open_brackets }}op://Penknife/application-config/PENKNIFE_{{tenant}}/auth_credential{{ close_brackets }}"
+  },
+  "gsuite": {
+      "project_id": "penknife",
+      "provider_client_id": "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/provider_client_id{{ close_brackets }}",
+      "provider_client_secret": "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/provider_client_secret{{ close_brackets }}"
+  },
+  "redis_dsn": "redis://redis:@cache-new.{{tenant}}.svc.cluster.local",
+  "redis_password": "{{ open_brackets }}op://Penknife/application-config/PENKNIFE_{{tenant}}/redis_password{{ close_brackets }}",
+  "pg_dsn": "postgresql://penknife.penknife_{{tenant}}:{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/postgres_penknife_user_password{{ close_brackets }}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/penknife",
+  "keycloak_dsn": "postgresql://keycloak.keycloak_tenant:{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/postgres_keycloak_user_password{{ close_brackets }}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/keycloak",
+  "atlas_pg_dsn": "postgresql://penknife:{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/postgres_penknife_user_password{{ close_brackets }}@db-cluster-ha.postgresql.svc.cluster.local:5432/penknife",
+  "atlas_token":  "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/atlas_token{{ close_brackets }}",
+  "tenant_career_url":  "{{tenant}}-careers.penknife.314ecorp.tech",     
+  "minio": {
+      "host": "ostore.314ecorp.tech",
+      "secret_key": "{{ open_brackets }}op://314e DevOps/integration/ostore/static{{ close_brackets }}",
+      "access_key": "static",
+      "bucket_name": "static",
+      "region_name": "us-east-1"
+  },
+  "cloudflare_r2": {
+      "host": "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/r2_endpoint{{ close_brackets }}",
+      "access_key": "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/r2_access_key_id{{ close_brackets }}",
+      "secret_key": "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/r2_secret_access_key{{ close_brackets }}",
+      "bucket_name": "penknife-integration",
+      "region_name": "us-east-1"
+  },
+  "sendgrid": {
+      "smtp_host": "smtp.sendgrid.net",
+      "smtp_port": 587,
+      "smtp_user": "apikey",
+      "smtp_pass": "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/sendgrid_smtp_pass{{ close_brackets }}"
+  },
+  "google_pub_sub": {
+      "project_id": "penknife-354607",
+      "topic_id": "penknife-integration",
+      "subscription_id": "test-pub-sub-subscription",
+      "request_size": 25
+  },
+  "APP_SERVER_URL": "https://{{tenant}}.penknife.314ecorp.tech",
+  "novu": {
+      "api_key": "{{ open_brackets }}op://Penknife/application-config/PENKNIFE_{{tenant}}/novu_api_key{{ close_brackets }}",
+      "url": "http://api.novu.svc.cluster.local:4000"
+  },
+  "openai": {
+      "openai_organisation_id": "org-P18F3UKsDDOJ5OweqiXSfj6b",
+      "openai_api_key": "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/openai_api_key{{ close_brackets }}",
+      "resume_parser_model": "{{ open_brackets }}op://Penknife/application-config/PENKNIFE_CLI_TEST2/resume_parser_model_test2{{ close_brackets }}",
+      "resume_parser_api_key": "{{ open_brackets }}op://Penknife/application-config/PENKNIFE_CLI_TEST2/resume_parser_api_key_test2{{ close_brackets }}",
+      "resume_parser_max_length": 16000
+  },
+  "temporal": {
+      "dsn": "temporal-prod-frontend.temporal-system.svc.cluster.local:7233"
+  },
+  "candidate_profile_password": "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/candidate_profile_password{{ close_brackets }}"
+}

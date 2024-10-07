@@ -10,7 +10,7 @@ from kubernetes.client import (
     V1Volume,
     V1ConfigMapVolumeSource,
     V1KeyToPath,
-    V1PersistentVolumeClaimVolumeSource,
+    # V1PersistentVolumeClaimVolumeSource,
 )
 from kubernetes.client import V1ObjectMeta
 from kubernetes.dynamic.exceptions import NotFoundError
@@ -193,12 +193,12 @@ class VespaJob(K8sResourceBaseClass):
                                     items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
                                 ),
                             ),
-                            V1Volume(
-                                name="vespa-volume",
-                                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                                    claim_name="jeeves-vespa-pvc"
-                                ),
-                            ),
+                            # V1Volume(
+                            #     name="vespa-volume",
+                            #     persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
+                            #         claim_name="jeeves-vespa-pvc"
+                            #     ),
+                            # ),
                         ],
                         restart_policy="Never",
                     )

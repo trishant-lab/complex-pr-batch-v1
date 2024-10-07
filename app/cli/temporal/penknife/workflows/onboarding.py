@@ -1,49 +1,24 @@
-from datetime import timedelta
 from collections.abc import Callable
-
+from datetime import timedelta
 import pydash
+from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Workflow
 from temporalio import workflow
 
-from app.cli.jeeves.jeeves import JeevesSpec
-from app.cli.temporal.core.base import Workflow
-
-from app.cli.temporal.jeeves.activities.onboarding import (
-    PostgresSetupActivity,
-    NamespaceSetupActivity,
-    ConfigmapSetupActivity,
-    PVCSetupActivity,
-    SecretSetupActivity,
-    StateFullSetSetupActivity,
-    DnsSetupActivity,
-    UiSetupActivity,
-    KeycloakRealmSetupActivity,
-    NovuSetupActivity,
-    ChatwootSetupActivity,
-    ProvisioningJobActivity,
-    KubernetesServiceActivity,
-    KubernetesVirtualServiceActivity,
-    DeploymentActivity,
-    VmPodScraperActivity,
-    AiVoiceSetupActivity,
-    TemporalNamespaceCreationActivity,
-    SendMailActivity,
-    UpdateTenantStatusActivity,
-    TenantStatus,
-    BeforeProvisioningMailActivity,
-    PreLoadAssetsJobActivity,
-)
+from app.cli.temporal.penknife.activities.onboarding import ConfigmapSetupActivity, DeploymentActivity, DnsSetupActivity, KeycloakRealmSetupActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity, NamespaceSetupActivity, NovuSetupActivity, PVCSetupActivity, PostgresSetupActivity, ProvisioningJobActivity, SecretSetupActivity, SendMailActivity, SetupUserActivity, StateFullSetSetupActivity, TemporalNamespaceCreationActivity, TenantStatus, UiSetupActivity, UpdateTenantStatusActivity, VmPodScraperActivity
 
 
 @workflow.defn
-class JeevesOnboardingWorkflow(Workflow):
+class PenknifeOnboardingWorkflow(Workflow):
     """
-    Jeeves Onboarding Workflow
+    Penknife Onboarding Workflow
     """
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
         self.deny: bool = False
 
+    
     @staticmethod
     def get_activities() -> list[type[Callable]]:
         """
@@ -53,47 +28,44 @@ class JeevesOnboardingWorkflow(Workflow):
             PostgresSetupActivity.defn,
             NamespaceSetupActivity.defn,
             ConfigmapSetupActivity.defn,
-            # PVCSetupActivity.defn,
+            PVCSetupActivity.defn,
             SecretSetupActivity.defn,
             StateFullSetSetupActivity.defn,
             DnsSetupActivity.defn,
             UiSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
             NovuSetupActivity.defn,
-            ChatwootSetupActivity.defn,
             ProvisioningJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesVirtualServiceActivity.defn,
             DeploymentActivity.defn,
             VmPodScraperActivity.defn,
-            AiVoiceSetupActivity.defn,
             SendMailActivity.defn,
             TemporalNamespaceCreationActivity.defn,
-            UpdateTenantStatusActivity.defn,
-            BeforeProvisioningMailActivity.defn,
-            PreLoadAssetsJobActivity.defn,
+            SetupUserActivity.defn,
+            UpdateTenantStatusActivity.defn
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", jeeves: JeevesSpec) -> str:
+    def get_workflow_id(cls: "Workflow", penfknife: PenknifeSpec) -> str :
         """
         Return workflow id
         """
-        return f"jeeves_onboarding_workflow_{jeeves.tenant}"
-
+        return f"penknife_onboarding_workflow_{penfknife.tenant}"
+    
     @workflow.run
-    async def run(self: "Workflow", jeeves: JeevesSpec) -> None:
+    async def run(self: "Workflow", penknife: PenknifeSpec) -> None:
         """
         Run workflow
         """
         try:
-            if not pydash.get(jeeves, "emailSent"):
-                await workflow.execute_activity(
-                    activity=BeforeProvisioningMailActivity.defn,
-                    arg=jeeves,
-                    retry_policy=BeforeProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=timedelta(seconds=120),
-                )
+            # if not pydash.get(penknife, "emailSent"):
+            #     await workflow.execute_activity(
+            #         activity=BeforeProvisioningMailActivity.defn,
+            #         arg=jeeves,
+            #         retry_policy=BeforeProvisioningMailActivity.get_retry_policy(),
+            #         start_to_close_timeout=timedelta(seconds=120),
+            #     )
 
             await workflow.wait_condition(lambda: self.approved or self.deny)
 
@@ -101,7 +73,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 await workflow.execute_activity(
                     activity=UpdateTenantStatusActivity.defn,
                     arg=TenantStatus(
-                        tenant_name=pydash.get(jeeves, "tenant"),
+                        tenant_name=pydash.get(penknife, "tenant"),
                         status="Declined",
                         error_msg="Request Declined",
                     ),
@@ -109,10 +81,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     start_to_close_timeout=timedelta(seconds=120),
                 )
                 return
-
+            
             await workflow.execute_activity(
                 activity=PostgresSetupActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=PostgresSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -120,7 +92,7 @@ class JeevesOnboardingWorkflow(Workflow):
             # namespace setup
             await workflow.execute_activity(
                 activity=NamespaceSetupActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=NamespaceSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -128,23 +100,15 @@ class JeevesOnboardingWorkflow(Workflow):
             # secret setup
             await workflow.execute_activity(
                 activity=SecretSetupActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=SecretSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # chatwoot setup
-            await workflow.execute_activity(
-                activity=ChatwootSetupActivity.defn,
-                arg=jeeves,
-                retry_policy=ChatwootSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
             # novu setup
             await workflow.execute_activity(
                 activity=NovuSetupActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=NovuSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -152,31 +116,39 @@ class JeevesOnboardingWorkflow(Workflow):
             # statefulset setup
             await workflow.execute_activity(
                 activity=StateFullSetSetupActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=StateFullSetSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            # keycloak realm setup
+            await workflow.execute_activity(
+                activity=KeycloakRealmSetupActivity.defn,
+                arg=penknife,
+                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
             # configmap setup
             await workflow.execute_activity(
                 activity=ConfigmapSetupActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=ConfigmapSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # # pvc setup
-            # await workflow.execute_activity(
-            #     activity=PVCSetupActivity.defn,
-            #     arg=jeeves,
-            #     retry_policy=PVCSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=timedelta(seconds=120),
-            # )
+            # pvc setup
+            await workflow.execute_activity(
+                activity=PVCSetupActivity.defn,
+                arg=penknife,
+                retry_policy=PVCSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
             # dns setup
             await workflow.execute_activity(
                 activity=DnsSetupActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=DnsSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=600),
             )
@@ -184,23 +156,15 @@ class JeevesOnboardingWorkflow(Workflow):
             # ui setup
             await workflow.execute_activity(
                 activity=UiSetupActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # keycloak realm setup
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
-                arg=jeeves,
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
             # Provisioning Job
             await workflow.execute_activity(
                 activity=ProvisioningJobActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=ProvisioningJobActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -208,7 +172,7 @@ class JeevesOnboardingWorkflow(Workflow):
             # Kubernetes Service
             await workflow.execute_activity(
                 activity=KubernetesServiceActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -216,7 +180,7 @@ class JeevesOnboardingWorkflow(Workflow):
             # Kubernetes Virtual Service
             await workflow.execute_activity(
                 activity=KubernetesVirtualServiceActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=KubernetesVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -224,7 +188,7 @@ class JeevesOnboardingWorkflow(Workflow):
             # Deploy server and cli
             await workflow.execute_activity(
                 activity=DeploymentActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=DeploymentActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -232,7 +196,7 @@ class JeevesOnboardingWorkflow(Workflow):
             # Vm Pod Scraper
             await workflow.execute_activity(
                 activity=VmPodScraperActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=VmPodScraperActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -240,31 +204,23 @@ class JeevesOnboardingWorkflow(Workflow):
             # Temporal Namespace Creation
             await workflow.execute_activity(
                 activity=TemporalNamespaceCreationActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=TemporalNamespaceCreationActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # Ai Voice Setup
+            # Add user entry in postgres
             await workflow.execute_activity(
-                activity=AiVoiceSetupActivity.defn,
-                arg=jeeves,
-                retry_policy=AiVoiceSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=300),
-            )
-
-            # PreLoadAssetsJob
-            await workflow.execute_activity(
-                activity=PreLoadAssetsJobActivity.defn,
-                arg=jeeves,
-                retry_policy=PreLoadAssetsJobActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=400),
+                activity=SetupUserActivity.defn,
+                arg=penknife,
+                retry_policy=SetupUserActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
             )
 
             # Update Tenant Status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=pydash.get(jeeves, "tenant"), status="Completed"),
+                arg=TenantStatus(tenant_name=pydash.get(penknife, "tenant"), status="Completed"),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -272,17 +228,17 @@ class JeevesOnboardingWorkflow(Workflow):
             # Send Mail
             await workflow.execute_activity(
                 activity=SendMailActivity.defn,
-                arg=jeeves,
+                arg=penknife,
                 retry_policy=SendMailActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
-
+        
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
-                    tenant_name=pydash.get(jeeves, "tenant"),
+                    tenant_name=pydash.get(penknife, "tenant"),
                     status="Failed",
                     error_msg=str(e),
                 ),
@@ -290,7 +246,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
             raise e
-
+        
     @workflow.signal
     async def approve(self: "Workflow") -> None:
         """

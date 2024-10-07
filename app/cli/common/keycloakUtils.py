@@ -186,6 +186,28 @@ class KeycloakAdminClient:
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_idp_mappers(idp_alias=idp_alias)
 
+    def get_all_clients(self: "KeycloakAdminClient", realm_name: str) -> list:
+        """
+        Returns list of all clients present in a given realm
+        """
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_clients()
+    
+    def delete_client(self: "KeycloakAdminClient", realm_name: str, client_name: str) -> None:
+        """
+
+        :param realm_name:
+        :param client_name:
+        :type realm_name:
+        :return:
+        :rtype:
+        """
+        # check if client exists
+        clients = [row["clientId"] for row in self.get_all_clients(realm_name=realm_name)]
+        if client_name in clients:
+            self.kc_client.delete_client(client_name)
+        return
+
 
 @lru_cache
 def get_keycloak_manager() -> "KeycloakAdminClient":
