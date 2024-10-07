@@ -197,8 +197,19 @@ def create_idp_and_flows(
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_idp_and_flows.json")
 
-    # googleidp = ""
-    client_config = template.render(googleclientid="", googlesecret="")
+    googleclientid = OnePasswordUtil(
+        tenant="INTEGRATION_COMMON_CONFIG",
+        server_item="application-config",
+        vault="Penknife"
+    ).get_key("provider_client_id")
+
+    googlesecret = OnePasswordUtil(
+        tenant="INTEGRATION_COMMON_CONFIG",
+        server_item="application-config",
+        vault="Penknife"
+    ).get_key("provider_client_secret")
+
+    client_config = template.render(googleclientid=googleclientid, googlesecret=googlesecret)
 
     client_config = orjson.loads(client_config)
     flow_configs = client_config["authenticationFlows"]
