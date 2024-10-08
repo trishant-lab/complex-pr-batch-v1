@@ -1,31 +1,16 @@
+
 from collections.abc import Callable
 from datetime import timedelta
+from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.penknife.activities.deprovisioning import DeleteConfigMapActivity, DeleteDNSActivity, DeleteDeploymentActivity, DeleteKeycloakRealmActivity, DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeletePVCActivity, DeleteProvisioningJobActivity, DeleteRedisNamespace, DeleteStatefulSetActivity, DeleteVMScraperActivity, DropUIBundlesActivity
 
 from temporalio import workflow
 
-from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.jeeves.activities.deprovisioning import (
-    DeleteKubernetesServiceActivity,
-    DeleteKubernetesVirtualServiceActivity,
-    DeleteProvisioningJobActivity,
-    DeleteDeploymentActivity,
-    DeleteConfigMapActivity,
-    # DeletePVCActivity,
-    DropUIBundlesActivity,
-    DeleteDNSActivity,
-    DeleteVMScraperActivity,
-    DeleteStatefulSetActivity,
-)
-from app.cli.jeeves.jeeves import JeevesSpec
-
-with workflow.unsafe.imports_passed_through():
-    pass
-
-
-@workflow.defn
-class JeevesDeProvisioningWorkflow(Workflow):
+@Workflow.defn
+class PenknifeDeProvisioningWorkflow(Workflow):
     """
-    Jeeves DeBoarding Workflow
+    Penknife DeBoarding Workflow
     """
 
     @staticmethod
@@ -43,11 +28,13 @@ class JeevesDeProvisioningWorkflow(Workflow):
             DropUIBundlesActivity.defn,
             DeleteDNSActivity.defn,
             DeleteVMScraperActivity.defn,
+            DeleteRedisNamespace.defn,
             DeleteStatefulSetActivity.defn,
+            DeleteKeycloakRealmActivity.defn
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", workflow_input: JeevesSpec) -> str | None:
+    def get_workflow_id(cls: "Workflow", workflow_input: PenknifeSpec) -> str | None:
         """
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
@@ -55,7 +42,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
         return f"de_provisioning_{workflow_input.tenant}"
 
     @workflow.run
-    async def run(self: "Workflow", workflow_input: JeevesSpec) -> None:
+    async def run(self: "Workflow", workflow_input: PenknifeSpec) -> None:
         """
         Entry point for workflow
         """
@@ -99,13 +86,13 @@ class JeevesDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteConfigMapActivity.get_retry_policy(),
         )
 
-        # # delete pvc
-        # await workflow.execute_activity(
-        #     DeletePVCActivity.defn,
-        #     arg=workflow_input,
-        #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeletePVCActivity.get_retry_policy(),
-        # )
+        # delete pvc
+        await workflow.execute_activity(
+            DeletePVCActivity.defn,
+            arg=workflow_input,
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeletePVCActivity.get_retry_policy(),
+        )
 
         # drop ui bundles
         await workflow.execute_activity(
@@ -131,10 +118,26 @@ class JeevesDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteVMScraperActivity.get_retry_policy(),
         )
 
+        # delete redis namespace 
+        await workflow.execute_activity(
+            DeleteRedisNamespace.defn,
+            arg=workflow_input,
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteRedisNamespace.get_retry_policy(),
+        )
+
         # delete stateful set
         await workflow.execute_activity(
             DeleteStatefulSetActivity.defn,
             arg=workflow_input,
             start_to_close_timeout=timedelta(seconds=120),
             retry_policy=DeleteStatefulSetActivity.get_retry_policy(),
+        )
+
+        # delete keycloak client or realm
+        await workflow.execute_activity(
+            DeleteKeycloakRealmActivity.defn,
+            arg=workflow_input,
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteKeycloakRealmActivity.get_retry_policy(),
         )
