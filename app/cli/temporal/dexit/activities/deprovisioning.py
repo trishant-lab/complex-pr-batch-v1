@@ -74,10 +74,9 @@ class DeleteProvisioningJobActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.dexit.Job import AtlasJob, VespaJob
+        from app.cli.dexit.Job import AtlasJob
 
         AtlasJob(dexit=dexit).delete()
-        VespaJob(dexit=dexit).delete()
 
 
 class DeleteDeploymentActivity(Activity):
