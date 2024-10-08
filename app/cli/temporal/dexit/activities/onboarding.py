@@ -96,17 +96,6 @@ class PVCSetupActivity(Activity):
             maximum_attempts=1,
         )
 
-    @staticmethod
-    @activity.defn(name="pvc_setup_activity")
-    async def defn(dexit: DexitSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # create PVC in k8s for namespace
-        from app.cli.dexit.pvcSetup import PVC
-
-        PVC(dexit=dexit).put()
-
 
 class SecretSetupActivity(Activity):
     @staticmethod
