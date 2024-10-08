@@ -143,16 +143,6 @@ class DeletePVCActivity(Activity):
             maximum_attempts=1,
         )
 
-    @staticmethod
-    @activity.defn(name="DeletePVCActivity")
-    async def defn(dexit: DexitSpec) -> None:
-        """
-        Callable for the activity
-        """
-        from app.cli.dexit.pvcSetup import PVC
-
-        PVC(dexit=dexit).delete()
-
 
 class DropUIBundlesActivity(Activity):
     @staticmethod

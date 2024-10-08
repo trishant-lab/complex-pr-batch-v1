@@ -146,14 +146,6 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # pvc setup
-            await workflow.execute_activity(
-                activity=PVCSetupActivity.defn,
-                arg=dexit,
-                retry_policy=PVCSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
             # dns setup
             await workflow.execute_activity(
                 activity=DnsSetupActivity.defn,
