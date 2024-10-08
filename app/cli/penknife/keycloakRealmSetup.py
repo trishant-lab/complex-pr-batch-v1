@@ -135,12 +135,34 @@ def create_tenant_customer_admin_user(
         client_id=client_uuid, realm_name=realm_name
     )
 
+    user_id = keycloak_client.get_user_id(
+                username=penknife.email, realm_name=realm_name
+            )
+
+    # Create admin group with workspace admin role
+
+    workspace_admin = py_.find(roles, lambda x: x.get("name") == "_workspace-admin")
+
+    group_payload = {
+        "name": "Admin",
+        "path": "/Admin"
+    }
+
+    keycloak_client.create_group(realm_name=realm_name, payload=group_payload)
+    admin_group_id = keycloak_client.get_group_id_by_path(realm_name=realm_name, path="/Admin")
+
+    keycloak_client.assign_role_to_group(realm_name=realm_name, group_id=admin_group_id, client_id=client_uuid, roles=[workspace_admin])
+
+    # Assing admin group to user
+    keycloak_client.assign_group(realm_name=realm_name, user_id=user_id, group_id=admin_group_id)
+
+    # Assing penknife admin role to user
+    penknife_admin = py_.find(roles, lambda x: x.get("name") == "_penknife-admin")
+
     keycloak_client.assign_client_role(
         client_id=client_uuid,
-        user_id=keycloak_client.get_user_id(
-            username=penknife.email, realm_name=realm_name
-        ),
-        roles=roles,
+        user_id=user_id,
+        roles=[penknife_admin],
         realm_name=realm_name,
     )
     log_info(f"Tenant customer admin user {penknife.email} created successfully")
@@ -182,6 +204,12 @@ def create_client(
         keycloak_client.refresh_token()
         keycloak_client.create_client(orjson.loads(auth_client_config), realm_name)
 
+        # Assign realm management roles to auth client
+        realm_management_client_id = keycloak_client.get_client_id(client="realm-management", realm_name=realm_name)
+        service_account_user_id = keycloak_client.get_client_service_account_user(client_id=keycloak_client.get_client_id(client="auth", realm_name=realm_name))
+        realm_management_roles = keycloak_client.get_client_roles(realm_name=realm_name, client_id=realm_management_client_id)
+
+        keycloak_client.assign_client_role(realm_name=realm_name, user_id=service_account_user_id, client_id=realm_management_client_id, roles=realm_management_roles)
         log_info("Keycloak auth client for penknife created successfully")
 
 
