@@ -130,20 +130,6 @@ class DeleteConfigMapActivity(Activity):
         ConfigMapClass(dexit=dexit, config_map=ConfigMapClass.VECTOR_CONFIG).delete()
 
 
-class DeletePVCActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
-
-
 class DropUIBundlesActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
