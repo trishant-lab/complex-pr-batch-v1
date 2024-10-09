@@ -257,8 +257,8 @@ class KeycloakRealmSetupActivity(Activity):
         user_details = {
             "username": jeeves.email,
             "email": jeeves.email,
-            "firstname": jeeves.firstName,
-            "lastname": jeeves.lastName,
+            "firstName": jeeves.firstName,
+            "lastName": jeeves.lastName,
         }
         environment: str = os.getenv("DEPLOYMENT", "integration").lower()
         domain = "com" if environment == "production" else "tech"
