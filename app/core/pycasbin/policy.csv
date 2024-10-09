@@ -9,28 +9,34 @@ p, PUBLIC, /api/v1/openapi.json, GET
 p, ADMINS, /api/v1/product/listAllProducts, GET
 p, JEEVES_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/listAllProducts, GET
+p, PENKNIFE_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 
 p, JEEVES_VIEW_GROUP, /api/v1/product/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/Dexit, GET
+p, PENKNIFE_VIEW_GROUP, /api/v1/product/Penknife, GET
 
 p, ADMINS, /api/v1/product/getProductByName/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/product/getProductByName/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/getProductByName/Dexit, GET
+p, PENKNIFE_VIEW_GROUP, /api/v1/product/getProductByName/Penknife, GET
 
 p, ADMINS, /api/v1/product/updateProductSchema/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/product/updateProductSchema/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/product/updateProductSchema/Dexit, POST
+p, PENKNIFE_EDIT_GROUP, /api/v1/product/updateProductSchema/Penknife, POST
 
 p, PUBLIC, /api/v1/product/renderForm/{product}, GET
 
 p, ADMINS, /api/v1/tenant/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/tenant/Dexit, GET
+p, PENKNIFE_VIEW_GROUP, /api/v1/tenant/Penknife, GET
 
 
 p, ADMINS, /api/v1/tenant/updateTenantDetails/{product}, PUT
 p, JEEVES_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Jeeves, PUT
 p, DEXIT_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Dexit, PUT
+p, PENKNIFE_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Penknife, PUT
 
 
 p, PUBLIC, /api/v1/tenant/suggestTenantNames/{product}, GET
@@ -42,15 +48,18 @@ p, PUBLIC, /api/v1/provisioning/validateEmail, GET
 p, ADMINS, /api/v1/provisioning/approveOrDecline/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Dexit, POST
+p, PENKNIFE_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Penknife, POST
 
 
 p, ADMINS, /api/v1/provisioning/retryProvisioning/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Dexit, POST
+p, PENKNIFE_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Penknife, POST
 
 p, ADMINS, /api/v1/provisioning/workflowSteps/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Dexit, GET
+p, PENKNIFE_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Penknife, GET
 
 p, ADMINS, /api/v1/deprovisioning, POST
 
@@ -67,10 +76,12 @@ p, ADMINS, /api/v1/User/getGSuiteUsersList, GET
 p, ADMINS, /api/v1/EmailTemplate/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/EmailTemplate/Jeeves,  GET
 p, DEXIT_VIEW_GROUP, /api/v1/EmailTemplate/Dexit,  GET
+p, PENKNIFE_VIEW_GROUP, /api/v1/EmailTemplate/Penknife,  GET
 
 p, ADMINS, /api/v1/EmailTemplate/{product}, PUT
 p, JEEVES_EDIT_GROUP, /api/v1/EmailTemplate/Jeeves,  PUT
 p, DEXIT_EDIT_GROUP, /api/v1/EmailTemplate/Dexit,  PUT
+p, PENKNIFE_EDIT_GROUP, /api/v1/EmailTemplate/Penknife,  PUT
 
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsViewedSummary, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/query, GET
@@ -100,7 +111,11 @@ g, DEXIT_VIEW_GROUP, Admin
 g, DEXIT_EDIT_GROUP, DexitEdit
 g, DEXIT_EDIT_GROUP, Admin
 
-g, DEXIT_EDIT_GROUP, DexitEdit
-g, DEXIT_EDIT_GROUP, Admin
+g, PENKNIFE_VIEW_GROUP, PenknifeView
+g, PENKNIFE_VIEW_GROUP, PenknifeEdit
+g, PENKNIFE_VIEW_GROUP, Admin
+
+g, PENKNIFE_EDIT_GROUP, PenknifeEdit
+g, PENKNIFE_EDIT_GROUP, Admin
 
 g, PUBLIC, NO_AUTH
