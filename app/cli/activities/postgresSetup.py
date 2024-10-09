@@ -68,11 +68,13 @@ async def setup_postgres(
 
         # Check if the user already exists
         user_exists = await postgres_utils.check_if_user_exists(username=db_username)
+        log_info(f"User {db_username} exists: {user_exists}")
 
         password = generate_password(length=20)
 
         if not user_exists:
             # Create a new user in the database
+            log_info(f"Creating user {db_username} in the database")
             await postgres_utils.create_user(username=db_username, password=password)
 
         else:

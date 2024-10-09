@@ -46,6 +46,8 @@ class PostgresSetupActivity(Activity):
             vault_name=vault_name,
             template_path=TemplatePath,
             config=get_settings().jeeves,
+            keycloak_db=True,
+            matomo_db=True,
         )
 
 
