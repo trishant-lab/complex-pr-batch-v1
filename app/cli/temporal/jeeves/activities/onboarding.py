@@ -199,7 +199,9 @@ class DnsSetupActivity(Activity):
         from app.cli.activities.dnsSetup import dns_setup
         from app.core.settings import get_settings
 
-        await dns_setup(tenant=jeeves.tenant, config=get_settings().jeeves)
+        await dns_setup(
+            tenant=jeeves.tenant, config=get_settings().jeeves, google_dns_cname=get_settings().google_dns_cname
+        )
 
 
 class UiSetupActivity(Activity):
