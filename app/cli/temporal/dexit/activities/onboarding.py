@@ -287,15 +287,11 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.dexit.Job import AtlasJob, VespaJob
+        from app.cli.dexit.Job import AtlasJob
 
         atlas_job = AtlasJob(dexit=dexit)
         atlas_job.delete()
         atlas_job.put()
-
-        vespa_job = VespaJob(dexit=dexit)
-        vespa_job.delete()
-        vespa_job.put()
 
 
 class KubernetesServiceActivity(Activity):

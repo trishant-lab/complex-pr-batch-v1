@@ -48,106 +48,131 @@ class HFInferenceEndpointSetup:
             server_item="application-config",
             vault="Dexit",
         )
-        self.op_util.insert_if_not_exists(key="ai_entity_endpoint_name", value="")
-        self.op_util.insert_if_not_exists(key="ai_entity_endpoint_url", value="")
+        self.op_util.insert_if_not_exists(key="ai_llm_entity_endpoint_name", value="")
+        self.op_util.insert_if_not_exists(key="ai_llm_entity_endpoint_url", value="")
+        self.op_util.insert_if_not_exists(key="ai_layoutlm_entity_endpoint_name", value="")
+        self.op_util.insert_if_not_exists(key="ai_layoutlm_entity_endpoint_url", value="")
         self.op_util.insert_if_not_exists(key="ai_classification_endpoint_name", value="")
         self.op_util.insert_if_not_exists(key="ai_classification_endpoint_url", value="")
         self.op_util.insert_if_not_exists(key="ai_ocr_endpoint_name", value="")
         self.op_util.insert_if_not_exists(key="ai_ocr_endpoint_url", value="")
 
+
+    async def create_endpoint(self: "HFInferenceEndpointSetup", endpoint: DexitAIEndpointSettings) -> None:
+        if not any([
+            endpoint.enable_ocr, endpoint.enable_classification,
+            endpoint.enable_entity_llm, endpoint.enable_entity_layoutlm
+        ]):
+            logger.error("At least one of OCR, Classification or Entity Extraction should be enabled")
+            raise ValueError("At least one of OCR, Classification or Entity Extraction should be enabled")
+
+        headers = {"content-type": "application/json", "Authorization": f"Bearer {self.ai_config.hf_token_write}"}
+        hf_url = f"https://api.endpoints.huggingface.cloud/v2/endpoint/{self.ai_config.hf_username}"
+        
+        endpoint_name = "dexit"
+        if endpoint.enable_ocr:
+            endpoint_name += "-ocr"
+        if endpoint.enable_classification:
+            endpoint_name += "-clf"
+        if endpoint.enable_entity_layoutlm:
+            endpoint_name += "-entlyt"
+        if endpoint.enable_entity_llm:
+            endpoint_name += "-entllm"
+        endpoint_name += f"-{self.dexit.tenant}"
+        endpoint_name = endpoint_name.lower().replace(" ", "-")[:32]
+
+        payload = {
+            # 'name' must not exceed 32 characters and should be in lowercase
+            "name": endpoint_name,
+            "compute": {
+                "accelerator": endpoint.compute_engine.accelerator,
+                "instanceSize": endpoint.compute_engine.instance_size,
+                "instanceType": endpoint.compute_engine.instance_type,
+                "scaling": {
+                    "maxReplica": endpoint.compute_engine.max_replica,
+                    "minReplica": endpoint.compute_engine.min_replica,
+                    "scaleToZeroTimeout": endpoint.compute_engine.scale_to_zero_timeout,
+                },
+            },
+            "provider": {"region": endpoint.compute_engine.region, "vendor": endpoint.compute_engine.vendor},
+            "type": "protected",
+            "model": {
+                "framework": "custom",
+                "image": {
+                    "huggingface": {
+                        "env": {
+                            # ---------- OCR Related Configs ----------
+                            "OCR_SERVICE_ENABLED": str(endpoint.enable_ocr),
+                            "OCR_ENGINE": str(self.ai_config.ocr_engine.value),
+                            # ---------- Entity Extraction (LLM) Related Configs ----------
+                            "ENTITY_SERVICE_ENABLED_LLM": str(endpoint.enable_entity_llm),
+                            "ENTITY_LLM_MODEL": str(self.ai_config.entity_llm_modelname.value),
+                            "LLM_TEMPERATURE": str(self.ai_config.entity_llm_model_temperature),
+                            "LLM_NUM_CTX": str(self.ai_config.entity_llm_model_numctx),
+                            "LLM_NUM_PREDICT": str(self.ai_config.entity_llm_model_numpredict),
+                            # ---------- Entity Extraction (LayoutLM) Related Configs ----------
+                            "ENTITY_SERVICE_ENABLED_LAYOUTLM": str(endpoint.enable_entity_layoutlm),
+                            "HF_LAYOUTLMV3_TOKEN_CLF_MODEL_ID": self.ai_config.entity_layoutlm_modelid,
+                            "HF_LAYOUTLMV3_TOKEN_CLF_REVISION": self.ai_config.entity_layoutlm_modelrevision,
+                            # ---------- Classification Related Configs ----------
+                            "CLASSIFICATION_SERVICE_ENABLED": str(endpoint.enable_classification),
+                            "HF_LAYOUTLMV3_SEQUENCE_CLF_MODEL_ID": self.ai_config.classification_modelid,
+                            "HF_LAYOUTLMV3_SEQUENCE_CLF_REVISION": self.ai_config.classification_modelrevision
+                        }
+                    }
+                },
+                "secrets": {
+                    "HF_API_TOKEN_READ": self.ai_config.hf_token_read,
+                },
+                "repository": self.ai_config.hf_endpoint_repo_name,
+                "revision": self.ai_config.hf_endpoint_repo_revision,
+                "task": "custom",
+            },
+        }
+
+        logger.info(f"Deploying HF Inference Endpoint {endpoint_name}")
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(hf_url, headers=headers, json=payload) as response:
+                    if response.status == HTTP_409_CONFLICT:
+                        logger.error(f"Endpoint {endpoint_name} already exists.")
+                    logger.info(f"Response: {response.status}")
+                    response.raise_for_status()  # Raises a HTTPError if the response status is 4xx, 5xx
+                    logger.info(f"Endpoint {endpoint_name} creation has been submitted successfully to HF.")
+            except aiohttp.ClientError as e:
+                logger.exception(f"An error occurred while making the request: {e}")
+            except Exception as e:
+                logger.exception(f"An unexpected error occurred: {e}")
+
+        endpoint_url = await get_huggingface_endpoint_url(endpoint_name, check_interval=30)
+
+        log_info(f"Endpoint {endpoint_name} is ready at {endpoint_url}")
+
+        op_util = OnePasswordUtil(
+            tenant=f"Dexit_Server_{self.dexit.tenant}",
+            server_item="application-config",
+            vault="Dexit",
+        )
+        if endpoint.enable_entity_llm:
+            op_util.create_or_replace(key="ai_llm_entity_endpoint_name", value=endpoint_name)
+            op_util.create_or_replace(key="ai_llm_entity_endpoint_url", value=endpoint_url)
+        if endpoint.enable_entity_layoutlm:
+            op_util.create_or_replace(key="ai_layoutlm_entity_endpoint_name", value=endpoint_name)
+            op_util.create_or_replace(key="ai_layoutlm_entity_endpoint_url", value=endpoint_url)
+        if endpoint.enable_classification:
+            op_util.create_or_replace(key="ai_classification_endpoint_name", value=endpoint_name)
+            op_util.create_or_replace(key="ai_classification_endpoint_url", value=endpoint_url)
+        if endpoint.enable_ocr:
+            op_util.create_or_replace(key="ai_ocr_endpoint_name", value=endpoint_name)
+            op_util.create_or_replace(key="ai_ocr_endpoint_url", value=endpoint_url)
+
+
     async def deploy(self: "HFInferenceEndpointSetup") -> None:
         """Deploy HF Inference Endpoints for tenant"""
         logger.info(f"Deploying HF Inference Endpoints for tenant {self.dexit.tenant}")
-        headers = {"content-type": "application/json", "Authorization": f"Bearer {self.ai_config.hf_token_write}"}
-        hf_url = f"https://api.endpoints.huggingface.cloud/v2/endpoint/{self.ai_config.hf_username}"
         endpoints: list[DexitAIEndpointSettings] = self.ai_config.inference_endpoints
-        for endpoint in endpoints:
-            if not any([endpoint.enable_ocr, endpoint.enable_classification, endpoint.enable_entity]):
-                logger.error("At least one of OCR, Classification or Entity Extraction should be enabled")
-                raise ValueError("At least one of OCR, Classification or Entity Extraction should be enabled")
-            endpoint_name = "dexit"
-            if endpoint.enable_entity:
-                endpoint_name += "-ent"
-            if endpoint.enable_classification:
-                endpoint_name += "-clf"
-            if endpoint.enable_ocr:
-                endpoint_name += "-ocr"
-            endpoint_name += f"-{self.dexit.tenant}"
-            endpoint_name = endpoint_name.lower().replace(" ", "-")[:32]
+        await asyncio.gather(*[self.create_endpoint(endpoint) for endpoint in endpoints])
 
-            payload = {
-                # 'name' must not exceed 32 characters and should be in lowercase
-                "name": endpoint_name,
-                "compute": {
-                    "accelerator": endpoint.compute_engine.accelerator,
-                    "instanceSize": endpoint.compute_engine.instance_size,
-                    "instanceType": endpoint.compute_engine.instance_type,
-                    "scaling": {
-                        "maxReplica": endpoint.compute_engine.max_replica,
-                        "minReplica": endpoint.compute_engine.min_replica,
-                        "scaleToZeroTimeout": endpoint.compute_engine.scale_to_zero_timeout,
-                    },
-                },
-                "provider": {"region": endpoint.compute_engine.region, "vendor": endpoint.compute_engine.vendor},
-                "type": "protected",
-                "model": {
-                    "framework": "custom",
-                    "image": {
-                        "huggingface": {
-                            "env": {
-                                "OCR_SERVICE_ENABLED": str(endpoint.enable_ocr),
-                                "OCR_ENGINE": str(self.ai_config.ocr_engine.value),
-                                "ENTITY_SERVICE_ENABLED": str(endpoint.enable_entity),
-                                "ENTITY_LLM_MODEL": str(self.ai_config.entity_modelname.value),
-                                "LLM_TEMPERATURE": str(self.ai_config.entity_model_temperature),
-                                "LLM_NUM_CTX": str(self.ai_config.entity_model_numctx),
-                                "LLM_NUM_PREDICT": str(self.ai_config.entity_model_numpredict),
-                                "CLASSIFICATION_SERVICE_ENABLED": str(endpoint.enable_classification),
-                                "HF_API_TOKEN_READ": self.ai_config.hf_token_read,
-                                "HF_LAYOUTLMV3_MODEL_ID": self.ai_config.classification_modelid,
-                                "HF_LAYOUTLMV3_REVISION": self.ai_config.classification_modelrevision,
-                            }
-                        }
-                    },
-                    "repository": self.ai_config.hf_endpoint_repo_name,
-                    "revision": self.ai_config.hf_endpoint_repo_revision,
-                    "task": "custom",
-                },
-            }
-
-            logger.info(f"Deploying HF Inference Endpoint {endpoint_name}")
-            async with aiohttp.ClientSession() as session:
-                try:
-                    async with session.post(hf_url, headers=headers, json=payload) as response:
-                        if response.status == HTTP_409_CONFLICT:
-                            logger.error(f"Endpoint {endpoint_name} already exists.")
-                            continue
-                        logger.info(f"Response: {response.status}")
-                        response.raise_for_status()  # Raises a HTTPError if the response status is 4xx, 5xx
-                        logger.info(f"Endpoint {endpoint_name} creation has been submitted successfully to HF.")
-                except aiohttp.ClientError as e:
-                    logger.exception(f"An error occurred while making the request: {e}")
-                except Exception as e:
-                    logger.exception(f"An unexpected error occurred: {e}")
-
-            endpoint_url = await get_huggingface_endpoint_url(endpoint_name, check_interval=30)
-
-            log_info(f"Endpoint {endpoint_name} is ready at {endpoint_url}")
-
-            op_util = OnePasswordUtil(
-                tenant=f"Dexit_Server_{self.dexit.tenant}",
-                server_item="application-config",
-                vault="Dexit",
-            )
-            if endpoint.enable_entity:
-                op_util.insert_if_not_exists(key="ai_entity_endpoint_name", value=endpoint_name)
-                op_util.insert_if_not_exists(key="ai_entity_endpoint_url", value=endpoint_url)
-            if endpoint.enable_classification:
-                op_util.insert_if_not_exists(key="ai_classification_endpoint_name", value=endpoint_name)
-                op_util.insert_if_not_exists(key="ai_classification_endpoint_url", value=endpoint_url)
-            if endpoint.enable_ocr:
-                op_util.insert_if_not_exists(key="ai_ocr_endpoint_name", value=endpoint_name)
-                op_util.insert_if_not_exists(key="ai_ocr_endpoint_url", value=endpoint_url)
 
     async def delete(self: "HFInferenceEndpointSetup") -> None:
         """Delete HF Inference Endpoints for tenant"""

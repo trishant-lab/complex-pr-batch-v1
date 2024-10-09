@@ -230,6 +230,11 @@ class DexitAIEntityExtractionModels(str, Enum):
 
     LLAMA2_7B = "llama2:7b"
     LLAMA2_13B = "llama2:13b"
+    LLAMA3_8B = "llama3:8b"
+    LLAMA3_1_8B = "llama3.1:8b"
+    GEMMA_7B = "gemma:7b"
+    GEMMA2_9B = "gemma2:9b"
+
 
 
 class DexitAIComputeEngineSettings(BaseModel):
@@ -237,13 +242,13 @@ class DexitAIComputeEngineSettings(BaseModel):
     Dexit AI Compute Engine Settings
     """
 
-    accelerator: str = ""
-    instance_size: str = ""
-    instance_type: str = ""
+    accelerator: str = "cpu"
+    instance_size: str = "x8"
+    instance_type: str = "intel-spr"
     min_replica: int = 0
     max_replica: int = 1
     scale_to_zero_timeout: int = 15  # minutes
-    vendor: str = ""
+    vendor: str = "aws"
     region: str = "us-east-1"
 
 
@@ -253,7 +258,8 @@ class DexitAIEndpointSettings(BaseModel):
     """
 
     enable_ocr: bool = True
-    enable_entity: bool = False
+    enable_entity_llm: bool = False
+    enable_entity_layoutlm: bool = False
     enable_classification: bool = False
     compute_engine: DexitAIComputeEngineSettings = DexitAIComputeEngineSettings()
 
@@ -269,15 +275,18 @@ class DexitAISettings(BaseModel):
     hf_endpoint_repo_name: str = "314e/Dexit-AI"
     hf_endpoint_repo_revision: str = "production"
 
-    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.TESSERACT
+    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.DOCTR
 
-    classification_modelid: str = "314e/Dexit-Document-Classification-Muspell-Model1"
-    classification_modelrevision: str = "production"
+    classification_modelid: str = "314e/Dexit-LayoutLMv3-Classification-test1"
+    classification_modelrevision: str = "v0.1.3-manual-upload"
+    
+    entity_layoutlm_modelid: str = "314e/Dexit-LayoutLMv3-Entity-test1"
+    entity_layoutlm_modelrevision: str = "v0.1.6-test"
 
-    entity_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA2_13B
-    entity_model_temperature: float = 0
-    entity_model_numctx: int = 4096
-    entity_model_numpredict: int = 300
+    entity_llm_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA3_8B
+    entity_llm_model_temperature: float = 0
+    entity_llm_model_numctx: int = 4096
+    entity_llm_model_numpredict: int = 300
 
     inference_endpoints: list[DexitAIEndpointSettings] = [DexitAIEndpointSettings()]
 

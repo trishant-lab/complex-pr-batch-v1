@@ -1,6 +1,5 @@
 from app.cli.temporal.core.log import log_info
 from kubernetes import client as k8s_client
-from kubernetes.client import V1PersistentVolumeClaimVolumeSource
 from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 
@@ -115,12 +114,6 @@ class DeploymentServer(K8sResourceBaseClass):
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="dexit-tenant-config",
                                     items=[k8s_client.V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
-                                ),
-                            ),
-                            k8s_client.V1Volume(
-                                name="vespa-volume",
-                                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                                    claim_name="dexit-vespa-pvc"
                                 ),
                             ),
                         ],
@@ -263,12 +256,6 @@ class DeploymentCli(K8sResourceBaseClass):
                                 config_map=k8s_client.V1ConfigMapVolumeSource(
                                     name="dexit-cli-vector-config",
                                     items=[k8s_client.V1KeyToPath(key="vector-config.toml", path="vector-config.toml")],
-                                ),
-                            ),
-                            k8s_client.V1Volume(
-                                name="vespa-volume",
-                                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                                    claim_name="dexit-vespa-pvc"
                                 ),
                             ),
                         ],
