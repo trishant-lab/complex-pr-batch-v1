@@ -3,19 +3,17 @@ from temporalio import client
 from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
 from temporalio.service import RPCError, RPCStatusCode
 
-from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 
 
 class TemporalNamespaceCreation:
-    def __init__(self: "TemporalNamespaceCreation", jeeves: JeevesSpec) -> None:
+    def __init__(self: "TemporalNamespaceCreation", namespace: str) -> None:
         """
         Constructor
         """
-        self.jeeves: JeevesSpec = jeeves
         self.config: AppSettings = get_settings()
-        self.namespace = f"jeeves_{self.jeeves.tenant}"
+        self.namespace = namespace
 
     async def create_temporal_namespace(self: "TemporalNamespaceCreation") -> None:
         """

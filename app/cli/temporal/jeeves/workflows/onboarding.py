@@ -11,9 +11,8 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     PostgresSetupActivity,
     NamespaceSetupActivity,
     ConfigmapSetupActivity,
-    PVCSetupActivity,
     SecretSetupActivity,
-    StateFullSetSetupActivity,
+    RedisSetupActivity,
     DnsSetupActivity,
     UiSetupActivity,
     KeycloakRealmSetupActivity,
@@ -55,7 +54,7 @@ class JeevesOnboardingWorkflow(Workflow):
             ConfigmapSetupActivity.defn,
             # PVCSetupActivity.defn,
             SecretSetupActivity.defn,
-            StateFullSetSetupActivity.defn,
+            RedisSetupActivity.defn,
             DnsSetupActivity.defn,
             UiSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
@@ -151,9 +150,9 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # statefulset setup
             await workflow.execute_activity(
-                activity=StateFullSetSetupActivity.defn,
+                activity=RedisSetupActivity.defn,
                 arg=jeeves,
-                retry_policy=StateFullSetSetupActivity.get_retry_policy(),
+                retry_policy=RedisSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 

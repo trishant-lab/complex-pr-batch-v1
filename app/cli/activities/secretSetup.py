@@ -1,6 +1,5 @@
 from kubernetes.client import V1ObjectMeta, V1Secret
 
-from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.temporal.core.log import log_info
@@ -13,25 +12,24 @@ class Secret(K8sResourceBaseClass):
 
     def __init__(
         self: "Secret",
-        jeeves: JeevesSpec,
+        tenant: str,
         name: str,
         type: None | str = None,
         data: None | dict = None,
         string_data: None | dict = None,
     ) -> None:
         """
-        jeeves: JeevesSpec
         name: str
         type: str
         data: dict: base64 encoded data
         string_data: dict  plain text data
         Need to send base64 encoded data or plain text data
         """
+        self.tenant = tenant
         self.name = name
         self.type = type
         self.data = data
         self.string_data = string_data
-        self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1"
@@ -44,7 +42,7 @@ class Secret(K8sResourceBaseClass):
         body: V1Secret = V1Secret(
             api_version="v1",
             kind=ResourceKindEnum.Secret.value,
-            metadata=V1ObjectMeta(namespace=self.jeeves.tenant, name=self.name),
+            metadata=V1ObjectMeta(namespace=self.tenant, name=self.name),
             type=self.type,
             data=self.data,
             string_data=self.string_data,

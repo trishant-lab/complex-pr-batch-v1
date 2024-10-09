@@ -32,7 +32,6 @@ def check_pod_logs(namespace: str, job_name: str) -> bool:
     :return:
 
     """
-    # TODO: Change the log message to be more specific
     provisioning_log = f"Asset and Assignment preload job completed successfully for the tenant: {namespace}"
 
     k8s_dynamic_client = get_dynamic_client()

@@ -6,24 +6,19 @@ from pathlib import Path
 import boto3
 from loguru import logger
 
-from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(jeeves: JeevesSpec) -> None:
+def deploy_ui(tenant: str, repo_name: str, domain_name: str) -> None:
     """
 
-    :param jeeves:
     :return:
     """
     config: AppSettings = get_settings()
 
     environment: str = config.env
-    domain_name: str = config.jeeves.domain_name
-    repo_name = "jeeves-ui"
-    tenant = jeeves.tenant
     image_tag = "production" if environment == "production" else "sprint"
 
     if environment == "production":
@@ -72,17 +67,16 @@ def deploy_ui(jeeves: JeevesSpec) -> None:
         raise e
 
 
-def delete_ui_bundle(jeeves: JeevesSpec) -> None:
+def delete_ui_bundle(tenant: str, domain_name: str) -> None:
     """
 
-    :param jeeves
+    :param tenant
+    :param domain_name
     :return:
     """
     config: AppSettings = get_settings()
 
     environment: str = config.env
-    domain_name: str = config.jeeves.domain_name
-    tenant = jeeves.tenant
     image_tag = "production" if environment == "production" else "sprint"
 
     if environment == "production":
@@ -98,17 +92,19 @@ def delete_ui_bundle(jeeves: JeevesSpec) -> None:
 
 
 class UISetup:
-    def __init__(self: "UISetup", jeeves: JeevesSpec) -> None:
-        self.jeeves = jeeves
+    def __init__(self: "UISetup", tenant: str, domain_name: str, repo_name: str) -> None:
+        self.tenant = tenant
+        self.domain_name = domain_name
+        self.repo_name = repo_name
 
     def deploy(self: "UISetup") -> None:
         """
         Deploy UI bundle to S3
         """
-        deploy_ui(jeeves=self.jeeves)
+        deploy_ui(tenant=self.tenant, domain_name=self.domain_name, repo_name=self.repo_name)
 
     def delete(self: "UISetup") -> None:
         """
         Delete UI bundle from S3
         """
-        delete_ui_bundle(jeeves=self.jeeves)
+        delete_ui_bundle(tenant=self.tenant, domain_name=self.domain_name)
