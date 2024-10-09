@@ -4,7 +4,6 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.log import log_info
 
 
@@ -13,16 +12,16 @@ class PVC(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self: "PVC", jeeves: JeevesSpec) -> None:
+    def __init__(self: "PVC", tenant: str, pvc_name: str) -> None:
         """
         Constructor
         """
-        self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.PersistentVolumeClaim, api_version="v1"
         )
-        self.pvc_name = "jeeves-vespa-pvc"
+        self.pvc_name = pvc_name
+        self.tenant = tenant
 
     def payload(self: "PVC") -> dict:
         """
@@ -31,7 +30,7 @@ class PVC(K8sResourceBaseClass):
         body = V1PersistentVolumeClaim(
             api_version="v1",
             kind=ResourceKindEnum.PersistentVolumeClaim.value,
-            metadata=V1ObjectMeta(namespace=self.jeeves.tenant, name=self.pvc_name),
+            metadata=V1ObjectMeta(namespace=self.tenant, name=self.pvc_name),
             spec=V1PersistentVolumeClaimSpec(
                 volume_mode="Filesystem",
                 storage_class_name="topolvm-provisioner",
@@ -56,6 +55,6 @@ class PVC(K8sResourceBaseClass):
         k8s server side apply
         """
         try:
-            self.k8s_dynamic_client.delete(resource=self.resource, name=self.pvc_name, namespace=self.jeeves.tenant)
+            self.k8s_dynamic_client.delete(resource=self.resource, name=self.pvc_name, namespace=self.tenant)
         except NotFoundError:
-            logger.error(f"PVC {self.pvc_name} not found in namespace {self.jeeves.tenant}")
+            logger.error(f"PVC {self.pvc_name} not found in namespace {self.tenant}")

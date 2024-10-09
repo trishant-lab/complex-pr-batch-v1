@@ -2,7 +2,6 @@ from kubernetes.client import V1Namespace, V1ObjectMeta
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.log import log_info
 
 
@@ -11,11 +10,11 @@ class Namespace(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self: "Namespace", jeeves: JeevesSpec) -> None:
+    def __init__(self: "Namespace", tenant: str) -> None:
         """
         Constructor
         """
-        self.jeeves: JeevesSpec = jeeves
+        self.tenant: str = tenant
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Namespace, api_version="v1"
@@ -26,7 +25,7 @@ class Namespace(K8sResourceBaseClass):
         k8s resource payload
         """
         body = V1Namespace(
-            api_version="v1", kind=ResourceKindEnum.Namespace.value, metadata=V1ObjectMeta(name=f"{self.jeeves.tenant}")
+            api_version="v1", kind=ResourceKindEnum.Namespace.value, metadata=V1ObjectMeta(name=f"{self.tenant}")
         )
 
         return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
@@ -38,7 +37,7 @@ class Namespace(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
-        log_info(f"Namespace {self.jeeves.tenant} created successfully")
+        log_info(f"Namespace {self.tenant} created successfully")
 
     def delete(self: "Namespace") -> None:
         """

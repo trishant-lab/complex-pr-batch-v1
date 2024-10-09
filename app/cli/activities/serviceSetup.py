@@ -1,11 +1,9 @@
 from kubernetes.client import V1ObjectMeta, V1Service, V1ServicePort, V1ServiceSpec
 from kubernetes.dynamic.exceptions import NotFoundError
-from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.jeeves.jeeves import JeevesSpec, ProductName
-from app.cli.temporal.core.log import log_info
+from app.cli.temporal.core.log import log_info, log_error
 
 
 class Service(K8sResourceBaseClass):
@@ -13,15 +11,16 @@ class Service(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self: "Service", jeeves: JeevesSpec) -> None:
+    def __init__(self: "Service", tenant: str, product: str) -> None:
         """
         Constructor
         """
-        self.jeeves: JeevesSpec = jeeves
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Service, api_version="v1"
         )
+        self.tenant = tenant
+        self.product = product
 
     def payload(self: "Service") -> dict:
         """
@@ -31,12 +30,12 @@ class Service(K8sResourceBaseClass):
             api_version="v1",
             kind=ResourceKindEnum.Service.value,
             metadata=V1ObjectMeta(
-                name=ProductName,
-                namespace=self.jeeves.tenant,
-                labels={"app": ProductName},
+                name=self.product,
+                namespace=self.tenant,
+                labels={"app": self.product},
             ),
             spec=V1ServiceSpec(
-                selector={"app": ProductName},
+                selector={"app": self.product},
                 type="ClusterIP",
                 ports=[
                     V1ServicePort(
@@ -56,13 +55,13 @@ class Service(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
-        log_info(f"Service {ProductName} created in namespace {self.jeeves.tenant}")
+        log_info(f"Service {self.product} created in namespace {self.tenant}")
 
     def delete(self: "Service") -> None:
         """
         k8s delete resource
         """
         try:
-            self.k8s_dynamic_client.delete(resource=self.resource, name=ProductName, namespace=self.jeeves.tenant)
+            self.k8s_dynamic_client.delete(resource=self.resource, name=self.product, namespace=self.tenant)
         except NotFoundError:
-            logger.error(f"Service {ProductName} not found in namespace {self.jeeves.tenant}")
+            log_error(f"Service {self.product} not found in namespace {self.tenant}")

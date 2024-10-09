@@ -24,9 +24,9 @@ def get_default_notification_group_id(config: AppSettings, novu_api_key: str) ->
 
 
 def get_default_notification_layout_id(
-        config: AppSettings,
-        novu_api_key: str,
-        layout_name: str = "Jeeves Layout",
+    config: AppSettings,
+    novu_api_key: str,
+    layout_name: str = "Jeeves Layout",
 ) -> str | None:
     """
 
@@ -41,11 +41,11 @@ def get_default_notification_layout_id(
 
 
 def create_novu_notification_layout(
-        config: AppSettings,
-        novu_api_key: str,
-        layout_name: str,
-        layout_content: str,
-        is_default: str = False,
+    config: AppSettings,
+    novu_api_key: str,
+    layout_name: str,
+    layout_content: str,
+    is_default: str = False,
 ) -> int | None:
     """
     create novu notification layout
