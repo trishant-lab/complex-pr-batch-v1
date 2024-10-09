@@ -59,7 +59,7 @@ async def setup_postgres(
     """
     environment = os.getenv("DEPLOYMENT", "integration").lower()
 
-    db_username = f"{database_name}_{tenant}"
+    db_username = f"{database_name.lower()}_{tenant}"
 
     try:
         db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
