@@ -652,7 +652,7 @@ class DeploymentActivity(Activity):
             V1EnvVar(name="EXTRACTOR_ENABLED", value="FALSE"),
             V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=get_settings().jeeves.tika_server_endpoint),
             V1EnvVar(name="DYNAMIC_URL_HASH_KEY", value=dynamic_url_hash_key),
-            V1EnvVar(name="DYNAMIC_URL_ENABLED", value=True),
+            V1EnvVar(name="DYNAMIC_URL_ENABLED", value="True"),
         ]
 
         volumes = [
@@ -704,7 +704,7 @@ class DeploymentActivity(Activity):
             V1EnvVar(name="EXTRACTOR_ENABLED", value="TRUE"),
             V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=get_settings().jeeves.tika_server_endpoint),
             V1EnvVar(name="DYNAMIC_URL_HASH_KEY", value=dynamic_url_hash_key),
-            V1EnvVar(name="DYNAMIC_URL_ENABLED", value=True),
+            V1EnvVar(name="DYNAMIC_URL_ENABLED", value="True"),
         ]
 
         volumes.append(
