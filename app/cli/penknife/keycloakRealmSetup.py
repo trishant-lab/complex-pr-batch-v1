@@ -3,7 +3,7 @@ import pydash as py_
 
 import jinja2
 import orjson
-from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
+from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.penknife import TemplatePath
 from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.log import log_info
@@ -11,7 +11,6 @@ from app.common import generate_password
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
 from app.template_env import get_env
-import asyncio
 
 ROLES = [
     "_broadcast-mail",
@@ -77,15 +76,9 @@ ROLES = [
     "_manage-saved-search (edited) ",
 ]
 
-DEFAULT_CLIENT_IDS = set([
-    "account",
-    "account-console",
-    "admin-cli",
-    "broker",
-    "realm-management",
-    "security-admin-console",
-    "auth"
-])
+DEFAULT_CLIENT_IDS = set(
+    "account", "account-console", "admin-cli", "broker", "realm-management", "security-admin-console", "auth"
+)
 
 
 def create_keycloak_realm(
@@ -100,9 +93,7 @@ def create_keycloak_realm(
     jinja_env: jinja2.Environment = get_env(template_path=TemplatePath)
     template = jinja_env.get_template("keycloak_realm.json")
 
-    realm_config = template.render(
-        tenant=penknife.tenant, sendgrid_api_key=config.sendgrid.api_key
-    )
+    realm_config = template.render(tenant=penknife.tenant, sendgrid_api_key=config.sendgrid.api_key)
 
     keycloak_client.refresh_token()
     keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
@@ -131,27 +122,22 @@ def create_tenant_customer_admin_user(
     keycloak_client.refresh_token()
     keycloak_client.create_user(orjson.loads(user_config), realm_name)
 
-    roles = keycloak_client.get_client_roles(
-        client_id=client_uuid, realm_name=realm_name
-    )
+    roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=realm_name)
 
-    user_id = keycloak_client.get_user_id(
-                username=penknife.email, realm_name=realm_name
-            )
+    user_id = keycloak_client.get_user_id(username=penknife.email, realm_name=realm_name)
 
     # Create admin group with workspace admin role
 
     workspace_admin = py_.find(roles, lambda x: x.get("name") == "_workspace-admin")
 
-    group_payload = {
-        "name": "Admin",
-        "path": "/Admin"
-    }
+    group_payload = {"name": "Admin", "path": "/Admin"}
 
     keycloak_client.create_group(realm_name=realm_name, payload=group_payload)
     admin_group_id = keycloak_client.get_group_id_by_path(realm_name=realm_name, path="/Admin")
 
-    keycloak_client.assign_role_to_group(realm_name=realm_name, group_id=admin_group_id, client_id=client_uuid, roles=[workspace_admin])
+    keycloak_client.assign_role_to_group(
+        realm_name=realm_name, group_id=admin_group_id, client_id=client_uuid, roles=[workspace_admin]
+    )
 
     # Assing admin group to user
     keycloak_client.assign_group(realm_name=realm_name, user_id=user_id, group_id=admin_group_id)
@@ -186,7 +172,6 @@ def create_client(
     keycloak_client.create_client(orjson.loads(client_config), realm_name)
     log_info("Keycloak client penknife created successfully")
 
-
     all_clients = keycloak_client.get_all_clients(realm_name=realm_name)
     auth_exists = any(True for client in all_clients if client.get("clientId") == "auth")
 
@@ -200,16 +185,27 @@ def create_client(
             vault="Penknife",
         ).create_or_replace("auth_credential", auth_credential)
 
-        auth_client_config = auth_client_template.render(tenant=penknife.tenant, domain=domain, auth_credential=auth_credential)
+        auth_client_config = auth_client_template.render(
+            tenant=penknife.tenant, domain=domain, auth_credential=auth_credential
+        )
         keycloak_client.refresh_token()
         keycloak_client.create_client(orjson.loads(auth_client_config), realm_name)
 
         # Assign realm management roles to auth client
         realm_management_client_id = keycloak_client.get_client_id(client="realm-management", realm_name=realm_name)
-        service_account_user_id = keycloak_client.get_client_service_account_user(client_id=keycloak_client.get_client_id(client="auth", realm_name=realm_name))
-        realm_management_roles = keycloak_client.get_client_roles(realm_name=realm_name, client_id=realm_management_client_id)
+        service_account_user_id = keycloak_client.get_client_service_account_user(
+            client_id=keycloak_client.get_client_id(client="auth", realm_name=realm_name)
+        )
+        realm_management_roles = keycloak_client.get_client_roles(
+            realm_name=realm_name, client_id=realm_management_client_id
+        )
 
-        keycloak_client.assign_client_role(realm_name=realm_name, user_id=service_account_user_id, client_id=realm_management_client_id, roles=realm_management_roles)
+        keycloak_client.assign_client_role(
+            realm_name=realm_name,
+            user_id=service_account_user_id,
+            client_id=realm_management_client_id,
+            roles=realm_management_roles,
+        )
         log_info("Keycloak auth client for penknife created successfully")
 
 
@@ -226,15 +222,11 @@ def create_idp_and_flows(
     template = jinja_env.get_template("keycloak_idp_and_flows.json")
 
     googleclientid = OnePasswordUtil(
-        tenant="INTEGRATION_COMMON_CONFIG",
-        server_item="application-config",
-        vault="Penknife"
+        tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
     ).get_key("provider_client_id")
 
     googlesecret = OnePasswordUtil(
-        tenant="INTEGRATION_COMMON_CONFIG",
-        server_item="application-config",
-        vault="Penknife"
+        tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
     ).get_key("provider_client_secret")
 
     client_config = template.render(googleclientid=googleclientid, googlesecret=googlesecret)
@@ -263,16 +255,12 @@ def create_idp_and_flows(
     log_info(f"Keycloak idp and flows {penknife.tenant} created successfully.")
 
 
-def create_client_roles(
-    client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str
-) -> None:
+def create_client_roles(client_uuid: str, keycloak_client: KeycloakAdminClient, realm_name: str) -> None:
     """
     Create keycloak client roles
     """
     for role in ROLES:
-        keycloak_client.create_client_role(
-            client_id=client_uuid, role_config={"name": role}, realm_name=realm_name
-        )
+        keycloak_client.create_client_role(client_id=client_uuid, role_config={"name": role}, realm_name=realm_name)
 
     log_info("Keycloak client roles created successfully")
 
@@ -291,9 +279,7 @@ async def create_realm_and_users(penknife: PenknifeSpec) -> None:
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
     # create realm
-    create_keycloak_realm(
-        penknife=penknife, config=config, domain=domain, keycloak_client=keycloak_client
-    )
+    create_keycloak_realm(penknife=penknife, config=config, domain=domain, keycloak_client=keycloak_client)
 
     # create client
     create_client(
@@ -311,14 +297,10 @@ async def create_realm_and_users(penknife: PenknifeSpec) -> None:
         realm_name=realm_name,
     )
 
-    client_uuid = keycloak_client.get_client_id(
-        client="penknife", realm_name=realm_name
-    )
+    client_uuid = keycloak_client.get_client_id(client="penknife", realm_name=realm_name)
 
     # create client roles
-    create_client_roles(
-        client_uuid=client_uuid, keycloak_client=keycloak_client, realm_name=realm_name
-    )
+    create_client_roles(client_uuid=client_uuid, keycloak_client=keycloak_client, realm_name=realm_name)
 
     # create tenant customer admin user
     create_tenant_customer_admin_user(
@@ -328,31 +310,33 @@ async def create_realm_and_users(penknife: PenknifeSpec) -> None:
         realm_name=realm_name,
     )
 
+
 async def delete_clients_and_realms(penknife: PenknifeSpec) -> None:
     """
     Delete keycloak clients and realm
     """
-
     realm_name = f"{penknife.tenant}"
 
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
     all_clients = keycloak_client.get_all_clients(realm_name=realm_name)
-    other_client_exists = any(True for client in all_clients if client.get("clientId") and client.get("clientId") not in DEFAULT_CLIENT_IDS)
+    other_client_exists = any(
+        True for client in all_clients if client.get("clientId") and client.get("clientId") not in DEFAULT_CLIENT_IDS
+    )
 
     # If there are other client present, delete only the needed client otherwise delete the tenant
     if other_client_exists:
-        keycloak_client.delete_client("penknife")
+        keycloak_client.delete_client(penknife.tenant, client_name="penknife")
         log_info("Keycloak client penknife deleted successfully")
     else:
         keycloak_client.delete_realm(realm_name=realm_name)
         log_info(f"Keycloak realm {realm_name} deleted successfully")
 
+
 async def get_keycloak_user_id(penknife: PenknifeSpec) -> str:
     """
     Fetch keycloak user id corresponding to tenant email
     """
-
     realm_name = f"{penknife.tenant}"
 
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()

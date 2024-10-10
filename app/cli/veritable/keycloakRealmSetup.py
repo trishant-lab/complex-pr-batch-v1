@@ -3,7 +3,7 @@ import os
 import jinja2
 import orjson
 
-from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
+from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.veritable import TemplatePath
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.core.settings import AppSettings, get_settings

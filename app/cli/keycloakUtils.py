@@ -207,7 +207,7 @@ class KeycloakAdminClient:
         if client_name in clients:
             self.kc_client.delete_client(client_name)
         return
-    
+
     def create_group(self: "KeycloakAdminClient", realm_name: str, payload: dict) -> None:
         """
         Creates groups with the given payload
@@ -217,13 +217,15 @@ class KeycloakAdminClient:
 
     def get_group_id_by_path(self: "KeycloakAdminClient", realm_name: str, path: str) -> str:
         """
-        Fetch group id by path 
+        Fetch group id by path
         """
         self.kc_client.connection.realm_name = realm_name
         res = self.kc_client.get_group_by_path(path=path)
         return res["id"]
-    
-    def assign_role_to_group(self: "KeycloakAdminClient", realm_name: str, group_id: str, client_id: str, roles: list) -> None:
+
+    def assign_role_to_group(
+        self: "KeycloakAdminClient", realm_name: str, group_id: str, client_id: str, roles: list
+    ) -> None:
         """
         Assing roel to group
         """
@@ -238,7 +240,7 @@ class KeycloakAdminClient:
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.group_user_add(user_id=user_id, group_id=group_id)
         return
-    
+
     def get_client_service_account_user(self: "KeycloakAdminClient", client_id: str) -> str:
         """
         Get service account user id

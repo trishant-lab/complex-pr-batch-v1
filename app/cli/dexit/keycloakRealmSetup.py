@@ -4,7 +4,7 @@ import pydash as py_
 import jinja2
 import orjson
 
-from app.cli.common.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
+from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.dexit import TemplatePath
 from app.cli.dexit.dexit import DexitSpec
 from app.cli.temporal.core.log import log_info

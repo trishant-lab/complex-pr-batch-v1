@@ -40,7 +40,7 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
         """
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
-            dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Deployment, api_version="apps/v1"
+            dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
         )
 
         self.config: AppSettings = get_settings()
@@ -55,7 +55,7 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
         self.volumes = volumes
         self.container_envs = container_envs
 
-    def payload(self: "StatefulSetPodCreation") -> None:
+    def payload(self: "StatefulSetPodCreation") -> dict:
         """
         k8s resource payload
         """
@@ -65,8 +65,8 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
             metadata=V1ObjectMeta(namespace=self.tenant, name=self.name, labels={"app": self.name}),
             spec=V1StatefulSetSpec(
                 replicas=1,
-                selector={"matchLabels": {"app": self.name, "kind": "redis"}},
-                service_name="cache-new-service",
+                selector={"matchLabels": {"app": self.name}},
+                service_name=f"{self.name}-service",
                 template=V1PodTemplateSpec(
                     metadata=V1ObjectMeta(labels={"app": self.name}),
                     spec=V1PodSpec(

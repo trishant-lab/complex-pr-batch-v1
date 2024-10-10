@@ -65,6 +65,7 @@ class AtlasJob(K8sResourceBaseClass):
                             V1Container(
                                 name=self.job_name,
                                 image=f"registry.314ecorp.tech/dexit-app:{self.image_tag}",
+                                image_pull_policy="Always",
                                 env=[
                                     V1EnvVar(
                                         name="POSTGRES_PASSWORD",

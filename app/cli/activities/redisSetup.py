@@ -176,6 +176,7 @@ class RedisSetup(K8sResourceBaseClass):
                     metadata=V1ObjectMeta(labels={"app": self.name, "kind": "redis"}),
                     spec=V1PodSpec(
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                        node_selector={"app": "314e"},
                         containers=[
                             V1Container(
                                 name=self.name,

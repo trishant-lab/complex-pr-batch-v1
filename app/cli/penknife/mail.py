@@ -1,4 +1,4 @@
-from app.cli.common.keycloakUtils import KeycloakAdminClient
+from app.cli.keycloakUtils import KeycloakAdminClient
 from app.cli.penknife import TemplatePath
 from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.log import log_info
@@ -41,7 +41,13 @@ def send_customer_password_mail(penknife: PenknifeSpec, password: str) -> None:
         link=f"https://{penknife.tenant}.{domain_name}",
         password=password,
     )
-    send_mail(to_email=penknife.email, subject=subject, content=content, from_name="314e Support", email_from="developer@314ecorp.com")
+    send_mail(
+        to_email=penknife.email,
+        subject=subject,
+        content=content,
+        from_name="314e Support",
+        email_from="developer@314ecorp.com",
+    )
 
 
 def reset_keycloak_user_password(penknife: PenknifeSpec, password: str) -> str:

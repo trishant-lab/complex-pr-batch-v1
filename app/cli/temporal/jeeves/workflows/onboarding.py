@@ -21,7 +21,7 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     ProvisioningJobActivity,
     KubernetesServiceActivity,
     KubernetesVirtualServiceActivity,
-    DeploymentActivity,
+    StatefulSetPodCreationActivity,
     VmPodScraperActivity,
     AiVoiceSetupActivity,
     TemporalNamespaceCreationActivity,
@@ -63,7 +63,7 @@ class JeevesOnboardingWorkflow(Workflow):
             ProvisioningJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesVirtualServiceActivity.defn,
-            DeploymentActivity.defn,
+            StatefulSetPodCreationActivity.defn,
             VmPodScraperActivity.defn,
             AiVoiceSetupActivity.defn,
             SendMailActivity.defn,
@@ -222,9 +222,9 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # Deploy server and cli
             await workflow.execute_activity(
-                activity=DeploymentActivity.defn,
+                activity=StatefulSetPodCreationActivity.defn,
                 arg=jeeves,
-                retry_policy=DeploymentActivity.get_retry_policy(),
+                retry_policy=StatefulSetPodCreationActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 

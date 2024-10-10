@@ -46,6 +46,8 @@ class PostgresSetupActivity(Activity):
             vault_name=vault_name,
             template_path=TemplatePath,
             config=get_settings().jeeves,
+            keycloak_db=True,
+            matomo_db=True,
         )
 
 
@@ -197,7 +199,9 @@ class DnsSetupActivity(Activity):
         from app.cli.activities.dnsSetup import dns_setup
         from app.core.settings import get_settings
 
-        await dns_setup(tenant=jeeves.tenant, config=get_settings().jeeves)
+        await dns_setup(
+            tenant=jeeves.tenant, config=get_settings().jeeves, google_dns_cname=get_settings().google_dns_cname
+        )
 
 
 class UiSetupActivity(Activity):
@@ -253,8 +257,8 @@ class KeycloakRealmSetupActivity(Activity):
         user_details = {
             "username": jeeves.email,
             "email": jeeves.email,
-            "firstname": jeeves.firstName,
-            "lastname": jeeves.lastName,
+            "firstName": jeeves.firstName,
+            "lastName": jeeves.lastName,
         }
         environment: str = os.getenv("DEPLOYMENT", "integration").lower()
         domain = "com" if environment == "production" else "tech"
@@ -335,7 +339,7 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from kubernetes.client import V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath
+        from kubernetes.client import V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, V1EnvVar
 
         from app.cli.activities.databaseMigrationJob import DatabaseMigrationJob
         from app.cli.activities.vespaJob import VespaJob
@@ -366,6 +370,14 @@ class ProvisioningJobActivity(Activity):
             ),
         )
 
+        envs = [
+            V1EnvVar(name="POSTGRES_PASSWORD", value=postgres_password),
+            V1EnvVar(name="POSTGRES_USER", value=postgres_user),
+            V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
+            V1EnvVar(name="DEPLOYMENT", value=get_settings().env),
+            V1EnvVar(name="CLIENT_CODE", value=jeeves.tenant),
+        ]
+
         database_migration_job = DatabaseMigrationJob(
             tenant=jeeves.tenant,
             product=ProductName,
@@ -375,6 +387,7 @@ class ProvisioningJobActivity(Activity):
             docker_image=docker_image,
             volume_mounts=[volume_mount],
             volumes=[volume],
+            container_envs=envs,
         )
         database_migration_job.delete()
         database_migration_job.put()
@@ -581,7 +594,7 @@ class KubernetesVirtualServiceActivity(Activity):
         ).put()
 
 
-class DeploymentActivity(Activity):
+class StatefulSetPodCreationActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
         """
@@ -595,7 +608,7 @@ class DeploymentActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="DeploymentActivity")
+    @activity.defn(name="StatefulSetPodCreationActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -648,7 +661,7 @@ class DeploymentActivity(Activity):
             V1EnvVar(name="EXTRACTOR_ENABLED", value="FALSE"),
             V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=get_settings().jeeves.tika_server_endpoint),
             V1EnvVar(name="DYNAMIC_URL_HASH_KEY", value=dynamic_url_hash_key),
-            V1EnvVar(name="DYNAMIC_URL_ENABLED", value=True),
+            V1EnvVar(name="DYNAMIC_URL_ENABLED", value="True"),
         ]
 
         volumes = [
@@ -700,7 +713,7 @@ class DeploymentActivity(Activity):
             V1EnvVar(name="EXTRACTOR_ENABLED", value="TRUE"),
             V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=get_settings().jeeves.tika_server_endpoint),
             V1EnvVar(name="DYNAMIC_URL_HASH_KEY", value=dynamic_url_hash_key),
-            V1EnvVar(name="DYNAMIC_URL_ENABLED", value=True),
+            V1EnvVar(name="DYNAMIC_URL_ENABLED", value="True"),
         ]
 
         volumes.append(
@@ -723,7 +736,7 @@ class DeploymentActivity(Activity):
             volume_mounts=volume_mounts,
             container_envs=environment_variables,
             volumes=volumes,
-        )
+        ).put()
 
 
 class VmPodScraperActivity(Activity):
@@ -784,7 +797,7 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.common.tenantStatus import update_tenant_status
+        from app.cli.activities.tenantStatus import update_tenant_status
         from app.cli.jeeves.jeeves import ProductName
         from app.models.tenant import TenantStatusEnum
 
