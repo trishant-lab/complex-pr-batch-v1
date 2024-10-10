@@ -14,10 +14,11 @@
   "redis_dsn": "redis://redis:@cache-new.{{tenant}}.svc.cluster.local",
   "redis_password": "{{ open_brackets }}op://Penknife/application-config/PENKNIFE_{{tenant}}/redis_password{{ close_brackets }}",
   "pg_dsn": "postgresql://penknife:{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/postgres_penknife_user_password{{ close_brackets }}@db-cluster-ha.postgresql.svc.cluster.local:5432/penknife",
-  "keycloak_dsn": "postgresql://keycloak.keycloak_tenant:{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/postgres_keycloak_user_password{{ close_brackets }}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/keycloak",
+  "keycloak_dsn": "postgresql://keycloak:{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/postgres_keycloak_user_password{{ close_brackets }}@db-cluster-ha.postgresql.svc.cluster.local:5432/keycloak",
   "atlas_pg_dsn": "postgresql://penknife:{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/postgres_penknife_user_password{{ close_brackets }}@db-cluster-ha.postgresql.svc.cluster.local:5432/penknife",
   "atlas_token":  "{{ open_brackets }}op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/atlas_token{{ close_brackets }}",
   "tenant_career_url":  "{{tenant}}-careers.penknife.314ecorp.tech",     
+  "tenant_type": "{{tenant_type}}",
   "minio": {
       "host": "ostore.314ecorp.tech",
       "secret_key": "{{ open_brackets }}op://314e DevOps/integration/ostore/static{{ close_brackets }}",
