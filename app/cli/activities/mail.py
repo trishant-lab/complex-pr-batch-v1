@@ -1,6 +1,6 @@
 from tempfile import TemporaryDirectory
 
-from app.cli.common.keycloakUtils import KeycloakAdminClient
+from app.cli.keycloakUtils import KeycloakAdminClient
 from app.cli.temporal.core.log import log_error, log_info
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager

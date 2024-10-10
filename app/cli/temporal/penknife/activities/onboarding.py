@@ -3,7 +3,7 @@ from datetime import timedelta
 from uuid import uuid4
 from temporalio.common import RetryPolicy
 from app.cli.penknife.models.penknifespec import PenknifeSpec
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.base import Activity
 from temporalio import activity
 
 
@@ -19,7 +19,7 @@ class PostgresSetupActivity(Activity):
             maximum_interval=timedelta(seconds=10),
             maximum_attempts=5,
         )
-    
+
     @staticmethod
     @activity.defn(name="PostgresSetupActivity")
     async def defn(penknife: PenknifeSpec) -> None:
@@ -29,6 +29,7 @@ class PostgresSetupActivity(Activity):
         from app.cli.penknife.postgresSetup import setup_postgres
 
         await setup_postgres(penknife=penknife)
+
 
 class NamespaceSetupActivity(Activity):
     @staticmethod
@@ -53,6 +54,7 @@ class NamespaceSetupActivity(Activity):
         from app.cli.penknife.namespaceSetup import Namespace
 
         Namespace(penknife=penknife).put()
+
 
 class ConfigmapSetupActivity(Activity):
     @staticmethod
@@ -79,6 +81,7 @@ class ConfigmapSetupActivity(Activity):
         ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.VECTOR_CONFIG).put()
         ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.STATE_STORE_CONFIG).put()
 
+
 class PVCSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -102,6 +105,7 @@ class PVCSetupActivity(Activity):
         from app.cli.penknife.pvcSetup import PVC
 
         PVC(penknife=penknife).put()
+
 
 class SecretSetupActivity(Activity):
     @staticmethod
@@ -143,6 +147,7 @@ class SecretSetupActivity(Activity):
             data={"REDIS_PASSWORD": config.cache_admin_password},
         ).put()
 
+
 class StateFullSetSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -166,6 +171,7 @@ class StateFullSetSetupActivity(Activity):
         from app.cli.penknife.statefulSetup import StateFullSet
 
         await StateFullSet(penknife=penknife).put()
+
 
 class DnsSetupActivity(Activity):
     @staticmethod
@@ -191,6 +197,7 @@ class DnsSetupActivity(Activity):
 
         await dns_setup(penknife=penknife)
 
+
 class UiSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -215,6 +222,7 @@ class UiSetupActivity(Activity):
 
         UISetup(penknife=penknife).deploy()
 
+
 class KeycloakRealmSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -236,7 +244,9 @@ class KeycloakRealmSetupActivity(Activity):
         """
         # Deploy keycloak
         from app.cli.penknife.keycloakRealmSetup import create_realm_and_users
+
         await create_realm_and_users(penknife=penknife)
+
 
 class NovuSetupActivity(Activity):
     @staticmethod
@@ -289,6 +299,7 @@ class ProvisioningJobActivity(Activity):
         atlas_job.delete()
         atlas_job.put()
 
+
 class KubernetesServiceActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -312,6 +323,7 @@ class KubernetesServiceActivity(Activity):
         from app.cli.penknife.serviceSetup import Service
 
         Service(penknife=penknife).put()
+
 
 class KubernetesVirtualServiceActivity(Activity):
     @staticmethod
@@ -338,6 +350,7 @@ class KubernetesVirtualServiceActivity(Activity):
         IstioVirtualService(penknife=penknife).put()
         IstioCareersVirtualService(penknife=penknife).put()
 
+
 class DeploymentActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -363,6 +376,7 @@ class DeploymentActivity(Activity):
         DeploymentServer(penknife=penknife).put()
         DeploymentCli(penknife=penknife).put()
 
+
 class VmPodScraperActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -387,6 +401,7 @@ class VmPodScraperActivity(Activity):
 
         VMPodScrapperServer(penknife=penknife).put()
 
+
 @dataclasses.dataclass
 class TenantStatus:
     """
@@ -396,6 +411,7 @@ class TenantStatus:
     tenant_name: str
     status: str
     error_msg: None | str = None
+
 
 class UpdateTenantStatusActivity(Activity):
     @staticmethod
@@ -417,7 +433,7 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.common.tenantStatus import update_tenant_status
+        from app.cli.activities.tenantStatus import update_tenant_status
         from app.cli.penknife.penknife import ProductName
         from app.models.tenant import TenantStatusEnum
 
@@ -429,6 +445,7 @@ class UpdateTenantStatusActivity(Activity):
             status=status,
             error_message=activity_input.error_msg,
         )
+
 
 class TemporalNamespaceCreationActivity(Activity):
     @staticmethod
@@ -453,6 +470,7 @@ class TemporalNamespaceCreationActivity(Activity):
         from app.cli.penknife.temporalNamespaceCreation import TemporalNamespaceCreation
 
         await TemporalNamespaceCreation(penknife=penknife).create_temporal_namespace()
+
 
 class SetupUserActivity(Activity):
     @staticmethod
@@ -485,6 +503,7 @@ class SetupUserActivity(Activity):
 
         await add_user_mapping(penknife=penknife, keycloak_user_id=keycloak_user_id, novu_subscriber_id=subscriber_id)
 
+
 class SendMailActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -508,4 +527,3 @@ class SendMailActivity(Activity):
         from app.cli.penknife.mail import onboard_success
 
         onboard_success(penknife=penknife)
-

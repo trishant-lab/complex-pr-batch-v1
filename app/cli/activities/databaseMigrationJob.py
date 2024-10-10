@@ -6,7 +6,6 @@ from kubernetes.client import (
     V1PodSpec,
     V1LocalObjectReference,
     V1Container,
-    V1EnvVar,
 )
 from kubernetes.dynamic.exceptions import NotFoundError
 
@@ -31,6 +30,7 @@ class DatabaseMigrationJob(K8sResourceBaseClass):
         docker_image: str,
         volume_mounts: list,
         volumes: list,
+        container_envs: list,
     ) -> None:
         """
         Constructor
@@ -49,6 +49,7 @@ class DatabaseMigrationJob(K8sResourceBaseClass):
         self.docker_image = docker_image
         self.volume_mounts = volume_mounts
         self.volumes = volumes
+        self.container_envs = container_envs
 
     def payload(self: "DatabaseMigrationJob") -> dict:
         """
@@ -72,13 +73,7 @@ class DatabaseMigrationJob(K8sResourceBaseClass):
                             V1Container(
                                 name=self.job_name,
                                 image=self.docker_image,
-                                env=[
-                                    V1EnvVar(name="POSTGRES_PASSWORD", value=self.postgres_password),
-                                    V1EnvVar(name="POSTGRES_USER", value=self.postgres_user),
-                                    V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
-                                    V1EnvVar(name="DEPLOYMENT", value=self.env),
-                                    V1EnvVar(name="CLIENT_CODE", value=self.tenant),
-                                ],
+                                env=self.container_envs,
                                 volume_mounts=self.volume_mounts,
                                 command=["/bin/sh", "-c"],
                                 args=["python3 /app/provisioning/atlas_migration.py"],

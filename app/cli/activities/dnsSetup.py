@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.cli.common.Googledns import Googledns
+from app.cli.Googledns import Googledns
 
 
 async def dns_setup(google_dns_cname: str, tenant: str, config: Any) -> None:

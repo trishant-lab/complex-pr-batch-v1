@@ -39,7 +39,6 @@ class JeevesDeProvisioningWorkflow(Workflow):
             DeleteProvisioningJobActivity.defn,
             DeleteDeploymentActivity.defn,
             DeleteConfigMapActivity.defn,
-            DeletePVCActivity.defn,
             DropUIBundlesActivity.defn,
             DeleteDNSActivity.defn,
             DeleteVMScraperActivity.defn,

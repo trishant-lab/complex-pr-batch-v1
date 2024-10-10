@@ -426,7 +426,7 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.common.tenantStatus import update_tenant_status
+        from app.cli.activities.tenantStatus import update_tenant_status
         from app.models.tenant import TenantStatusEnum
         from app.cli.dexit.dexit import ProductName
 

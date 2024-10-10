@@ -339,7 +339,7 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from kubernetes.client import V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath
+        from kubernetes.client import V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, V1EnvVar
 
         from app.cli.activities.databaseMigrationJob import DatabaseMigrationJob
         from app.cli.activities.vespaJob import VespaJob
@@ -370,6 +370,14 @@ class ProvisioningJobActivity(Activity):
             ),
         )
 
+        envs = [
+            V1EnvVar(name="POSTGRES_PASSWORD", value=postgres_password),
+            V1EnvVar(name="POSTGRES_USER", value=postgres_user),
+            V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
+            V1EnvVar(name="DEPLOYMENT", value=get_settings().env),
+            V1EnvVar(name="CLIENT_CODE", value=jeeves.tenant),
+        ]
+
         database_migration_job = DatabaseMigrationJob(
             tenant=jeeves.tenant,
             product=ProductName,
@@ -379,6 +387,7 @@ class ProvisioningJobActivity(Activity):
             docker_image=docker_image,
             volume_mounts=[volume_mount],
             volumes=[volume],
+            container_envs=envs,
         )
         database_migration_job.delete()
         database_migration_job.put()
@@ -788,7 +797,7 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.common.tenantStatus import update_tenant_status
+        from app.cli.activities.tenantStatus import update_tenant_status
         from app.cli.jeeves.jeeves import ProductName
         from app.models.tenant import TenantStatusEnum
 
