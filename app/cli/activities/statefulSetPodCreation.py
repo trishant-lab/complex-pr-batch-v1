@@ -65,7 +65,7 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
             metadata=V1ObjectMeta(namespace=self.tenant, name=self.name, labels={"app": self.name}),
             spec=V1StatefulSetSpec(
                 replicas=1,
-                selector={"matchLabels": {"app": self.name, "kind": self.name}},
+                selector={"matchLabels": {"app": self.name}},
                 service_name=f"{self.name}-service",
                 template=V1PodTemplateSpec(
                     metadata=V1ObjectMeta(labels={"app": self.name}),
