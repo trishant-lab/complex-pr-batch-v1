@@ -585,7 +585,7 @@ class KubernetesVirtualServiceActivity(Activity):
         ).put()
 
 
-class DeploymentActivity(Activity):
+class StatefulSetPodCreationActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
         """
@@ -599,7 +599,7 @@ class DeploymentActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="DeploymentActivity")
+    @activity.defn(name="StatefulSetPodCreationActivity")
     async def defn(jeeves: JeevesSpec) -> None:
         """
         Callable for the activity
@@ -727,7 +727,7 @@ class DeploymentActivity(Activity):
             volume_mounts=volume_mounts,
             container_envs=environment_variables,
             volumes=volumes,
-        )
+        ).put()
 
 
 class VmPodScraperActivity(Activity):

@@ -100,12 +100,8 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
         """
         k8s server side apply
         """
-        payload = self.payload()
-
-        log_info(f"StatefulSetPodCreation created in namespace {self.tenant} with payload {payload}")
-
         self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply", force_conflicts=True
         )
         log_info(f"StatefulSetPodCreation created in namespace {self.tenant}")
 
