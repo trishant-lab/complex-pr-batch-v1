@@ -76,9 +76,9 @@ ROLES = [
     "_manage-saved-search (edited) ",
 ]
 
-DEFAULT_CLIENT_IDS = set(
+DEFAULT_CLIENT_IDS = {
     "account", "account-console", "admin-cli", "broker", "realm-management", "security-admin-console", "auth"
-)
+}
 
 
 def create_keycloak_realm(
