@@ -114,6 +114,7 @@ async def setup_postgres(
             await postgres_utils.grant_user_all_privileges_on_table(table="user_entity", username=db_username)
             await postgres_utils.grant_user_all_privileges_on_table(table="keycloak_role", username=db_username)
             await postgres_utils.grant_user_all_privileges_on_table(table="user_role_mapping", username=db_username)
+            await postgres_utils.grant_user_all_privileges_on_table(table="user_attribute", username=db_username)
             await postgres_utils.grant_user_all_privileges_on_table(table="realm", username=db_username)
 
         if matomo_db:

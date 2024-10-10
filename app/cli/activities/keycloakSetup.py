@@ -3,7 +3,9 @@ import orjson
 
 from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.temporal.core.log import log_info
+from app.common import generate_password
 from app.core.settings import AppSettings, get_settings
+from app.onepasswordutil import OnePasswordUtil
 from app.template_env import get_env
 
 
@@ -66,9 +68,10 @@ def create_client(
     client_config = template.render(tenant=tenant, domain=domain)
     keycloak_client.create_client(orjson.loads(client_config), realm_name)
 
-    template = jinja_env.get_template("keycloak_form_auth_client.json")
-    form_auth_client_config = template.render(tenant=tenant, domain=domain)
-    keycloak_client.create_client(orjson.loads(form_auth_client_config), realm_name)
+    if product.lower() == "jeeves":
+        template = jinja_env.get_template("keycloak_form_auth_client.json")
+        form_auth_client_config = template.render(tenant=tenant, domain=domain)
+        keycloak_client.create_client(orjson.loads(form_auth_client_config), realm_name)
 
     log_info(f"Keycloak client {product} created successfully")
 
@@ -122,6 +125,30 @@ def create_internal_users(
     log_info("Internal admin user created successfully")
 
 
+def create_service_account(
+    tenant: str, domain: str, keycloak_client: KeycloakAdminClient, realm_name: str, template_path: str
+) -> None:
+    """
+    Create keycloak service account
+    """
+    jinja_env: jinja2.Environment = get_env(template_path=template_path)
+    template = jinja_env.get_template("keycloak_service_account.json")
+
+    client_secret = generate_password(length=32)
+
+    service_account_config = template.render(tenant=tenant, domain=domain, secret=client_secret)
+
+    keycloak_client.refresh_token()
+    keycloak_client.create_client(orjson.loads(service_account_config), realm_name)
+    OnePasswordUtil(
+        tenant=f"Dexit_Server_{tenant}",
+        server_item="application-config",
+        vault="Dexit",
+    ).insert_if_not_exists(key="service_account_secret", value=client_secret)
+
+    log_info(f"Keycloak service account {tenant} created successfully.")
+
+
 async def create_realm_and_users(
     tenant: str, user_details: dict, product: str, roles: list, template_path: str, domain: str
 ) -> None:
@@ -149,6 +176,15 @@ async def create_realm_and_users(
         product=product,
     )
 
+    if product.lower() == "dexit":
+        create_service_account(
+            tenant=tenant,
+            domain=domain,
+            keycloak_client=keycloak_client,
+            realm_name=realm_name,
+            template_path=template_path,
+        )
+
     # get client uuid
     client_uuid = keycloak_client.get_client_id(client=product.lower(), realm_name=realm_name)
 
@@ -164,6 +200,7 @@ async def create_realm_and_users(
         template_path=template_path,
     )
 
-    create_internal_users(
-        client_uuid=client_uuid, keycloak_client=keycloak_client, realm_name=realm_name, template_path=template_path
-    )
+    if product.lower() == "jeeves":
+        create_internal_users(
+            client_uuid=client_uuid, keycloak_client=keycloak_client, realm_name=realm_name, template_path=template_path
+        )
