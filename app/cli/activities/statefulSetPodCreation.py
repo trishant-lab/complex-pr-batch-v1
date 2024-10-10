@@ -40,7 +40,7 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
         """
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
-            dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Deployment, api_version="apps/v1"
+            dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
         )
 
         self.config: AppSettings = get_settings()
