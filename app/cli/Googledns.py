@@ -28,7 +28,7 @@ class Googledns:
             record_set = dns.ResourceRecordSet(
                 name=self.fqdn,
                 record_type="CNAME",
-                ttl=86400,  # 1 day in seconds
+                ttl=1,  # 1 day in seconds
                 rrdatas=[self.cname],
                 zone=self.zone,
             )

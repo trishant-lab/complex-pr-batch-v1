@@ -1,6 +1,6 @@
 from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.core.settings import AppSettings, get_settings
-from app.cli.common.GoogleDNS import Googledns
+from app.cli.Googledns import Googledns
 
 
 async def dns_setup(penknife: PenknifeSpec) -> None:
@@ -31,6 +31,7 @@ async def dns_setup(penknife: PenknifeSpec) -> None:
     # check dns propagation
     await careers_google_dns.check_dns_propagation()
 
+
 async def dns_teardown(tenant_name: str) -> None:
     """
     Dns teardown
@@ -51,4 +52,3 @@ async def dns_teardown(tenant_name: str) -> None:
     )
 
     careers_google_dns.delete()
-
