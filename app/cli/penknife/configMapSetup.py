@@ -9,7 +9,7 @@ from loguru import logger
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.penknife import TemplatePath
-from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.penknife.models.penknifespec import PenknifeSpec, TenantType
 from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import secret_inject
@@ -67,6 +67,7 @@ class ConfigMapClass(K8sResourceBaseClass):
 
             output = template.render(
                 tenant=self.penknife.tenant,
+                tenant_type=TenantType.get_tenant_type(self.penknife.tenantType)
             )
 
             with open(f"{temp_dir}/{template_file_name}", "w") as f:
