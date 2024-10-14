@@ -302,7 +302,7 @@ class FaxSetupActivity(Activity):
         Callable for the activity
         """
         # Setup fax
-        from app.cli.activities.dexitFaxSetup import FaxSetup
+        from app.cli.activities.faxSetup import FaxSetup
 
         await FaxSetup(dexit=dexit).setup_fax()
 
@@ -810,7 +810,7 @@ class HFInferenceEndpointSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.activities.dexithfinferenceendpoint import HFInferenceEndpointSetup
+        from app.cli.activities.hfinferenceendpoint import HFInferenceEndpointSetup
 
         await HFInferenceEndpointSetup(dexit=dexit).deploy()
 
