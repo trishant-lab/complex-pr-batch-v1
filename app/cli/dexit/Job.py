@@ -11,7 +11,6 @@ from kubernetes.client import (
     V1Volume,
     V1ConfigMapVolumeSource,
     V1KeyToPath,
-    V1PersistentVolumeClaimVolumeSource,
     V1SecretKeySelector,
     V1EnvVarSource,
 )
@@ -66,6 +65,7 @@ class AtlasJob(K8sResourceBaseClass):
                             V1Container(
                                 name=self.job_name,
                                 image=f"registry.314ecorp.tech/dexit-app:{self.image_tag}",
+                                image_pull_policy="Always",
                                 env=[
                                     V1EnvVar(
                                         name="POSTGRES_PASSWORD",
@@ -139,115 +139,3 @@ class AtlasJob(K8sResourceBaseClass):
             self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.dexit.tenant)
         except NotFoundError:
             logger.error(f"Provisioning job not found for {self.dexit.tenant}")
-
-
-class VespaJob(K8sResourceBaseClass):
-    """
-    Vespa Job
-    """
-
-    def __init__(self: "VespaJob", dexit: DexitSpec) -> None:
-        """
-        Vespa Job
-        """
-        self.dexit: DexitSpec = dexit
-        self.k8s_dynamic_client = get_dynamic_client()
-        self.resource = get_resource(
-            dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="batch/v1"
-        )
-        self.env = get_settings().env
-        self.job_name = "dexit-vespa-job"
-        self.job_type = "vespa"
-        self.image_tag = "production" if self.env == "production" else "sprint"
-
-    def payload(self: "VespaJob") -> dict:
-        """
-        Job Payload
-        """
-        body = V1Job(
-            api_version="batch/v1",
-            kind=ResourceKindEnum.Job.value,
-            metadata=V1ObjectMeta(
-                namespace=self.dexit.tenant,
-                name=self.job_name,
-                labels={"app": "dexit", "jobKind": self.job_type},
-                annotations={"app": "dexit", "jobKind": self.job_type},
-            ),
-            spec=V1JobSpec(
-                template=V1JobTemplateSpec(
-                    spec=V1PodSpec(
-                        image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-                        containers=[
-                            V1Container(
-                                name=self.job_name,
-                                env=[
-                                    V1EnvVar(name="APP_CONFIG_DIR", value="/config"),
-                                    V1EnvVar(name="DEPLOYMENT", value=self.env),
-                                    V1EnvVar(name="CLIENT_CODE", value=self.dexit.tenant),
-                                ],
-                                volume_mounts=[
-                                    V1VolumeMount(
-                                        name="dexit-env-config",
-                                        mount_path="/config/env-config.json",
-                                        sub_path="env-config.json",
-                                        read_only=True,
-                                    ),
-                                    V1VolumeMount(
-                                        name="dexit-tenant-config",
-                                        mount_path="/config/tenant-config.json",
-                                        sub_path="tenant-config.json",
-                                        read_only=True,
-                                    ),
-                                ],
-                                image=f"registry.314ecorp.tech/dexit-app:{self.image_tag}",
-                                command=["/bin/sh", "-c"],
-                                args=[f"dexit --tenant-name {self.dexit.tenant} customer --create"],
-                            )
-                        ],
-                        volumes=[
-                            V1Volume(
-                                name="dexit-env-config",
-                                config_map=V1ConfigMapVolumeSource(
-                                    name="dexit-env-config",
-                                    items=[V1KeyToPath(key="env-config.json", path="env-config.json")],
-                                ),
-                            ),
-                            V1Volume(
-                                name="dexit-tenant-config",
-                                config_map=V1ConfigMapVolumeSource(
-                                    name="dexit-tenant-config",
-                                    items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
-                                ),
-                            ),
-                            V1Volume(
-                                name="vespa-volume",
-                                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                                    claim_name="dexit-vespa-pvc"
-                                ),
-                            ),
-                        ],
-                        restart_policy="Never",
-                    )
-                )
-            ),
-        )
-
-        return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
-
-    def put(self: "VespaJob") -> None:
-        """
-        Put method
-        """
-        self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
-        )
-        log_info(message=f"Vespa job {self.job_name} created in namespace {self.dexit.tenant}")
-
-    def delete(self: "VespaJob") -> None:
-        """
-        Delete method
-        """
-        try:
-            self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.dexit.tenant)
-        except NotFoundError:
-            logger.error(f"Vespa job not found for {self.dexit.tenant}")

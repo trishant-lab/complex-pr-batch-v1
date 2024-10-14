@@ -26,7 +26,7 @@ class DeleteKubernetesServiceActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.serviceSetup import Service
+        from app.cli.activities.serviceSetup import Service
 
         Service(jeeves=jeeves).delete()
 
@@ -50,7 +50,7 @@ class DeleteKubernetesVirtualServiceActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.istioVitualService import IstioVirtualService
+        from app.cli.activities.istioVirtualService import IstioVirtualService
 
         IstioVirtualService(jeeves).delete()
 
@@ -124,7 +124,7 @@ class DeleteConfigMapActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.configMapSetup import ConfigMapClass
+        from app.cli.activities.configMapSetup import ConfigMapClass
 
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.TENANT_CONFIG).delete()
         ConfigMapClass(jeeves=jeeves, config_map=ConfigMapClass.RCLONE_CONFIG).delete()
@@ -151,7 +151,7 @@ class DeletePVCActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.pvcSetup import PVC
+        from app.cli.activities.pvcSetup import PVC
 
         PVC(jeeves=jeeves).delete()
 
@@ -175,7 +175,7 @@ class DropUIBundlesActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.UISetup import UISetup
+        from app.cli.activities.UISetup import UISetup
 
         UISetup(jeeves=jeeves).delete()
 
@@ -199,7 +199,7 @@ class DeleteDNSActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.dnsSetup import dns_teardown
+        from app.cli.activities.dnsSetup import dns_teardown
 
         await dns_teardown(tenant_name=jeeves.tenant)
 
@@ -223,7 +223,7 @@ class DeleteVMScraperActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.vmPodScraper import VMPodScrapperServer
+        from app.cli.activities.vmPodScraper import VMPodScrapperServer
 
         VMPodScrapperServer(jeeves=jeeves).delete()
 
@@ -247,7 +247,7 @@ class DeleteRedisNamespace(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.statefulSetup import StateFullSet
+        from app.cli.activities.redisSetup import StateFullSet
 
         StateFullSet(jeeves=jeeves).delete()
 
@@ -271,6 +271,6 @@ class DeleteStatefulSetActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.jeeves.statefulSetup import StateFullSet
+        from app.cli.activities.redisSetup import StateFullSet
 
         StateFullSet(jeeves=jeeves).delete()

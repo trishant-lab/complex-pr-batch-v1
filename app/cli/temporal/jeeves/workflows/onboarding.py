@@ -11,9 +11,8 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     PostgresSetupActivity,
     NamespaceSetupActivity,
     ConfigmapSetupActivity,
-    PVCSetupActivity,
     SecretSetupActivity,
-    StateFullSetSetupActivity,
+    RedisSetupActivity,
     DnsSetupActivity,
     UiSetupActivity,
     KeycloakRealmSetupActivity,
@@ -22,7 +21,7 @@ from app.cli.temporal.jeeves.activities.onboarding import (
     ProvisioningJobActivity,
     KubernetesServiceActivity,
     KubernetesVirtualServiceActivity,
-    DeploymentActivity,
+    StatefulSetPodCreationActivity,
     VmPodScraperActivity,
     AiVoiceSetupActivity,
     TemporalNamespaceCreationActivity,
@@ -53,9 +52,9 @@ class JeevesOnboardingWorkflow(Workflow):
             PostgresSetupActivity.defn,
             NamespaceSetupActivity.defn,
             ConfigmapSetupActivity.defn,
-            PVCSetupActivity.defn,
+            # PVCSetupActivity.defn,
             SecretSetupActivity.defn,
-            StateFullSetSetupActivity.defn,
+            RedisSetupActivity.defn,
             DnsSetupActivity.defn,
             UiSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
@@ -64,7 +63,7 @@ class JeevesOnboardingWorkflow(Workflow):
             ProvisioningJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesVirtualServiceActivity.defn,
-            DeploymentActivity.defn,
+            StatefulSetPodCreationActivity.defn,
             VmPodScraperActivity.defn,
             AiVoiceSetupActivity.defn,
             SendMailActivity.defn,
@@ -151,9 +150,9 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # statefulset setup
             await workflow.execute_activity(
-                activity=StateFullSetSetupActivity.defn,
+                activity=RedisSetupActivity.defn,
                 arg=jeeves,
-                retry_policy=StateFullSetSetupActivity.get_retry_policy(),
+                retry_policy=RedisSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
@@ -165,13 +164,13 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # pvc setup
-            await workflow.execute_activity(
-                activity=PVCSetupActivity.defn,
-                arg=jeeves,
-                retry_policy=PVCSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
+            # # pvc setup
+            # await workflow.execute_activity(
+            #     activity=PVCSetupActivity.defn,
+            #     arg=jeeves,
+            #     retry_policy=PVCSetupActivity.get_retry_policy(),
+            #     start_to_close_timeout=timedelta(seconds=120),
+            # )
 
             # dns setup
             await workflow.execute_activity(
@@ -223,9 +222,9 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # Deploy server and cli
             await workflow.execute_activity(
-                activity=DeploymentActivity.defn,
+                activity=StatefulSetPodCreationActivity.defn,
                 arg=jeeves,
-                retry_policy=DeploymentActivity.get_retry_policy(),
+                retry_policy=StatefulSetPodCreationActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 

@@ -12,13 +12,8 @@ from pydantic_settings import BaseSettings
 
 from app.core.log import setup_logging
 
-CONFIG_FILE_NAMES: Final[list[str]] = [
-    "settings.json",
-    "veritable.json",
-    "jeeves.json",
-    "dexit.json",
-]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json"]
+CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -35,6 +30,7 @@ class KeycloakSettings(BaseModel):
 
     client_id: str = "app"
     auth_url: str = "https://auth.314ecorp.tech"
+    internal_auth_url: str = "http://keycloak-service.keycloak.svc.cluster.local:8080"
     auth_user: str = "installer"
     auth_secret: str = ""
 
@@ -196,6 +192,31 @@ class JeevesSettings(BaseModel):
     reporting_site_id: str = "1"
 
 
+class PenknifeSettings(BaseModel):
+    """
+    Penknife Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "penknife.314ecorp.tech"
+
+    temporal_penknife_onboarding_task_queue: str = "temporal_penknife_onboarding_task_queue"
+    temporal_penknife_deboarding_task_queue: str = "temporal_penknife_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = ""
+    novu_admin_password: str = ""
+
+    keycloak_db_password: str = ""
+
+    # r2_url: str = ""
+    # r2_access_key: str = ""
+    # r2_secret: str = ""
+    # r2_bucket: str = ""
+
+    # reporting_site_id: str = "1"
+
+
 class DexitAIOcrEngines(str, Enum):
     """OCR Engine"""
 
@@ -209,6 +230,11 @@ class DexitAIEntityExtractionModels(str, Enum):
 
     LLAMA2_7B = "llama2:7b"
     LLAMA2_13B = "llama2:13b"
+    LLAMA3_8B = "llama3:8b"
+    LLAMA3_1_8B = "llama3.1:8b"
+    GEMMA_7B = "gemma:7b"
+    GEMMA2_9B = "gemma2:9b"
+
 
 
 class DexitAIComputeEngineSettings(BaseModel):
@@ -216,13 +242,13 @@ class DexitAIComputeEngineSettings(BaseModel):
     Dexit AI Compute Engine Settings
     """
 
-    accelerator: str = ""
-    instance_size: str = ""
-    instance_type: str = ""
+    accelerator: str = "cpu"
+    instance_size: str = "x8"
+    instance_type: str = "intel-spr"
     min_replica: int = 0
     max_replica: int = 1
     scale_to_zero_timeout: int = 15  # minutes
-    vendor: str = ""
+    vendor: str = "aws"
     region: str = "us-east-1"
 
 
@@ -232,7 +258,8 @@ class DexitAIEndpointSettings(BaseModel):
     """
 
     enable_ocr: bool = True
-    enable_entity: bool = False
+    enable_entity_llm: bool = False
+    enable_entity_layoutlm: bool = False
     enable_classification: bool = False
     compute_engine: DexitAIComputeEngineSettings = DexitAIComputeEngineSettings()
 
@@ -248,15 +275,18 @@ class DexitAISettings(BaseModel):
     hf_endpoint_repo_name: str = "314e/Dexit-AI"
     hf_endpoint_repo_revision: str = "production"
 
-    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.TESSERACT
+    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.DOCTR
 
-    classification_modelid: str = "314e/Dexit-Document-Classification-Muspell-Model1"
-    classification_modelrevision: str = "production"
+    classification_modelid: str = "314e/Dexit-LayoutLMv3-Classification-test1"
+    classification_modelrevision: str = "v0.1.3-manual-upload"
+    
+    entity_layoutlm_modelid: str = "314e/Dexit-LayoutLMv3-Entity-test1"
+    entity_layoutlm_modelrevision: str = "v0.1.6-test"
 
-    entity_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA2_13B
-    entity_model_temperature: float = 0
-    entity_model_numctx: int = 4096
-    entity_model_numpredict: int = 300
+    entity_llm_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA3_8B
+    entity_llm_model_temperature: float = 0
+    entity_llm_model_numctx: int = 4096
+    entity_llm_model_numpredict: int = 300
 
     inference_endpoints: list[DexitAIEndpointSettings] = [DexitAIEndpointSettings()]
 
@@ -309,6 +339,7 @@ class AppSettings(BaseSettings):
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
     dexit: DexitSettings = DexitSettings()
+    penknife: PenknifeSettings = PenknifeSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
@@ -319,6 +350,7 @@ class AppSettings(BaseSettings):
     google_dns_cname: str = "k8s.314ecorp.tech"
 
     grafana_url: str = "https://monitor.314ecorp.tech"
+    grafana_datasource_uid: str = "e4hhV8CGk"
     grafana_token: str = ""
 
     supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"
@@ -359,6 +391,7 @@ class ProductionSettings(AppSettings):
     postgres: PostgresSettings = PostgresSettings()
 
     app_url: str = "https://launchpad.314ecorp.com"
+    grafana_datasource_uid: str = "LTvkszRVk"
 
     model_config = ConfigDict(extra="ignore")
 

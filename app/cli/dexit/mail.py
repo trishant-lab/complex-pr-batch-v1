@@ -1,6 +1,6 @@
 from app.cli.dexit import TemplatePath
 from app.cli.dexit.models.dexitSpec import DexitSpec
-from app.cli.common.keycloakUtils import KeycloakAdminClient
+from app.cli.keycloakUtils import KeycloakAdminClient
 from app.cli.temporal.core.log import log_info
 from app.common import generate_password
 from app.core.settings import AppSettings, get_settings

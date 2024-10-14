@@ -83,31 +83,6 @@ class ConfigmapSetupActivity(Activity):
         ConfigMapClass(dexit=dexit, config_map=ConfigMapClass.VECTOR_CONFIG).put()
 
 
-class PVCSetupActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
-
-    @staticmethod
-    @activity.defn(name="pvc_setup_activity")
-    async def defn(dexit: DexitSpec) -> None:
-        """
-        Callable for the activity
-        """
-        # create PVC in k8s for namespace
-        from app.cli.dexit.pvcSetup import PVC
-
-        PVC(dexit=dexit).put()
-
-
 class SecretSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -287,15 +262,11 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.dexit.Job import AtlasJob, VespaJob
+        from app.cli.dexit.Job import AtlasJob
 
         atlas_job = AtlasJob(dexit=dexit)
         atlas_job.delete()
         atlas_job.put()
-
-        vespa_job = VespaJob(dexit=dexit)
-        vespa_job.delete()
-        vespa_job.put()
 
 
 class KubernetesServiceActivity(Activity):
@@ -455,7 +426,7 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.common.tenantStatus import update_tenant_status
+        from app.cli.activities.tenantStatus import update_tenant_status
         from app.models.tenant import TenantStatusEnum
         from app.cli.dexit.dexit import ProductName
 
