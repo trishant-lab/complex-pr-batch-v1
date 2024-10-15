@@ -57,18 +57,24 @@ class HFInferenceEndpointSetup:
         self.op_util.insert_if_not_exists(key="ai_ocr_endpoint_name", value="")
         self.op_util.insert_if_not_exists(key="ai_ocr_endpoint_url", value="")
 
-
     async def create_endpoint(self: "HFInferenceEndpointSetup", endpoint: DexitAIEndpointSettings) -> None:
-        if not any([
-            endpoint.enable_ocr, endpoint.enable_classification,
-            endpoint.enable_entity_llm, endpoint.enable_entity_layoutlm
-        ]):
+        """
+        create endpoint
+        """
+        if not any(
+            [
+                endpoint.enable_ocr,
+                endpoint.enable_classification,
+                endpoint.enable_entity_llm,
+                endpoint.enable_entity_layoutlm,
+            ]
+        ):
             logger.error("At least one of OCR, Classification or Entity Extraction should be enabled")
             raise ValueError("At least one of OCR, Classification or Entity Extraction should be enabled")
 
         headers = {"content-type": "application/json", "Authorization": f"Bearer {self.ai_config.hf_token_write}"}
         hf_url = f"https://api.endpoints.huggingface.cloud/v2/endpoint/{self.ai_config.hf_username}"
-        
+
         endpoint_name = "dexit"
         if endpoint.enable_ocr:
             endpoint_name += "-ocr"
@@ -117,7 +123,7 @@ class HFInferenceEndpointSetup:
                             # ---------- Classification Related Configs ----------
                             "CLASSIFICATION_SERVICE_ENABLED": str(endpoint.enable_classification),
                             "HF_LAYOUTLMV3_SEQUENCE_CLF_MODEL_ID": self.ai_config.classification_modelid,
-                            "HF_LAYOUTLMV3_SEQUENCE_CLF_REVISION": self.ai_config.classification_modelrevision
+                            "HF_LAYOUTLMV3_SEQUENCE_CLF_REVISION": self.ai_config.classification_modelrevision,
                         }
                     }
                 },
@@ -166,13 +172,11 @@ class HFInferenceEndpointSetup:
             op_util.create_or_replace(key="ai_ocr_endpoint_name", value=endpoint_name)
             op_util.create_or_replace(key="ai_ocr_endpoint_url", value=endpoint_url)
 
-
     async def deploy(self: "HFInferenceEndpointSetup") -> None:
         """Deploy HF Inference Endpoints for tenant"""
         logger.info(f"Deploying HF Inference Endpoints for tenant {self.dexit.tenant}")
         endpoints: list[DexitAIEndpointSettings] = self.ai_config.inference_endpoints
         await asyncio.gather(*[self.create_endpoint(endpoint) for endpoint in endpoints])
-
 
     async def delete(self: "HFInferenceEndpointSetup") -> None:
         """Delete HF Inference Endpoints for tenant"""
