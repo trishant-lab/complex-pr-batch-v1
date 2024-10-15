@@ -11,7 +11,7 @@ from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(tenant: str, repo_name: str, domain_name: str) -> None:
+def deploy_ui(tenant: str, repo_name: str, domain_name: str, product_name: str | None = None) -> None:
     """
 
     :return:
@@ -46,9 +46,14 @@ def deploy_ui(tenant: str, repo_name: str, domain_name: str) -> None:
             with zipfile.ZipFile(Path(tmp_dir, "bundle.zip").as_posix(), "r") as zip_ref:
                 zip_ref.extractall(os.path.join(tmp_dir, "bundle"))
 
+            input_path = os.path.join(tmp_dir, "bundle", "dist", "admin")
+
+            if product_name and product_name.lower() == "penknife":
+                input_path = os.path.join(tmp_dir, "bundle", "dist")
+
             # Upload the files to S3
             copy_files_to_s3(
-                input_path=os.path.join(tmp_dir, "bundle", "dist", "admin"),
+                input_path=input_path,
                 output_path=f"{config.s3.rclone_remote}/static/{dest_dir}",
                 config=config,
             )
@@ -92,16 +97,21 @@ def delete_ui_bundle(tenant: str, domain_name: str) -> None:
 
 
 class UISetup:
-    def __init__(self: "UISetup", tenant: str, domain_name: str, repo_name: str) -> None:
+    def __init__(
+        self: "UISetup", tenant: str, domain_name: str, repo_name: str, product_name: str | None = None
+    ) -> None:
         self.tenant = tenant
         self.domain_name = domain_name
         self.repo_name = repo_name
+        self.product_name = product_name
 
     def deploy(self: "UISetup") -> None:
         """
         Deploy UI bundle to S3
         """
-        deploy_ui(tenant=self.tenant, domain_name=self.domain_name, repo_name=self.repo_name)
+        deploy_ui(
+            tenant=self.tenant, domain_name=self.domain_name, repo_name=self.repo_name, product_name=self.product_name
+        )
 
     def delete(self: "UISetup") -> None:
         """

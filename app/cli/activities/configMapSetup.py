@@ -15,7 +15,13 @@ from app.template_env import get_env
 
 
 class ConfigMapClass(K8sResourceBaseClass):
-    def __init__(self: "ConfigMapClass", tenant: str, config_map: dict[str, str], bucket_name: str) -> None:
+    def __init__(
+        self: "ConfigMapClass",
+        tenant: str,
+        config_map: dict[str, str],
+        bucket_name: str,
+        tenant_type: str | None = None,
+    ) -> None:
         """
         Constructor for ConfigMapClass
         """
@@ -28,6 +34,7 @@ class ConfigMapClass(K8sResourceBaseClass):
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1"
         )
+        self.tenant_type: str | None = tenant_type
 
     def payload(self: "ConfigMapClass") -> dict:
         """
@@ -56,9 +63,7 @@ class ConfigMapClass(K8sResourceBaseClass):
             template_env = get_env(template_path=temp_dir)
 
             template = template_env.get_template(template_file_name)
-            output = template.render(
-                tenant=self.tenant,
-            )
+            output = template.render(tenant=self.tenant, tenant_type=self.tenant_type)
 
             with open(f"{temp_dir}/{template_file_name}", "w") as f:
                 f.write(output)

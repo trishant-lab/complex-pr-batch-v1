@@ -199,6 +199,7 @@ class PenknifeSettings(BaseModel):
 
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "penknife.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
 
     temporal_penknife_onboarding_task_queue: str = "temporal_penknife_onboarding_task_queue"
     temporal_penknife_deboarding_task_queue: str = "temporal_penknife_deboarding_task_queue"
@@ -234,7 +235,6 @@ class DexitAIEntityExtractionModels(str, Enum):
     LLAMA3_1_8B = "llama3.1:8b"
     GEMMA_7B = "gemma:7b"
     GEMMA2_9B = "gemma2:9b"
-
 
 
 class DexitAIComputeEngineSettings(BaseModel):
@@ -279,7 +279,7 @@ class DexitAISettings(BaseModel):
 
     classification_modelid: str = "314e/Dexit-LayoutLMv3-Classification-test1"
     classification_modelrevision: str = "v0.1.3-manual-upload"
-    
+
     entity_layoutlm_modelid: str = "314e/Dexit-LayoutLMv3-Entity-test1"
     entity_layoutlm_modelrevision: str = "v0.1.6-test"
 
