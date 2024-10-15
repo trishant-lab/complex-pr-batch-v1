@@ -77,7 +77,13 @@ ROLES = [
 ]
 
 DEFAULT_CLIENT_IDS = {
-    "account", "account-console", "admin-cli", "broker", "realm-management", "security-admin-console", "auth"
+    "account",
+    "account-console",
+    "admin-cli",
+    "broker",
+    "realm-management",
+    "security-admin-console",
+    "auth",
 }
 
 

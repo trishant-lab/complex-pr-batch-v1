@@ -11,11 +11,13 @@
   "clientAuthenticatorType": "client-secret",
   "redirectUris": [
     "https://{{tenant}}.penknife.314ecorp.{{domain}}/*",
-    "http://{{tenant}}.penknife.314ecorp.{{domain}}/*"
+    "http://{{tenant}}.penknife.314ecorp.{{domain}}/*",
+    "https://{{tenant}}-careers.penknife.314ecorp.{{domain}}/*"
   ],
   "webOrigins": [
     "http://{{tenant}}.penknife.314ecorp.{{domain}}",
-    "https://{{tenant}}.penknife.314ecorp.{{domain}}"
+    "https://{{tenant}}.penknife.314ecorp.{{domain}}",
+    "https://{{tenant}}-careers.penknife.314ecorp.{{domain}}"
   ],
   "notBefore": 0,
   "bearerOnly": false,

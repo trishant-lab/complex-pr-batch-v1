@@ -1,10 +1,10 @@
-
 from datetime import timedelta
 from temporalio.common import RetryPolicy
 from temporalio import activity
 
 from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.base import Activity
+from app.cli.penknife.penknife import ProductName
 
 
 class DeleteKubernetesServiceActivity(Activity):
@@ -22,13 +22,14 @@ class DeleteKubernetesServiceActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteKubernetesServiceActivity")
-    async def defn(penkife: PenknifeSpec) -> None:
+    async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.penknife.serviceSetup import Service
+        from app.cli.activities.serviceSetup import Service
 
-        Service(penknife=penkife).delete()
+        Service(tenant=penknife.tenant, product=ProductName).delete()
+
 
 class DeleteKubernetesVirtualServiceActivity(Activity):
     @staticmethod
@@ -49,10 +50,23 @@ class DeleteKubernetesVirtualServiceActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.penknife.istioVirtualService import IstioVirtualService, IstioCareersVirtualService
+        from app.cli.activities.istioVirtualService import IstioVirtualService
+        from app.core.settings import get_settings, AppSettings
 
-        IstioVirtualService(penknife=penknife).delete()
-        IstioCareersVirtualService(penknife=penknife).delete()
+        config: AppSettings = get_settings()
+
+        IstioVirtualService(
+            tenant=penknife.tenant, domain_name=config.penknife.domain_name, product=ProductName
+        ).delete()
+
+        IstioVirtualService(
+            tenant=penknife.tenant,
+            domain_name=config.penknife.domain_name,
+            product=ProductName,
+            service_name=f"{ProductName.lower()}-careers-vs",
+            host=f"{penknife.tenant}-careers.{config.penknife.domain_name}",
+        ).delete()
+
 
 class DeleteProvisioningJobActivity(Activity):
     @staticmethod
@@ -73,9 +87,10 @@ class DeleteProvisioningJobActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.penknife.Job import DatabaseSchemaMigrationJob, VespaJob
+        from app.cli.penknife.Job import DatabaseSchemaMigrationJob
 
         DatabaseSchemaMigrationJob(penknife=penknife).delete()
+
 
 class DeleteDeploymentActivity(Activity):
     @staticmethod
@@ -101,6 +116,7 @@ class DeleteDeploymentActivity(Activity):
         DeploymentServer(penknife=penknife).delete()
         DeploymentCli(penknife=penknife).delete()
 
+
 class DeleteConfigMapActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -120,34 +136,18 @@ class DeleteConfigMapActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.penknife.configMapSetup import ConfigMapClass
+        from app.cli.activities.configMapSetup import ConfigMapClass
 
-        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.TENANT_CONFIG).delete()
-        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.STATE_STORE_CONFIG).delete()
-        ConfigMapClass(penknife=penknife, config_map=ConfigMapClass.VECTOR_CONFIG).delete()
+        tenant_config: dict[str, str] = {"name": "penknife-tenant-config", "key": "tenant-config.json"}
+        vector_config: dict[str, str] = {"name": "penknife-cli-vector-config", "key": "vector-config.toml"}
+        state_store_config: dict[str, str] = {"name": "penknife-statestore-config", "key": "statestore.yaml"}
 
-class DeletePVCActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
+        bucket_name = "penknife-config"
 
-    @staticmethod
-    @activity.defn(name="DeletePVCActivity")
-    async def defn(penknife: PenknifeSpec) -> None:
-        """
-        Callable for the activity
-        """
-        from app.cli.penknife.pvcSetup import PVC
+        ConfigMapClass(tenant=penknife.tenant, config_map=tenant_config, bucket_name=bucket_name).delete()
+        ConfigMapClass(tenant=penknife.tenant, config_map=vector_config, bucket_name=bucket_name).delete()
+        ConfigMapClass(tenant=penknife.tenant, config_map=state_store_config, bucket_name=bucket_name).delete()
 
-        PVC(penknife=penknife).delete()
 
 class DropUIBundlesActivity(Activity):
     @staticmethod
@@ -168,9 +168,18 @@ class DropUIBundlesActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.penknife.UISetup import UISetup
+        from app.cli.activities.UISetup import UISetup
+        from app.core.settings import get_settings
 
-        UISetup(penknife=penknife).delete()
+        UISetup(
+            tenant=penknife.tenant,
+            domain_name=get_settings().penknife.domain_name,
+            repo_name="penknife-ui",
+            product_name=ProductName,
+        ).delete()
+
+        # TODO: Delete career portal
+
 
 class DeleteDNSActivity(Activity):
     @staticmethod
@@ -191,9 +200,22 @@ class DeleteDNSActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.penknife.dnsSetup import dns_teardown
+        from app.cli.activities.dnsSetup import dns_teardown
+        from app.core.settings import get_settings, AppSettings
 
-        await dns_teardown(tenant_name=penknife.tenant)
+        config: AppSettings = get_settings()
+
+        # DNS setup for penknife
+        fqdn = f"{penknife.tenant}.{config.penknife.domain_name}."
+
+        await dns_teardown(google_dns_cname=config.google_dns_cname, fqdn=fqdn, zone_name=config.penknife.zone_name)
+
+        # DNS setup for penknife career portal
+        career_fqdn = f"{penknife.tenant}-careers.{config.penknife.domain_name}."
+
+        await dns_teardown(
+            google_dns_cname=config.google_dns_cname, fqdn=career_fqdn, zone_name=config.penknife.zone_name
+        )
 
 
 class DeleteVMScraperActivity(Activity):
@@ -215,9 +237,12 @@ class DeleteVMScraperActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.penknife.vmPodScrapper import VMPodScrapperServer
+        from app.cli.activities.vmPodScraper import VMPodScrapperServer
 
-        VMPodScrapperServer(penknife=penknife).delete()
+        name = "penknife-metrics"
+
+        VMPodScrapperServer(tenant=penknife.tenant, product=ProductName, name=name).delete()
+
 
 class DeleteRedisNamespace(Activity):
     @staticmethod
@@ -238,32 +263,34 @@ class DeleteRedisNamespace(Activity):
         """
         Callable for the activity
         """
-        from app.cli.penknife.statefulSetup import StateFullSet
+        from app.cli.activities.redisSetup import RedisSetup
 
-        StateFullSet(penknife=penknife).delete()
+        await RedisSetup(tenant=penknife.tenant, product=ProductName, vault_name="Penknife").delete()
 
-class DeleteStatefulSetActivity(Activity):
-    @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
-        )
 
-    @staticmethod
-    @activity.defn(name="DeleteStatefulSetActivity")
-    async def defn(penknife: PenknifeSpec) -> None:
-        """
-        Callable for the activity
-        """
-        from app.cli.penknife.statefulSetup import StateFullSet
+# class DeleteStatefulSetActivity(Activity):
+#     @staticmethod
+#     def get_retry_policy() -> RetryPolicy:
+#         """
+#         RetryPolicy for the activity
+#         """
+#         return RetryPolicy(
+#             initial_interval=timedelta(seconds=1),
+#             backoff_coefficient=2,
+#             maximum_interval=timedelta(seconds=10),
+#             maximum_attempts=1,
+#         )
 
-        StateFullSet(penknife=penknife).delete()
+#     @staticmethod
+#     @activity.defn(name="DeleteStatefulSetActivity")
+#     async def defn(penknife: PenknifeSpec) -> None:
+#         """
+#         Callable for the activity
+#         """
+#         from app.cli.penknife.statefulSetup import StateFullSet
+
+#         StateFullSet(penknife=penknife).delete()
+
 
 class DeleteKeycloakRealmActivity(Activity):
     @staticmethod
@@ -277,13 +304,13 @@ class DeleteKeycloakRealmActivity(Activity):
             maximum_interval=timedelta(seconds=10),
             maximum_attempts=1,
         )
-    
+
     @staticmethod
     @activity.defn(name="DeleteKeycloakRealmActivity")
     async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
-        from app.cli.penknife.keycloakRealmSetup import delete_clients_and_realms
+        from app.cli.activities.penknifeKeycloakSetup import delete_clients_and_realms
 
         await delete_clients_and_realms(penknife=penknife)

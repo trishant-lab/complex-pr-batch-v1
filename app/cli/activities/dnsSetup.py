@@ -1,15 +1,11 @@
-from typing import Any
-
 from app.cli.Googledns import Googledns
 
 
-async def dns_setup(google_dns_cname: str, tenant: str, config: Any) -> None:
+async def dns_setup(google_dns_cname: str, fqdn: str, zone_name: str) -> None:
     """
     Dns setup
     """
-    domain_name: str = config.domain_name
-
-    google_dns = Googledns(cname=f"{google_dns_cname}.", fqdn=f"{tenant}.{domain_name}.", zone_name=config.zone_name)
+    google_dns = Googledns(cname=f"{google_dns_cname}.", fqdn=fqdn, zone_name=zone_name)
 
     # create dns
     google_dns.create_dns()
@@ -18,15 +14,11 @@ async def dns_setup(google_dns_cname: str, tenant: str, config: Any) -> None:
     await google_dns.check_dns_propagation()
 
 
-async def dns_teardown(google_dns_cname: str, tenant_name: str, config: Any) -> None:
+async def dns_teardown(google_dns_cname: str, fqdn: str, zone_name: str) -> None:
     """
     Dns teardown
     """
-    domain_name: str = config.domain_name
-
-    google_dns = Googledns(
-        cname=f"{google_dns_cname}.", fqdn=f"{tenant_name}.{domain_name}.", zone_name=config.zone_name
-    )
+    google_dns = Googledns(cname=f"{google_dns_cname}.", fqdn=fqdn, zone_name=zone_name)
 
     # delete dns
     google_dns.delete()

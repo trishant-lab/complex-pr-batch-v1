@@ -65,8 +65,6 @@ def integrate_provider(
     return res._id
 
 
-
-
 def list_integration_provider(config: AppSettings, novu_api_key: str) -> list:
     """
     :return:
@@ -134,6 +132,7 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             provider="novu", channel="in_app", credentials={}, active=True, config=config, novu_api_key=novu_api_key
         )
 
+
 def list_novu_notification_template(
     config: AppSettings,
     novu_api_key: str,
@@ -162,9 +161,9 @@ def create_novu_workflow_templates(template_path: str, config: AppSettings, novu
 
     template_names: list = list_novu_notification_template(config=config, novu_api_key=novu_api_key)
     template_names: set = set(template_names)
-    with open(template_path, 'r') as file:
+    with open(template_path, "r") as file:
         json_data = file.read()
-    
+
     data: list[dict] = orjson.loads(json_data)
     for workflow in data:
         event_name = workflow.get("name")
@@ -183,6 +182,7 @@ def create_novu_workflow_templates(template_path: str, config: AppSettings, novu
             response = requests.post(url=workflow_url, headers=headers, json=workflow, timeout=10)
             if response.status_code >= 400:
                 logger.error(f"Failed to create novu workflow template : {response.json()}")
+
 
 class NovuSetup:
     """
@@ -308,7 +308,7 @@ class NovuSetup:
         organization_name = f"penknife_{self.penknife.tenant}"
         access_token = self.get_access_token()
         organization = self.get_organizations_by_name(organization_name=organization_name, token=access_token)
-        
+
         organization = organization[0]
         organization_id = organization["_id"]
 
