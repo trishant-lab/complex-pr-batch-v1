@@ -163,9 +163,13 @@ class DnsSetupActivity(Activity):
         """
         # Create DNS
         from app.cli.activities.dnsSetup import dns_setup
-        from app.core.settings import get_settings
+        from app.core.settings import get_settings, AppSettings
 
-        await dns_setup(tenant=dexit.tenant, config=get_settings().dexit)
+        config: AppSettings = get_settings()
+
+        fqdn = f"{dexit.tenant}.{config.dexit.domain_name}."
+
+        await dns_setup(google_dns_cname=config.google_dns_cname, fqdn=fqdn, zone_name=config.dexit.zone_name)
 
 
 class UiSetupActivity(Activity):
@@ -189,9 +193,23 @@ class UiSetupActivity(Activity):
         """
         # Deploy ui
         from app.cli.activities.UISetup import UISetup
-        from app.core.settings import get_settings
+        from app.core.settings import get_settings, AppSettings
 
-        UISetup(tenant=dexit.tenant, domain_name=get_settings().dexit.domain_name, repo_name="dexit-ui").deploy()
+        config: AppSettings = get_settings()
+
+        environment: str = config.env
+        image_tag = "production" if environment == "production" else "sprint"
+
+        if environment == "production":
+            dest_dir = f"{dexit.tenant}.{config.dexit.domain_name}/"
+        else:
+            dest_dir = f"{dexit.tenant}.{config.dexit.domain_name}/{image_tag}"
+
+        repo_name = "dexit-ui"
+
+        src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+
+        UISetup(src_object_name=src_object_name, dest_dir=dest_dir).deploy()
 
 
 class KeycloakRealmSetupActivity(Activity):

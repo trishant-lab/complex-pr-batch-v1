@@ -298,6 +298,7 @@ class DexitSettings(BaseModel):
 
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "dexit.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
     # grafana: GrafanaSettings = GrafanaSettings()
 
     temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"

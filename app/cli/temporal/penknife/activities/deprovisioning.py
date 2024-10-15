@@ -50,7 +50,7 @@ class DeleteKubernetesVirtualServiceActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.activities.istioVirtualService import IstioVirtualService, IstioCareersVirtualService
+        from app.cli.activities.istioVirtualService import IstioVirtualService
         from app.core.settings import get_settings, AppSettings
 
         config: AppSettings = get_settings()
@@ -201,13 +201,20 @@ class DeleteDNSActivity(Activity):
         Callable for the activity
         """
         from app.cli.activities.dnsSetup import dns_teardown
-        from app.core.settings import get_settings
+        from app.core.settings import get_settings, AppSettings
+
+        config: AppSettings = get_settings()
+
+        # DNS setup for penknife
+        fqdn = f"{penknife.tenant}.{config.penknife.domain_name}."
+
+        await dns_teardown(google_dns_cname=config.google_dns_cname, fqdn=fqdn, zone_name=config.penknife.zone_name)
+
+        # DNS setup for penknife career portal
+        career_fqdn = f"{penknife.tenant}-careers.{config.penknife.domain_name}."
 
         await dns_teardown(
-            tenant_name=penknife.tenant,
-            config=get_settings().penknife,
-            google_dns_cname=get_settings().google_dns_cname,
-            product_name=ProductName,
+            google_dns_cname=config.google_dns_cname, fqdn=career_fqdn, zone_name=config.penknife.zone_name
         )
 
 

@@ -11,7 +11,7 @@ from app.core.settings import AppSettings, get_settings
 from app.s3_utils import get_storage_client, download_file_from_storage, copy_files_to_s3, delete_file_from_storage
 
 
-def deploy_ui(tenant: str, repo_name: str, domain_name: str, product_name: str | None = None) -> None:
+def deploy_ui(src_object_name: str, dest_dir: str, product_name: str | None = None) -> None:
     """
 
     :return:
@@ -19,12 +19,6 @@ def deploy_ui(tenant: str, repo_name: str, domain_name: str, product_name: str |
     config: AppSettings = get_settings()
 
     environment: str = config.env
-    image_tag = "production" if environment == "production" else "sprint"
-
-    if environment == "production":
-        dest_dir = f"{tenant}.{domain_name}/"
-    else:
-        dest_dir = f"{tenant}.{domain_name}/{image_tag}"
 
     s3_int_client: boto3.client = get_storage_client(
         config=config,
@@ -37,7 +31,7 @@ def deploy_ui(tenant: str, repo_name: str, domain_name: str, product_name: str |
         # Copy file from source to temporary folder
         with tempfile.TemporaryDirectory() as tmp_dir:
             download_file_from_storage(
-                object_name=f"{repo_name}/{image_tag}/bundle.zip",
+                object_name=src_object_name,
                 file_path=f"{tmp_dir}/bundle.zip",
                 storage_client=s3_int_client,
                 bucket_name="artifacts",
@@ -72,7 +66,7 @@ def deploy_ui(tenant: str, repo_name: str, domain_name: str, product_name: str |
         raise e
 
 
-def delete_ui_bundle(tenant: str, domain_name: str) -> None:
+def delete_ui_bundle(dest_dir: str) -> None:
     """
 
     :param tenant
@@ -81,40 +75,27 @@ def delete_ui_bundle(tenant: str, domain_name: str) -> None:
     """
     config: AppSettings = get_settings()
 
-    environment: str = config.env
-    image_tag = "production" if environment == "production" else "sprint"
-
-    if environment == "production":
-        bundle_path = f"{tenant}.{domain_name}/"
-    else:
-        bundle_path = f"{tenant}.{domain_name}/{image_tag}"
-
     delete_file_from_storage(
-        object_name=bundle_path,
+        object_name=dest_dir,
         config=config,
         bucket_name="static",
     )
 
 
 class UISetup:
-    def __init__(
-        self: "UISetup", tenant: str, domain_name: str, repo_name: str, product_name: str | None = None
-    ) -> None:
-        self.tenant = tenant
-        self.domain_name = domain_name
-        self.repo_name = repo_name
+    def __init__(self: "UISetup", src_object_name: str, dest_dir: str, product_name: str | None = None) -> None:
+        self.src_object_name = src_object_name
+        self.dest_dir = dest_dir
         self.product_name = product_name
 
     def deploy(self: "UISetup") -> None:
         """
         Deploy UI bundle to S3
         """
-        deploy_ui(
-            tenant=self.tenant, domain_name=self.domain_name, repo_name=self.repo_name, product_name=self.product_name
-        )
+        deploy_ui(src_object_name=self.src_object_name, dest_dir=self.dest_dir, product_name=self.product_name)
 
     def delete(self: "UISetup") -> None:
         """
         Delete UI bundle from S3
         """
-        delete_ui_bundle(tenant=self.tenant, domain_name=self.domain_name)
+        delete_ui_bundle(dest_dir=self.dest_dir)

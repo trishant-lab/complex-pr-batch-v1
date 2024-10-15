@@ -201,14 +201,19 @@ class DnsSetupActivity(Activity):
         """
         # Create DNS
         from app.cli.activities.dnsSetup import dns_setup
-        from app.core.settings import get_settings
+        from app.core.settings import get_settings, AppSettings
 
-        await dns_setup(
-            tenant=penknife.tenant,
-            config=get_settings().penknife,
-            google_dns_cname=get_settings().google_dns_cname,
-            product_name=ProductName,
-        )
+        config: AppSettings = get_settings()
+
+        # DNS setup for penknife
+        fqdn = f"{penknife.tenant}.{config.penknife.domain_name}."
+
+        await dns_setup(google_dns_cname=config.google_dns_cname, fqdn=fqdn, zone_name=config.penknife.zone_name)
+
+        # DNS setup for penknife career portal
+        career_fqdn = f"{penknife.tenant}-careers.{config.penknife.domain_name}."
+
+        await dns_setup(google_dns_cname=config.google_dns_cname, fqdn=career_fqdn, zone_name=config.penknife.zone_name)
 
 
 class UiSetupActivity(Activity):
@@ -232,16 +237,37 @@ class UiSetupActivity(Activity):
         """
         # Deploy ui
         from app.cli.activities.UISetup import UISetup
-        from app.core.settings import get_settings
+        from app.core.settings import get_settings, AppSettings
 
+        config: AppSettings = get_settings()
+
+        environment: str = config.env
+        image_tag = "production" if environment == "production" else "sprint"
+
+        if environment == "production":
+            dest_dir = f"{penknife.tenant}.{config.penknife.domain_name}/"
+        else:
+            dest_dir = f"{penknife.tenant}.{config.penknife.domain_name}/{image_tag}"
+
+        repo_name = "penknife-ui"
+
+        src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+
+        # Deploy UI for penknife
         UISetup(
-            tenant=penknife.tenant,
-            domain_name=get_settings().penknife.domain_name,
-            repo_name="penknife-ui",
+            src_object_name=src_object_name,
+            dest_dir=dest_dir,
             product_name=ProductName,
         ).deploy()
 
-        # TODO: Deploy career portal
+        # Deploy UI for penknife career portal
+        dest_dir = f"{penknife.tenant}-careers.{config.penknife.domain_name}/"
+
+        UISetup(
+            src_object_name="artifacts/penknife-careers/bundle.zip",
+            dest_dir=dest_dir,
+            product_name=ProductName,
+        ).deploy()
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -509,7 +535,6 @@ class StatefulSetPodCreationActivity(Activity):
         from kubernetes.client.models import V1VolumeMount, V1Volume, V1EnvVar, V1ConfigMapVolumeSource, V1KeyToPath
 
         from app.cli.activities.statefulSetPodCreation import StatefulSetPodCreation
-        from app.onepasswordutil import OnePasswordUtil
         from app.core.settings import get_settings
 
         environment = get_settings().env
@@ -742,14 +767,25 @@ class SetupUserActivity(Activity):
             db: DBManager = await get_db_manager(dsn=penknife_config.postgres.dsn)
             attributes = orjson.dumps({"email": penknife.email}).decode("utf-8")
             await db.execute_raw_sql("""SELECT set_config('myvars.user_email', 'api@penknife.app', false);""")
-            await db.execute_raw_sql(
-                f"""INSERT INTO {penknife.tenant}.subscriptionmapping (keycloakuserid, subscriberid, attributes) VALUES ($${keycloak_user_id}$$, $${subscriber_id}$$, $${attributes}$$);"""
+            await db.fetch_one(
+                sqlfile="penknife/insertSubscriptionmapping.sql",
+                db_schema_name=penknife.tenant,
+                **{
+                    "schema": penknife.tenant,
+                    "user_id": keycloak_user_id,
+                    "subscriber_id": subscriber_id,
+                    "attributes": attributes,
+                },
             )
-            await db.execute_raw_sql(
-                f"""INSERT INTO {penknife.tenant}.useraudit ("user", creationdate, enabled, needemailscope, hideuseremails) VALUES ($${penknife.email}$$, $${datetime.now()}$$, true, false, false);"""
+            await db.fetch_one(
+                sqlfile="penknife/insertUseraudit.sql",
+                db_schema_name=penknife.tenant,
+                **{"schema": penknife.tenant, "email": penknife.email, "datetime": datetime.now()},
             )
-            await db.execute_raw_sql(
-                f"""UPDATE {penknife.tenant}.organization SET companydomain = $${penknife.companyDomain}$$;"""
+            await db.fetch_one(
+                sqlfile="penknife/updateOrganization.sql",
+                db_schema_name=penknife.tenant,
+                **{"schema": penknife.tenant, "companydomain": penknife.companyDomain},
             )
 
             log_info("User detail is added to postgres")
