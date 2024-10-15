@@ -99,3 +99,12 @@ class PostgresUtils:
             f"(username 'matomo_fdw', password '{matomo_password}');",
         )
         log_info("Created user mapping for matomo database successfully.")
+
+    async def grant_create_on_tablespace(self: "PostgresUtils", username: str, tablespace: str) -> None:
+        """
+        Grant create role on the given tablespace to a user
+        """
+        await self.db.execute_raw_sql(
+            query=f"GRANT CREATE ON TABLESPACE {tablespace} TO {username};",
+        )
+        log_info(f"Granted user {username} create role on tablespace {tablespace} successfully.")

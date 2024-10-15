@@ -1,0 +1,1 @@
+INSERT INTO {{schema | sqlsafe}}.useraudit ("user", creationdate, enabled, needemailscope, hideuseremails) VALUES ({{email}}, {{datetime}}, true, true, false);

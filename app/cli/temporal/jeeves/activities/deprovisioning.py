@@ -200,8 +200,13 @@ class DeleteDNSActivity(Activity):
         Callable for the activity
         """
         from app.cli.activities.dnsSetup import dns_teardown
+        from app.core.settings import get_settings, AppSettings
 
-        await dns_teardown(tenant_name=jeeves.tenant)
+        config: AppSettings = get_settings()
+
+        fqdn = f"{jeeves.tenant}.{config.jeeves.domain_name}."
+
+        await dns_teardown(google_dns_cname=config.google_dns_cname, fqdn=fqdn, zone_name=config.jeeves.zone_name)
 
 
 class DeleteVMScraperActivity(Activity):

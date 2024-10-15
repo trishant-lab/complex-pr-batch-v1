@@ -1,11 +1,22 @@
-
 from collections.abc import Callable
 from datetime import timedelta
 from app.cli.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.penknife.activities.deprovisioning import DeleteConfigMapActivity, DeleteDNSActivity, DeleteDeploymentActivity, DeleteKeycloakRealmActivity, DeleteKubernetesServiceActivity, DeleteKubernetesVirtualServiceActivity, DeletePVCActivity, DeleteProvisioningJobActivity, DeleteRedisNamespace, DeleteStatefulSetActivity, DeleteVMScraperActivity, DropUIBundlesActivity
+from app.cli.temporal.penknife.activities.deprovisioning import (
+    DeleteConfigMapActivity,
+    DeleteDNSActivity,
+    DeleteDeploymentActivity,
+    DeleteKeycloakRealmActivity,
+    DeleteKubernetesServiceActivity,
+    DeleteKubernetesVirtualServiceActivity,
+    DeleteProvisioningJobActivity,
+    DeleteRedisNamespace,
+    DeleteVMScraperActivity,
+    DropUIBundlesActivity,
+)
 
 from temporalio import workflow
+
 
 @Workflow.defn
 class PenknifeDeProvisioningWorkflow(Workflow):
@@ -24,13 +35,12 @@ class PenknifeDeProvisioningWorkflow(Workflow):
             DeleteProvisioningJobActivity.defn,
             DeleteDeploymentActivity.defn,
             DeleteConfigMapActivity.defn,
-            DeletePVCActivity.defn,
             DropUIBundlesActivity.defn,
             DeleteDNSActivity.defn,
             DeleteVMScraperActivity.defn,
             DeleteRedisNamespace.defn,
-            DeleteStatefulSetActivity.defn,
-            DeleteKeycloakRealmActivity.defn
+            # DeleteStatefulSetActivity.defn,
+            DeleteKeycloakRealmActivity.defn,
         ]
 
     @classmethod
@@ -86,14 +96,6 @@ class PenknifeDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteConfigMapActivity.get_retry_policy(),
         )
 
-        # delete pvc
-        await workflow.execute_activity(
-            DeletePVCActivity.defn,
-            arg=workflow_input,
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeletePVCActivity.get_retry_policy(),
-        )
-
         # drop ui bundles
         await workflow.execute_activity(
             DropUIBundlesActivity.defn,
@@ -118,7 +120,7 @@ class PenknifeDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteVMScraperActivity.get_retry_policy(),
         )
 
-        # delete redis namespace 
+        # delete redis namespace
         await workflow.execute_activity(
             DeleteRedisNamespace.defn,
             arg=workflow_input,
@@ -126,13 +128,13 @@ class PenknifeDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteRedisNamespace.get_retry_policy(),
         )
 
-        # delete stateful set
-        await workflow.execute_activity(
-            DeleteStatefulSetActivity.defn,
-            arg=workflow_input,
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeleteStatefulSetActivity.get_retry_policy(),
-        )
+        # # delete stateful set
+        # await workflow.execute_activity(
+        #     DeleteStatefulSetActivity.defn,
+        #     arg=workflow_input,
+        #     start_to_close_timeout=timedelta(seconds=120),
+        #     retry_policy=DeleteStatefulSetActivity.get_retry_policy(),
+        # )
 
         # delete keycloak client or realm
         await workflow.execute_activity(

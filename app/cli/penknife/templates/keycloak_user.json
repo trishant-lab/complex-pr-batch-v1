@@ -16,5 +16,8 @@
     "impersonate": true,
     "manage": true
   },
+  "attributes": {
+      "penknife_user": true
+  },
   "groups": []
 }

@@ -2,10 +2,30 @@ from collections.abc import Callable
 from datetime import timedelta
 import pydash
 from app.cli.penknife.models.penknifespec import PenknifeSpec
-from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Workflow
+from app.cli.temporal.core.base import Workflow
 from temporalio import workflow
 
-from app.cli.temporal.penknife.activities.onboarding import ConfigmapSetupActivity, DeploymentActivity, DnsSetupActivity, KeycloakRealmSetupActivity, KubernetesServiceActivity, KubernetesVirtualServiceActivity, NamespaceSetupActivity, NovuSetupActivity, PVCSetupActivity, PostgresSetupActivity, ProvisioningJobActivity, SecretSetupActivity, SendMailActivity, SetupUserActivity, StateFullSetSetupActivity, TemporalNamespaceCreationActivity, TenantStatus, UiSetupActivity, UpdateTenantStatusActivity, VmPodScraperActivity
+from app.cli.temporal.penknife.activities.onboarding import (
+    ConfigmapSetupActivity,
+    StatefulSetPodCreationActivity,
+    DnsSetupActivity,
+    KeycloakRealmSetupActivity,
+    KubernetesServiceActivity,
+    KubernetesVirtualServiceActivity,
+    NamespaceSetupActivity,
+    NovuSetupActivity,
+    PostgresSetupActivity,
+    ProvisioningJobActivity,
+    SecretSetupActivity,
+    SendMailActivity,
+    SetupUserActivity,
+    RedisSetupActivity,
+    TemporalNamespaceCreationActivity,
+    TenantStatus,
+    UiSetupActivity,
+    UpdateTenantStatusActivity,
+    VmPodScraperActivity,
+)
 
 
 @workflow.defn
@@ -18,7 +38,6 @@ class PenknifeOnboardingWorkflow(Workflow):
         self.approved: bool = False
         self.deny: bool = False
 
-    
     @staticmethod
     def get_activities() -> list[type[Callable]]:
         """
@@ -28,9 +47,8 @@ class PenknifeOnboardingWorkflow(Workflow):
             PostgresSetupActivity.defn,
             NamespaceSetupActivity.defn,
             ConfigmapSetupActivity.defn,
-            PVCSetupActivity.defn,
             SecretSetupActivity.defn,
-            StateFullSetSetupActivity.defn,
+            RedisSetupActivity.defn,
             DnsSetupActivity.defn,
             UiSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
@@ -38,21 +56,21 @@ class PenknifeOnboardingWorkflow(Workflow):
             ProvisioningJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesVirtualServiceActivity.defn,
-            DeploymentActivity.defn,
+            StatefulSetPodCreationActivity.defn,
             VmPodScraperActivity.defn,
             SendMailActivity.defn,
             TemporalNamespaceCreationActivity.defn,
             SetupUserActivity.defn,
-            UpdateTenantStatusActivity.defn
+            UpdateTenantStatusActivity.defn,
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", penfknife: PenknifeSpec) -> str :
+    def get_workflow_id(cls: "Workflow", penfknife: PenknifeSpec) -> str:
         """
         Return workflow id
         """
         return f"penknife_onboarding_workflow_{penfknife.tenant}"
-    
+
     @workflow.run
     async def run(self: "Workflow", penknife: PenknifeSpec) -> None:
         """
@@ -81,7 +99,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                     start_to_close_timeout=timedelta(seconds=120),
                 )
                 return
-            
+
             await workflow.execute_activity(
                 activity=PostgresSetupActivity.defn,
                 arg=penknife,
@@ -115,9 +133,9 @@ class PenknifeOnboardingWorkflow(Workflow):
 
             # statefulset setup
             await workflow.execute_activity(
-                activity=StateFullSetSetupActivity.defn,
+                activity=RedisSetupActivity.defn,
                 arg=penknife,
-                retry_policy=StateFullSetSetupActivity.get_retry_policy(),
+                retry_policy=RedisSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
@@ -134,14 +152,6 @@ class PenknifeOnboardingWorkflow(Workflow):
                 activity=ConfigmapSetupActivity.defn,
                 arg=penknife,
                 retry_policy=ConfigmapSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # pvc setup
-            await workflow.execute_activity(
-                activity=PVCSetupActivity.defn,
-                arg=penknife,
-                retry_policy=PVCSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
@@ -187,9 +197,9 @@ class PenknifeOnboardingWorkflow(Workflow):
 
             # Deploy server and cli
             await workflow.execute_activity(
-                activity=DeploymentActivity.defn,
+                activity=StatefulSetPodCreationActivity.defn,
                 arg=penknife,
-                retry_policy=DeploymentActivity.get_retry_policy(),
+                retry_policy=StatefulSetPodCreationActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
@@ -232,7 +242,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                 retry_policy=SendMailActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
-        
+
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
             await workflow.execute_activity(
@@ -246,7 +256,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
             raise e
-        
+
     @workflow.signal
     async def approve(self: "Workflow") -> None:
         """
