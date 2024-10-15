@@ -1,4 +1,23 @@
+from enum import Enum
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
+
+class TenantType(str, Enum):
+    staffing = "Staffing"
+    internalhiring = "InternalHiring"
+
+    @classmethod
+    def get_tenant_type(cls: "TenantType", enum_value: "TenantType") -> str:
+        match enum_value:
+            case cls.staffing:
+                return "staffing"
+            case cls.internalhiring:
+                return "internal_hiring"
+            case _:
+                raise ValueError(f"Unknown enum value: {enum_value}")
+
+class EmailProvider(str, Enum):
+    google = "Google"
+    microsoft = "Microsoft"
 
 
 class ResourceSpec(LaunchpadCLIBaseModel):
@@ -28,5 +47,9 @@ class PenknifeSpec(LaunchpadCLIBaseModel):
     email: str
     organization: str
     contactNumber: str
+    companyDomain: str
+    tenantType: TenantType = TenantType.staffing
+    # TODO: add emailprovider related changes to config
+    emailProvider: EmailProvider = EmailProvider.google
     serverSpec: None | ResourceSpec = ResourceSpec()
     cliSpec: None | ResourceSpec = ResourceSpec()
