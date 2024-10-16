@@ -11,7 +11,15 @@ class IstioVirtualService(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self: "IstioVirtualService", payload: list, tenant: str, domain_name: str, product: str) -> None:
+    def __init__(
+        self: "IstioVirtualService",
+        payload: list,
+        tenant: str,
+        domain_name: str,
+        product: str,
+        service_name: str | None = None,
+        host: str | None = None,
+    ) -> None:
         """
         Constructor for IstioVirtualService
         """
@@ -25,6 +33,8 @@ class IstioVirtualService(K8sResourceBaseClass):
         self.tenant = tenant
         self.domain_name = domain_name
         self.product_name = product
+        self.service_name = service_name if service_name else f"{self.product_name.lower()}-vs"
+        self.host = host if host else f"{self.tenant}.{self.domain_name}"
 
     def payload(self: "IstioVirtualService") -> dict:
         """
@@ -34,11 +44,11 @@ class IstioVirtualService(K8sResourceBaseClass):
             "apiVersion": "networking.istio.io/v1beta1",
             "kind": "VirtualService",
             "metadata": {
-                "name": f"{self.product_name.lower()}-vs",
+                "name": self.service_name,
                 "namespace": self.tenant,
             },
             "spec": {
-                "hosts": [f"{self.tenant}.{self.domain_name}"],
+                "hosts": [self.host],
                 "gateways": ["istio-system/istiogateway"],
                 "http": self.http_list,
             },
@@ -52,15 +62,13 @@ class IstioVirtualService(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
-        log_info(f"VirtualService {self.product_name.lower()}-vs created in namespace {self.tenant}")
+        log_info(f"VirtualService {self.service_name} created in namespace {self.tenant}")
 
     def delete(self: "IstioVirtualService") -> None:
         """
         Delete VirtualService
         """
         try:
-            self.k8s_dynamic_client.delete(
-                resource=self.resource, name=f"{self.product_name}-vs", namespace=self.tenant
-            )
+            self.k8s_dynamic_client.delete(resource=self.resource, name=f"{self.service_name}", namespace=self.tenant)
         except NotFoundError:
-            logger.error(f"VirtualService {self.product_name}-vs not found in namespace {self.tenant}")
+            logger.error(f"VirtualService {self.service_name} not found in namespace {self.tenant}")

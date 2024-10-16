@@ -10,7 +10,6 @@ from kubernetes.client import (
     V1Volume,
     V1ConfigMapVolumeSource,
     V1KeyToPath,
-    V1PersistentVolumeClaimVolumeSource,
 )
 from kubernetes.client import V1ObjectMeta
 from kubernetes.dynamic.exceptions import NotFoundError
@@ -18,11 +17,10 @@ from loguru import logger
 
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.log import log_info
 from app.core.settings import get_settings
 from app.onepasswordutil import OnePasswordUtil
-
 
 
 class DatabaseSchemaMigrationJob(K8sResourceBaseClass):

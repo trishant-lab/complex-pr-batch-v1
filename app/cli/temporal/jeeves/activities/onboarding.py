@@ -4,7 +4,7 @@ from datetime import timedelta
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.base import Activity
 
 ProductName = "jeeves"
@@ -31,7 +31,7 @@ class PostgresSetupActivity(Activity):
         Callable for the activity
         """
         from app.cli.activities.postgresSetup import setup_postgres
-        from app.cli.jeeves import TemplatePath
+        from app.cli.temporal.jeeves import TemplatePath
         from app.core.settings import get_settings
 
         database_name = "Jeeves"
@@ -197,11 +197,13 @@ class DnsSetupActivity(Activity):
         """
         # Create DNS
         from app.cli.activities.dnsSetup import dns_setup
-        from app.core.settings import get_settings
+        from app.core.settings import get_settings, AppSettings
 
-        await dns_setup(
-            tenant=jeeves.tenant, config=get_settings().jeeves, google_dns_cname=get_settings().google_dns_cname
-        )
+        config: AppSettings = get_settings()
+
+        fqdn = f"{jeeves.tenant}.{config.jeeves.domain_name}."
+
+        await dns_setup(google_dns_cname=config.google_dns_cname, fqdn=fqdn, zone_name=config.jeeves.zone_name)
 
 
 class UiSetupActivity(Activity):
@@ -225,9 +227,23 @@ class UiSetupActivity(Activity):
         """
         # Deploy ui
         from app.cli.activities.UISetup import UISetup
-        from app.core.settings import get_settings
+        from app.core.settings import get_settings, AppSettings
 
-        UISetup(tenant=jeeves.tenant, domain_name=get_settings().jeeves.domain_name, repo_name="jeeves-ui").deploy()
+        config: AppSettings = get_settings()
+
+        environment: str = config.env
+        image_tag = "production" if environment == "production" else "sprint"
+
+        if environment == "production":
+            dest_dir = f"{jeeves.tenant}.{config.jeeves.domain_name}/"
+        else:
+            dest_dir = f"{jeeves.tenant}.{config.jeeves.domain_name}/{image_tag}"
+
+        repo_name = "jeeves-ui"
+
+        src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+
+        UISetup(src_object_name=src_object_name, dest_dir=dest_dir).deploy()
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -252,7 +268,7 @@ class KeycloakRealmSetupActivity(Activity):
         # Deploy keycloak
         import os
         from app.cli.activities.keycloakSetup import create_realm_and_users
-        from app.cli.jeeves import TemplatePath
+        from app.cli.temporal.jeeves import TemplatePath
 
         user_details = {
             "username": jeeves.email,
@@ -798,7 +814,7 @@ class UpdateTenantStatusActivity(Activity):
         """
         # Update tenant status
         from app.cli.activities.tenantStatus import update_tenant_status
-        from app.cli.jeeves.jeeves import ProductName
+        from app.cli.temporal.jeeves.jeeves import ProductName
         from app.models.tenant import TenantStatusEnum
 
         status = TenantStatusEnum(activity_input.status)

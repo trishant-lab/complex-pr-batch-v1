@@ -5,7 +5,10 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.dexit.dexit import DexitSpec
+from app.cli.temporal.dexit.dexit import DexitSpec
+
+ProductName = "dexit"
+OnePasswordVault = "Dexit"
 
 
 class PostgresSetupActivity(Activity):
@@ -27,9 +30,25 @@ class PostgresSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.dexit.postgresSetup import setup_postgres
+        from app.cli.activities.postgresSetup import setup_postgres
+        from app.cli.temporal.dexit import TemplatePath
+        from app.core.settings import get_settings
 
-        await setup_postgres(dexit=dexit)
+        database_name = "dexit"
+        schema_name = dexit.tenant
+        vault_name = "Dexit"
+
+        await setup_postgres(
+            tenant=dexit.tenant,
+            product_name=ProductName,
+            schema_name=schema_name,
+            database_name=database_name,
+            vault_name=vault_name,
+            template_path=TemplatePath,
+            config=get_settings().dexit,
+            keycloak_db=True,
+            matomo_db=True,
+        )
 
 
 class NamespaceSetupActivity(Activity):
@@ -52,9 +71,9 @@ class NamespaceSetupActivity(Activity):
         Callable for the activity
         """
         # create namespace in k8s
-        from app.cli.dexit.namespaceSetup import Namespace
+        from app.cli.activities.namespaceSetup import Namespace
 
-        Namespace(dexit=dexit).put()
+        Namespace(tenant=dexit.tenant).put()
 
 
 class ConfigmapSetupActivity(Activity):
@@ -76,11 +95,17 @@ class ConfigmapSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.dexit.configMapSetup import ConfigMapClass
+        from app.cli.activities.configMapSetup import ConfigMapClass
 
-        ConfigMapClass(dexit=dexit, config_map=ConfigMapClass.TENANT_CONFIG).put()
-        ConfigMapClass(dexit=dexit, config_map=ConfigMapClass.ENV_CONFIG).put()
-        ConfigMapClass(dexit=dexit, config_map=ConfigMapClass.VECTOR_CONFIG).put()
+        tenant_config: dict[str, str] = {"name": "dexit-tenant-config", "key": "tenant-config.json"}
+        rclone_config: dict[str, str] = {"name": "dexit-env-config", "key": "env-config.json"}
+        vector_config: dict[str, str] = {"name": "dexit-cli-vector-config", "key": "vector-config.toml"}
+
+        bucket_name = "dexit-config"
+
+        ConfigMapClass(tenant=dexit.tenant, config_map=tenant_config, bucket_name=bucket_name).put()
+        ConfigMapClass(tenant=dexit.tenant, config_map=rclone_config, bucket_name=bucket_name).put()
+        ConfigMapClass(tenant=dexit.tenant, config_map=vector_config, bucket_name=bucket_name).put()
 
 
 class SecretSetupActivity(Activity):
@@ -103,14 +128,14 @@ class SecretSetupActivity(Activity):
         Callable for the activity
         """
         # create secret in k8s for namespace
-        from app.cli.dexit.secretSetup import Secret
+        from app.cli.activities.secretSetup import Secret
         from app.core.settings import get_settings, AppSettings
 
         config: AppSettings = get_settings()
 
         # Create registry secret for pulling images
         Secret(
-            dexit=dexit,
+            tenant=dexit.tenant,
             name="registrycred",
             type="kubernetes.io/dockerconfigjson",
             data={".dockerconfigjson": config.docker_image_pull_secret},
@@ -137,9 +162,14 @@ class DnsSetupActivity(Activity):
         Callable for the activity
         """
         # Create DNS
-        from app.cli.dexit.dnsSetup import dns_setup
+        from app.cli.activities.dnsSetup import dns_setup
+        from app.core.settings import get_settings, AppSettings
 
-        await dns_setup(dexit=dexit)
+        config: AppSettings = get_settings()
+
+        fqdn = f"{dexit.tenant}.{config.dexit.domain_name}."
+
+        await dns_setup(google_dns_cname=config.google_dns_cname, fqdn=fqdn, zone_name=config.dexit.zone_name)
 
 
 class UiSetupActivity(Activity):
@@ -162,9 +192,24 @@ class UiSetupActivity(Activity):
         Callable for the activity
         """
         # Deploy ui
-        from app.cli.dexit.UISetup import UISetup
+        from app.cli.activities.UISetup import UISetup
+        from app.core.settings import get_settings, AppSettings
 
-        UISetup(dexit=dexit).deploy()
+        config: AppSettings = get_settings()
+
+        environment: str = config.env
+        image_tag = "production" if environment == "production" else "sprint"
+
+        if environment == "production":
+            dest_dir = f"{dexit.tenant}.{config.dexit.domain_name}/"
+        else:
+            dest_dir = f"{dexit.tenant}.{config.dexit.domain_name}/{image_tag}"
+
+        repo_name = "dexit-ui"
+
+        src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+
+        UISetup(src_object_name=src_object_name, dest_dir=dest_dir).deploy()
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -187,9 +232,47 @@ class KeycloakRealmSetupActivity(Activity):
         Callable for the activity
         """
         # Deploy keycloak
-        from app.cli.dexit.keycloakRealmSetup import create_realm_and_users
+        import os
+        from app.cli.activities.keycloakSetup import create_realm_and_users
+        from app.cli.temporal.dexit import TemplatePath
 
-        await create_realm_and_users(dexit=dexit)
+        user_details = {
+            "username": dexit.email,
+            "email": dexit.email,
+            "firstname": dexit.firstName,
+            "lastname": dexit.lastName,
+        }
+        environment: str = os.getenv("DEPLOYMENT", "integration").lower()
+        domain = "com" if environment == "production" else "tech"
+
+        roles = [
+            "_standalone-launch",
+            "_document-read",
+            "_delete-document",
+            "_document-indexing",
+            "_document-commit",
+            "_manage-document-type",
+            "_manage-deficiency",
+            "_manage-users",
+            "_manage-organisation",
+            "_manage-document-type",
+            "_manage-queues",
+            "_manage-subscription",
+            "_manage-faxes",
+            "_manage-bulk-import",
+            "_roi",
+            "_reports",
+            "_document-review",
+        ]
+
+        await create_realm_and_users(
+            tenant=dexit.tenant,
+            user_details=user_details,
+            product=ProductName,
+            roles=roles,
+            domain=domain,
+            template_path=TemplatePath,
+        )
 
 
 class NovuSetupActivity(Activity):
@@ -212,7 +295,7 @@ class NovuSetupActivity(Activity):
         Callable for the activity
         """
         # Setup novu
-        from app.cli.dexit.novuSetup import NovuSetup
+        from app.cli.activities.dexitNovuSetup import NovuSetup
 
         NovuSetup(dexit=dexit).setup_novu()
 
@@ -237,7 +320,7 @@ class FaxSetupActivity(Activity):
         Callable for the activity
         """
         # Setup fax
-        from app.cli.dexit.faxSetup import FaxSetup
+        from app.cli.activities.faxSetup import FaxSetup
 
         await FaxSetup(dexit=dexit).setup_fax()
 
@@ -262,11 +345,74 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.dexit.Job import AtlasJob
+        from kubernetes.client import V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, V1EnvVar
 
-        atlas_job = AtlasJob(dexit=dexit)
-        atlas_job.delete()
-        atlas_job.put()
+        from app.cli.activities.databaseMigrationJob import DatabaseMigrationJob
+        from app.onepasswordutil import OnePasswordUtil
+        from app.core.settings import get_settings
+
+        postgres_user = f"dexit_{dexit.tenant}"
+        postgres_password = OnePasswordUtil(
+            tenant=f"Dexit_{dexit.tenant}",
+            server_item="application-config",
+            vault=OnePasswordVault,
+        ).get_key("pg_password")
+        image_tag = "production" if get_settings().env == "production" else "sprint"
+        docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
+
+        volume_mounts = [
+            V1VolumeMount(
+                name="dexit-env-config",
+                mount_path="/config/env-config.json",
+                sub_path="env-config.json",
+                read_only=True,
+            ),
+            V1VolumeMount(
+                name="dexit-tenant-config",
+                mount_path="/config/tenant-config.json",
+                sub_path="tenant-config.json",
+                read_only=True,
+            ),
+        ]
+
+        volumes = [
+            V1Volume(
+                name="dexit-env-config",
+                config_map=V1ConfigMapVolumeSource(
+                    name="dexit-env-config",
+                    items=[V1KeyToPath(key="env-config.json", path="env-config.json")],
+                ),
+            ),
+            V1Volume(
+                name="dexit-tenant-config",
+                config_map=V1ConfigMapVolumeSource(
+                    name="dexit-tenant-config",
+                    items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+                ),
+            ),
+        ]
+
+        envs = [
+            V1EnvVar(name="POSTGRES_PASSWORD", value=postgres_password),
+            V1EnvVar(name="POSTGRES_USER", value=postgres_user),
+            V1EnvVar(name="APP_CONFIG_DIR", value="/config"),
+            V1EnvVar(name="DEPLOYMENT", value=get_settings().env),
+            V1EnvVar(name="CLIENT_CODE", value=dexit.tenant),
+        ]
+
+        database_migration_job = DatabaseMigrationJob(
+            tenant=dexit.tenant,
+            product=ProductName,
+            job_name="dexit-atlas-migration-job",
+            postgres_user=postgres_user,
+            postgres_password=postgres_password,
+            docker_image=docker_image,
+            volume_mounts=volume_mounts,
+            volumes=volumes,
+            container_envs=envs,
+        )
+        database_migration_job.delete()
+        database_migration_job.put()
 
 
 class KubernetesServiceActivity(Activity):
@@ -289,9 +435,9 @@ class KubernetesServiceActivity(Activity):
         Callable for the activity
         """
         # Create k8s service
-        from app.cli.dexit.serviceSetup import Service
+        from app.cli.activities.serviceSetup import Service
 
-        Service(dexit=dexit).put()
+        Service(tenant=dexit.tenant, product=ProductName).put()
 
 
 class KubernetesVirtualServiceActivity(Activity):
@@ -314,12 +460,100 @@ class KubernetesVirtualServiceActivity(Activity):
         Callable for the activity
         """
         # Create k8s virtual service
-        from app.cli.dexit.istioVitualService import IstioVirtualService
+        from app.cli.activities.istioVirtualService import IstioVirtualService
+        from app.core.settings import get_settings, AppSettings
 
-        IstioVirtualService(dexit=dexit).put()
+        config: AppSettings = get_settings()
+        env = config.env
+        image_tag = "sprint" if env == "integration" else "production"
+
+        http_list = []
+
+        # http_api router
+        http_api = {
+            "name": "dexit-api",
+            "route": [
+                {
+                    "destination": {
+                        "host": f"dexit.{dexit.tenant}.svc.cluster.local",
+                        "port": {"number": 8000},
+                    },
+                    "headers": {
+                        "response": {
+                            "add": {
+                                "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+                            }
+                        }
+                    },
+                }
+            ],
+            "match": [
+                {"uri": {"regex": "^/api/v1/.*"}},
+                {"uri": {"regex": "^/public/api/v1/.*"}},
+                {"uri": {"prefix": "/docs"}},
+                {"uri": {"prefix": "/redoc"}},
+            ],
+        }
+        http_list.append(http_api)
+
+        # http_log_collect router
+        http_log_collect = {
+            "name": "dexit-log-collect",
+            "route": [
+                {
+                    "destination": {
+                        "host": "grafana-agent.monitoring-system.svc.cluster.local",
+                        "port": {"number": 12347},
+                    }
+                }
+            ],
+            "match": [
+                {
+                    "uri": {"prefix": "/logcollect"},
+                }
+            ],
+            "rewrite": {"uri": "/collect"},
+        }
+        http_list.append(http_log_collect)
+
+        # http_redirect router
+        if env != "production":
+            http_redirect = {
+                "name": "redirect",
+                "match": [
+                    {
+                        "uri": {"exact": "/"},
+                    }
+                ],
+                "redirect": {"uri": f"/{image_tag}/"},
+            }
+            http_list.append(http_redirect)
+
+        # http_ui router
+        http_ui = {
+            "name": "dexit-ui",
+            "route": [
+                {
+                    "destination": {
+                        "host": "varnish-svc.varnish.svc.cluster.local",
+                        "port": {"number": 80},
+                    }
+                }
+            ],
+            "match": [
+                {
+                    "uri": {"prefix": "/"},
+                }
+            ],
+        }
+        http_list.append(http_ui)
+
+        IstioVirtualService(
+            payload=http_list, tenant=dexit.tenant, domain_name=config.dexit.domain_name, product=ProductName
+        ).put()
 
 
-class DeploymentActivity(Activity):
+class StatefulSetPodCreationActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
         """
@@ -333,16 +567,123 @@ class DeploymentActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="deployment_activity")
+    @activity.defn(name="StatefulSetPodCreationActivity")
     async def defn(dexit: DexitSpec) -> None:
         """
         Callable for the activity
         """
         # Deploy k8s deployment
-        from app.cli.dexit.depolyment import DeploymentServer, DeploymentCli
+        from kubernetes.client.models import V1VolumeMount, V1Volume, V1EnvVar, V1ConfigMapVolumeSource, V1KeyToPath
 
-        DeploymentServer(dexit=dexit).put()
-        DeploymentCli(dexit=dexit).put()
+        from app.cli.activities.statefulSetPodCreation import StatefulSetPodCreation
+        from app.onepasswordutil import OnePasswordUtil
+        from app.core.settings import get_settings
+
+        environment = get_settings().env
+        image_tag = "production" if environment == "production" else "sprint"
+        docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
+
+        volume_mounts = [
+            V1VolumeMount(
+                name="env-volume",
+                mount_path="/config/env-config.json",
+                sub_path="env-config.json",
+            ),
+            V1VolumeMount(
+                name="tenant-volume",
+                mount_path="/config/tenant-config.json",
+                sub_path="tenant-config.json",
+            ),
+        ]
+
+        postgres_user = f"dexit_{dexit.tenant}"
+        postgres_password = OnePasswordUtil(
+            tenant=f"Dexit_{dexit.tenant}",
+            server_item="application-config",
+            vault=OnePasswordVault,
+        ).get_key("pg_password")
+        tika_server_endpoint = get_settings().dexit.tika_server_endpoint
+
+        environment_variables = [
+            V1EnvVar(name="DEPLOYMENT", value=environment),
+            V1EnvVar(name="WEB_CONCURRENCY", value="5"),
+            V1EnvVar(name="POSTGRES_PASSWORD", value=postgres_password),
+            V1EnvVar(name="POSTGRES_USER", value=postgres_user),
+            V1EnvVar(
+                name="RELEASE_VERSION",
+                value=image_tag,
+            ),
+            V1EnvVar(name="APP_CONFIG_DIR", value="/config"),
+            V1EnvVar(name="CLIENT_CODE", value=dexit.tenant),
+            V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=tika_server_endpoint),
+            V1EnvVar(name="CLI", value="FALSE"),
+        ]
+
+        volumes = [
+            V1Volume(
+                name="env-volume",
+                config_map=V1ConfigMapVolumeSource(
+                    name="dexit-env-config",
+                    items=[V1KeyToPath(key="env-config.json", path="env-config.json")],
+                ),
+            ),
+            V1Volume(
+                name="tenant-volume",
+                config_map=V1ConfigMapVolumeSource(
+                    name="dexit-tenant-config",
+                    items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+                ),
+            ),
+        ]
+
+        # server pod
+        StatefulSetPodCreation(
+            tenant=dexit.tenant,
+            name="dexit",
+            docker_image=docker_image,
+            request_resource={"cpu": dexit.serverSpec.request_cpu, "memory": dexit.serverSpec.request_memory},
+            limit_resource={"cpu": dexit.serverSpec.limit_cpu, "memory": dexit.serverSpec.limit_memory},
+            container_port=8000,
+            volume_mounts=volume_mounts,
+            volumes=volumes,
+            container_envs=environment_variables,
+        ).put()
+
+        # worker pod
+        volume_mounts.append(V1VolumeMount(name="vector-volume", mount_path="/vector", read_only=True))
+
+        environment_variables = [
+            V1EnvVar(name="DEPLOYMENT", value=environment),
+            V1EnvVar(name="POSTGRES_PASSWORD", value=postgres_password),
+            V1EnvVar(name="POSTGRES_USER", value=postgres_user),
+            V1EnvVar(name="RELEASE_VERSION", value=image_tag),
+            V1EnvVar(name="APP_CONFIG_DIR", value="/config"),
+            V1EnvVar(name="CLIENT_CODE", value=dexit.tenant),
+            V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=get_settings().dexit.tika_server_endpoint),
+            V1EnvVar(name="CLI", value="TRUE"),
+        ]
+
+        volumes.append(
+            V1Volume(
+                name="vector-volume",
+                config_map=V1ConfigMapVolumeSource(
+                    name="dexit-cli-vector-config",
+                    items=[V1KeyToPath(key="vector-config.toml", path="vector-config.toml")],
+                ),
+            )
+        )
+
+        StatefulSetPodCreation(
+            tenant=dexit.tenant,
+            name="dexit-worker",
+            docker_image=docker_image,
+            request_resource={"cpu": dexit.cliSpec.request_cpu, "memory": dexit.cliSpec.request_memory},
+            limit_resource={"cpu": dexit.cliSpec.limit_cpu, "memory": dexit.cliSpec.limit_memory},
+            container_port=8000,
+            volume_mounts=volume_mounts,
+            container_envs=environment_variables,
+            volumes=volumes,
+        ).put()
 
 
 class VmPodScraperActivity(Activity):
@@ -365,9 +706,12 @@ class VmPodScraperActivity(Activity):
         Callable for the activity
         """
         # Scrape pod logs
-        from app.cli.dexit.vmPodScraper import VMPodScrapperServer
 
-        VMPodScrapperServer(dexit=dexit).put()
+        from app.cli.activities.vmPodScraper import VMPodScrapperServer
+
+        name = "dexit-metrics"
+
+        VMPodScrapperServer(tenant=dexit.tenant, product=ProductName, name=name).put()
 
 
 class GrafanaAlertsActivity(Activity):
@@ -428,7 +772,7 @@ class UpdateTenantStatusActivity(Activity):
         # Update tenant status
         from app.cli.activities.tenantStatus import update_tenant_status
         from app.models.tenant import TenantStatusEnum
-        from app.cli.dexit.dexit import ProductName
+        from app.cli.temporal.dexit.dexit import ProductName
 
         await update_tenant_status(
             tenant_name=activity_input.tenant_name,
@@ -458,9 +802,11 @@ class TemporalNamespaceCreationActivity(Activity):
         Callable for the activity
         """
         # Create temporal namespace
-        from app.cli.dexit.temporalNamespaceCreation import TemporalNamespaceCreation
+        from app.cli.activities.temporalNamespaceCreation import TemporalNamespaceCreation
 
-        await TemporalNamespaceCreation(dexit=dexit).create_temporal_namespace()
+        temporal_namespace = f"dexit_{dexit.tenant}"
+
+        await TemporalNamespaceCreation(namespace=temporal_namespace).create_temporal_namespace()
 
 
 class HFInferenceEndpointSetupActivity(Activity):
@@ -482,7 +828,7 @@ class HFInferenceEndpointSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.dexit.hfinferenceendpoint import HFInferenceEndpointSetup
+        from app.cli.activities.hfinferenceendpoint import HFInferenceEndpointSetup
 
         await HFInferenceEndpointSetup(dexit=dexit).deploy()
 
@@ -507,6 +853,15 @@ class SendMailActivity(Activity):
         Callable for the activity
         """
         # Send mail to customer
-        from app.cli.dexit.mail import onboard_success
+        from app.cli.activities.mail import send_provisioning_mail
+        from app.core.settings import get_settings
 
-        onboard_success(dexit=dexit)
+        await send_provisioning_mail(
+            realm_name=dexit.tenant,
+            tenant=dexit.tenant,
+            user_details={"firstName": dexit.firstName, "lastName": dexit.lastName, "email": dexit.email},
+            domain_name=get_settings().dexit.domain_name,
+            product=ProductName,
+            from_name="314e Support",
+            email_from="developer@314ecorp.com",
+        )

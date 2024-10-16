@@ -4,7 +4,7 @@ from datetime import timedelta
 import pydash
 from temporalio import workflow
 
-from app.cli.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.dexit.activities.onboarding import (
     PostgresSetupActivity,
@@ -18,7 +18,7 @@ from app.cli.temporal.dexit.activities.onboarding import (
     ProvisioningJobActivity,
     KubernetesServiceActivity,
     KubernetesVirtualServiceActivity,
-    DeploymentActivity,
+    StatefulSetPodCreationActivity,
     VmPodScraperActivity,
     GrafanaAlertsActivity,
     TemporalNamespaceCreationActivity,
@@ -36,7 +36,9 @@ class DexitOnboardingWorkflow(Workflow):
     Dexit Onboarding Workflow
     """
 
-    approved: bool = False
+    def __init__(self: "Workflow") -> None:
+        self.approved: bool = False
+        self.deny: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:
@@ -55,7 +57,7 @@ class DexitOnboardingWorkflow(Workflow):
             ProvisioningJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesVirtualServiceActivity.defn,
-            DeploymentActivity.defn,
+            StatefulSetPodCreationActivity.defn,
             VmPodScraperActivity.defn,
             GrafanaAlertsActivity.defn,
             UpdateTenantStatusActivity.defn,
@@ -78,7 +80,20 @@ class DexitOnboardingWorkflow(Workflow):
         Run workflow
         """
         try:
-            await workflow.wait_condition(lambda: self.approved)
+            await workflow.wait_condition(lambda: self.approved or self.deny)
+
+            if self.deny:
+                await workflow.execute_activity(
+                    activity=UpdateTenantStatusActivity.defn,
+                    arg=TenantStatus(
+                        tenant_name=pydash.get(dexit, "tenant"),
+                        status="Declined",
+                        error_msg="Request Declined",
+                    ),
+                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=timedelta(seconds=120),
+                )
+                return
 
             # namespace setup
             await workflow.execute_activity(
@@ -186,9 +201,9 @@ class DexitOnboardingWorkflow(Workflow):
 
             # Deploy server and cli
             await workflow.execute_activity(
-                activity=DeploymentActivity.defn,
+                activity=StatefulSetPodCreationActivity.defn,
                 arg=dexit,
-                retry_policy=DeploymentActivity.get_retry_policy(),
+                retry_policy=StatefulSetPodCreationActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
@@ -252,3 +267,10 @@ class DexitOnboardingWorkflow(Workflow):
         Signal to approve the workflow
         """
         self.approved = True
+
+    @workflow.signal
+    async def deny(self: "Workflow") -> None:
+        """
+        Signal to reject the workflow
+        """
+        self.deny = True

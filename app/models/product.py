@@ -1,11 +1,11 @@
 from enum import Enum
 
-from app.cli.dexit.dexit import DexitWorkflow
-from app.cli.dexit.models.dexitSpec import DexitSpec
-from app.cli.jeeves.jeeves import JeevesWorkflow
-from app.cli.jeeves.models.jeevesSpec import JeevesSpec
-from app.cli.penknife.models.penknifespec import PenknifeSpec
-from app.cli.penknife.penknife import PenknifeWorkflow
+from app.cli.temporal.dexit.dexit import DexitWorkflow
+from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.jeeves.jeeves import JeevesWorkflow
+from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.penknife.penknife import PenknifeWorkflow
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.cli.veritable.veritable import VeritableWorkflow
 

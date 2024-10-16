@@ -16,7 +16,7 @@ from app.cli.temporal.jeeves.activities.deprovisioning import (
     DeleteVMScraperActivity,
     DeleteStatefulSetActivity,
 )
-from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.jeeves.jeeves import JeevesSpec
 
 with workflow.unsafe.imports_passed_through():
     pass
