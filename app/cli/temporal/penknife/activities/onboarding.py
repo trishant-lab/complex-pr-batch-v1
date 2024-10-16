@@ -2,10 +2,10 @@ import dataclasses
 from datetime import timedelta
 from uuid import uuid4
 from temporalio.common import RetryPolicy
-from app.cli.penknife.models.penknifespec import PenknifeSpec, TenantType
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec, TenantType
 from app.cli.temporal.core.base import Activity
 from temporalio import activity
-from app.cli.penknife.penknife import ProductName
+from app.cli.temporal.penknife.penknife import ProductName
 
 
 # ProductName = "penknife"
@@ -688,7 +688,7 @@ class UpdateTenantStatusActivity(Activity):
         """
         # Update tenant status
         from app.cli.activities.tenantStatus import update_tenant_status
-        from app.cli.penknife.penknife import ProductName
+        from app.cli.temporal.penknife.penknife import ProductName
         from app.models.tenant import TenantStatusEnum
 
         status = TenantStatusEnum(activity_input.status)

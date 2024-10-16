@@ -2,9 +2,9 @@ from datetime import timedelta
 from temporalio.common import RetryPolicy
 from temporalio import activity
 
-from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.base import Activity
-from app.cli.penknife.penknife import ProductName
+from app.cli.temporal.penknife.penknife import ProductName
 
 
 class DeleteKubernetesServiceActivity(Activity):

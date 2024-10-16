@@ -1,12 +1,20 @@
 from enum import Enum
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 
+
 class TenantType(str, Enum):
     staffing = "Staffing"
     internalhiring = "InternalHiring"
 
     @classmethod
     def get_tenant_type(cls: "TenantType", enum_value: "TenantType") -> str:
+        """
+        Get the tenant type for the given enum value
+        @param enum_value:
+        @type enum_value:
+        @return:
+        @rtype:
+        """
         match enum_value:
             case cls.staffing:
                 return "staffing"
@@ -14,6 +22,7 @@ class TenantType(str, Enum):
                 return "internal_hiring"
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
+
 
 class EmailProvider(str, Enum):
     google = "Google"
@@ -35,6 +44,7 @@ class CustomerDetails(LaunchpadCLIBaseModel):
     """
     CustomerDetails dataclass
     """
+
 
 class PenknifeSpec(LaunchpadCLIBaseModel):
     """

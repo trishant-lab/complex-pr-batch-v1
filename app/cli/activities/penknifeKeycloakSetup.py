@@ -5,7 +5,7 @@ import jinja2
 import orjson
 from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.penknife import TemplatePath
-from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.log import log_info
 from app.common import generate_password
 from app.core.settings import AppSettings, get_settings

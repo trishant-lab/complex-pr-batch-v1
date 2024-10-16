@@ -1,7 +1,7 @@
 from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings, DexitAISettings, DexitAIEndpointSettings
 from loguru import logger
-from app.cli.dexit.dexit import DexitSpec
+from app.cli.temporal.dexit.dexit import DexitSpec
 from huggingface_hub import get_inference_endpoint
 from starlette.status import HTTP_409_CONFLICT
 import aiohttp

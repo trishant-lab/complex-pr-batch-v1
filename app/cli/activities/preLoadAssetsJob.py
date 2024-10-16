@@ -19,7 +19,7 @@ from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 
 from kubernetes import client as api_client
-from app.cli.jeeves.models.jeevesSpec import JeevesSpec
+from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.temporal.core.log import log_info

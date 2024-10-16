@@ -3,7 +3,7 @@ from datetime import timedelta
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 from app.cli.temporal.core.base import Activity
 
 

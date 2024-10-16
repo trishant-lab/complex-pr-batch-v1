@@ -6,7 +6,7 @@ from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, Notificati
 from novu.dto import IntegrationDto, SubscriberDto
 
 from app.cli.penknife import TemplatePath
-from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
@@ -161,7 +161,7 @@ def create_novu_workflow_templates(template_path: str, config: AppSettings, novu
 
     template_names: list = list_novu_notification_template(config=config, novu_api_key=novu_api_key)
     template_names: set = set(template_names)
-    with open(template_path, "r") as file:
+    with open(template_path) as file:
         json_data = file.read()
 
     data: list[dict] = orjson.loads(json_data)

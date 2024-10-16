@@ -1,6 +1,6 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.jeeves.models.jeevesSpec import JeevesSpec
+from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.workflowbase import ProductWorkflow
 
 ProductName = "jeeves"

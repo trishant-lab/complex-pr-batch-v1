@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from datetime import timedelta
 import pydash
-from app.cli.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.core.base import Workflow
 from temporalio import workflow
 

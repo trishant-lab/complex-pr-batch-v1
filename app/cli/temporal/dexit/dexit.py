@@ -1,6 +1,6 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 from app.cli.workflowbase import ProductWorkflow
 
 ProductName = "dexit"

@@ -4,7 +4,7 @@ from datetime import timedelta
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.base import Activity
 
 ProductName = "jeeves"
@@ -31,7 +31,7 @@ class PostgresSetupActivity(Activity):
         Callable for the activity
         """
         from app.cli.activities.postgresSetup import setup_postgres
-        from app.cli.jeeves import TemplatePath
+        from app.cli.temporal.jeeves import TemplatePath
         from app.core.settings import get_settings
 
         database_name = "Jeeves"
@@ -268,7 +268,7 @@ class KeycloakRealmSetupActivity(Activity):
         # Deploy keycloak
         import os
         from app.cli.activities.keycloakSetup import create_realm_and_users
-        from app.cli.jeeves import TemplatePath
+        from app.cli.temporal.jeeves import TemplatePath
 
         user_details = {
             "username": jeeves.email,
@@ -814,7 +814,7 @@ class UpdateTenantStatusActivity(Activity):
         """
         # Update tenant status
         from app.cli.activities.tenantStatus import update_tenant_status
-        from app.cli.jeeves.jeeves import ProductName
+        from app.cli.temporal.jeeves.jeeves import ProductName
         from app.models.tenant import TenantStatusEnum
 
         status = TenantStatusEnum(activity_input.status)

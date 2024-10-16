@@ -8,7 +8,7 @@ from novu.api import NotificationGroupApi, IntegrationApi, NotificationTemplateA
 from novu.dto import IntegrationDto, NotificationTemplateFormDto
 
 from app.cli.dexit import TemplatePath
-from app.cli.dexit.dexit import DexitSpec
+from app.cli.temporal.dexit.dexit import DexitSpec
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
 

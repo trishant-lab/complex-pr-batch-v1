@@ -1,6 +1,6 @@
 import aiohttp
 
-from app.cli.dexit.dexit import DexitSpec
+from app.cli.temporal.dexit.dexit import DexitSpec
 from app.cli.temporal.core.log import log_info
 from app.onepasswordutil import OnePasswordUtil
 from app.core.settings import AppSettings, get_settings
