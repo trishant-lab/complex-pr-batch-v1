@@ -18,7 +18,7 @@ from app.cli.temporal.penknife.activities.deprovisioning import (
 from temporalio import workflow
 
 
-@Workflow.defn
+@workflow.defn
 class PenknifeDeProvisioningWorkflow(Workflow):
     """
     Penknife DeBoarding Workflow
