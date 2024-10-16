@@ -340,11 +340,57 @@ class ProvisioningJobActivity(Activity):
         Callable for the activity
         """
         # Check provisioning status
-        from app.cli.penknife.Job import DatabaseSchemaMigrationJob
+        from kubernetes.client.models import V1VolumeMount, V1Volume, V1EnvVar, V1ConfigMapVolumeSource, V1KeyToPath
+        from app.cli.activities.databaseMigrationJob import DatabaseMigrationJob
+        from app.onepasswordutil import OnePasswordUtil
+        from app.core.settings import get_settings
 
-        atlas_job = DatabaseSchemaMigrationJob(penknife=penknife)
-        atlas_job.delete()
-        atlas_job.put()
+        postgres_user = f"penknife_{penknife.tenant}"
+        postgres_password = OnePasswordUtil(
+            tenant=f"Penknife_{penknife.tenant}",
+            server_item="application-config",
+            vault=OnePasswordVault,
+        ).get_key("pg_password")
+        image_tag = "production" if get_settings().env == "production" else "sprint"
+        docker_image = f"registry.314ecorp.tech/penknife-app:{image_tag}"
+
+        volume_mount = V1VolumeMount(
+            name="penknife-tenant-config",
+            mount_path="/config/tenant-config.json",
+            sub_path="tenant-config.json",
+            read_only=True,
+        )
+
+        volume = V1Volume(
+            name="penknife-tenant-config",
+            config_map=V1ConfigMapVolumeSource(
+                name="penknife-tenant-config",
+                items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+            ),
+        )
+
+        envs = [
+            V1EnvVar(name="POSTGRES_PASSWORD", value=postgres_password),
+            V1EnvVar(name="POSTGRES_USER", value=postgres_user),
+            V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
+            V1EnvVar(name="DEPLOYMENT", value=get_settings().env),
+            V1EnvVar(name="CLIENT_CODE", value=penknife.tenant),
+        ]
+
+        database_migration_job = DatabaseMigrationJob(
+            tenant=penknife.tenant,
+            product=ProductName,
+            job_name="penknife-db-schema-migration-job",
+            postgres_user=postgres_user,
+            postgres_password=postgres_password,
+            docker_image=docker_image,
+            volume_mounts=[volume_mount],
+            volumes=[volume],
+            container_envs=envs,
+            script_path="/app/atlas/atlas_script.py",
+        )
+        database_migration_job.delete()
+        database_migration_job.put()
 
 
 class KubernetesServiceActivity(Activity):
@@ -468,7 +514,7 @@ class KubernetesVirtualServiceActivity(Activity):
             "route": [
                 {
                     "destination": {
-                        "host": "penknife.test2.svc.cluster.local",
+                        "host": f"penknife.{penknife.tenant}.svc.cluster.local",
                         "port": {"number": 8000},
                     },
                     "headers": {
