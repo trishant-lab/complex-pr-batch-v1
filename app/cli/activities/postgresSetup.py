@@ -24,7 +24,7 @@ async def setup_supavisor_poll_user(
 
     jinja_env = get_env(template_path=template_path)
     template = jinja_env.get_template(f"{environment}-supavisor-user.json")
-    rendered_template = template.render(DATABASE=database_name, DB_USER=db_username, DB_PASSWORD=db_password)
+    rendered_template = template.render(DATABASE=database_name.lower(), DB_USER=db_username, DB_PASSWORD=db_password)
 
     response = requests.put(
         url=f"{config.supavisor_url}/api/tenants/{db_username}",
