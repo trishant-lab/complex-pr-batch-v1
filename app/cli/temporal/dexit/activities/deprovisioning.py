@@ -3,7 +3,7 @@ from datetime import timedelta
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 from app.cli.temporal.core.base import Activity
 
 
@@ -173,9 +173,14 @@ class DeleteDNSActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.dexit.dnsSetup import dns_teardown
+        from app.cli.activities.dnsSetup import dns_teardown
+        from app.core.settings import get_settings, AppSettings
 
-        await dns_teardown(tenant_name=dexit.tenant)
+        config: AppSettings = get_settings()
+
+        fqdn = f"{dexit.tenant}.{config.dexit.domain_name}."
+
+        await dns_teardown(google_dns_cname=config.google_dns_cname, fqdn=fqdn, zone_name=config.dexit.zone_name)
 
 
 class DeleteVMScraperActivity(Activity):

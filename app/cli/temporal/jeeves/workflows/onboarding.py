@@ -4,7 +4,7 @@ from collections.abc import Callable
 import pydash
 from temporalio import workflow
 
-from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.base import Workflow
 
 from app.cli.temporal.jeeves.activities.onboarding import (

@@ -14,7 +14,7 @@ from app.cli.temporal.dexit.activities.deprovisioning import (
     DeleteDNSActivity,
     DeleteVMScraperActivity,
 )
-from app.cli.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 
 with workflow.unsafe.imports_passed_through():
     pass

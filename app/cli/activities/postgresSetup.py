@@ -24,7 +24,7 @@ async def setup_supavisor_poll_user(
 
     jinja_env = get_env(template_path=template_path)
     template = jinja_env.get_template(f"{environment}-supavisor-user.json")
-    rendered_template = template.render(DATABASE=database_name, DB_USER=db_username, DB_PASSWORD=db_password)
+    rendered_template = template.render(DATABASE=database_name.lower(), DB_USER=db_username, DB_PASSWORD=db_password)
 
     response = requests.put(
         url=f"{config.supavisor_url}/api/tenants/{db_username}",
@@ -106,15 +106,21 @@ async def setup_postgres(
         # Grant ALL privileges on public schema
         await postgres_utils.grant_user_all_privileges_on_schema(username=db_username, schema_name="public")
 
+        if product_name.lower() == "penknife":
+            await postgres_utils.grant_create_on_tablespace(username=db_username, tablespace="pgdataenc")
+
         if keycloak_db:
             await postgres_utils.create_user_mapping_for_keycloak(
                 username=db_username, keycloak_password=config.keycloak_db_password
             )
 
             await postgres_utils.grant_user_all_privileges_on_table(table="user_entity", username=db_username)
-            await postgres_utils.grant_user_all_privileges_on_table(table="keycloak_role", username=db_username)
-            await postgres_utils.grant_user_all_privileges_on_table(table="user_role_mapping", username=db_username)
             await postgres_utils.grant_user_all_privileges_on_table(table="realm", username=db_username)
+            await postgres_utils.grant_user_all_privileges_on_table(table="user_attribute", username=db_username)
+
+            if product_name.lower() != "penknife":
+                await postgres_utils.grant_user_all_privileges_on_table(table="keycloak_role", username=db_username)
+                await postgres_utils.grant_user_all_privileges_on_table(table="user_role_mapping", username=db_username)
 
         if matomo_db:
             await postgres_utils.create_user_mapping_for_matomo(
