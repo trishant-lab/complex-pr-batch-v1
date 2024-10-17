@@ -6,7 +6,7 @@ from app.cli.temporal.jeeves.jeeves import JeevesWorkflow
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.penknife.penknife import PenknifeWorkflow
-from app.cli.temporal.hdp.hdp import HDPWorkflow
+from app.cli.temporal.hdp.hdp import HdpWorkflow
 from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
 
 
@@ -32,7 +32,7 @@ class ProductEnum(str, Enum):
             case cls.penknife:
                 return PenknifeWorkflow
             case cls.hdp:
-                return HDPWorkflow
+                return HdpWorkflow
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
