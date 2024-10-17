@@ -5,38 +5,27 @@ import pydash
 from temporalio import workflow
 
 # from app.cli.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
 from app.cli.temporal.core.base import Workflow
 
 
-from app.cli.activities import (
-    postgresSetup,
-    namespaceSetup,
-    configMapSetup,
-    secretSetup,
-    redisSetup,
-    dnsSetup,
-    UISetup,
-    keycloakSetup,
-)
-from app.cli.activities import (
+from app.cli.temporal.hdp.activities.onboarding import (
     PostgresSetupActivity,
     NamespaceSetupActivity,
-    ConfigmapSetupActivity,
-    SecretSetupActivity,
     RedisSetupActivity,
-    DnsSetupActivity,
-    UiSetupActivity,
     KeycloakRealmSetupActivity,
-    ProvisioningJobActivity,
+    ConfigmapSetupActivity,
+    DnsSetupActivity,
+    SecretSetupActivity,
+    UiSetupActivity,
     KubernetesServiceActivity,
     KubernetesVirtualServiceActivity,
     StatefulSetPodCreationActivity,
-    # VmPodScraperActivity,
-    TemporalNamespaceCreationActivity,
-    # SendMailActivity,
     UpdateTenantStatusActivity,
     TenantStatus,
-    # BeforeProvisioningMailActivity,
+    TemporalNamespaceCreationActivity,
+    SendMailActivity,
+    BeforeProvisioningMailActivity
 )
 
 
@@ -55,48 +44,41 @@ class HDPOnboardingWorkflow(Workflow):
         """
         Return list of activities used in the workflow
         """
+        # TODO: update activities
         return [
-            PostgresSetupActivity.defn,
+            # PostgresSetupActivity.defn,
             NamespaceSetupActivity.defn,
-            ConfigmapSetupActivity.defn,
-            # PVCSetupActivity.defn,
-            SecretSetupActivity.defn,
             RedisSetupActivity.defn,
-            DnsSetupActivity.defn,
-            UiSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
-            NovuSetupActivity.defn,
-            ChatwootSetupActivity.defn,
-            ProvisioningJobActivity.defn,
+            ConfigmapSetupActivity.defn,
+            DnsSetupActivity.defn,
+            SecretSetupActivity.defn,
+            UiSetupActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesVirtualServiceActivity.defn,
             StatefulSetPodCreationActivity.defn,
-            VmPodScraperActivity.defn,
-            AiVoiceSetupActivity.defn,
-            SendMailActivity.defn,
-            TemporalNamespaceCreationActivity.defn,
             UpdateTenantStatusActivity.defn,
-            BeforeProvisioningMailActivity.defn,
-            PreLoadAssetsJobActivity.defn,
+            SendMailActivity.defn,
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", jeeves: JeevesSpec) -> str:
+    def get_workflow_id(cls: "Workflow", hdp: HDPSpec) -> str:
         """
         Return workflow id
         """
-        return f"jeeves_onboarding_workflow_{jeeves.tenant}"
+        return f"hdp_onboarding_workflow_{hdp.tenant}"
 
     @workflow.run
-    async def run(self: "Workflow", jeeves: JeevesSpec) -> None:
+    async def run(self: "Workflow", hdp: HDPSpec) -> None:
         """
         Run workflow
         """
         try:
-            if not pydash.get(jeeves, "emailSent"):
+        
+            if not pydash.get(hdp, "emailSent"):
                 await workflow.execute_activity(
                     activity=BeforeProvisioningMailActivity.defn,
-                    arg=jeeves,
+                    arg=hdp,
                     retry_policy=BeforeProvisioningMailActivity.get_retry_policy(),
                     start_to_close_timeout=timedelta(seconds=120),
                 )
@@ -107,7 +89,7 @@ class HDPOnboardingWorkflow(Workflow):
                 await workflow.execute_activity(
                     activity=UpdateTenantStatusActivity.defn,
                     arg=TenantStatus(
-                        tenant_name=pydash.get(jeeves, "tenant"),
+                        tenant_name=pydash.get(hdp, "tenant"),
                         status="Declined",
                         error_msg="Request Declined",
                     ),
@@ -116,17 +98,20 @@ class HDPOnboardingWorkflow(Workflow):
                 )
                 return
 
-            await workflow.execute_activity(
-                activity=PostgresSetupActivity.defn,
-                arg=jeeves,
-                retry_policy=PostgresSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
+
+
+
+            # await workflow.execute_activity(
+            #     activity=PostgresSetupActivity.defn,
+            #     arg=hdp,
+            #     retry_policy=PostgresSetupActivity.get_retry_policy(),
+            #     start_to_close_timeout=timedelta(seconds=120),
+            # )
 
             # namespace setup
             await workflow.execute_activity(
                 activity=NamespaceSetupActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=NamespaceSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -134,31 +119,16 @@ class HDPOnboardingWorkflow(Workflow):
             # secret setup
             await workflow.execute_activity(
                 activity=SecretSetupActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=SecretSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # chatwoot setup
-            await workflow.execute_activity(
-                activity=ChatwootSetupActivity.defn,
-                arg=jeeves,
-                retry_policy=ChatwootSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # novu setup
-            await workflow.execute_activity(
-                activity=NovuSetupActivity.defn,
-                arg=jeeves,
-                retry_policy=NovuSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
 
             # statefulset setup
             await workflow.execute_activity(
                 activity=RedisSetupActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=RedisSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -166,12 +136,12 @@ class HDPOnboardingWorkflow(Workflow):
             # configmap setup
             await workflow.execute_activity(
                 activity=ConfigmapSetupActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=ConfigmapSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # # pvc setup
+            # pvc setup
             # await workflow.execute_activity(
             #     activity=PVCSetupActivity.defn,
             #     arg=jeeves,
@@ -182,7 +152,7 @@ class HDPOnboardingWorkflow(Workflow):
             # dns setup
             await workflow.execute_activity(
                 activity=DnsSetupActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=DnsSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=600),
             )
@@ -190,7 +160,7 @@ class HDPOnboardingWorkflow(Workflow):
             # ui setup
             await workflow.execute_activity(
                 activity=UiSetupActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=UiSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -198,23 +168,15 @@ class HDPOnboardingWorkflow(Workflow):
             # keycloak realm setup
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # Provisioning Job
-            await workflow.execute_activity(
-                activity=ProvisioningJobActivity.defn,
-                arg=jeeves,
-                retry_policy=ProvisioningJobActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
             # Kubernetes Service
             await workflow.execute_activity(
                 activity=KubernetesServiceActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -222,55 +184,17 @@ class HDPOnboardingWorkflow(Workflow):
             # Kubernetes Virtual Service
             await workflow.execute_activity(
                 activity=KubernetesVirtualServiceActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=KubernetesVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # Deploy server and cli
-            await workflow.execute_activity(
-                activity=StatefulSetPodCreationActivity.defn,
-                arg=jeeves,
-                retry_policy=StatefulSetPodCreationActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
 
-            # Vm Pod Scraper
-            await workflow.execute_activity(
-                activity=VmPodScraperActivity.defn,
-                arg=jeeves,
-                retry_policy=VmPodScraperActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # Temporal Namespace Creation
-            await workflow.execute_activity(
-                activity=TemporalNamespaceCreationActivity.defn,
-                arg=jeeves,
-                retry_policy=TemporalNamespaceCreationActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # Ai Voice Setup
-            await workflow.execute_activity(
-                activity=AiVoiceSetupActivity.defn,
-                arg=jeeves,
-                retry_policy=AiVoiceSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=300),
-            )
-
-            # PreLoadAssetsJob
-            await workflow.execute_activity(
-                activity=PreLoadAssetsJobActivity.defn,
-                arg=jeeves,
-                retry_policy=PreLoadAssetsJobActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=400),
-            )
 
             # Update Tenant Status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=pydash.get(jeeves, "tenant"), status="Completed"),
+                arg=TenantStatus(tenant_name=pydash.get(hdp, "tenant"), status="Completed"),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -278,7 +202,7 @@ class HDPOnboardingWorkflow(Workflow):
             # Send Mail
             await workflow.execute_activity(
                 activity=SendMailActivity.defn,
-                arg=jeeves,
+                arg=hdp,
                 retry_policy=SendMailActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
@@ -288,7 +212,7 @@ class HDPOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
-                    tenant_name=pydash.get(jeeves, "tenant"),
+                    tenant_name=pydash.get(hdp, "tenant"),
                     status="Failed",
                     error_msg=str(e),
                 ),
