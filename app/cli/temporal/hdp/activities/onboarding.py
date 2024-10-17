@@ -30,24 +30,19 @@ class PostgresSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.activities.postgresSetup import setup_postgres
-        from app.cli.temporal.hdp import TemplatePath
+        from app.cli.activities.postgresDatabaseCreation import setup_postgres_database
         from app.core.settings import get_settings
 
         database_name = "HDP"
-        schema_name = hdp.tenant
         vault_name = "hdp"
 
-        await setup_postgres(
+        await setup_postgres_database(
             tenant=hdp.tenant,
             product_name=ProductName,
-            schema_name=schema_name,
             database_name=database_name,
+            db_username=f"{database_name}_{hdp.tenant}",
             vault_name=vault_name,
-            template_path=TemplatePath,
             config=get_settings().hdp,
-            keycloak_db=True,
-            matomo_db=True,
         )
 
 
@@ -75,6 +70,7 @@ class NamespaceSetupActivity(Activity):
 
         Namespace(tenant=hdp.tenant).put()
 
+
 class ConfigmapSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -94,13 +90,14 @@ class ConfigmapSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.activities.configMapSetup import ConfigMapClass
+        pass
+        # from app.cli.activities.configMapSetup import ConfigMapClass
 
-        tenant_config: dict[str, str] = {"name": "hdp-tenant-config", "key": "tenant-config.json"}
+        # tenant_config: dict[str, str] = {"name": "hdp-tenant-config", "key": "tenant-config.json"}
 
-        bucket_name = "hdp-config"
+        # bucket_name = "hdp-config"
 
-        ConfigMapClass(tenant=hdp.tenant, config_map=tenant_config, bucket_name=bucket_name).put()
+        # ConfigMapClass(tenant=hdp.tenant, config_map=tenant_config, bucket_name=bucket_name).put()
 
 
 class SecretSetupActivity(Activity):
@@ -166,7 +163,7 @@ class RedisSetupActivity(Activity):
         # create redisSetup set in k8s
         from app.cli.activities.redisSetup import RedisSetup
 
-        await RedisSetup(tenant=hdp.tenant, product=ProductName, vault_name="HDP").put()
+        await RedisSetup(tenant=hdp.tenant, product=ProductName, vault_name="hdp").put()
 
 
 class DnsSetupActivity(Activity):
@@ -314,7 +311,6 @@ class KeycloakRealmSetupActivity(Activity):
         )
 
 
-
 # K8s setup
 class KubernetesServiceActivity(Activity):
     @staticmethod
@@ -339,6 +335,7 @@ class KubernetesServiceActivity(Activity):
         from app.cli.activities.serviceSetup import Service
 
         Service(tenant=hdp.tenant, product=ProductName).put()
+
 
 # TODO: Work with Devops to complete this
 class KubernetesVirtualServiceActivity(Activity):
@@ -372,11 +369,11 @@ class KubernetesVirtualServiceActivity(Activity):
 
         # http_api router
         http_api = {
-            "name": "jeeves-api",
+            "name": "hdp-api",
             "route": [
                 {
                     "destination": {
-                        "host": f"jeeves.{jeeves.tenant}.svc.cluster.local",
+                        "host": f"hdp.{hdp.tenant}.svc.cluster.local",
                         "port": {"number": 8000},
                     },
                     "headers": {
@@ -397,85 +394,6 @@ class KubernetesVirtualServiceActivity(Activity):
         }
         http_list.append(http_api)
 
-        # http_log_collect router
-        http_log_collect = {
-            "name": "jeeves-log-collect",
-            "route": [
-                {
-                    "destination": {
-                        "host": "grafana-agent.monitoring-system.svc.cluster.local",
-                        "port": {"number": 12347},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/logcollect"},
-                }
-            ],
-            "rewrite": {"uri": "/collect"},
-        }
-        http_list.append(http_log_collect)
-
-        # http analytics router
-        http_analytics = {
-            "name": "jeeves-analytics",
-            "route": [
-                {
-                    "destination": {
-                        "host": "matomo-server.matomo.svc.cluster.local",
-                        "port": {"number": 80},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/insights/"},
-                }
-            ],
-            "rewrite": {"uri": "/"},
-        }
-        http_list.append(http_analytics)
-
-        # http alerting router
-        http_alerting = {
-            "name": "jeeves-alerting",
-            "route": [
-                {
-                    "destination": {
-                        "host": "api.novu.svc.cluster.local",
-                        "port": {"number": 4000},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/alerting/"},
-                }
-            ],
-            "rewrite": {"uri": "/"},
-        }
-        http_list.append(http_alerting)
-
-        # novu socket router
-        novu_socket = {
-            "name": "novu-socket",
-            "route": [
-                {
-                    "destination": {
-                        "host": "ws.novu.svc.cluster.local",
-                        "port": {"number": 3002},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/socket.io/"},
-                }
-            ],
-        }
-        http_list.append(novu_socket)
-
         # http_redirect router
         if env != "production":
             http_redirect = {
@@ -491,7 +409,7 @@ class KubernetesVirtualServiceActivity(Activity):
 
         # http_ui router
         http_ui = {
-            "name": "jeeves-ui",
+            "name": "hdp-ui",
             "route": [
                 {
                     "destination": {
@@ -509,8 +427,9 @@ class KubernetesVirtualServiceActivity(Activity):
         http_list.append(http_ui)
 
         IstioVirtualService(
-            payload=http_list, tenant=jeeves.tenant, domain_name=config.jeeves.domain_name, product=ProductName
+            payload=http_list, tenant=hdp.tenant, domain_name=config.hdp.domain_name, product=ProductName
         ).put()
+
 
 # TODO: Needs update
 class StatefulSetPodCreationActivity(Activity):
@@ -533,23 +452,26 @@ class StatefulSetPodCreationActivity(Activity):
         Callable for the activity
         """
         # Deploy k8s deployment
-        from kubernetes.client.models import V1VolumeMount, V1Volume, V1EnvVar, V1ConfigMapVolumeSource, V1KeyToPath
+        # from kubernetes.client.models import V1VolumeMount, V1Volume, V1EnvVar, V1ConfigMapVolumeSource, V1KeyToPath
+        from kubernetes.client.models import V1EnvVar
 
         from app.cli.activities.statefulSetPodCreation import StatefulSetPodCreation
-        from app.onepasswordutil import OnePasswordUtil
+
+        # from app.onepasswordutil import OnePasswordUtil
         from app.core.settings import get_settings
 
         environment = get_settings().env
         image_tag = "production" if environment == "production" else "sprint"
         docker_image = f"registry.314ecorp.tech/hdp-api:{image_tag}"
 
-        volume_mounts = [
-            V1VolumeMount(
-                name="tenant-volume",
-                mount_path="/config/tenant-config.json",
-                sub_path="tenant-config.json",
-            ),
-        ]
+        volume_mounts = []
+        # volume_mounts = [
+        #     V1VolumeMount(
+        #         name="tenant-volume",
+        #         mount_path="/config/tenant-config.json",
+        #         sub_path="tenant-config.json",
+        #     ),
+        # ]
 
         # TODO
         environment_variables = [
@@ -557,23 +479,19 @@ class StatefulSetPodCreationActivity(Activity):
             V1EnvVar(name="WEB_CONCURRENCY", value="5"),
             V1EnvVar(name="CLIENT_CODE", value=hdp.tenant),
             V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
-
-            V1EnvVar(name="EXTRACTOR_ENABLED", value="FALSE"),
-            V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=get_settings().jeeves.tika_server_endpoint),
-            V1EnvVar(name="DYNAMIC_URL_HASH_KEY", value=dynamic_url_hash_key),
-            V1EnvVar(name="DYNAMIC_URL_ENABLED", value="True"),
         ]
 
         # Volumes
-        volumes = [
-            V1Volume(
-                name="tenant-volume",
-                config_map=V1ConfigMapVolumeSource(
-                    name="hdp-tenant-config",
-                    items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
-                ),
-            ),
-        ]
+        volumes = []
+        # volumes = [
+        #     V1Volume(
+        #         name="tenant-volume",
+        #         config_map=V1ConfigMapVolumeSource(
+        #             name="hdp-tenant-config",
+        #             items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+        #         ),
+        #     ),
+        # ]
 
         # server pod
         StatefulSetPodCreation(
@@ -587,45 +505,6 @@ class StatefulSetPodCreationActivity(Activity):
             volumes=volumes,
             container_envs=environment_variables,
         ).put()
-
-        # worker pod
-        volume_mounts.append(V1VolumeMount(name="vector-volume", mount_path="/vector", read_only=True))
-
-        environment_variables = [
-            V1EnvVar(name="DEPLOYMENT", value=environment),
-            V1EnvVar(name="CLIENT_CODE", value=jeeves.tenant),
-            V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
-            V1EnvVar(name="POSTGRES_PASSWORD", value=postgres_password),
-            V1EnvVar(name="POSTGRES_USER", value=postgres_user),
-            V1EnvVar(name="EXTRACTOR_ENABLED", value="TRUE"),
-            V1EnvVar(name="TIKA_SERVER_ENDPOINT", value=get_settings().jeeves.tika_server_endpoint),
-            V1EnvVar(name="DYNAMIC_URL_HASH_KEY", value=dynamic_url_hash_key),
-            V1EnvVar(name="DYNAMIC_URL_ENABLED", value="True"),
-        ]
-
-        volumes.append(
-            V1Volume(
-                name="vector-volume",
-                config_map=V1ConfigMapVolumeSource(
-                    name="jeeves-cli-vector-config",
-                    items=[V1KeyToPath(key="vector-config.toml", path="vector-config.toml")],
-                ),
-            )
-        )
-
-        StatefulSetPodCreation(
-            tenant=jeeves.tenant,
-            name="jeeves-worker",
-            docker_image=docker_image,
-            request_resource={"cpu": jeeves.cliSpec.request_cpu, "memory": jeeves.cliSpec.request_memory},
-            limit_resource={"cpu": jeeves.cliSpec.limit_cpu, "memory": jeeves.cliSpec.limit_memory},
-            container_port=8000,
-            volume_mounts=volume_mounts,
-            container_envs=environment_variables,
-            volumes=volumes,
-        ).put()
-
-
 
 
 @dataclasses.dataclass
@@ -672,6 +551,7 @@ class UpdateTenantStatusActivity(Activity):
             error_message=activity_input.error_msg,
         )
 
+
 class BeforeProvisioningMailActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -700,6 +580,7 @@ class BeforeProvisioningMailActivity(Activity):
             from_name="HDP Support",
             email_from="support@okhdp.com",
         )
+
 
 class SendMailActivity(Activity):
     @staticmethod

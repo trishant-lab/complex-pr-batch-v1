@@ -3,10 +3,12 @@ from app.cli.postgresUtils import PostgresUtils
 from app.common import generate_password
 from app.core.db import get_db_manager, DBManager
 from app.cli.temporal.core.log import log_info
+from app.onepasswordutil import OnePasswordUtil
 
 
 async def setup_postgres_database(
     product_name: str,
+    tenant: str,
     database_name: str,
     db_username: str,
     vault_name: str,
@@ -30,5 +32,11 @@ async def setup_postgres_database(
         await postgres_utils.create_user(username=db_username, password=password)
     else:
         await postgres_utils.update_user_password(username=db_username, password=password)
+
+    OnePasswordUtil(
+        tenant=f"{product_name}_{tenant}",
+        server_item="application-config",
+        vault=vault_name,
+    ).create_or_replace("pg_password", password)
 
     await postgres_utils.grant_user_to_connect_and_create(db_username=db_username, database_name=database_name)

@@ -23,9 +23,8 @@ from app.cli.temporal.hdp.activities.onboarding import (
     StatefulSetPodCreationActivity,
     UpdateTenantStatusActivity,
     TenantStatus,
-    TemporalNamespaceCreationActivity,
     SendMailActivity,
-    BeforeProvisioningMailActivity
+    BeforeProvisioningMailActivity,
 )
 
 
@@ -46,7 +45,7 @@ class HDPOnboardingWorkflow(Workflow):
         """
         # TODO: update activities
         return [
-            # PostgresSetupActivity.defn,
+            PostgresSetupActivity.defn,
             NamespaceSetupActivity.defn,
             RedisSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
@@ -74,7 +73,6 @@ class HDPOnboardingWorkflow(Workflow):
         Run workflow
         """
         try:
-        
             if not pydash.get(hdp, "emailSent"):
                 await workflow.execute_activity(
                     activity=BeforeProvisioningMailActivity.defn,
@@ -98,15 +96,12 @@ class HDPOnboardingWorkflow(Workflow):
                 )
                 return
 
-
-
-
-            # await workflow.execute_activity(
-            #     activity=PostgresSetupActivity.defn,
-            #     arg=hdp,
-            #     retry_policy=PostgresSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=timedelta(seconds=120),
-            # )
+            await workflow.execute_activity(
+                activity=PostgresSetupActivity.defn,
+                arg=hdp,
+                retry_policy=PostgresSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
             # namespace setup
             await workflow.execute_activity(
@@ -123,7 +118,6 @@ class HDPOnboardingWorkflow(Workflow):
                 retry_policy=SecretSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
-
 
             # statefulset setup
             await workflow.execute_activity(
@@ -188,8 +182,6 @@ class HDPOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
-
-
 
             # Update Tenant Status
             await workflow.execute_activity(
