@@ -31,6 +31,7 @@ class DatabaseMigrationJob(K8sResourceBaseClass):
         volume_mounts: list,
         volumes: list,
         container_envs: list,
+        script_path: str | None = None,
     ) -> None:
         """
         Constructor
@@ -50,6 +51,7 @@ class DatabaseMigrationJob(K8sResourceBaseClass):
         self.volume_mounts = volume_mounts
         self.volumes = volumes
         self.container_envs = container_envs
+        self.argument = f"python3 {script_path}" if script_path else "python3 /app/provisioning/atlas_migration.py"
 
     def payload(self: "DatabaseMigrationJob") -> dict:
         """
@@ -76,7 +78,7 @@ class DatabaseMigrationJob(K8sResourceBaseClass):
                                 env=self.container_envs,
                                 volume_mounts=self.volume_mounts,
                                 command=["/bin/sh", "-c"],
-                                args=["python3 /app/provisioning/atlas_migration.py"],
+                                args=[self.argument],
                             )
                         ],
                         volumes=self.volumes,
