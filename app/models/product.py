@@ -6,8 +6,6 @@ from app.cli.temporal.jeeves.jeeves import JeevesWorkflow
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.penknife.penknife import PenknifeWorkflow
-from app.cli.veritable.models.veritableSpec import VeritableSpec
-from app.cli.veritable.veritable import VeritableWorkflow
 from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
 from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
 
@@ -28,7 +26,7 @@ class ProductEnum(str, Enum):
             case cls.jeeves:
                 return JeevesWorkflow
             case cls.veritable:
-                return VeritableWorkflow
+                raise NotImplementedError("Veritable is not implemented")
             case cls.dexit:
                 return DexitWorkflow
             case cls.penknife:
@@ -47,7 +45,7 @@ class ProductEnum(str, Enum):
             case cls.jeeves:
                 return JeevesSpec
             case cls.veritable:
-                return VeritableSpec
+                raise NotImplementedError("Veritable is not implemented")
             case cls.dexit:
                 return DexitSpec
             case cls.penknife:
