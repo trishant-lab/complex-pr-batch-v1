@@ -31,7 +31,7 @@ class PostgresSetupActivity(Activity):
         """
         Callable for the activity
         """
-        from app.cli.activities.postgresSetup import setup_postgres
+        from app.cli.activities.postgresSchemaSetup import setup_postgres
         from app.cli.penknife import TemplatePath
         from app.core.settings import get_settings
 

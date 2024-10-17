@@ -31,6 +31,15 @@ class PostgresUtils:
         )
         log_info(f"Updated password for user {username} successfully.")
 
+    async def create_database(self: "PostgresUtils", database_name: str) -> None:
+        """
+        Create a new database in the database
+        """
+        await self.db.execute_raw_sql(
+            query=f"CREATE DATABASE {database_name};",
+        )
+        log_info(f"Created database {database_name} successfully.")
+
     async def create_schema(self: "PostgresUtils", schema_name: str, username: str) -> None:
         """
         Create a new schema in the database
