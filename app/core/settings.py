@@ -192,6 +192,25 @@ class JeevesSettings(BaseModel):
     reporting_site_id: str = "1"
 
 
+class HDPSettings(BaseModel):
+    """
+    Jeeves Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "hdp.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue"
+    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue"
+
+
+    keycloak_db_password: str = ""
+    matomo_db_password: str = ""
+
+    reporting_site_id: str = "1"
+
 class PenknifeSettings(BaseModel):
     """
     Penknife Settings
@@ -341,6 +360,7 @@ class AppSettings(BaseSettings):
     jeeves: JeevesSettings = JeevesSettings()
     dexit: DexitSettings = DexitSettings()
     penknife: PenknifeSettings = PenknifeSettings()
+    hdp: HDPSettings = HDPSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()

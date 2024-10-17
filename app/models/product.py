@@ -8,6 +8,8 @@ from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.penknife.penknife import PenknifeWorkflow
 from app.cli.veritable.models.veritableSpec import VeritableSpec
 from app.cli.veritable.veritable import VeritableWorkflow
+from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
+from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
 
 
 class ProductEnum(str, Enum):
@@ -15,6 +17,7 @@ class ProductEnum(str, Enum):
     veritable = "Veritable"
     dexit = "Dexit"
     penknife = "Penknife"
+    hdp = "HDP"
 
     @classmethod
     def get_class(cls: "ProductEnum", enum_value: "ProductEnum") -> type:
@@ -30,6 +33,8 @@ class ProductEnum(str, Enum):
                 return DexitWorkflow
             case cls.penknife:
                 return PenknifeWorkflow
+            case cls.hdp:
+                return HDPOnboardingWorkflow
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -47,6 +52,8 @@ class ProductEnum(str, Enum):
                 return DexitSpec
             case cls.penknife:
                 return PenknifeSpec
+            case cls.hdp:
+                return HDPSpec
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -65,5 +72,7 @@ class ProductEnum(str, Enum):
                 return config.veritable.domain_name
             case cls.dexit:
                 return config.dexit.domain_name
+            case cls.hdp:
+                return config.hdp.domain_name
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
