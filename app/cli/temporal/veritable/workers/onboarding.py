@@ -1,4 +1,4 @@
-import asyncio
+# import asyncio
 
 from loguru import logger
 from temporalio.worker import Worker
@@ -29,4 +29,5 @@ async def veritable_onboarding_worker() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(veritable_onboarding_worker())
+    pass
+    # asyncio.run(veritable_onboarding_worker())
