@@ -4,7 +4,6 @@ from collections.abc import Callable
 import pydash
 from temporalio import workflow
 
-# from app.cli.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
 from app.cli.temporal.core.base import Workflow
 
@@ -39,7 +38,7 @@ class HDPOnboardingWorkflow(Workflow):
         self.deny: bool = False
 
     @staticmethod
-    def get_activities() -> list[type[Callable]]:
+    def get_activities() -> list[type[Callable]]:  # type: ignore
         """
         Return list of activities used in the workflow
         """
@@ -58,6 +57,7 @@ class HDPOnboardingWorkflow(Workflow):
             StatefulSetPodCreationActivity.defn,
             UpdateTenantStatusActivity.defn,
             SendMailActivity.defn,
+            BeforeProvisioningMailActivity.defn,
         ]
 
     @classmethod

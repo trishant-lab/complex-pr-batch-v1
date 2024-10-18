@@ -35,10 +35,17 @@ class PostgresUtils:
         """
         Create a new database in the database
         """
-        await self.db.execute_raw_sql(
-            query=f"CREATE DATABASE {database_name};",
-        )
+        await self.db.create_database(db_name=database_name)
         log_info(f"Created database {database_name} successfully.")
+
+    async def check_if_database_exists(self: "PostgresUtils", database_name: str) -> bool:
+        """
+        Check if the database already exists in the database
+        """
+        return await self.db.fetch_one(
+            sqlfile="checkIfDatabaseExists.sql",
+            database_name=database_name,
+        )
 
     async def create_schema(self: "PostgresUtils", schema_name: str, username: str) -> None:
         """

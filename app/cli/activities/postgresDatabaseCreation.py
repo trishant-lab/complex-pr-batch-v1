@@ -23,13 +23,17 @@ async def setup_postgres_database(
 
     password = generate_password(length=20)
 
-    await postgres_utils.create_database(database_name=database_name)
+    database_exists = await postgres_utils.check_if_database_exists(database_name=database_name)
+    log_info(f"Database {database_name} exists: {database_exists}")
 
-    user_exists = await postgres_utils.check_if_user_exists(username=db_username)
+    if not database_exists:
+        await postgres_utils.create_database(database_name=database_name)
+
+    user_exists = await postgres_utils.check_if_user_exists(username=db_username.lower())
     log_info(f"User {db_username} exists: {user_exists}")
 
     if not user_exists:
-        await postgres_utils.create_user(username=db_username, password=password)
+        await postgres_utils.create_user(username=db_username.lower(), password=password)
     else:
         await postgres_utils.update_user_password(username=db_username, password=password)
 

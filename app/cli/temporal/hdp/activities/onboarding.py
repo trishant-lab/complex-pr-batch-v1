@@ -42,7 +42,7 @@ class PostgresSetupActivity(Activity):
             database_name=database_name,
             db_username=f"{database_name}_{hdp.tenant}",
             vault_name=vault_name,
-            config=get_settings().hdp,
+            config=get_settings(),
         )
 
 
@@ -577,8 +577,8 @@ class BeforeProvisioningMailActivity(Activity):
         await send_before_provisioning_mail(
             user_details={"firstName": hdp.firstName, "lastName": hdp.lastName, "email": hdp.email},
             product=ProductName,
-            from_name="HDP Support",
-            email_from="support@okhdp.com",
+            from_name="314e Support",
+            email_from="developer@314ecorp.com",
         )
 
 
@@ -612,6 +612,6 @@ class SendMailActivity(Activity):
             user_details={"firstName": hdp.firstName, "lastName": hdp.lastName, "email": hdp.email},
             domain_name=get_settings().hdp.domain_name,
             product=ProductName,
-            from_name="HDP Support",
-            email_from="support@okhdp.com",
+            from_name="314e Support",
+            email_from="developer@314ecorp.com",
         )
