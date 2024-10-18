@@ -11,7 +11,7 @@ class Service(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self: "Service", tenant: str, product: str) -> None:
+    def __init__(self: "Service", tenant: str, product: str, port: int) -> None:
         """
         Constructor
         """
@@ -21,6 +21,7 @@ class Service(K8sResourceBaseClass):
         )
         self.tenant = tenant
         self.product = product
+        self.port = port
 
     def payload(self: "Service") -> dict:
         """
@@ -40,7 +41,7 @@ class Service(K8sResourceBaseClass):
                 ports=[
                     V1ServicePort(
                         name="http",
-                        port=8000,
+                        port=self.port,
                     )
                 ],
             ),

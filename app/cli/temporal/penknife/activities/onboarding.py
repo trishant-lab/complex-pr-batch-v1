@@ -415,7 +415,7 @@ class KubernetesServiceActivity(Activity):
         # Create k8s service
         from app.cli.activities.serviceSetup import Service
 
-        Service(tenant=penknife.tenant, product=ProductName).put()
+        Service(tenant=penknife.tenant, product=ProductName, port=8000).put()
 
 
 class KubernetesVirtualServiceActivity(Activity):
