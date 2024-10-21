@@ -472,6 +472,13 @@ class StatefulSetPodCreationActivity(Activity):
             vault=OnePasswordVault,
         ).get_key("pg_password")
 
+
+        redis_password = OnePasswordUtil(
+            tenant=f"HDP_{hdp.tenant}",
+            server_item="application-config",
+            vault=OnePasswordVault,
+        ).get_key("redis_password")
+
         volume_mounts = []
         # volume_mounts = [
         #     V1VolumeMount(
@@ -490,13 +497,14 @@ class StatefulSetPodCreationActivity(Activity):
 
             V1EnvVar(name="DATABASE_DB", value=database_name),
             V1EnvVar(name="DATABASE_HOST", value=get_settings().postgres.host),
-            V1EnvVar(name="DATABASE_PASSWORD", value="5"), #TODO: update password
+            V1EnvVar(name="DATABASE_PASSWORD", value=postgres_password), 
             V1EnvVar(name="DATABASE_USER", value=f"{database_name}_{hdp.tenant}"),
             V1EnvVar(name="DATABASE_PORT", value=get_settings().postgres.port),
             V1EnvVar(name="DATABASE_DIALECT", value="postgresql"),
 
-            V1EnvVar(name="REDIS_HOST", value="postgresql"),
-            V1EnvVar(name="REDIS_PORT", value="postgresql"),
+            V1EnvVar(name="REDIS_HOST", value=f"cache-new.{hdp.tenant}.svc.cluster.local"), 
+            V1EnvVar(name="REDIS_PORT", value="6379"), 
+            V1EnvVar(name="REDIS_PASSWORD", value=redis_password), 
             
             V1EnvVar(name="FLASK_APP", value="superset"),
             V1EnvVar(name="SUPERSET_ENV", value="production"),
