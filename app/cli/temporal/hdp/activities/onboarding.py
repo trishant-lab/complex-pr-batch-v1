@@ -454,15 +454,22 @@ class StatefulSetPodCreationActivity(Activity):
         # Deploy k8s deployment
         # from kubernetes.client.models import V1VolumeMount, V1Volume, V1EnvVar, V1ConfigMapVolumeSource, V1KeyToPath
         from kubernetes.client.models import V1EnvVar
+        from kubernetes.client import V1Container
 
         from app.cli.activities.statefulSetPodCreation import StatefulSetPodCreation
 
-        # from app.onepasswordutil import OnePasswordUtil
+        from app.onepasswordutil import OnePasswordUtil
         from app.core.settings import get_settings
 
         environment = get_settings().env
         image_tag = "production" if environment == "production" else "sprint"
         docker_image = f"registry.314ecorp.tech/hdp-api:{image_tag}"
+
+        postgres_password = OnePasswordUtil(
+            tenant=f"HDP_{hdp.tenant}",
+            server_item="application-config",
+            vault=OnePasswordVault,
+        ).get_key("pg_password")
 
         volume_mounts = []
         # volume_mounts = [
@@ -494,6 +501,7 @@ class StatefulSetPodCreationActivity(Activity):
         # ]
 
         # server pod
+
         StatefulSetPodCreation(
             tenant=hdp.tenant,
             name="hdp",
@@ -504,6 +512,20 @@ class StatefulSetPodCreationActivity(Activity):
             volume_mounts=volume_mounts,
             volumes=volumes,
             container_envs=environment_variables,
+            init_containers=[
+                V1Container(
+                    name="hdp-init",
+                    image="busybox:latest",
+                    command=["sh", "-c"],
+                    args=[
+                        f"export FLASK_APP=superset && "
+                        f"superset db upgrade && "
+                        f"superset fab create-admin --username 'admin' --firstname 'hdp' --lastname 'admin' "
+                        f"--email 'superset@314ecorp.com' --password '{postgres_password}' && "
+                        f"superset init"
+                    ],
+                )
+            ],
         ).put()
 
 
