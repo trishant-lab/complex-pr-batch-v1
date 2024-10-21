@@ -500,10 +500,92 @@ class StatefulSetPodCreationActivity(Activity):
             docker_image=docker_image,
             request_resource={"cpu": hdp.serverSpec.request_cpu, "memory": hdp.serverSpec.request_memory},
             limit_resource={"cpu": hdp.serverSpec.limit_cpu, "memory": hdp.serverSpec.limit_memory},
-            container_port=8000,
+            container_ports=[8000],
             volume_mounts=volume_mounts,
             volumes=volumes,
             container_envs=environment_variables,
+        ).put()
+
+
+class KestraStatefulSetPodCreationActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="KestraStatefulSetPodCreationActivity")
+    async def defn(hdp: HDPSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Create k8s stateful set
+        from kubernetes.client.models import V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1EnvVar, V1KeyToPath
+        from app.cli.activities.statefulSetPodCreation import StatefulSetPodCreation
+        from app.core.settings import get_settings, AppSettings
+        from app.onepasswordutil import OnePasswordUtil
+        from app.common import generate_password
+
+        config: AppSettings = get_settings()
+
+        docker_image = "kestra/kestra:latest-full"
+
+        volume_mounts = [
+            V1VolumeMount(
+                name="kestra-volume",
+                mount_path="/config/kestra-config.yaml",
+                sub_path="kestra-config.yaml",
+            ),
+        ]
+
+        volumes = [
+            V1Volume(
+                name="kestra-volume",
+                config_map=V1ConfigMapVolumeSource(
+                    name="kestra-config",
+                    items=[V1KeyToPath(key="kestra-config.yaml", path="kestra-config.yaml")],
+                ),
+            ),
+        ]
+
+        kestra_password = generate_password()
+
+        environment_variables = [
+            V1EnvVar(name="KESTRA_CLIENTID", value="hdp"),
+            V1EnvVar(name="KESTRA_CLIENTSECRET", value="hdp"),
+            V1EnvVar(name="KESTRA_PASSWORD", value=kestra_password),
+            V1EnvVar(name="KESTRA_USERNAME", value=config.hdp.kestra_username),
+            V1EnvVar(name="KESTRA_CONFIGURATION", value="/config/kestra-config.yaml"),
+        ]
+
+        OnePasswordUtil(
+            tenant=f"hdp_{hdp.tenant}",
+            server_item="application-config",
+            vault="hdp",
+        ).create_or_replace("kestra_password", kestra_password)
+
+        StatefulSetPodCreation(
+            tenant=hdp.tenant,
+            name="kestra",
+            docker_image=docker_image,
+            request_resource={"cpu": hdp.serverSpec.request_cpu, "memory": hdp.serverSpec.request_memory},
+            limit_resource={"cpu": hdp.serverSpec.limit_cpu, "memory": hdp.serverSpec.limit_memory},
+            container_ports=[8080, 8081],
+            volume_mounts=volume_mounts,
+            volumes=volumes,
+            container_envs=environment_variables,
+            container_command=["/bin/bash", "-c"],
+            container_args=[
+                "JAVA_OPTS=-Dmicronaut.server.context-path=/etl"
+                " /app/kestra server standalone --port 18080 --worker-thread=128"
+            ],
         ).put()
 
 

@@ -30,10 +30,12 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
         docker_image: str,
         request_resource: dict,
         limit_resource: dict,
-        container_port: int,
+        container_ports: list[int],
         volume_mounts: list,
         volumes: list,
         container_envs: list,
+        container_command: list[str] | None = None,
+        container_args: list[str] | None = None,
     ) -> None:
         """
         Constructor for DeploymentServer class
@@ -50,10 +52,12 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
         self.docker_image = docker_image
         self.request_resource = request_resource
         self.limit_resource = limit_resource
-        self.container_port = container_port
+        self.container_ports = container_ports
         self.volume_mounts = volume_mounts
         self.volumes = volumes
         self.container_envs = container_envs
+        self.container_command = container_command
+        self.container_args = container_args
 
     def payload(self: "StatefulSetPodCreation") -> dict:
         """
@@ -82,8 +86,11 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
                                 ),
                                 security_context=V1SecurityContext(privileged=True),
                                 ports=[
-                                    V1ContainerPort(name="http", protocol="TCP", container_port=self.container_port)
+                                    V1ContainerPort(name="http", protocol="TCP", container_port=container_port)
+                                    for container_port in self.container_ports
                                 ],
+                                command=self.container_command,
+                                args=self.container_args,
                                 volume_mounts=self.volume_mounts,
                                 env=self.container_envs,
                             )
