@@ -24,6 +24,8 @@ from app.cli.temporal.hdp.activities.onboarding import (
     TenantStatus,
     SendMailActivity,
     BeforeProvisioningMailActivity,
+    PVCSetupActivity,
+    KestraStatefulSetPodCreationActivity,
 )
 
 
@@ -58,6 +60,8 @@ class HDPOnboardingWorkflow(Workflow):
             UpdateTenantStatusActivity.defn,
             SendMailActivity.defn,
             BeforeProvisioningMailActivity.defn,
+            PVCSetupActivity.defn,
+            KestraStatefulSetPodCreationActivity.defn,
         ]
 
     @classmethod
@@ -136,12 +140,12 @@ class HDPOnboardingWorkflow(Workflow):
             )
 
             # pvc setup
-            # await workflow.execute_activity(
-            #     activity=PVCSetupActivity.defn,
-            #     arg=jeeves,
-            #     retry_policy=PVCSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=timedelta(seconds=120),
-            # )
+            await workflow.execute_activity(
+                activity=PVCSetupActivity.defn,
+                arg=hdp,
+                retry_policy=PVCSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
             # dns setup
             await workflow.execute_activity(
@@ -180,6 +184,21 @@ class HDPOnboardingWorkflow(Workflow):
                 activity=KubernetesVirtualServiceActivity.defn,
                 arg=hdp,
                 retry_policy=KubernetesVirtualServiceActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            await workflow.execute_activity(
+                activity=StatefulSetPodCreationActivity.defn,
+                arg=hdp,
+                retry_policy=StatefulSetPodCreationActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            # kestra statefulset setup
+            await workflow.execute_activity(
+                activity=KestraStatefulSetPodCreationActivity.defn,
+                arg=hdp,
+                retry_policy=KestraStatefulSetPodCreationActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 

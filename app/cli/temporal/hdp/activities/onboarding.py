@@ -35,13 +35,21 @@ class PostgresSetupActivity(Activity):
         from app.cli.activities.postgresDatabaseCreation import setup_postgres_database
         from app.core.settings import get_settings
 
-        
-
         await setup_postgres_database(
             tenant=hdp.tenant,
             product_name=ProductName,
-            database_name=database_name,
+            database_name=f"{database_name}_{hdp.tenant}",
             db_username=f"{database_name}_{hdp.tenant}",
+            vault_name=vault_name,
+            config=get_settings(),
+        )
+
+        # create postgres database for kestra
+        await setup_postgres_database(
+            tenant=hdp.tenant,
+            product_name=ProductName,
+            database_name=f"kestra_{hdp.tenant}",
+            db_username=f"kestra_{hdp.tenant}",
             vault_name=vault_name,
             config=get_settings(),
         )
@@ -92,13 +100,24 @@ class ConfigmapSetupActivity(Activity):
         Callable for the activity
         """
         pass
-        # from app.cli.activities.configMapSetup import ConfigMapClass
+        from app.cli.activities.configMapSetup import ConfigMapClass
+        from app.common import generate_password
+        from app.onepasswordutil import OnePasswordUtil
 
-        # tenant_config: dict[str, str] = {"name": "hdp-tenant-config", "key": "tenant-config.json"}
+        tenant_config: dict[str, str] = {"name": "hdp-tenant-config", "key": "tenant-config.json"}
+        kestra_config: dict[str, str] = {"name": "kestra-config", "key": "kestra-config.yml"}
 
-        # bucket_name = "hdp-config"
+        bucket_name = "hdp-config"
 
-        # ConfigMapClass(tenant=hdp.tenant, config_map=tenant_config, bucket_name=bucket_name).put()
+        kestra_password = generate_password(20)
+        OnePasswordUtil(
+            tenant=f"HDP_{hdp.tenant}",
+            server_item="application-config",
+            vault=OnePasswordVault,
+        ).create_or_replace("kestra_password", kestra_password)
+
+        ConfigMapClass(tenant=hdp.tenant, config_map=tenant_config, bucket_name=bucket_name).put()
+        ConfigMapClass(tenant=hdp.tenant, config_map=kestra_config, bucket_name=bucket_name).put()
 
 
 class SecretSetupActivity(Activity):
@@ -432,6 +451,31 @@ class KubernetesVirtualServiceActivity(Activity):
         ).put()
 
 
+class PVCSetupActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PVCSetupActivity")
+    async def defn(hdp: HDPSpec) -> None:
+        """
+        Callable for the activity
+        """
+        # Create k8s persistent volume claim
+        from app.cli.activities.pvcSetup import PVC
+
+        PVC(tenant=hdp.tenant, pvc_name="hdp-volume").put()
+
+
 # TODO: Needs update
 class StatefulSetPodCreationActivity(Activity):
     @staticmethod
@@ -453,14 +497,21 @@ class StatefulSetPodCreationActivity(Activity):
         Callable for the activity
         """
         # Deploy k8s deployment
-        # from kubernetes.client.models import V1VolumeMount, V1Volume, V1EnvVar, V1ConfigMapVolumeSource, V1KeyToPath
-        from kubernetes.client.models import V1EnvVar
+        from kubernetes.client.models import (
+            V1VolumeMount,
+            V1Volume,
+            V1EnvVar,
+            V1ConfigMapVolumeSource,
+            V1KeyToPath,
+            V1PersistentVolumeClaimVolumeSource,
+        )
         from kubernetes.client import V1Container
 
         from app.cli.activities.statefulSetPodCreation import StatefulSetPodCreation
 
         from app.onepasswordutil import OnePasswordUtil
         from app.core.settings import get_settings
+        from app.common import generate_password
 
         environment = get_settings().env
         image_tag = "production" if environment == "production" else "sprint"
@@ -470,8 +521,7 @@ class StatefulSetPodCreationActivity(Activity):
             tenant=f"HDP_{hdp.tenant}",
             server_item="application-config",
             vault=OnePasswordVault,
-        ).get_key("pg_password")
-
+        ).get_key(f"hdp_{hdp.tenant}_pg_password")
 
         redis_password = OnePasswordUtil(
             tenant=f"HDP_{hdp.tenant}",
@@ -479,14 +529,14 @@ class StatefulSetPodCreationActivity(Activity):
             vault=OnePasswordVault,
         ).get_key("redis_password")
 
-        volume_mounts = []
-        # volume_mounts = [
-        #     V1VolumeMount(
-        #         name="tenant-volume",
-        #         mount_path="/config/tenant-config.json",
-        #         sub_path="tenant-config.json",
-        #     ),
-        # ]
+        volume_mounts = [
+            V1VolumeMount(
+                name="tenant-volume",
+                mount_path="/config/tenant-config.json",
+                sub_path="tenant-config.json",
+            ),
+            V1VolumeMount(name="hdp-logs", mount_path="/data/logs"),
+        ]
 
         # TODO
         environment_variables = [
@@ -494,18 +544,15 @@ class StatefulSetPodCreationActivity(Activity):
             V1EnvVar(name="WEB_CONCURRENCY", value="5"),
             V1EnvVar(name="CLIENT_CODE", value=hdp.tenant),
             V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
-
             V1EnvVar(name="DATABASE_DB", value=database_name),
             V1EnvVar(name="DATABASE_HOST", value=get_settings().postgres.host),
-            V1EnvVar(name="DATABASE_PASSWORD", value=postgres_password), 
+            V1EnvVar(name="DATABASE_PASSWORD", value=postgres_password),
             V1EnvVar(name="DATABASE_USER", value=f"{database_name}_{hdp.tenant}"),
             V1EnvVar(name="DATABASE_PORT", value=get_settings().postgres.port),
             V1EnvVar(name="DATABASE_DIALECT", value="postgresql"),
-
-            V1EnvVar(name="REDIS_HOST", value=f"cache-new.{hdp.tenant}.svc.cluster.local"), 
-            V1EnvVar(name="REDIS_PORT", value="6379"), 
-            V1EnvVar(name="REDIS_PASSWORD", value=redis_password), 
-            
+            V1EnvVar(name="REDIS_HOST", value=f"cache-new.{hdp.tenant}.svc.cluster.local"),
+            V1EnvVar(name="REDIS_PORT", value="6379"),
+            V1EnvVar(name="REDIS_PASSWORD", value=redis_password),
             V1EnvVar(name="FLASK_APP", value="superset"),
             V1EnvVar(name="SUPERSET_ENV", value="production"),
             V1EnvVar(name="SUPERSET_SECRET_KEY", value="P90d6HNEeXL2hAU0ciYO9pBZx52jFNKrZsMoNXj8Mo2NlBsAJZTngEzD"),
@@ -513,24 +560,30 @@ class StatefulSetPodCreationActivity(Activity):
             V1EnvVar(name="MAPBOX_API_KEY", value=""),
             V1EnvVar(name="SUPERSET_URL", value=f"https://{hdp.tenant}.hdp.314ecorp.tech/hdpsuperset"),
             V1EnvVar(name="KEYCLOAK_SUPERSET_PREFIX", value="_hdpdashboard_"),
-
-
-
         ]
 
         # Volumes
-        volumes = []
-        # volumes = [
-        #     V1Volume(
-        #         name="tenant-volume",
-        #         config_map=V1ConfigMapVolumeSource(
-        #             name="hdp-tenant-config",
-        #             items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
-        #         ),
-        #     ),
-        # ]
+        volumes = [
+            V1Volume(
+                name="tenant-volume",
+                config_map=V1ConfigMapVolumeSource(
+                    name="hdp-tenant-config",
+                    items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+                ),
+            ),
+            V1Volume(
+                name="hdp-logs", persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(claim_name="hdp-volume")
+            ),
+        ]
 
         # server pod
+
+        superset_password = generate_password(20)
+        OnePasswordUtil(
+            tenant=f"HDP_{hdp.tenant}",
+            server_item="application-config",
+            vault=OnePasswordVault,
+        ).create_or_replace("superset_password", superset_password)
 
         StatefulSetPodCreation(
             tenant=hdp.tenant,
@@ -545,13 +598,13 @@ class StatefulSetPodCreationActivity(Activity):
             init_containers=[
                 V1Container(
                     name="hdp-init",
-                    image="busybox:latest",
+                    image=docker_image,
                     command=["sh", "-c"],
                     args=[
                         f"export FLASK_APP=superset && "
                         f"superset db upgrade && "
                         f"superset fab create-admin --username 'admin' --firstname 'hdp' --lastname 'admin' "
-                        f"--email 'superset@314ecorp.com' --password '{postgres_password}' && "
+                        f"--email 'superset@314ecorp.com' --password '{superset_password}' && "
                         f"superset init"
                     ],
                 )
@@ -579,7 +632,14 @@ class KestraStatefulSetPodCreationActivity(Activity):
         Callable for the activity
         """
         # Create k8s stateful set
-        from kubernetes.client.models import V1VolumeMount, V1Volume, V1ConfigMapVolumeSource, V1EnvVar, V1KeyToPath
+        from kubernetes.client.models import (
+            V1VolumeMount,
+            V1Volume,
+            V1ConfigMapVolumeSource,
+            V1EnvVar,
+            V1KeyToPath,
+            V1PersistentVolumeClaimVolumeSource,
+        )
         from app.cli.activities.statefulSetPodCreation import StatefulSetPodCreation
         from app.core.settings import get_settings, AppSettings
         from app.onepasswordutil import OnePasswordUtil
@@ -590,11 +650,9 @@ class KestraStatefulSetPodCreationActivity(Activity):
         docker_image = "kestra/kestra:latest-full"
 
         volume_mounts = [
-            V1VolumeMount(
-                name="kestra-volume",
-                mount_path="/config/kestra-config.yaml",
-                sub_path="kestra-config.yaml",
-            ),
+            V1VolumeMount(name="kestra-volume", mount_path="/config/kestra-config.yml", sub_path="kestra-config.yml"),
+            V1VolumeMount(name="kestra-storage", mount_path="/app/storage"),
+            V1VolumeMount(name="kestra-tmp", mount_path="/tmp/kestra-wd/tmp"),  # noqa: S108  #nosec
         ]
 
         volumes = [
@@ -602,8 +660,15 @@ class KestraStatefulSetPodCreationActivity(Activity):
                 name="kestra-volume",
                 config_map=V1ConfigMapVolumeSource(
                     name="kestra-config",
-                    items=[V1KeyToPath(key="kestra-config.yaml", path="kestra-config.yaml")],
+                    items=[V1KeyToPath(key="kestra-config.yml", path="kestra-config.yml")],
                 ),
+            ),
+            V1Volume(
+                name="kestra-storage",
+                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(claim_name="hdp-volume"),
+            ),
+            V1Volume(
+                name="kestra-tmp", persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(claim_name="hdp-volume")
             ),
         ]
 
@@ -614,7 +679,7 @@ class KestraStatefulSetPodCreationActivity(Activity):
             V1EnvVar(name="KESTRA_CLIENTSECRET", value="hdp"),
             V1EnvVar(name="KESTRA_PASSWORD", value=kestra_password),
             V1EnvVar(name="KESTRA_USERNAME", value=config.hdp.kestra_username),
-            V1EnvVar(name="KESTRA_CONFIGURATION", value="/config/kestra-config.yaml"),
+            V1EnvVar(name="KESTRA_CONFIGURATION", value="/config/kestra-config.yml"),
         ]
 
         OnePasswordUtil(
