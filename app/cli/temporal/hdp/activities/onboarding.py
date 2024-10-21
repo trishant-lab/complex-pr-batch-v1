@@ -9,6 +9,8 @@ from app.cli.temporal.core.base import Activity
 
 ProductName = "hdp"
 OnePasswordVault = "HDP"
+database_name = "HDP"
+vault_name = "hdp"
 
 
 class PostgresSetupActivity(Activity):
@@ -33,8 +35,7 @@ class PostgresSetupActivity(Activity):
         from app.cli.activities.postgresDatabaseCreation import setup_postgres_database
         from app.core.settings import get_settings
 
-        database_name = "HDP"
-        vault_name = "hdp"
+        
 
         await setup_postgres_database(
             tenant=hdp.tenant,
@@ -479,6 +480,27 @@ class StatefulSetPodCreationActivity(Activity):
             V1EnvVar(name="WEB_CONCURRENCY", value="5"),
             V1EnvVar(name="CLIENT_CODE", value=hdp.tenant),
             V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
+
+            V1EnvVar(name="DATABASE_DB", value=database_name),
+            V1EnvVar(name="DATABASE_HOST", value=get_settings().postgres.host),
+            V1EnvVar(name="DATABASE_PASSWORD", value="5"), #TODO: update password
+            V1EnvVar(name="DATABASE_USER", value=f"{database_name}_{hdp.tenant}"),
+            V1EnvVar(name="DATABASE_PORT", value=get_settings().postgres.port),
+            V1EnvVar(name="DATABASE_DIALECT", value="postgresql"),
+
+            V1EnvVar(name="REDIS_HOST", value="postgresql"),
+            V1EnvVar(name="REDIS_PORT", value="postgresql"),
+            
+            V1EnvVar(name="FLASK_APP", value="superset"),
+            V1EnvVar(name="SUPERSET_ENV", value="production"),
+            V1EnvVar(name="SUPERSET_SECRET_KEY", value="P90d6HNEeXL2hAU0ciYO9pBZx52jFNKrZsMoNXj8Mo2NlBsAJZTngEzD"),
+            V1EnvVar(name="SUPERSET_PORT", value="8088"),
+            V1EnvVar(name="MAPBOX_API_KEY", value=""),
+            V1EnvVar(name="SUPERSET_URL", value=f"https://{hdp.tenant}.hdp.314ecorp.tech/hdpsuperset"),
+            V1EnvVar(name="KEYCLOAK_SUPERSET_PREFIX", value="_hdpdashboard_"),
+
+
+
         ]
 
         # Volumes
