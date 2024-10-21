@@ -458,152 +458,32 @@ class KubernetesVirtualServiceActivity(Activity):
         Callable for the activity
         """
         # Create k8s virtual service
+        import orjson
         from app.cli.activities.istioVirtualService import IstioVirtualService
+
         from app.core.settings import get_settings, AppSettings
+        from app.cli.temporal.jeeves import TemplatePath
+        from app.template_env import get_env
 
         config: AppSettings = get_settings()
         env = config.env
         image_tag = "sprint" if env == "integration" else "production"
 
-        http_list = []
+        template_env = get_env(template_path=TemplatePath)
 
-        # http_api router
-        http_api = {
-            "name": "jeeves-api",
-            "route": [
-                {
-                    "destination": {
-                        "host": f"jeeves.{jeeves.tenant}.svc.cluster.local",
-                        "port": {"number": 8000},
-                    },
-                    "headers": {
-                        "response": {
-                            "add": {
-                                "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-                            }
-                        }
-                    },
-                }
-            ],
-            "match": [
-                {"uri": {"regex": "^/api/v1/.*"}},
-                {"uri": {"regex": "^/public/api/v1/.*"}},
-                {"uri": {"prefix": "/docs"}},
-                {"uri": {"prefix": "/redoc"}},
-            ],
-        }
-        http_list.append(http_api)
+        template = template_env.get_template("istio-rules.json")
+        output = template.render(tenant=jeeves.tenant, image_tag=image_tag, env=env)
 
-        # http_log_collect router
-        http_log_collect = {
-            "name": "jeeves-log-collect",
-            "route": [
-                {
-                    "destination": {
-                        "host": "grafana-agent.monitoring-system.svc.cluster.local",
-                        "port": {"number": 12347},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/logcollect"},
-                }
-            ],
-            "rewrite": {"uri": "/collect"},
-        }
-        http_list.append(http_log_collect)
+        http_list = orjson.loads(output)
 
-        # http analytics router
-        http_analytics = {
-            "name": "jeeves-analytics",
-            "route": [
-                {
-                    "destination": {
-                        "host": "matomo-server.matomo.svc.cluster.local",
-                        "port": {"number": 80},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/insights/"},
-                }
-            ],
-            "rewrite": {"uri": "/"},
-        }
-        http_list.append(http_analytics)
-
-        # http alerting router
-        http_alerting = {
-            "name": "jeeves-alerting",
-            "route": [
-                {
-                    "destination": {
-                        "host": "api.novu.svc.cluster.local",
-                        "port": {"number": 4000},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/alerting/"},
-                }
-            ],
-            "rewrite": {"uri": "/"},
-        }
-        http_list.append(http_alerting)
-
-        # novu socket router
-        novu_socket = {
-            "name": "novu-socket",
-            "route": [
-                {
-                    "destination": {
-                        "host": "ws.novu.svc.cluster.local",
-                        "port": {"number": 3002},
-                    }
-                }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/socket.io/"},
-                }
-            ],
-        }
-        http_list.append(novu_socket)
-
-        # http_redirect router
         if env != "production":
-            http_redirect = {
-                "name": "redirect",
-                "match": [
-                    {
-                        "uri": {"exact": "/"},
-                    }
-                ],
-                "redirect": {"uri": f"/{image_tag}/"},
-            }
-            http_list.append(http_redirect)
-
-        # http_ui router
-        http_ui = {
-            "name": "jeeves-ui",
-            "route": [
+            http_list.append(
                 {
-                    "destination": {
-                        "host": "varnish-svc.varnish.svc.cluster.local",
-                        "port": {"number": 80},
-                    }
+                    "name": "redirect",
+                    "match": [{"uri": {"exact": "/"}}],
+                    "redirect": {"uri": f"/{image_tag}/"},
                 }
-            ],
-            "match": [
-                {
-                    "uri": {"prefix": "/"},
-                }
-            ],
-        }
-        http_list.append(http_ui)
+            )
 
         IstioVirtualService(
             payload=http_list, tenant=jeeves.tenant, domain_name=config.jeeves.domain_name, product=ProductName

@@ -36,6 +36,7 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
         container_envs: list,
         container_command: list[str] | None = None,
         container_args: list[str] | None = None,
+        init_containers: list | None = None,
     ) -> None:
         """
         Constructor for DeploymentServer class
@@ -58,6 +59,7 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
         self.container_envs = container_envs
         self.container_command = container_command
         self.container_args = container_args
+        self.init_containers = init_containers
 
     def payload(self: "StatefulSetPodCreation") -> dict:
         """
@@ -76,6 +78,7 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
                     spec=V1PodSpec(
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
                         node_selector={"app": "314e"},
+                        init_containers=self.init_containers,
                         containers=[
                             V1Container(
                                 name=self.name,
