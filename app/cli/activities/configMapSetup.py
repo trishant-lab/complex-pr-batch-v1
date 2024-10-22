@@ -44,7 +44,9 @@ class ConfigMapClass(K8sResourceBaseClass):
             .replace('.json', '.tmpl.json')
             .replace('.toml', '.tmpl.toml')
             .replace('.yaml', '.tmpl.yaml')
-            .replace('.conf', '.tmpl.conf')}"""
+            .replace('.conf', '.tmpl.conf')
+            .replace('.yml', '.tmpl.yml')
+            }"""
 
         with TemporaryDirectory() as temp_dir:
             s3_int_client: boto3.client = get_storage_client(
