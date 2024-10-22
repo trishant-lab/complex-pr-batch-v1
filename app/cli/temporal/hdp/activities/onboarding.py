@@ -9,7 +9,7 @@ from app.cli.temporal.core.base import Activity
 
 ProductName = "hdp"
 OnePasswordVault = "HDP"
-database_name = "HDP"
+database_name = "hdp"
 vault_name = "hdp"
 
 
@@ -53,7 +53,6 @@ class PostgresSetupActivity(Activity):
             db_username=f"kestra_{hdp.tenant}",
             vault_name=vault_name,
             config=get_settings(),
-            vault_key_name=f"kestra_{hdp.tenant}_pg_password",
         )
 
 
