@@ -42,6 +42,7 @@ class PostgresSetupActivity(Activity):
             db_username=f"{database_name}_{hdp.tenant}",
             vault_name=vault_name,
             config=get_settings(),
+            vault_key_name=f"{database_name}_{hdp.tenant}_pg_password",
         )
 
         # create postgres database for kestra
@@ -52,6 +53,7 @@ class PostgresSetupActivity(Activity):
             db_username=f"kestra_{hdp.tenant}",
             vault_name=vault_name,
             config=get_settings(),
+            vault_key_name=f"kestra_{hdp.tenant}_pg_password",
         )
 
 

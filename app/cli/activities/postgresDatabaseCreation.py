@@ -13,6 +13,7 @@ async def setup_postgres_database(
     db_username: str,
     vault_name: str,
     config: Any,
+    vault_key_name: str,
 ) -> None:
     """
     Setup postgres database for tenant
@@ -41,6 +42,6 @@ async def setup_postgres_database(
         tenant=f"{product_name}_{tenant}",
         server_item="application-config",
         vault=vault_name,
-    ).create_or_replace(f"{database_name}_pg_password", password)
+    ).create_or_replace(vault_key_name, password)
 
-    await postgres_utils.grant_user_to_connect_and_create(db_username=db_username, database_name=database_name)
+    await postgres_utils.grant_user_to_connect_and_create(username=db_username, database=database_name)
