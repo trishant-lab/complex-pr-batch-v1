@@ -202,8 +202,8 @@ class HDPSettings(BaseModel):
     zone_name: str = "e314ecorptech"
     # grafana: GrafanaSettings = GrafanaSettings()
 
-    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue1"
-    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue1"
+    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue"
+    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue"
 
     keycloak_db_password: str = ""
     matomo_db_password: str = ""
