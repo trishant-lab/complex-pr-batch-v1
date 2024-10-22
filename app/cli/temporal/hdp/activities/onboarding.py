@@ -53,7 +53,7 @@ class PostgresSetupActivity(Activity):
             db_username=f"kestra_{hdp.tenant}",
             vault_name=vault_name,
             config=get_settings(),
-            vault_key_name=f"kestra_{hdp.tenant}_pg_password",
+            vault_key_name="kestra_pg_password",
         )
 
 
