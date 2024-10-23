@@ -42,6 +42,7 @@ class PostgresSetupActivity(Activity):
             database_name=database_name,
             db_username=f"{database_name}_{hdp.tenant}",
             vault_name=vault_name,
+            vault_key_name="pg_password",
             config=get_settings(),
         )
 

@@ -7,7 +7,7 @@ from jinja2 import Template
 from novu.api import NotificationGroupApi, IntegrationApi, NotificationTemplateApi
 from novu.dto import IntegrationDto, NotificationTemplateFormDto
 
-from app.cli.dexit import TemplatePath
+from app.cli.temporal.dexit import TemplatePath
 from app.cli.temporal.dexit.dexit import DexitSpec
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
@@ -289,6 +289,8 @@ class NovuSetup:
         Setup the Novu environment
         """
         config: AppSettings = get_settings()
+        env: str = config.env
+        server_item = "production-config" if env == "production" else "integration-config"
 
         organization_name = f"dexit_{self.dexit.tenant}"
         access_token = self.get_access_token()
@@ -307,8 +309,8 @@ class NovuSetup:
 
         # store in 1Password
         OnePasswordUtil(
-            tenant=f"Dexit_Server_{self.dexit.tenant}",
-            server_item="application-config",
+            tenant=self.dexit.tenant,
+            server_item=server_item,
             vault="Dexit",
         ).insert_if_not_exists(key="novu_api_key", value=api_keys)
 

@@ -43,9 +43,10 @@ class HFInferenceEndpointSetup:
         self.dexit: DexitSpec = dexit
         self.config: AppSettings = get_settings()
         self.ai_config: DexitAISettings = self.config.dexit.ai_config
+        self.server_item = "production-config" if self.config.env == "production" else "integration-config"
         self.op_util = OnePasswordUtil(
-            tenant=f"Dexit_Server_{self.dexit.tenant}",
-            server_item="application-config",
+            tenant=self.dexit.tenant,
+            server_item=self.server_item,
             vault="Dexit",
         )
         self.op_util.insert_if_not_exists(key="ai_llm_entity_endpoint_name", value="")
@@ -155,8 +156,8 @@ class HFInferenceEndpointSetup:
         log_info(f"Endpoint {endpoint_name} is ready at {endpoint_url}")
 
         op_util = OnePasswordUtil(
-            tenant=f"Dexit_Server_{self.dexit.tenant}",
-            server_item="application-config",
+            tenant=self.dexit.tenant,
+            server_item=self.server_item,
             vault="Dexit",
         )
         if endpoint.enable_entity_llm:

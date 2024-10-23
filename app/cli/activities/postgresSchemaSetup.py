@@ -58,6 +58,7 @@ async def setup_postgres(
     Setup postgres database for tenant
     """
     environment = os.getenv("DEPLOYMENT", "integration").lower()
+    server_item = "production-config" if environment == "production" else "integration-config"
 
     db_username = f"{database_name.lower()}_{tenant}"
 
@@ -81,8 +82,8 @@ async def setup_postgres(
             await postgres_utils.update_user_password(username=db_username, password=password)
 
         OnePasswordUtil(
-            tenant=f"{product_name}_{tenant}",
-            server_item="application-config",
+            tenant=f"{product_name}_{tenant}" if product_name.lower() != "dexit" else tenant,
+            server_item="application-config" if product_name.lower() != "dexit" else server_item,
             vault=vault_name,
         ).create_or_replace("pg_password", password)
 

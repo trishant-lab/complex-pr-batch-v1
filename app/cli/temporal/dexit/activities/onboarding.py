@@ -11,6 +11,42 @@ ProductName = "dexit"
 OnePasswordVault = "Dexit"
 
 
+class PostgresDicomSetupActivity(Activity):
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PostgresDicomSetupActivity")
+    async def defn(dexit: DexitSpec) -> None:
+        """
+        Callable for the activity
+        """
+        from app.cli.activities.postgresDatabaseCreation import setup_postgres_database
+        from app.core.settings import get_settings
+
+        database_name = f"{ProductName}_dicom_{dexit.tenant}"
+        vault_name = "Dexit"
+
+        await setup_postgres_database(
+            tenant=dexit.tenant,
+            product_name=ProductName,
+            database_name=database_name,
+            db_username=database_name,
+            vault_name=vault_name,
+            vault_key_name="pg_dicom_password",
+            config=get_settings(),
+        )
+
+
 class PostgresSetupActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -98,13 +134,15 @@ class ConfigmapSetupActivity(Activity):
         from app.cli.activities.configMapSetup import ConfigMapClass
 
         tenant_config: dict[str, str] = {"name": "dexit-tenant-config", "key": "tenant-config.json"}
-        rclone_config: dict[str, str] = {"name": "dexit-env-config", "key": "env-config.json"}
+        env_config: dict[str, str] = {"name": "dexit-env-config", "key": "env-config.json"}
+        dicom_config: dict[str, str] = {"name": "dexit-dicom-config", "key": "dicom-config.json"}
         vector_config: dict[str, str] = {"name": "dexit-cli-vector-config", "key": "vector-config.toml"}
 
         bucket_name = "dexit-config"
 
         ConfigMapClass(tenant=dexit.tenant, config_map=tenant_config, bucket_name=bucket_name).put()
-        ConfigMapClass(tenant=dexit.tenant, config_map=rclone_config, bucket_name=bucket_name).put()
+        ConfigMapClass(tenant=dexit.tenant, config_map=env_config, bucket_name=bucket_name).put()
+        ConfigMapClass(tenant=dexit.tenant, config_map=dicom_config, bucket_name=bucket_name).put()
         ConfigMapClass(tenant=dexit.tenant, config_map=vector_config, bucket_name=bucket_name).put()
 
 
@@ -351,10 +389,13 @@ class ProvisioningJobActivity(Activity):
         from app.onepasswordutil import OnePasswordUtil
         from app.core.settings import get_settings
 
+        env: str = get_settings().env
+        server_item = "production-config" if env == "production" else "integration-config"
+
         postgres_user = f"dexit_{dexit.tenant}"
         postgres_password = OnePasswordUtil(
-            tenant=f"Dexit_{dexit.tenant}",
-            server_item="application-config",
+            tenant=dexit.tenant,
+            server_item=server_item,
             vault=OnePasswordVault,
         ).get_key("pg_password")
         image_tag = "production" if get_settings().env == "production" else "sprint"
@@ -580,6 +621,7 @@ class StatefulSetPodCreationActivity(Activity):
         from app.core.settings import get_settings
 
         environment = get_settings().env
+        server_item = "production-config" if environment == "production" else "integration-config"
         image_tag = "production" if environment == "production" else "sprint"
         docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
 
@@ -599,7 +641,7 @@ class StatefulSetPodCreationActivity(Activity):
         postgres_user = f"dexit_{dexit.tenant}"
         postgres_password = OnePasswordUtil(
             tenant=f"Dexit_{dexit.tenant}",
-            server_item="application-config",
+            server_item=server_item,
             vault=OnePasswordVault,
         ).get_key("pg_password")
         tika_server_endpoint = get_settings().dexit.tika_server_endpoint
@@ -683,6 +725,49 @@ class StatefulSetPodCreationActivity(Activity):
             volume_mounts=volume_mounts,
             container_envs=environment_variables,
             volumes=volumes,
+        ).put()
+
+        # Dicom Pod
+        volume_mounts = [
+            V1VolumeMount(
+                name="dicom-volume",
+                mount_path="/etc/orthanc/orthanc.json",
+                sub_path="dicom-config.json",
+            )
+        ]
+
+        environment_variables = [
+            V1EnvVar(name="DEPLOYMENT", value=environment),
+            V1EnvVar(name="WEB_CONCURRENCY", value="5"),
+            V1EnvVar(
+                name="RELEASE_VERSION",
+                value=image_tag,
+            ),
+            V1EnvVar(name="APP_CONFIG_DIR", value="/config"),
+            V1EnvVar(name="CLIENT_CODE", value=dexit.tenant),
+        ]
+
+        volumes = [
+            V1Volume(
+                name="dicom-volume",
+                config_map=V1ConfigMapVolumeSource(
+                    name="dexit-dicom-config",
+                    items=[V1KeyToPath(key="dicom-config.json", path="dicom-config.json")],
+                ),
+            ),
+        ]
+
+        # server pod
+        StatefulSetPodCreation(
+            tenant=dexit.tenant,
+            name="dexit",
+            docker_image="orthancteam/orthanc:24.8.1",
+            request_resource={"cpu": dexit.serverSpec.request_cpu, "memory": dexit.serverSpec.request_memory},
+            limit_resource={"cpu": dexit.serverSpec.limit_cpu, "memory": dexit.serverSpec.limit_memory},
+            container_port=8000,
+            volume_mounts=volume_mounts,
+            volumes=volumes,
+            container_envs=environment_variables,
         ).put()
 
 
@@ -803,10 +888,12 @@ class TemporalNamespaceCreationActivity(Activity):
         """
         # Create temporal namespace
         from app.cli.activities.temporalNamespaceCreation import TemporalNamespaceCreation
+        from app.cli.activities.temporalSearchAtrributesCreation import TemporalSearchAttributesCreation
 
         temporal_namespace = f"dexit_{dexit.tenant}"
 
         await TemporalNamespaceCreation(namespace=temporal_namespace).create_temporal_namespace()
+        await TemporalSearchAttributesCreation(namespace=temporal_namespace).create_search_attributes()
 
 
 class HFInferenceEndpointSetupActivity(Activity):

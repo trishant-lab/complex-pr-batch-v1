@@ -12,12 +12,14 @@ async def setup_postgres_database(
     database_name: str,
     db_username: str,
     vault_name: str,
+    vault_key_name: str,
     config: Any,
 ) -> None:
     """
     Setup postgres database for tenant
     """
     db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+    server_item = "production-config" if config.env == "production" else "integration-config"
 
     postgres_utils: PostgresUtils = PostgresUtils(db)
 
@@ -38,9 +40,9 @@ async def setup_postgres_database(
         await postgres_utils.update_user_password(username=db_username, password=password)
 
     OnePasswordUtil(
-        tenant=f"{product_name}_{tenant}",
-        server_item="application-config",
+        tenant=f"{product_name}_{tenant}" if product_name.lower() != "dexit" else tenant,
+        server_item="application-config" if product_name.lower() != "dexit" else server_item,
         vault=vault_name,
-    ).create_or_replace("pg_password", password)
+    ).create_or_replace(vault_key_name, password)
 
-    await postgres_utils.grant_user_to_connect_and_create(db_username=db_username, database_name=database_name)
+    await postgres_utils.grant_user_to_connect_and_create(username=db_username, database=database_name)

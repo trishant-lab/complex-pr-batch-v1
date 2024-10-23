@@ -131,6 +131,7 @@ def create_service_account(
     """
     Create keycloak service account
     """
+    server_item = "production-config" if get_settings().env == "production" else "integration-config"
     jinja_env: jinja2.Environment = get_env(template_path=template_path)
     template = jinja_env.get_template("keycloak_service_account.json")
 
@@ -141,8 +142,8 @@ def create_service_account(
     keycloak_client.refresh_token()
     keycloak_client.create_client(orjson.loads(service_account_config), realm_name)
     OnePasswordUtil(
-        tenant=f"Dexit_Server_{tenant}",
-        server_item="application-config",
+        tenant=tenant,
+        server_item=server_item,
         vault="Dexit",
     ).insert_if_not_exists(key="service_account_secret", value=client_secret)
 

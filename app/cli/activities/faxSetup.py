@@ -12,6 +12,7 @@ class FaxSetup:
         self.config: AppSettings = get_settings()
         self.env: str = self.config.env
         self.domain_name = "com" if self.env == "production" else "tech"
+        self.server_item = "production-config" if self.env == "production" else "integration-config"
         self.laml_url = (
             f"https://314e.signalwire.com/api/laml/2010-04-01/Accounts/{self.config.dexit.FaxAccountId}/LamlBins"
         )
@@ -53,8 +54,8 @@ class FaxSetup:
 
         # store in 1Password
         OnePasswordUtil(
-            tenant=f"Dexit_Server_{self.dexit.tenant}",
-            server_item="application-config",
+            tenant=self.dexit.tenant,
+            server_item=self.server_item,
             vault="Dexit",
         ).insert_if_not_exists(key="fax_url", value=content["request_url"])
 

@@ -205,11 +205,11 @@ class HDPSettings(BaseModel):
     temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue"
     temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue"
 
-
     keycloak_db_password: str = ""
     matomo_db_password: str = ""
 
     reporting_site_id: str = "1"
+
 
 class PenknifeSettings(BaseModel):
     """

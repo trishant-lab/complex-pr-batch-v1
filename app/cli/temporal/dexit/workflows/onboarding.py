@@ -7,6 +7,7 @@ from temporalio import workflow
 from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.dexit.activities.onboarding import (
+    PostgresDicomSetupActivity,
     PostgresSetupActivity,
     NamespaceSetupActivity,
     ConfigmapSetupActivity,
@@ -46,6 +47,7 @@ class DexitOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
+            PostgresDicomSetupActivity.defn,
             PostgresSetupActivity.defn,
             NamespaceSetupActivity.defn,
             ConfigmapSetupActivity.defn,
@@ -100,6 +102,14 @@ class DexitOnboardingWorkflow(Workflow):
                 activity=NamespaceSetupActivity.defn,
                 arg=dexit,
                 retry_policy=NamespaceSetupActivity.get_retry_policy(),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            # postgres dicom setup
+            await workflow.execute_activity(
+                activity=PostgresDicomSetupActivity.defn,
+                arg=dexit,
+                retry_policy=PostgresDicomSetupActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
