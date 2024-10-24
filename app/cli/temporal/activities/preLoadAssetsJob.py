@@ -1,4 +1,8 @@
 import asyncio
+from datetime import timedelta
+
+from temporalio.common import RetryPolicy
+from temporalio.activity import activity
 
 from kubernetes.client import (
     V1Job,
@@ -19,6 +23,7 @@ from kubernetes.dynamic.exceptions import NotFoundError
 from loguru import logger
 
 from kubernetes import client as api_client
+from app.cli.temporal.core.base import Activity
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
@@ -202,3 +207,33 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
             self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.jeeves.tenant)
         except NotFoundError:
             logger.error(f"Provisioning job not found for {self.jeeves.tenant}")
+
+
+class PreloadAssetsJobActivity(Activity):
+    """
+    PreloadAssetsJobActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), backoff_coefficient=2, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="PreloadAssetsJobActivity")
+    async def defn(jeeves: JeevesSpec) -> None:
+        """
+        Callable for the activity
+        """
+        preload_assets_job = PreLoadAssetsJob(jeeves=jeeves)
+        preload_assets_job.delete()
+        preload_assets_job.put()

@@ -12,7 +12,7 @@ class PVC(K8sResourceBaseClass):
     Namespace class
     """
 
-    def __init__(self: "PVC", tenant: str, pvc_name: str) -> None:
+    def __init__(self: "PVC", tenant: str, pvc_name: str, env: str) -> None:
         """
         Constructor
         """
@@ -22,6 +22,7 @@ class PVC(K8sResourceBaseClass):
         )
         self.pvc_name = pvc_name
         self.tenant = tenant
+        self.env = env
 
     def payload(self: "PVC") -> dict:
         """
@@ -33,7 +34,7 @@ class PVC(K8sResourceBaseClass):
             metadata=V1ObjectMeta(namespace=self.tenant, name=self.pvc_name),
             spec=V1PersistentVolumeClaimSpec(
                 volume_mode="Filesystem",
-                storage_class_name="topolvm-provisioner",
+                storage_class_name="longhorn-replicated" if self.env == "integration" else "topolvm-provisioner",
                 access_modes=["ReadWriteOnce"],
                 resources=V1ResourceRequirements(requests={"storage": "1Gi"}),
             ),

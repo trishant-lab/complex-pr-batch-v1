@@ -89,7 +89,9 @@ class StatefulSetPodCreation(K8sResourceBaseClass):
                                 ),
                                 security_context=V1SecurityContext(privileged=True),
                                 ports=[
-                                    V1ContainerPort(name="http", protocol="TCP", container_port=container_port)
+                                    V1ContainerPort(
+                                        name=f"http-{container_port}", protocol="TCP", container_port=container_port
+                                    )
                                     for container_port in self.container_ports
                                 ],
                                 command=self.container_command,

@@ -9,7 +9,6 @@ from app.cli.temporal.core.base import Activity
 
 ProductName = "hdp"
 OnePasswordVault = "HDP"
-database_name = "hdp"
 vault_name = "hdp"
 
 
@@ -38,11 +37,11 @@ class PostgresSetupActivity(Activity):
         await setup_postgres_database(
             tenant=hdp.tenant,
             product_name=ProductName,
-            database_name=f"{database_name}_{hdp.tenant}",
-            db_username=f"{database_name}_{hdp.tenant}",
+            database_name=f"{ProductName.lower()}_{hdp.tenant}",
+            db_username=f"{ProductName.lower()}_{hdp.tenant}",
             vault_name=vault_name,
             config=get_settings(),
-            vault_key_name=f"{database_name}_pg_password",
+            vault_key_name=f"{ProductName.lower()}_pg_password",
         )
 
         # create postgres database for kestra
@@ -257,7 +256,7 @@ class UiSetupActivity(Activity):
 
         src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
-        UISetup(src_object_name=src_object_name, dest_dir=dest_dir).deploy()
+        UISetup(src_object_name=src_object_name, dest_dir=dest_dir, product_name=ProductName).deploy()
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -474,8 +473,11 @@ class PVCSetupActivity(Activity):
         """
         # Create k8s persistent volume claim
         from app.cli.activities.pvcSetup import PVC
+        from app.core.settings import get_settings
 
-        PVC(tenant=hdp.tenant, pvc_name="hdp-volume").put()
+        env = get_settings().env
+
+        PVC(tenant=hdp.tenant, pvc_name="hdp-volume", env=env).put()
 
 
 # TODO: Needs update
@@ -546,11 +548,11 @@ class StatefulSetPodCreationActivity(Activity):
             V1EnvVar(name="WEB_CONCURRENCY", value="5"),
             V1EnvVar(name="CLIENT_CODE", value=hdp.tenant),
             V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
-            V1EnvVar(name="DATABASE_DB", value=database_name),
+            V1EnvVar(name="DATABASE_DB", value=ProductName.lower()),
             V1EnvVar(name="DATABASE_HOST", value=get_settings().postgres.host),
             V1EnvVar(name="DATABASE_PASSWORD", value=postgres_password),
-            V1EnvVar(name="DATABASE_USER", value=f"{database_name}_{hdp.tenant}"),
-            V1EnvVar(name="DATABASE_PORT", value=get_settings().postgres.port),
+            V1EnvVar(name="DATABASE_USER", value=f"{ProductName.lower()}_{hdp.tenant}"),
+            V1EnvVar(name="DATABASE_PORT", value=str(get_settings().postgres.port)),
             V1EnvVar(name="DATABASE_DIALECT", value="postgresql"),
             V1EnvVar(name="REDIS_HOST", value=f"cache-new.{hdp.tenant}.svc.cluster.local"),
             V1EnvVar(name="REDIS_PORT", value="6379"),
@@ -674,7 +676,7 @@ class KestraStatefulSetPodCreationActivity(Activity):
             ),
         ]
 
-        kestra_password = generate_password()
+        kestra_password = generate_password(20)
 
         environment_variables = [
             V1EnvVar(name="KESTRA_CLIENTID", value="hdp"),
@@ -774,12 +776,15 @@ class BeforeProvisioningMailActivity(Activity):
         """
         # Send mail to customer
         from app.cli.activities.mail import send_before_provisioning_mail
+        from app.core.settings import get_settings
+
+        hdp_config = get_settings().hdp
 
         await send_before_provisioning_mail(
             user_details={"firstName": hdp.firstName, "lastName": hdp.lastName, "email": hdp.email},
             product=ProductName,
-            from_name="314e Support",
-            email_from="developer@314ecorp.com",
+            from_name=hdp_config.sender_name,
+            email_from=hdp_config.sender_email,
         )
 
 
@@ -807,12 +812,14 @@ class SendMailActivity(Activity):
         from app.cli.activities.mail import send_provisioning_mail
         from app.core.settings import get_settings
 
+        hdp_config = get_settings().hdp
+
         await send_provisioning_mail(
             realm_name=hdp.tenant,
             tenant=hdp.tenant,
             user_details={"firstName": hdp.firstName, "lastName": hdp.lastName, "email": hdp.email},
-            domain_name=get_settings().hdp.domain_name,
+            domain_name=hdp_config.domain_name,
             product=ProductName,
-            from_name="314e Support",
-            email_from="developer@314ecorp.com",
+            from_name=hdp_config.sender_name,
+            email_from=hdp_config.sender_email,
         )

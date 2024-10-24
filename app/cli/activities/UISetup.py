@@ -42,7 +42,7 @@ def deploy_ui(src_object_name: str, dest_dir: str, product_name: str | None = No
 
             input_path = os.path.join(tmp_dir, "bundle", "dist", "admin")
 
-            if product_name and product_name.lower() == "penknife":
+            if product_name and product_name.lower() in ["penknife", "hdp"]:
                 input_path = os.path.join(tmp_dir, "bundle", "dist")
 
             # Upload the files to S3

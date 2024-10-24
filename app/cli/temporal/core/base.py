@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 from collections.abc import Callable
+from datetime import timedelta
 
 from pydantic import BaseModel, Extra
 from temporalio.common import RetryPolicy
@@ -16,6 +17,13 @@ class LaunchpadCLIBaseModel(BaseModel, extra=Extra.allow):
 
 
 class Activity(abc.ABC):
+    @staticmethod
+    @abc.abstractmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+
     @staticmethod
     @abc.abstractmethod
     def get_retry_policy() -> RetryPolicy:

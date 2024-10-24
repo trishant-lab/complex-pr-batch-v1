@@ -1,14 +1,17 @@
-from typing import Any
-
 import requests
 from loguru import logger
 
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
+from app.core.settings import JeevesSettings
 from app.onepasswordutil import OnePasswordUtil
+from datetime import timedelta
+from temporalio.common import RetryPolicy
+from temporalio.activity import activity
 
 
 class ChatwootSetup:
-    def __init__(self: "ChatwootSetup", tenant: str, product: str, config: Any) -> None:
+    def __init__(self: "ChatwootSetup", tenant: str, product: str, config: JeevesSettings) -> None:
         self.tenant: str = tenant
         self.config = config
         self.product: str = product
@@ -298,3 +301,44 @@ class ChatwootSetup:
         # update inbox
         self.update_chatwoot_inbox(account_id=account_id, user_api_key=api_key, inbox_id=inbox_id)
         log_info(f"chatwoot inbox updated successfully : {self.tenant}")
+
+
+class ChatwootSetupActivityModel(LaunchpadCLIBaseModel):
+    """
+    ChatwootSetupActivityModel
+    """
+
+    tenant: str
+    product: str
+    config: JeevesSettings
+
+
+class ChatwootSetupActivity(Activity):
+    """
+    ChatwootSetupActivity
+    """
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), backoff_coefficient=2, maximum_attempts=5)
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    @activity.defn(name="ChatwootSetupActivity")
+    async def defn(activity_model: ChatwootSetupActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        chatwoot_setup = ChatwootSetup(
+            tenant=activity_model.tenant, product=activity_model.product, config=activity_model.config
+        )
+        chatwoot_setup.setup()

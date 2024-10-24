@@ -124,12 +124,12 @@ class HDPOnboardingWorkflow(Workflow):
             )
 
             # statefulset setup
-            await workflow.execute_activity(
-                activity=RedisSetupActivity.defn,
-                arg=hdp,
-                retry_policy=RedisSetupActivity.get_retry_policy(),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
+            # await workflow.execute_activity(
+            #     activity=RedisSetupActivity.defn,
+            #     arg=hdp,
+            #     retry_policy=RedisSetupActivity.get_retry_policy(),
+            #     start_to_close_timeout=timedelta(seconds=120),
+            # )
 
             # configmap setup
             await workflow.execute_activity(

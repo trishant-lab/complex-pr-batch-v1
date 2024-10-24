@@ -1876,7 +1876,6 @@
   "identityProviders": [
     {
       "alias": "google",
-      "internalId": "0b39ea52-5108-4e16-bf4a-0e3570e9a71d",
       "providerId": "google",
       "enabled": true,
       "updateProfileFirstLoginMode": "on",
