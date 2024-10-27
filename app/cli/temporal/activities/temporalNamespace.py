@@ -1,13 +1,16 @@
-from datetime import timedelta
-from google.protobuf.duration_pb2 import Duration
 from temporalio.common import RetryPolicy
-from temporalio import activity, client
-from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
-from temporalio.service import RPCError, RPCStatusCode
+from temporalio import activity, client, workflow
 
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
-from app.core.settings import AppSettings, get_settings
+
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    from google.protobuf.duration_pb2 import Duration
+    from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
+    from temporalio.service import RPCError, RPCStatusCode
+
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
+    from app.core.settings import AppSettings, get_settings
 
 
 class TemporalNamespaceActivityModel(LaunchpadCLIBaseModel):

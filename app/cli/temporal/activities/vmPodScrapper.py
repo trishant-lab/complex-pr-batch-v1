@@ -1,11 +1,12 @@
-from datetime import timedelta
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
-from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
 
 
 class VMPodScrapperActivityModel(LaunchpadCLIBaseModel):
@@ -52,7 +53,11 @@ class VMPodScrapperActivity(Activity):
         """
         k8s_dynamic_client = get_dynamic_client()
 
-        resource = get_resource(ResourceKindEnum.VMPodScrape, activity_model.namespace, activity_model.name)
+        resource = get_resource(
+            dynamic_client=k8s_dynamic_client,
+            kind=ResourceKindEnum.VMPodScrape,
+            api_version="operator.victoriametrics.com/v1beta1",
+        )
 
         body = {
             "apiVersion": "operator.victoriametrics.com/v1beta1",
@@ -71,5 +76,10 @@ class VMPodScrapperActivity(Activity):
         }
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        resource.server_side_apply(body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True)
+        k8s_dynamic_client.server_side_apply(
+            resource=resource,
+            body=payload,
+            field_manager="kubectl-client-side-apply",
+            force_conflicts=True,
+        )
         log_info(f"VMPodScrapper created in namespace {activity_model.namespace}")

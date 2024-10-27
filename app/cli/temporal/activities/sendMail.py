@@ -1,17 +1,18 @@
 from tempfile import TemporaryDirectory
 from datetime import timedelta
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 
-from app.cli.keycloakUtils import KeycloakAdminClient
-from app.cli.temporal.core.log import log_error, log_info
-from app.common import generate_password
-from app.core.db import DBManager, get_db_manager
-from app.core.settings import AppSettings, get_settings
-from app.sendgrid_utils import send_mail
-from app.template_env import get_env
+
+with workflow.unsafe.imports_passed_through():
+    from app.sendgrid_utils import send_mail
+    from app.template_env import get_env
+    from app.cli.keycloakUtils import KeycloakAdminClient
+    from app.cli.temporal.core.log import log_error, log_info
+    from app.common import generate_password
+    from app.core.db import DBManager, get_db_manager
+    from app.core.settings import AppSettings, get_settings
 
 
 async def provisioning_success_mail(name: str, email: str, link: str, password: str, email_template: str) -> str:
@@ -178,7 +179,7 @@ class SendBeforeProvisioningMailActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=120)
+        return timedelta(seconds=180)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -188,7 +189,7 @@ class SendBeforeProvisioningMailActivity(Activity):
         return RetryPolicy(
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
+            maximum_interval=timedelta(seconds=60),
             maximum_attempts=5,
         )
 
@@ -240,7 +241,7 @@ class SendAfterProvisioningMailActivity(Activity):
         return RetryPolicy(
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
+            maximum_interval=timedelta(seconds=60),
             maximum_attempts=5,
         )
 

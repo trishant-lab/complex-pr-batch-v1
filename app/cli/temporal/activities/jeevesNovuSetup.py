@@ -1,16 +1,19 @@
-from datetime import timedelta
-import requests
-from loguru import logger
-from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi
-from novu.dto import IntegrationDto
 from temporalio.common import RetryPolicy
-from temporalio.activity import activity
+from temporalio import activity, workflow
 
-from app.cli.temporal.core.base import Activity
-from app.cli.temporal.jeeves.jeeves import JeevesSpec
-from app.cli.temporal.core.log import log_info
-from app.core.settings import AppSettings, get_settings
-from app.onepasswordutil import OnePasswordUtil
+
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    import requests
+    from loguru import logger
+    from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi
+    from novu.dto import IntegrationDto
+
+    from app.cli.temporal.core.base import Activity
+    from app.cli.temporal.jeeves.jeeves import JeevesSpec
+    from app.cli.temporal.core.log import log_info
+    from app.core.settings import AppSettings, get_settings
+    from app.onepasswordutil import OnePasswordUtil
 
 
 def get_default_notification_group_id(config: AppSettings, novu_api_key: str) -> str | None:
@@ -752,4 +755,4 @@ class JeevesNovuSetupActivity(Activity):
         Callable for the activity
         """
         jeeves_novu_setup = NovuSetup(jeeves=jeeves)
-        jeeves_novu_setup.setup()
+        jeeves_novu_setup.setup_novu()

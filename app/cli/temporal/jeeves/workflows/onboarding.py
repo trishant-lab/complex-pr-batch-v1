@@ -69,17 +69,20 @@ from app.cli.temporal.activities.postgresSetup import (
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.jeeves import TemplatePath
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
-from app.common import generate_password
-from app.core.settings import AppSettings, JeevesSettings, get_settings
-from app.onepasswordutil import OnePasswordUtil
-from app.template_env import get_env
+
+
+with workflow.unsafe.imports_passed_through():
+    from app.common import generate_password
+    from app.core.settings import AppSettings, JeevesSettings, get_settings
+    from app.onepasswordutil import OnePasswordUtil
+    from app.template_env import get_env
 
 
 ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
 
 
-@workflow.defn
+@workflow.defn(name="JeevesOnboardingWorkflow", sandboxed=False)
 class JeevesOnboardingWorkflow(Workflow):
     """
     Jeeves Onboarding Workflow
@@ -90,38 +93,43 @@ class JeevesOnboardingWorkflow(Workflow):
         self.deny: bool = False
 
     @staticmethod
-    def get_activities() -> list[type[Callable]]:
+    def get_activities() -> list[type[Callable]]:  # type: ignore
         """
         Return list of activities used in the workflow
         """
         return [
-            SendBeforeProvisioningMailActivity,
-            SendAfterProvisioningMailActivity,
-            UpdateTenantStatusActivity,
-            PostgresUserCreationActivity,
-            PostgresSupavisorPollUserActivity,
-            PostgresSchemaCreationActivity,
-            PostgresGrantAccessToUserActivity,
-            KeycloakUserMappingActivity,
-            MatomoUserMappingActivity,
-            PostgresGrantAllPrivilegesOnTableActivity,
-            K8sNamespaceCreationActivity,
-            K8sSecretCreationActivity,
-            ChatwootSetupActivity,
-            JeevesNovuSetupActivity,
-            RedisSetupActivity,
-            DnsSetupActivity,
-            UiSetupActivity,
-            KeycloakRealmSetupActivity,
-            KeycloakClientSetupActivity,
-            KeycloakCreateClientRolesActivity,
-            PreloadAssetsJobActivity,
-            VespaJobActivity,
-            KubernetesStatefulSetActivity,
-            KubernetesIstioVirtualServiceActivity,
-            KubernetesServiceActivity,
-            K8sConfigMapCreationActivity,
-            TemporalNamespaceActivity,
+            SendBeforeProvisioningMailActivity.defn,
+            SendAfterProvisioningMailActivity.defn,
+            UpdateTenantStatusActivity.defn,
+            PostgresUserCreationActivity.defn,
+            PostgresSupavisorPollUserActivity.defn,
+            PostgresSchemaCreationActivity.defn,
+            PostgresGrantAccessToUserActivity.defn,
+            KeycloakUserMappingActivity.defn,
+            MatomoUserMappingActivity.defn,
+            PostgresGrantAllPrivilegesOnTableActivity.defn,
+            K8sNamespaceCreationActivity.defn,
+            K8sSecretCreationActivity.defn,
+            ChatwootSetupActivity.defn,
+            DatabaseMigrationJobActivity.defn,
+            JeevesNovuSetupActivity.defn,
+            RedisSetupActivity.defn,
+            DnsSetupActivity.defn,
+            UiSetupActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            KeycloakClientSetupActivity.defn,
+            KeycloakCreateClientRolesActivity.defn,
+            KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            KeycloakCreateInternalUsersActivity.defn,
+            PreloadAssetsJobActivity.defn,
+            VespaJobActivity.defn,
+            AiVoiceSetupActivity.defn,
+            KubernetesStatefulSetActivity.defn,
+            VMPodScrapperActivity.defn,
+            KubernetesIstioVirtualServiceActivity.defn,
+            KubernetesServiceActivity.defn,
+            K8sConfigMapCreationActivity.defn,
+            TemporalNamespaceActivity.defn,
         ]
 
     @classmethod
@@ -129,7 +137,7 @@ class JeevesOnboardingWorkflow(Workflow):
         """
         Return workflow id
         """
-        return f"jeeves_onboarding_workflow_{jeeves.tenant}"
+        return f"jeeves_onboarding_workflow_{pydash.get(jeeves, 'tenant')}"
 
     @workflow.run
     async def run(self: "Workflow", jeeves: JeevesSpec) -> None:
@@ -139,15 +147,20 @@ class JeevesOnboardingWorkflow(Workflow):
         config: AppSettings = get_settings()
         jeeves_config: JeevesSettings = config.jeeves
 
+        first_name = pydash.get(jeeves, "firstName")
+        last_name = pydash.get(jeeves, "lastName")
+        email = pydash.get(jeeves, "email")
+        tenant = pydash.get(jeeves, "tenant")
+
         try:
             if not pydash.get(jeeves, "emailSent"):
                 await workflow.execute_activity(
                     activity=SendBeforeProvisioningMailActivity.defn,
                     arg=SendBeforeProvisioningMailActivityModel(
                         user_details={
-                            "firstName": pydash.get(jeeves, "firstName"),
-                            "lastName": pydash.get(jeeves, "lastName"),
-                            "email": pydash.get(jeeves, "email"),
+                            "firstName": first_name,
+                            "lastName": last_name,
+                            "email": email,
                         },
                         product=ProductName,
                         from_name=jeeves_config.sender_name,
@@ -165,21 +178,23 @@ class JeevesOnboardingWorkflow(Workflow):
                 await workflow.execute_activity(
                     activity=UpdateTenantStatusActivity.defn,
                     arg=TenantStatus(
-                        tenant_name=pydash.get(jeeves, "tenant"),
+                        tenant_name=tenant,
                         status="Declined",
                         error_msg="Request Declined",
                     ),
+                    start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
+                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
-            postgres_schema_name = pydash.get(jeeves, "tenant")
+            postgres_schema_name = tenant
             postgres_database_name = "jeeves"
-            postgres_username = f"{ProductName}_{pydash.get(jeeves, 'tenant')}"
+            postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/jeeves-app:{image_tag}"
 
             OnePasswordUtil(
-                tenant=f"{ProductName}_{pydash.get(jeeves, 'tenant')}",
+                tenant=f"{ProductName}_{tenant}",
                 server_item="application-config",
                 vault=OnePasswordVaultName,
             ).create_or_replace("pg_password", postgres_password)
@@ -188,6 +203,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=PostgresUserCreationActivity.defn,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
+                    database_name=postgres_database_name,
                     password=postgres_password,
                 ),
                 retry_policy=PostgresUserCreationActivity.get_retry_policy(),
@@ -195,7 +211,7 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await workflow.execute_activity(
-                activity=PostgresSupavisorPollUserActivityModel.defn,
+                activity=PostgresSupavisorPollUserActivity.defn,
                 arg=PostgresSupavisorPollUserActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
@@ -211,13 +227,14 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=PostgresSchemaCreationActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
+                    database_name=postgres_database_name,
                 ),
                 retry_policy=PostgresSchemaCreationActivity.get_retry_policy(),
                 start_to_close_timeout=PostgresSchemaCreationActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivityModel.defn,
+                activity=PostgresGrantAccessToUserActivity.defn,
                 arg=PostgresGrantAccessToUserActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
@@ -231,6 +248,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=KeycloakUserMappingActivity.defn,
                 arg=KeycloakUserMappingActivityModel(
                     username=postgres_username,
+                    database_name=postgres_database_name,
                 ),
                 retry_policy=KeycloakUserMappingActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakUserMappingActivity.get_timeout(),
@@ -240,6 +258,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=MatomoUserMappingActivity.defn,
                 arg=MatomoUserMappingActivityModel(
                     username=postgres_username,
+                    database_name=postgres_database_name,
                 ),
                 retry_policy=MatomoUserMappingActivity.get_retry_policy(),
                 start_to_close_timeout=MatomoUserMappingActivity.get_timeout(),
@@ -248,6 +267,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=PostgresGrantAllPrivilegesOnTableActivity.defn,
                 arg=PostgresGrantAllPrivilegesOnTableActivityModel(
+                    database_name=postgres_database_name,
                     username=postgres_username,
                     tables=[
                         "user_entity",
@@ -272,7 +292,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=K8sNamespaceCreationActivity.defn,
                 arg=K8sNamespaceCreationActivityModel(
-                    namespace=jeeves.tenant,
+                    namespace=tenant,
                 ),
                 retry_policy=K8sNamespaceCreationActivity.get_retry_policy(),
                 start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
@@ -282,8 +302,9 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
                 arg=K8sSecretCreationActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
+                    namespace=tenant,
                     name="registrycred",
+                    type="kubernetes.io/dockerconfigjson",
                     data={
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
@@ -296,7 +317,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
                 arg=K8sSecretCreationActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
+                    namespace=tenant,
                     name="cache-secret",
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
@@ -308,7 +329,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=ChatwootSetupActivity.defn,
                 arg=ChatwootSetupActivityModel(
-                    tenant=pydash.get(jeeves, "tenant"),
+                    tenant=tenant,
                     product=ProductName,
                     config=jeeves_config,
                 ),
@@ -327,15 +348,15 @@ class JeevesOnboardingWorkflow(Workflow):
             # setup redis
             redis_tenant_password = generate_password(length=20)
             OnePasswordUtil(
-                tenant=f"{ProductName}_{pydash.get(jeeves, 'tenant')}",
+                tenant=f"{ProductName}_{tenant}",
                 server_item="application-config",
                 vault=OnePasswordVaultName,
-            ).create_or_replace("redis_tenant_password", redis_tenant_password)
+            ).create_or_replace("redis_password", redis_tenant_password)
 
             await workflow.execute_activity(
                 activity=RedisSetupActivity.defn,
                 arg=RedisSetupActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
+                    namespace=tenant,
                     product=ProductName,
                     redis_tenant_password=redis_tenant_password,
                 ),
@@ -353,11 +374,11 @@ class JeevesOnboardingWorkflow(Workflow):
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
-                        namespace=pydash.get(jeeves, "tenant"),
+                        namespace=tenant,
                         name=config_map["name"],
                         template_file_name=config_map["key"],
                         bucket_name="jeeves-config",
-                        template_payload={"tenant": pydash.get(jeeves, "tenant")},
+                        template_payload={"tenant": tenant},
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
                     start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
@@ -368,7 +389,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=DnsSetupActivity.defn,
                 arg=DnsSetupActivityModel(
                     cname=config.google_dns_cname,
-                    fqdn=f"{pydash.get(jeeves, 'tenant')}.{jeeves_config.domain_name}.",
+                    fqdn=f"{tenant}.{jeeves_config.domain_name}.",
                     zone_name=jeeves_config.zone_name,
                 ),
                 retry_policy=DnsSetupActivity.get_retry_policy(),
@@ -380,9 +401,9 @@ class JeevesOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{jeeves.tenant}.{jeeves_config.domain_name}/"
+                dest_dir = f"{tenant}.{jeeves_config.domain_name}/"
             else:
-                dest_dir = f"{jeeves.tenant}.{jeeves_config.domain_name}/{image_tag}"
+                dest_dir = f"{tenant}.{jeeves_config.domain_name}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -399,12 +420,12 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=UiSetupActivity.get_timeout(),
             )
 
-            realm_name = pydash.get(jeeves, "tenant")
+            realm_name = tenant
             # keycloak realm setup
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=pydash.get(jeeves, "tenant"),
+                    tenant=tenant,
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
@@ -417,7 +438,8 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KeycloakClientSetupActivity.defn,
                 arg=KeycloakClientSetupActivityModel(
-                    tenant=pydash.get(jeeves, "tenant"),
+                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_jeeves_client.json",
@@ -464,13 +486,12 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
                     client_name="jeeves",
-                    username=pydash.get(jeeves, "email"),
-                    email=pydash.get(jeeves, "email"),
-                    firstname=pydash.get(jeeves, "firstName"),
-                    lastname=pydash.get(jeeves, "lastName"),
-                    roles=roles,
+                    username=email,
+                    email=email,
+                    firstname=first_name,
+                    lastname=last_name,
                     template_path=TemplatePath,
-                    template_name="keycloak_tenant_customer_admin_user.json",
+                    template_name="keycloak_tenant_customer_admin.json",
                 ),
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
@@ -482,9 +503,8 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=KeycloakCreateInternalUsersActivityModel(
                     realm_name=realm_name,
                     client_name="jeeves",
-                    roles=roles,
                     template_path=TemplatePath,
-                    template_name="keycloak_internal_users.json",
+                    template_name="keycloak_tenant_internal_user.json",
                 ),
                 retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
@@ -494,7 +514,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=DatabaseMigrationJobActivity.defn,
                 arg=DatabaseMigrationJobActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
+                    namespace=tenant,
                     job_name="jeeves-db-schema-migration-job",
                     docker_image=docker_image,
                     volume_mounts=[
@@ -515,11 +535,13 @@ class JeevesOnboardingWorkflow(Workflow):
                     container_envs=[
                         {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "CLIENT_CODE", "value": pydash.get(jeeves, "tenant")},
+                        {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                     ],
                     argument="python3 /app/provisioning/atlas_migration.py",
+                    job_type="atlas",
+                    product=ProductName,
                 ),
                 retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
                 start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
@@ -537,7 +559,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KubernetesServiceActivity.defn,
                 arg=KubernetesServiceActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
+                    namespace=tenant,
                     service_name="jeeves",
                     port=8000,
                 ),
@@ -548,7 +570,7 @@ class JeevesOnboardingWorkflow(Workflow):
             template_env = get_env(template_path=TemplatePath)
 
             template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=jeeves.tenant, image_tag=image_tag, env=config.env)
+            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
             http_list = orjson.loads(output)
             if config.env != "production":
@@ -564,8 +586,8 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KubernetesIstioVirtualServiceActivity.defn,
                 arg=KubernetesIstioVirtualServiceActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
-                    host=f"{pydash.get(jeeves, 'tenant')}.{jeeves_config.domain_name}",
+                    namespace=tenant,
+                    host=f"{tenant}.{jeeves_config.domain_name}",
                     service_name="jeeves-vs",
                     payload=http_list,
                 ),
@@ -574,7 +596,7 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             dynamic_url_hash_key = OnePasswordUtil(
-                tenant=f"Jeeves_{jeeves.tenant}",
+                tenant=f"Jeeves_{tenant}",
                 server_item="application-config",
                 vault=OnePasswordVaultName,
             ).get_key("dynamic_url_hash_key")
@@ -583,7 +605,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KubernetesStatefulSetActivity.defn,
                 arg=KubernetesStatefulSetActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
+                    namespace=tenant,
                     name="jeeves",
                     docker_image=docker_image,
                     request_resource={
@@ -631,7 +653,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
-                        {"name": "CLIENT_CODE", "value": pydash.get(jeeves, "tenant")},
+                        {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
@@ -649,7 +671,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KubernetesStatefulSetActivity.defn,
                 arg=KubernetesStatefulSetActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
+                    namespace=tenant,
                     name="jeeves-worker",
                     docker_image=docker_image,
                     request_resource={
@@ -703,7 +725,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "CLIENT_CODE", "value": pydash.get(jeeves, "tenant")},
+                        {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
@@ -721,7 +743,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=VMPodScrapperActivity.defn,
                 arg=VMPodScrapperActivityModel(
-                    namespace=pydash.get(jeeves, "tenant"),
+                    namespace=tenant,
                     name="jeeves-metrics",
                     app="jeeves",
                     path="/metrics/",
@@ -735,7 +757,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=TemporalNamespaceActivity.defn,
                 arg=TemporalNamespaceActivityModel(
-                    namespace=f"jeeves_{pydash.get(jeeves, 'tenant')}",
+                    namespace=f"jeeves_{tenant}",
                 ),
                 retry_policy=TemporalNamespaceActivity.get_retry_policy(),
                 start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
@@ -745,7 +767,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=AiVoiceSetupActivity.defn,
                 arg=AiVoiceSetupActivityModel(
-                    tenant=pydash.get(jeeves, "tenant"),
+                    tenant=tenant,
                     config=jeeves_config,
                 ),
                 retry_policy=AiVoiceSetupActivity.get_retry_policy(),
@@ -763,7 +785,7 @@ class JeevesOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=pydash.get(jeeves, "tenant"), status="Completed"),
+                arg=TenantStatus(tenant_name=tenant, status="Completed"),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
@@ -773,17 +795,19 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=SendAfterProvisioningMailActivity.defn,
                 arg=SendAfterProvisioningMailActivityModel(
                     realm_name=realm_name,
-                    tenant=pydash.get(jeeves, "tenant"),
+                    tenant=tenant,
                     user_details={
-                        "firstName": pydash.get(jeeves, "firstName"),
-                        "lastName": pydash.get(jeeves, "lastName"),
-                        "email": pydash.get(jeeves, "email"),
+                        "firstName": first_name,
+                        "lastName": last_name,
+                        "email": email,
                     },
                     domain_name=jeeves_config.domain_name,
                     product=ProductName,
                     from_name=jeeves_config.sender_name,
                     email_from=jeeves_config.sender_email,
                 ),
+                retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
+                start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
             )
 
         except Exception as e:
@@ -791,7 +815,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
-                    tenant_name=pydash.get(jeeves, "tenant"),
+                    tenant_name=tenant,
                     status="Failed",
                     error_msg=str(e),
                 ),
@@ -799,3 +823,17 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
+
+    @workflow.signal
+    async def approve(self: "Workflow") -> None:
+        """
+        Signal to approve the workflow
+        """
+        self.approved = True
+
+    @workflow.signal
+    async def deny(self: "Workflow") -> None:
+        """
+        Signal to reject the workflow
+        """
+        self.deny = True

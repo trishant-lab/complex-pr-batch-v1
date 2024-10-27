@@ -30,4 +30,4 @@ class HDPSpec(LaunchpadCLIBaseModel):
     organization: None | str = None
     emailSent: bool = False
     serverSpec: None | ResourceSpec = ResourceSpec()
-    cliSpec: None | ResourceSpec = ResourceSpec()
+    kestraSpec: None | ResourceSpec = ResourceSpec()

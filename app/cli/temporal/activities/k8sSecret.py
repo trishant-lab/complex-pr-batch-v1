@@ -1,10 +1,12 @@
-from datetime import timedelta
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-from kubernetes.client import V1Secret, V1ObjectMeta
-from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    from kubernetes.client import V1Secret, V1ObjectMeta
+    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
 
 
 class K8sSecretCreationActivityModel(LaunchpadCLIBaseModel):

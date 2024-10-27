@@ -1,0 +1,40 @@
+[
+    {
+        "name": "hdp-api",
+        "route": [
+            {
+                "destination": {
+                    "host": "hdp.{{tenant}}.svc.cluster.local",
+                    "port": {"number": 8000}
+                },
+                "headers": {
+                    "response": {
+                        "add": {
+                            "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+                        }
+                    }
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"regex": "^/api/v1/.*"}},
+            {"uri": {"regex": "^/public/api/v1/.*"}},
+            {"uri": {"prefix": "/docs"}},
+            {"uri": {"prefix": "/redoc"}}
+        ]
+    },
+    {
+        "name": "hdp-ui",
+        "route": [
+            {
+                "destination": {
+                    "host": "varnish-svc.varnish.svc.cluster.local",
+                    "port": {"number": 80}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/"}}
+        ]
+    }
+]

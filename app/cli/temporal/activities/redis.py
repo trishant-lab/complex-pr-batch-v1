@@ -1,26 +1,29 @@
-import asyncio
-import base64
-from datetime import timedelta
-from redis import Redis
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-from kubernetes.client import (
-    V1StatefulSet,
-    V1ObjectMeta,
-    V1StatefulSetSpec,
-    V1PodTemplateSpec,
-    V1PodSpec,
-    V1LocalObjectReference,
-    V1Container,
-    V1ContainerPort,
-    V1EnvVar,
-    V1EnvVarSource,
-    V1SecretKeySelector,
-)
 
-from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource, DynamicClient
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+
+with workflow.unsafe.imports_passed_through():
+    import asyncio
+    import base64
+    from datetime import timedelta
+    from redis import Redis
+    from kubernetes.client import (
+        V1StatefulSet,
+        V1ObjectMeta,
+        V1StatefulSetSpec,
+        V1PodTemplateSpec,
+        V1PodSpec,
+        V1LocalObjectReference,
+        V1Container,
+        V1ContainerPort,
+        V1EnvVar,
+        V1EnvVarSource,
+        V1SecretKeySelector,
+    )
+
+    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource, DynamicClient
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
 
 CACHE_HOST = "cache-new.{tenant}.svc.cluster.local"
 
@@ -144,4 +147,4 @@ class RedisSetupActivity(Activity):
             k8s_dynamic_client=k8s_dynamic_client,
         )
 
-        log_info(f"Product namespace {activity_model.name} created successfully")
+        log_info(f"Product namespace {activity_model.namespace} created successfully")

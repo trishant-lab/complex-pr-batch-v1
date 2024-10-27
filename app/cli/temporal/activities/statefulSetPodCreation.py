@@ -1,28 +1,33 @@
-from datetime import timedelta
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-from kubernetes.client import (
-    V1StatefulSet,
-    V1ObjectMeta,
-    V1StatefulSetSpec,
-    V1PodTemplateSpec,
-    V1PodSpec,
-    V1Container,
-    V1ContainerPort,
-    V1Volume,
-    V1VolumeMount,
-    V1ResourceRequirements,
-    V1SecurityContext,
-    V1ConfigMapVolumeSource,
-    V1KeyToPath,
-    V1PersistentVolumeClaimVolumeSource,
-    V1EnvVar,
-)
 
 
-from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    from kubernetes.client import (
+        V1StatefulSet,
+        V1ObjectMeta,
+        V1StatefulSetSpec,
+        V1PodTemplateSpec,
+        V1PodSpec,
+        V1Container,
+        V1ContainerPort,
+        V1Volume,
+        V1VolumeMount,
+        V1ResourceRequirements,
+        V1SecurityContext,
+        V1ConfigMapVolumeSource,
+        V1KeyToPath,
+        V1PersistentVolumeClaimVolumeSource,
+        V1EnvVar,
+        V1LocalObjectReference,
+        V1ConfigMapKeySelector,
+        V1EnvVarSource,
+    )
+
+    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
 
 
 class KubernetesStatefulSetActivityModel(LaunchpadCLIBaseModel):
@@ -86,7 +91,19 @@ class KubernetesStatefulSetActivity(Activity):
                 template=V1PodTemplateSpec(
                     metadata=V1ObjectMeta(labels={"app": activity_model.name}),
                     spec=V1PodSpec(
-                        init_containers=activity_model.init_containers,
+                        node_selector={"app": "314e"},
+                        image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                        init_containers=[
+                            V1Container(
+                                name=init_container["name"],
+                                image=init_container["image"],
+                                command=init_container["command"],
+                                args=init_container["args"],
+                            )
+                            for init_container in activity_model.init_containers
+                        ]
+                        if activity_model.init_containers
+                        else None,
                         containers=[
                             V1Container(
                                 name=activity_model.name,
@@ -116,6 +133,20 @@ class KubernetesStatefulSetActivity(Activity):
                                 env=[
                                     V1EnvVar(name=container_env["name"], value=container_env["value"])
                                     for container_env in activity_model.container_envs
+                                    if container_env.get("value")
+                                ]
+                                + [
+                                    V1EnvVar(
+                                        name=container_env["name"],
+                                        value_from=V1EnvVarSource(
+                                            config_map_key_ref=V1ConfigMapKeySelector(
+                                                name=container_env["value_from"]["config_map_key_ref"]["name"],
+                                                key=container_env["value_from"]["config_map_key_ref"]["key"],
+                                            )
+                                        ),
+                                    )
+                                    for container_env in activity_model.container_envs
+                                    if container_env.get("value_from")
                                 ],
                             )
                         ],

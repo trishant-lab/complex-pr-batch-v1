@@ -1,14 +1,16 @@
-from datetime import timedelta
-import tempfile
-import zipfile
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-import boto3
 
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_error, log_info
-from app.core.settings import AppSettings, get_settings
-from app.s3_utils import copy_files_to_s3, download_file_from_storage, get_storage_client
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    import tempfile
+    import zipfile
+    import boto3
+
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_error, log_info
+    from app.core.settings import AppSettings, get_settings
+    from app.s3_utils import copy_files_to_s3, download_file_from_storage, get_storage_client
 
 
 class UiSetupActivityModel(LaunchpadCLIBaseModel):

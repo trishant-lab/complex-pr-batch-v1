@@ -2,7 +2,7 @@ import asyncio
 from datetime import timedelta
 
 from temporalio.common import RetryPolicy
-from temporalio.activity import activity
+from temporalio import activity
 
 from kubernetes.client import (
     V1Job,
@@ -236,4 +236,4 @@ class PreloadAssetsJobActivity(Activity):
         """
         preload_assets_job = PreLoadAssetsJob(jeeves=jeeves)
         preload_assets_job.delete()
-        preload_assets_job.put()
+        await preload_assets_job.put()

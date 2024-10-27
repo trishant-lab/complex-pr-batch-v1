@@ -1,14 +1,16 @@
-import requests
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-from datetime import timedelta
 
-from app.cli.temporal.core.base import LaunchpadCLIBaseModel
-from app.cli.temporal.core.base import Activity
-from app.cli.temporal.core.log import log_error, log_info
-from app.core.db import DBManager, get_db_manager
-from app.core.settings import AppSettings, get_settings
-from app.template_env import get_env
+
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    import requests
+    from app.cli.temporal.core.base import LaunchpadCLIBaseModel
+    from app.cli.temporal.core.base import Activity
+    from app.cli.temporal.core.log import log_error, log_info
+    from app.core.db import DBManager, get_db_manager
+    from app.core.settings import AppSettings, get_settings
+    from app.template_env import get_env
 
 
 class PostgresSchemaCreationActivityModel(LaunchpadCLIBaseModel):
@@ -18,6 +20,7 @@ class PostgresSchemaCreationActivityModel(LaunchpadCLIBaseModel):
 
     schema_name: str
     username: str
+    database_name: str
 
 
 class PostgresSchemaCreationActivity(Activity):
@@ -47,7 +50,9 @@ class PostgresSchemaCreationActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
 
         await db.execute_raw_sql(
             f"CREATE SCHEMA IF NOT EXISTS {activity_model.schema_name} AUTHORIZATION {activity_model.username};",
@@ -66,6 +71,7 @@ class PostgresUserCreationActivityModel(LaunchpadCLIBaseModel):
 
     username: str
     password: str
+    database_name: str
 
 
 class PostgresUserCreationActivity(Activity):
@@ -97,20 +103,26 @@ class PostgresUserCreationActivity(Activity):
 
         config: AppSettings = get_settings()
 
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
 
         response = await db.fetch_one(
             sqlfile="checkIfUserExists.sql",
             username=activity_model.username,
         )
 
-        if not dict(response):
+        if response is None:
             await db.execute_raw_sql(
                 query=f"CREATE ROLE {activity_model.username} NOSUPERUSER NOCREATEDB"
                 " NOCREATEROLE INHERIT LOGIN PASSWORD '{activity_model.password}';",
             )
-
-        log_info(f"Created user {activity_model.username} with password {activity_model.password}")
+            log_info(f"Created user {activity_model.username} with password {activity_model.password}")
+        else:
+            await db.execute_raw_sql(
+                query=f"ALTER USER {activity_model.username} WITH PASSWORD '{activity_model.password}';",
+            )
+            log_info(f"Updated password for user {activity_model.username} successfully.")
 
 
 class PostgresDatabaseCreationActivityModel(LaunchpadCLIBaseModel):
@@ -150,9 +162,15 @@ class PostgresDatabaseCreationActivity(Activity):
 
         db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
 
-        await db.create_database(db_name=activity_model.database_name)
+        database_exists = await db.fetch_one(
+            sqlfile="checkIfDatabaseExists.sql",
+            database_name=activity_model.database_name,
+        )
 
-        log_info(f"Created database {activity_model.database_name}")
+        if not database_exists:
+            await db.create_database(db_name=activity_model.database_name)
+
+            log_info(f"Created database {activity_model.database_name}")
 
 
 class PostgresGrantAccessToUserActivityModel(LaunchpadCLIBaseModel):
@@ -162,7 +180,7 @@ class PostgresGrantAccessToUserActivityModel(LaunchpadCLIBaseModel):
 
     username: str
     database_name: str
-    schema_name: str
+    schema_name: str | None = None
 
 
 class PostgresGrantAccessToUserActivity(Activity):
@@ -192,7 +210,9 @@ class PostgresGrantAccessToUserActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
 
         await db.execute_raw_sql(
             query=f"GRANT CONNECT, CREATE ON DATABASE {activity_model.database_name} TO {activity_model.    username};",
@@ -203,11 +223,12 @@ class PostgresGrantAccessToUserActivity(Activity):
         )
 
         for schema in ["public", activity_model.schema_name]:
-            await db.execute_raw_sql(
-                query=f"GRANT ALL ON SCHEMA {schema} TO {activity_model.username};",
-            )
+            if schema:
+                await db.execute_raw_sql(
+                    query=f"GRANT ALL ON SCHEMA {schema} TO {activity_model.username};",
+                )
 
-            log_info(f"Granted user {activity_model.username} all privileges on schema {schema}")
+                log_info(f"Granted user {activity_model.username} all privileges on schema {schema}")
 
 
 class KeycloakUserMappingActivityModel(LaunchpadCLIBaseModel):
@@ -216,6 +237,7 @@ class KeycloakUserMappingActivityModel(LaunchpadCLIBaseModel):
     """
 
     username: str
+    database_name: str
 
 
 class KeycloakUserMappingActivity(Activity):
@@ -245,7 +267,9 @@ class KeycloakUserMappingActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
 
         await db.execute_raw_sql(
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {activity_model.username} SERVER keycloak_server OPTIONS  "
@@ -260,6 +284,7 @@ class MatomoUserMappingActivityModel(LaunchpadCLIBaseModel):
     """
 
     username: str
+    database_name: str
 
 
 class MatomoUserMappingActivity(Activity):
@@ -289,11 +314,13 @@ class MatomoUserMappingActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
 
         await db.execute_raw_sql(
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {activity_model.username} SERVER matomo_server OPTIONS  "
-            f"(user 'matomo_fdw', password '{config.matomo_db_password}');",
+            f"(username 'matomo_fdw', password '{config.matomo_db_password}');",
         )
         log_info("Created user mapping for matomo database successfully.")
 
@@ -304,6 +331,7 @@ class TableSpaceActivityModel(LaunchpadCLIBaseModel):
     """
 
     username: str
+    database_name: str
 
 
 class TableSpaceActivity(Activity):
@@ -333,7 +361,9 @@ class TableSpaceActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
 
         await db.execute_raw_sql(
             query=f"GRANT CREATE ON TABLESPACE pgdataenc TO {activity_model.username};",
@@ -347,6 +377,7 @@ class PostgresGrantAllPrivilegesOnTableActivityModel(LaunchpadCLIBaseModel):
     """
 
     username: str
+    database_name: str
     tables: list[str]
 
 
@@ -377,7 +408,9 @@ class PostgresGrantAllPrivilegesOnTableActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
 
         for table in activity_model.tables:
             await db.execute_raw_sql(

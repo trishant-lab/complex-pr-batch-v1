@@ -1,12 +1,14 @@
-import asyncio
-from datetime import timedelta
-import socket
-from google.cloud import dns
-
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+
+with workflow.unsafe.imports_passed_through():
+    import asyncio
+    from datetime import timedelta
+    import socket
+    from google.cloud import dns
+    from google.api_core.exceptions import Conflict
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
 
 
 class DnsSetupActivityModel(LaunchpadCLIBaseModel):
@@ -29,7 +31,7 @@ class DnsSetupActivity(Activity):
         """
         Get timeout
         """
-        return timedelta(seconds=120)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -47,20 +49,24 @@ class DnsSetupActivity(Activity):
         client = dns.Client()
 
         zone = client.zone(activity_model.zone_name)
-        changes = zone.changes()
 
-        record_set = dns.ResourceRecordSet(
-            name=activity_model.fqdn,
-            record_type="CNAME",
-            ttl=1 * 60 * 60,  # 1 hour in seconds
-            rrdatas=[activity_model.cname],
-            zone=zone,
-        )
+        try:
+            changes = zone.changes()
 
-        changes.add_record_set(record_set)
-        changes.create()
+            record_set = dns.ResourceRecordSet(
+                name=activity_model.fqdn,
+                record_type="CNAME",
+                ttl=1 * 60 * 60,  # 1 hour in seconds
+                rrdatas=[activity_model.cname],
+                zone=zone,
+            )
 
-        log_info(f"DNS record created: {activity_model.fqdn}")
+            changes.add_record_set(record_set)
+            changes.create()
+
+            log_info(f"DNS record created: {activity_model.fqdn}")
+        except Conflict:
+            log_info(message=f"DNS record Already Present: {activity_model.fqdn}")
 
         # check DNS propagation
         count = 0

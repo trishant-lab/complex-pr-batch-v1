@@ -1,13 +1,15 @@
-import requests
-from loguru import logger
-
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
-from app.core.settings import JeevesSettings
-from app.onepasswordutil import OnePasswordUtil
-from datetime import timedelta
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-from temporalio.activity import activity
+
+
+with workflow.unsafe.imports_passed_through():
+    import requests
+    from loguru import logger
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
+    from app.core.settings import JeevesSettings
+    from app.onepasswordutil import OnePasswordUtil
+    from datetime import timedelta
 
 
 class ChatwootSetup:

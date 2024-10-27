@@ -1,12 +1,13 @@
-from datetime import timedelta
-import os
-
 from temporalio.common import RetryPolicy
-from temporalio.activity import activity
+from temporalio import activity, workflow
 
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
-from app.core.settings import JeevesSettings
+
+with workflow.unsafe.imports_passed_through():
+    import os
+    from datetime import timedelta
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
+    from app.core.settings import JeevesSettings
 
 
 def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:

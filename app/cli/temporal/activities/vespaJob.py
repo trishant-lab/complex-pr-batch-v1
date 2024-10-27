@@ -1,28 +1,31 @@
-from datetime import timedelta
-from kubernetes.client import (
-    V1Job,
-    V1ObjectMeta,
-    V1JobSpec,
-    V1JobTemplateSpec,
-    V1PodSpec,
-    V1LocalObjectReference,
-    V1Container,
-    V1EnvVar,
-    V1VolumeMount,
-    V1Volume,
-    V1ConfigMapVolumeSource,
-    V1KeyToPath,
-)
-from kubernetes.dynamic.exceptions import NotFoundError
-from temporalio.activity import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
-from app.cli.temporal.core.base import Activity
-from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
-from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
-from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-from app.cli.temporal.core.log import log_info, log_error
-from app.core.settings import get_settings
+
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    from kubernetes.client import (
+        V1Job,
+        V1ObjectMeta,
+        V1JobSpec,
+        V1JobTemplateSpec,
+        V1PodSpec,
+        V1LocalObjectReference,
+        V1Container,
+        V1EnvVar,
+        V1VolumeMount,
+        V1Volume,
+        V1ConfigMapVolumeSource,
+        V1KeyToPath,
+    )
+    from kubernetes.dynamic.exceptions import NotFoundError
+
+    from app.cli.temporal.core.base import Activity
+    from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
+    from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
+    from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+    from app.cli.temporal.core.log import log_info, log_error
+    from app.core.settings import get_settings
 
 
 class VespaJob(K8sResourceBaseClass):

@@ -1,26 +1,32 @@
-from datetime import timedelta
-from kubernetes.client import (
-    V1Job,
-    V1ObjectMeta,
-    V1JobSpec,
-    V1JobTemplateSpec,
-    V1PodSpec,
-    V1LocalObjectReference,
-    V1Container,
-    V1VolumeMount,
-    V1Volume,
-    V1ConfigMapVolumeSource,
-    V1KeyToPath,
-    V1PersistentVolumeClaimVolumeSource,
-    V1EnvVar,
-)
-
-
-from temporalio import activity
+from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
-from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+from kubernetes.dynamic.exceptions import NotFoundError
+
+from app.cli.temporal.core.log import log_error
+
+
+with workflow.unsafe.imports_passed_through():
+    from datetime import timedelta
+    from kubernetes.client import (
+        V1Job,
+        V1ObjectMeta,
+        V1JobSpec,
+        V1JobTemplateSpec,
+        V1PodSpec,
+        V1LocalObjectReference,
+        V1Container,
+        V1VolumeMount,
+        V1Volume,
+        V1ConfigMapVolumeSource,
+        V1KeyToPath,
+        V1PersistentVolumeClaimVolumeSource,
+        V1EnvVar,
+    )
+    from kubernetes.dynamic import DynamicClient, Resource
+
+    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_info
 
 
 class DatabaseMigrationJobActivityModel(LaunchpadCLIBaseModel):
@@ -38,6 +44,8 @@ class DatabaseMigrationJobActivityModel(LaunchpadCLIBaseModel):
     # "jeeves-tenant-config", "key": "tenant-config.json", "path": "tenant-config.json"},]
     container_envs: list[dict]  # [{"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},]
     argument: str
+    job_type: str
+    product: str
 
 
 class DatabaseMigrationJobActivity(Activity):
@@ -82,11 +90,11 @@ class DatabaseMigrationJobActivity(Activity):
                     spec=V1PodSpec(
                         node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-                        image_pull_policy="Always",
                         containers=[
                             V1Container(
                                 name=activity_model.job_name,
                                 image=activity_model.docker_image,
+                                image_pull_policy="Always",
                                 env=[
                                     V1EnvVar(name=container_env["name"], value=container_env["value"])
                                     for container_env in activity_model.container_envs
@@ -133,6 +141,20 @@ class DatabaseMigrationJobActivity(Activity):
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-        k8s_dynamic_client.server_side_apply(resource=resource, body=payload, field_manager="kubectl-client-side-apply")
+        delete(k8s_dynamic_client, resource, activity_model.job_name, activity_model.namespace)
+
+        k8s_dynamic_client.server_side_apply(
+            resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+        )
 
         log_info(f"Database migration job {activity_model.job_name} created successfully")
+
+
+def delete(k8s_dynamic_client: DynamicClient, resource: Resource, job_name: str, namespace: str) -> None:
+    """
+    Delete method
+    """
+    try:
+        k8s_dynamic_client.delete(resource=resource, name=job_name, namespace=namespace)
+    except NotFoundError:
+        log_error(f"{job_name} job not found for {namespace}")
