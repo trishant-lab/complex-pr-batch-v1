@@ -19,13 +19,76 @@ with workflow.unsafe.imports_passed_through():
         V1EnvVar,
         V1EnvVarSource,
         V1SecretKeySelector,
+        V1Service,
+        V1ServiceSpec,
+        V1ServicePort,
     )
 
     from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource, DynamicClient
     from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
     from app.cli.temporal.core.log import log_info
 
 CACHE_HOST = "cache-new.{tenant}.svc.cluster.local"
+
+
+class RedisService(K8sResourceBaseClass):
+    """
+    Namespace class
+    """
+
+    def __init__(self: "RedisService", tenant: str) -> None:
+        """
+        Constructor
+        """
+        self.k8s_dynamic_client = get_dynamic_client()
+        self.resource = get_resource(
+            dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Service, api_version="v1"
+        )
+        self.tenant = tenant
+
+    def payload(self: "RedisService") -> None:
+        """
+        k8s resource payload
+        """
+        body = V1Service(
+            api_version="v1",
+            kind=ResourceKindEnum.Service.value,
+            metadata=V1ObjectMeta(
+                name="cache-new",
+                namespace=self.tenant,
+                labels={"app": "cache-new", "kind": "redis"},
+            ),
+            spec=V1ServiceSpec(
+                selector={"app": "cache-new", "kind": "redis"},
+                type="ClusterIP",
+                ports=[
+                    V1ServicePort(
+                        name="redis",
+                        port=6379,
+                        target_port=6379,
+                    )
+                ],
+            ),
+        )
+
+        return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
+
+    def put(self: "RedisService") -> None:
+        """
+        k8s server side apply
+        """
+        self.k8s_dynamic_client.server_side_apply(
+            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
+        )
+        log_info("Service cache-new-service created successfully")
+
+    def delete(self: "RedisService") -> None:
+        """
+        Don't delete Service
+        """
+        # Don't delete Service
+        pass
 
 
 def create_product_namespace(
@@ -135,7 +198,7 @@ class RedisSetupActivity(Activity):
         k8s_dynamic_client.server_side_apply(
             resource=redis_resource, body=payload, field_manager="kubectl-client-side-apply"
         )
-
+        RedisService(activity_model.namespace).put()
         log_info(f"Redis {name} created successfully")
 
         await asyncio.sleep(30)
