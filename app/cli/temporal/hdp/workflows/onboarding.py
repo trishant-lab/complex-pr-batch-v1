@@ -156,8 +156,8 @@ class HDPOnboardingWorkflow(Workflow):
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
-            postgres_database_name = "hdp"
-            kestra_postgres_database_name = "kestra"
+            postgres_database_name = f"hdp_{tenant}"
+            kestra_postgres_database_name = f"kestra_{tenant}"
             postgres_username = f"{ProductName}_{tenant}"
             kestra_postgres_username = f"kestra_{tenant}"
             postgres_password = generate_password(length=20)
