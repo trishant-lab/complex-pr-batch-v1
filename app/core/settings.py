@@ -352,6 +352,18 @@ class DexitSettings(BaseModel):
     ai_config: DexitAISettings = DexitAISettings()
 
 
+class ZSegmentSettings(BaseModel):
+    """
+    ZSegment Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "zsegment.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
+
+    temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -371,6 +383,7 @@ class AppSettings(BaseSettings):
     dexit: DexitSettings = DexitSettings()
     penknife: PenknifeSettings = PenknifeSettings()
     hdp: HDPSettings = HDPSettings()
+    zsegment: ZSegmentSettings = ZSegmentSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()

@@ -3,7 +3,7 @@ import orjson
 from temporalio import workflow
 import pydash
 
-from app.cli.activities.vespaJob import VespaJobActivity
+from app.cli.temporal.activities.vespaJob import VespaJobActivity
 from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
 from app.cli.temporal.activities.chatwootSetup import ChatwootSetupActivity, ChatwootSetupActivityModel
 from app.cli.temporal.activities.databaseMigrationJob import (

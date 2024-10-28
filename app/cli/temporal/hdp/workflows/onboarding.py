@@ -274,6 +274,16 @@ class HDPOnboardingWorkflow(Workflow):
             )
 
             await workflow.execute_activity(
+                activity=PostgresGrantAccessToUserActivity.defn,
+                arg=PostgresGrantAccessToUserActivityModel(
+                    username=kestra_postgres_username,
+                    database_name=kestra_postgres_database_name,
+                ),
+                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
+                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
                 activity=K8sNamespaceCreationActivity.defn,
                 arg=K8sNamespaceCreationActivityModel(
                     namespace=tenant,
@@ -384,6 +394,21 @@ class HDPOnboardingWorkflow(Workflow):
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
+                ),
+                retry_policy=UiSetupActivity.get_retry_policy(),
+                start_to_close_timeout=UiSetupActivity.get_timeout(),
+            )
+
+            # superset ui setup
+            superset_src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+            superset_bundle_path = "bundle/dist"
+
+            await workflow.execute_activity(
+                activity=UiSetupActivity.defn,
+                arg=UiSetupActivityModel(
+                    src_object_name=superset_src_object_name,
+                    dest_dir=dest_dir,
+                    bundle_path=superset_bundle_path,
                 ),
                 retry_policy=UiSetupActivity.get_retry_policy(),
                 start_to_close_timeout=UiSetupActivity.get_timeout(),

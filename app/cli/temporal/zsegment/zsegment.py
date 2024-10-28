@@ -1,0 +1,69 @@
+from temporalio.client import WorkflowHandle
+
+from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
+from app.cli.workflowbase import ProductWorkflow
+
+ProductName = "zsegment"
+
+
+class ZSegmentWorkflow(ProductWorkflow):
+    """
+    ZSegmentWorkflow class
+    """
+
+    @staticmethod
+    async def onboard(schema: dict) -> None:
+        """
+        onboard method
+        """
+        from app.core.settings import ZSegmentSettings, get_settings
+        from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
+        from app.cli.temporal.zsegment.starter import trigger_workflow
+
+        product_config: ZSegmentSettings = get_settings().zsegment
+        await trigger_workflow(
+            workflow_input=ZSegmentSpec(**schema),
+            workflow=ZSegmentOnboardingWorkflow,
+            queue=product_config.temporal_zsegment_onboarding_task_queue,
+        )
+
+    @staticmethod
+    async def deboard(schema: dict) -> None:
+        """
+        deprovision method
+        """
+        NotImplementedError("ZSegment deprovisioning is not implemented")
+
+    @staticmethod
+    async def approve(schema: dict) -> None:
+        """
+        approve method
+        """
+        from app.cli.temporal.zsegment.starter import get_workflow_handle
+        from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
+
+        handle = await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)
+
+        await handle.signal(ZSegmentOnboardingWorkflow.approve)
+
+    @staticmethod
+    async def decline(schema: dict) -> None:
+        """
+        decline method
+        """
+        from app.cli.temporal.zsegment.starter import get_workflow_handle
+        from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
+
+        handle = await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)
+
+        await handle.signal(ZSegmentOnboardingWorkflow.deny)
+
+    @staticmethod
+    async def get_workflow_handle(schema: dict) -> WorkflowHandle:
+        """
+        get_workflow_handle method
+        """
+        from app.cli.temporal.zsegment.starter import get_workflow_handle
+        from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
+
+        return await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)
