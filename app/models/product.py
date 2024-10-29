@@ -17,7 +17,8 @@ class ProductEnum(str, Enum):
     veritable = "Veritable"
     dexit = "Dexit"
     penknife = "Penknife"
-    hdp = "HDP"
+    hdp = "Hdp"
+    zsegment = "ZSegment"
 
     @classmethod
     def get_class(cls: "ProductEnum", enum_value: "ProductEnum") -> type:
