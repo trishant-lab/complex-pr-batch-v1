@@ -18,7 +18,7 @@ class ZSegmentWorkflow(ProductWorkflow):
         """
         from app.core.settings import ZSegmentSettings, get_settings
         from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
-        from app.cli.temporal.zsegment.starter import trigger_workflow
+        from app.cli.temporal.starter import trigger_workflow
 
         product_config: ZSegmentSettings = get_settings().zsegment
         await trigger_workflow(
@@ -39,7 +39,7 @@ class ZSegmentWorkflow(ProductWorkflow):
         """
         approve method
         """
-        from app.cli.temporal.zsegment.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
         handle = await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)
@@ -51,7 +51,7 @@ class ZSegmentWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.zsegment.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
         handle = await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)
@@ -63,7 +63,7 @@ class ZSegmentWorkflow(ProductWorkflow):
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.zsegment.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)

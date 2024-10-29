@@ -8,6 +8,8 @@ from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.temporal.penknife.penknife import PenknifeWorkflow
 from app.cli.temporal.hdp.hdp import HdpWorkflow
 from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
+from app.cli.temporal.zsegment.zsegment import ZSegmentWorkflow
+from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
 class ProductEnum(str, Enum):
@@ -33,6 +35,8 @@ class ProductEnum(str, Enum):
                 return PenknifeWorkflow
             case cls.hdp:
                 return HdpWorkflow
+            case cls.zsegment:
+                return ZSegmentWorkflow
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -52,6 +56,8 @@ class ProductEnum(str, Enum):
                 return PenknifeSpec
             case cls.hdp:
                 return HDPSpec
+            case cls.zsegment:
+                return ZSegmentSpec
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -72,5 +78,7 @@ class ProductEnum(str, Enum):
                 return config.dexit.domain_name
             case cls.hdp:
                 return config.hdp.domain_name
+            case cls.zsegment:
+                return config.zsegment.domain_name
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")

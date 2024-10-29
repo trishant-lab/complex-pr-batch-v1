@@ -19,7 +19,7 @@ class HdpWorkflow(ProductWorkflow):
         """
         from app.core.settings import HDPSettings, get_settings
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
-        from app.cli.temporal.hdp.starter import trigger_workflow
+        from app.cli.temporal.starter import trigger_workflow
 
         product_config: HDPSettings = get_settings().hdp
         await trigger_workflow(
@@ -40,7 +40,7 @@ class HdpWorkflow(ProductWorkflow):
         """
         approve method
         """
-        from app.cli.temporal.hdp.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
 
         handle = await get_workflow_handle(workflow_input=HDPSpec(**schema), workflow=HDPOnboardingWorkflow)
@@ -52,7 +52,7 @@ class HdpWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.hdp.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
 
         handle = await get_workflow_handle(workflow_input=HDPSpec(**schema), workflow=HDPOnboardingWorkflow)
@@ -64,7 +64,7 @@ class HdpWorkflow(ProductWorkflow):
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.hdp.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=HDPSpec(**schema), workflow=HDPOnboardingWorkflow)
