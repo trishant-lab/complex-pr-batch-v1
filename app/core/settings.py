@@ -98,6 +98,7 @@ class S3Settings(BaseModel):
     region: str = "us-east-1"
     use_ssl: bool = True
     rclone_remote: str = "s3_rclone_remote"
+    s3_alias: str = "launchpad"
     bucket: str = ""
 
 
@@ -140,6 +141,18 @@ class GSuiteModel(BaseSettings):
     )
 
     model_config = ConfigDict(extra="ignore")
+
+
+class CloudflareSettings(BaseModel):
+    """
+    Cloudflare Settings
+    """
+
+    account_id: str = ""
+    api_token: str = ""
+    access_key: str = ""
+    s3_alias: str = "launchpad"
+    endpoint: str = ""
 
 
 class VeritableSettings(BaseModel):
@@ -210,8 +223,8 @@ class HDPSettings(BaseModel):
 
     # grafana: GrafanaSettings = GrafanaSettings()
 
-    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue"
-    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue"
+    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue1"
+    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue1"
 
     kestra_username: str = "kestra.user@314ecorp.com"
 
@@ -377,6 +390,7 @@ class AppSettings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
+    cloudflare: CloudflareSettings = CloudflareSettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()

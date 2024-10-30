@@ -1,9 +1,14 @@
 from temporalio.common import RetryPolicy
 from temporalio import activity, workflow
 
+
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
     from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+    from app.cli.temporal.core.log import log_error, log_info
+    from app.core.db import DBManager, get_db_manager
+    from app.core.settings import AppSettings, get_settings
+    from app.models.tenant import TenantStatusEnum
 
 
 class TenantStatus(LaunchpadCLIBaseModel):
@@ -14,6 +19,30 @@ class TenantStatus(LaunchpadCLIBaseModel):
     tenant_name: str
     status: str
     error_msg: None | str = None
+
+
+async def update_tenant_status(
+    tenant_name: str, product: str, status: TenantStatusEnum, error_message: None | str = None
+) -> None:
+    """
+    Update tenant status in the database
+    """
+    config: AppSettings = get_settings()
+    try:
+        parameters = {
+            "tenant_name": tenant_name,
+            "product": product,
+            "status": status.value,
+            "error_message": error_message,
+        }
+        db: DBManager = await get_db_manager(config.postgres.dsn)
+        await db.fetch_one("updateTenant.sql", db_schema_name=config.postgres.schema_name, **parameters)
+
+        log_info(f"Tenant status updated for {tenant_name} to {status}")
+
+    except Exception as e:
+        log_error(f"Error while updating tenant status for {tenant_name}: {e}")
+        raise e
 
 
 class UpdateTenantStatusActivity(Activity):
@@ -43,7 +72,6 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.activities.tenantStatus import update_tenant_status
         from app.cli.temporal.jeeves.jeeves import ProductName
         from app.models.tenant import TenantStatusEnum
 

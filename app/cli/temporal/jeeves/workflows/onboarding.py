@@ -415,6 +415,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
+                    bundle_name="bundle.zip",
                 ),
                 retry_policy=UiSetupActivity.get_retry_policy(),
                 start_to_close_timeout=UiSetupActivity.get_timeout(),
