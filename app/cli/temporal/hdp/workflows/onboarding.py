@@ -592,6 +592,7 @@ class HDPOnboardingWorkflow(Workflow):
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "SUPERSET_CONFIG_PATH", "value": "/hdpapi/app/superset_config.py"},
                         {"name": "DATABASE_DB", "value": postgres_database_name},
                         {"name": "DATABASE_HOST", "value": get_settings().postgres.host},
                         {"name": "DATABASE_PASSWORD", "value": postgres_password},
