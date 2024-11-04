@@ -1,0 +1,91 @@
+from cloudflare import AsyncCloudflare
+import requests
+
+from app.core.settings import AppSettings
+
+
+async def get_cloudflare_client(config: AppSettings) -> AsyncCloudflare:
+    """
+    Get a Cloudflare client
+    """
+    return AsyncCloudflare(api_token=config.cloudflare.api_token)
+
+
+async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> dict:
+    """
+    Get temporary credentials
+    """
+    client: AsyncCloudflare = await get_cloudflare_client(config=config)
+    return await client.r2.temporary_credentials.create(
+        account_id=config.cloudflare.account_id,
+        bucket=bucket_name,
+        parent_access_key_id=config.cloudflare.access_key,
+        permission="object-read-write",
+        ttl_seconds=5 * 60,
+    )
+
+
+async def get_bucket(config: AppSettings, bucket_name: str) -> dict:
+    """
+    Get a bucket
+    """
+    client: AsyncCloudflare = await get_cloudflare_client(config=config)
+    return await client.r2.buckets.get(account_id=config.cloudflare.account_id, name=bucket_name)
+
+
+async def create_bucket(config: AppSettings, bucket_name: str) -> dict | None:
+    """
+    Create a bucket
+    """
+    client: AsyncCloudflare = await get_cloudflare_client(config=config)
+    if not await get_bucket(config=config, bucket_name=bucket_name):
+        return await client.r2.buckets.create(account_id=config.cloudflare.account_id, name=bucket_name)
+    return None
+
+
+async def delete_bucket(config: AppSettings, bucket_name: str) -> dict:
+    """
+    Delete a bucket
+    """
+    client: AsyncCloudflare = await get_cloudflare_client(config=config)
+    return await client.r2.buckets.delete(account_id=config.cloudflare.account_id, name=bucket_name)
+
+
+async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dict:
+    """
+    Create a DNS record
+    """
+    client: AsyncCloudflare = await get_cloudflare_client(config=config)
+    return await client.dns.records.create(
+        zone_id=zone_id,
+        content=config.k8s_cname,
+        type="CNAME",
+        name=fqdn,
+        ttl=5 * 60,  # 5 minutes
+    )
+
+
+async def delete_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dict:
+    """
+    Delete a DNS record
+    """
+    client: AsyncCloudflare = await get_cloudflare_client(config=config)
+    return await client.dns.records.delete(zone_id=zone_id, id=fqdn)
+
+
+async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, custom_domain: str, zone_id: str) -> dict:
+    """
+    Link a bucket to a custom domain
+    """
+    response = requests.post(
+        url=f"https://api.cloudflare.com/client/v4/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
+        headers={"Authorization": f"Bearer {config.cloudflare.api_token}"},
+        json={"domain": custom_domain, "zoneId": zone_id, "enabled": True},
+        timeout=120,
+    )
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(
+            f"Failed to link bucket {bucket_name} to custom domain {custom_domain}. Status Code: {response.status_code}"
+        )

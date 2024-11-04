@@ -153,6 +153,7 @@ class CloudflareSettings(BaseModel):
     access_key: str = ""
     s3_alias: str = "launchpad"
     endpoint: str = ""
+    api_url: str = "https://api.cloudflare.com/client/v4"
 
 
 class VeritableSettings(BaseModel):
@@ -176,15 +177,16 @@ class JeevesSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "jeeves.314ecorp.tech"
+    domain_name: str = "okjeeves.tech"
     zone_name: str = "e314ecorptech"
+    zone_id: str = ""
     # grafana: GrafanaSettings = GrafanaSettings()
 
     sender_email: str = "support@okjeeves.com"
     sender_name: str = "Jeeves Support"
 
-    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue1"
-    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue1"
+    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
+    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
 
     novu_url: str = "https://alerting.314ecorp.tech"
     novu_admin_user: str = "jeeves.assistant@314ecorp.com"
@@ -408,6 +410,7 @@ class AppSettings(BaseSettings):
 
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.314ecorp.tech."
+    k8s_cname: str = "k8s.314ecorp.tech."
 
     grafana_url: str = "https://monitor.314ecorp.tech"
     grafana_datasource_uid: str = "e4hhV8CGk"
