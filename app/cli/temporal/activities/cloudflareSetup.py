@@ -50,7 +50,7 @@ class CreateCloudflareBucketActivity(Activity):
 
     @staticmethod
     @activity.defn(name="CreateCloudflareBucketActivity")
-    async def create_cloudflare_bucket(activity_input: CreateCloudflareBucketActivityModel) -> None:
+    async def defn(activity_input: CreateCloudflareBucketActivityModel) -> None:
         """
         Create a Cloudflare bucket
         """
@@ -91,7 +91,7 @@ class CreateCloudflareDNSRecordActivity(Activity):
 
     @staticmethod
     @activity.defn(name="CreateCloudflareDNSRecordActivity")
-    async def create_cloudflare_dns_record(activity_input: CreateCloudflareDNSRecordActivityModel) -> None:
+    async def defn(activity_input: CreateCloudflareDNSRecordActivityModel) -> None:
         """
         Create a Cloudflare DNS record
         """
@@ -135,7 +135,7 @@ class LinkBucketToDomainActivity(Activity):
 
     @staticmethod
     @activity.defn(name="LinkBucketToDomainActivity")
-    async def link_bucket_to_domain(activity_input: LinkBucketToDomainActivityModel) -> None:
+    async def defn(activity_input: LinkBucketToDomainActivityModel) -> None:
         """
         Link a bucket to a domain
         """
@@ -184,7 +184,7 @@ class CopyArtifactsToBucketActivity(Activity):
 
     @staticmethod
     @activity.defn(name="CopyArtifactsToBucketActivity")
-    async def copy_artifacts_to_bucket(activity_input: CopyArtifactsToBucketActivityModel) -> None:
+    async def defn(activity_input: CopyArtifactsToBucketActivityModel) -> None:
         """
         Copy artifacts to a bucket
         """
@@ -277,7 +277,7 @@ class DeleteCloudflareBucketActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteCloudflareBucketActivity")
-    async def delete_cloudflare_bucket(activity_input: DeleteCloudflareBucketActivityModel) -> None:
+    async def defn(activity_input: DeleteCloudflareBucketActivityModel) -> None:
         """
         Delete a Cloudflare bucket
         """
@@ -316,7 +316,7 @@ class DeleteCloudflareDNSRecordActivity(Activity):
 
     @staticmethod
     @activity.defn(name="DeleteCloudflareDNSRecordActivity")
-    async def delete_cloudflare_dns_record(activity_input: DeleteCloudflareDNSRecordActivityModel) -> None:
+    async def defn(activity_input: DeleteCloudflareDNSRecordActivityModel) -> None:
         """
         Delete a Cloudflare DNS record
         """
