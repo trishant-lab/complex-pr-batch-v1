@@ -117,6 +117,9 @@ class DexitOnboardingWorkflow(Workflow):
             KubernetesServiceActivity.defn,
             K8sConfigMapCreationActivity.defn,
             TemporalNamespaceActivity.defn,
+            TemporalSearchAttributesCreationActivity.defn,
+            FaxSetupActivity.defn,
+            HFInferenceEndpointSetupActivity.defn,
         ]
 
     @classmethod
