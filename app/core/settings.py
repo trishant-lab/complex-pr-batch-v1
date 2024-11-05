@@ -178,7 +178,7 @@ class JeevesSettings(BaseModel):
 
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "okjeeves.tech"
-    zone_name: str = "e314ecorptech"
+    # zone_name: str = "e314ecorptech"
     zone_id: str = ""
     # grafana: GrafanaSettings = GrafanaSettings()
 

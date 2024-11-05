@@ -1,4 +1,5 @@
 from cloudflare import AsyncCloudflare
+from loguru import logger
 import requests
 
 from app.core.settings import AppSettings
@@ -30,7 +31,7 @@ async def get_bucket(config: AppSettings, bucket_name: str) -> dict:
     Get a bucket
     """
     client: AsyncCloudflare = await get_cloudflare_client(config=config)
-    return await client.r2.buckets.get(account_id=config.cloudflare.account_id, name=bucket_name)
+    return await client.r2.buckets.get(account_id=config.cloudflare.account_id, bucket_name=bucket_name)
 
 
 async def create_bucket(config: AppSettings, bucket_name: str) -> dict | None:
@@ -51,11 +52,26 @@ async def delete_bucket(config: AppSettings, bucket_name: str) -> dict:
     return await client.r2.buckets.delete(account_id=config.cloudflare.account_id, name=bucket_name)
 
 
+async def get_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> list:
+    """
+    Get a DNS record
+    """
+    client: AsyncCloudflare = await get_cloudflare_client(config=config)
+    response = await client.dns.records.list(zone_id=zone_id, name=fqdn, type="CNAME")
+    return response.result
+
+
 async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dict:
     """
     Create a DNS record
     """
     client: AsyncCloudflare = await get_cloudflare_client(config=config)
+
+    # check if the record already exists
+    if await get_dns_record(config=config, fqdn=fqdn, zone_id=zone_id):
+        logger.info(f"DNS record {fqdn} already exists")
+        return None
+
     return await client.dns.records.create(
         zone_id=zone_id,
         content=config.k8s_cname,

@@ -12,6 +12,8 @@ from app.cli.temporal.activities.cloudflareSetup import (
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
     LinkBucketToDomainActivityModel,
+    PropagateDNSRecordActivity,
+    PropagateDNSRecordActivityModel,
 )
 from app.cli.temporal.activities.vespaJob import VespaJobActivity
 from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
@@ -426,6 +428,27 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
+            )
+
+            # propagate the dns record
+            await workflow.execute_activity(
+                activity=PropagateDNSRecordActivity.defn,
+                arg=PropagateDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
+                ),
+                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
+            )
+
+            # dns setup for admin
+            await workflow.execute_activity(
+                activity=CreateCloudflareDNSRecordActivity.defn,
+                arg=CreateCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.{jeeves_config.domain_name}",
+                    zone_id=jeeves_config.zone_id,
+                ),
+                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
             repo_name = "jeeves-ui"

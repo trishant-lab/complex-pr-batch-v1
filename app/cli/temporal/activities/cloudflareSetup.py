@@ -1,3 +1,5 @@
+import asyncio
+import socket
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
@@ -97,11 +99,7 @@ class CreateCloudflareDNSRecordActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        dns_record = await create_dns_record(
-            config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id
-        )
-
-        log_info(f"Created DNS record {dns_record}")
+        await create_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
 
 
 class LinkBucketToDomainActivityModel(LaunchpadCLIBaseModel):
@@ -323,3 +321,49 @@ class DeleteCloudflareDNSRecordActivity(Activity):
         config: AppSettings = get_settings()
 
         await delete_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
+
+
+class PropagateDNSRecordActivityModel(LaunchpadCLIBaseModel):
+    """
+    PropagateDNSRecordActivityModel
+    """
+
+    domain_name: str
+
+
+class PropagateDNSRecordActivity(Activity):
+    """
+    PropagateDNSRecordActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=600)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="PropagateDNSRecordActivity")
+    async def defn(activity_input: PropagateDNSRecordActivityModel) -> None:
+        """
+        Propagate a DNS record
+        """
+        count = 0
+        while True:
+            try:
+                socket.getaddrinfo(activity_input.domain_name, 0)
+                break
+            except socket.gaierror:
+                count += 1
+                if count == 61:
+                    raise Exception(f"DNS propagation check timed out after [10 min]: {activity_input.domain_name}")
+                log_info(f"DNS not propagated yet: {activity_input.domain_name}")
+                await asyncio.sleep(10)
