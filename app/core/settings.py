@@ -33,6 +33,7 @@ class KeycloakSettings(BaseModel):
     internal_auth_url: str = "http://keycloak-service.keycloak.svc.cluster.local:8080"
     auth_user: str = "installer"
     auth_secret: str = ""
+    keycloak_db_password: str = ""
 
     realm_path: str = "/auth/admin/realms/"
 
@@ -166,8 +167,11 @@ class JeevesSettings(BaseModel):
     zone_name: str = "e314ecorptech"
     # grafana: GrafanaSettings = GrafanaSettings()
 
-    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
-    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
+    sender_email: str = "support@okjeeves.com"
+    sender_name: str = "Jeeves Support"
+
+    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue1"
+    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue1"
 
     novu_url: str = "https://alerting.314ecorp.tech"
     novu_admin_user: str = "jeeves.assistant@314ecorp.com"
@@ -200,13 +204,16 @@ class HDPSettings(BaseModel):
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "hdp.314ecorp.tech"
     zone_name: str = "e314ecorptech"
+
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
+
     # grafana: GrafanaSettings = GrafanaSettings()
 
     temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue"
     temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue"
 
-    keycloak_db_password: str = ""
-    matomo_db_password: str = ""
+    kestra_username: str = "kestra.user@314ecorp.com"
 
     reporting_site_id: str = "1"
 
@@ -219,6 +226,9 @@ class PenknifeSettings(BaseModel):
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "penknife.314ecorp.tech"
     zone_name: str = "e314ecorptech"
+
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
 
     temporal_penknife_onboarding_task_queue: str = "temporal_penknife_onboarding_task_queue"
     temporal_penknife_deboarding_task_queue: str = "temporal_penknife_deboarding_task_queue"
@@ -320,6 +330,9 @@ class DexitSettings(BaseModel):
     zone_name: str = "e314ecorptech"
     # grafana: GrafanaSettings = GrafanaSettings()
 
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
+
     temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"
     temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
 
@@ -342,6 +355,18 @@ class DexitSettings(BaseModel):
     ai_config: DexitAISettings = DexitAISettings()
 
 
+class ZSegmentSettings(BaseModel):
+    """
+    ZSegment Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "zsegment.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
+
+    temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -361,14 +386,17 @@ class AppSettings(BaseSettings):
     dexit: DexitSettings = DexitSettings()
     penknife: PenknifeSettings = PenknifeSettings()
     hdp: HDPSettings = HDPSettings()
+    zsegment: ZSegmentSettings = ZSegmentSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
     s3: S3Settings = S3Settings()
     r2: S3Settings = S3Settings()
 
+    matomo_db_password: str = ""
+
     docker_image_pull_secret: str = ""
-    google_dns_cname: str = "k8s.314ecorp.tech"
+    google_dns_cname: str = "k8s.314ecorp.tech."
 
     grafana_url: str = "https://monitor.314ecorp.tech"
     grafana_datasource_uid: str = "e4hhV8CGk"

@@ -1,3 +1,0 @@
-"""
-Dexit Activities
-"""

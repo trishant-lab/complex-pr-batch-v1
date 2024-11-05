@@ -32,7 +32,7 @@ class PostgresSetupActivity(Activity):
         Callable for the activity
         """
         from app.cli.activities.postgresSchemaSetup import setup_postgres
-        from app.cli.penknife import TemplatePath
+        from app.cli.temporal.penknife import TemplatePath
         from app.core.settings import get_settings
 
         database_name = "penknife"
@@ -635,7 +635,7 @@ class StatefulSetPodCreationActivity(Activity):
             docker_image=docker_image,
             request_resource={"cpu": penknife.serverSpec.request_cpu, "memory": penknife.serverSpec.request_memory},
             limit_resource={"cpu": penknife.serverSpec.limit_cpu, "memory": penknife.serverSpec.limit_memory},
-            container_port=8000,
+            container_ports=[8000],
             volume_mounts=volume_mounts,
             volumes=volumes,
             container_envs=environment_variables,
@@ -668,7 +668,7 @@ class StatefulSetPodCreationActivity(Activity):
             docker_image=docker_image,
             request_resource={"cpu": penknife.serverSpec.request_cpu, "memory": penknife.serverSpec.request_memory},
             limit_resource={"cpu": penknife.serverSpec.limit_cpu, "memory": penknife.serverSpec.limit_memory},
-            container_port=8000,
+            container_ports=[8000],
             volume_mounts=volume_mounts,
             volumes=volumes,
             container_envs=environment_variables,
@@ -863,14 +863,16 @@ class SendMailActivity(Activity):
         # Send mail to customer
 
         from app.cli.activities.mail import send_provisioning_mail
-        from app.core.settings import get_settings
+        from app.core.settings import PenknifeSettings, get_settings
+
+        penknife_config: PenknifeSettings = get_settings().penknife
 
         await send_provisioning_mail(
             realm_name=penknife.tenant,
             tenant=penknife.tenant,
             user_details={"firstName": penknife.firstName, "lastName": penknife.lastName, "email": penknife.email},
-            domain_name=get_settings().jeeves.domain_name,
+            domain_name=penknife_config.domain_name,
             product=ProductName,
-            from_name="314e Support",
-            email_from="developer@314ecorp.com",
+            from_name=penknife_config.sender_name,
+            email_from=penknife_config.sender_email,
         )

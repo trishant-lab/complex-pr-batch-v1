@@ -12,12 +12,6 @@ class ResourceSpec(LaunchpadCLIBaseModel):
     limit_cpu: str = "3000m"
 
 
-class CustomerDetails(LaunchpadCLIBaseModel):
-    """
-    CustomerDetails dataclass
-    """
-
-
 class JeevesSpec(LaunchpadCLIBaseModel):
     """
     JeevesSpec dataclass

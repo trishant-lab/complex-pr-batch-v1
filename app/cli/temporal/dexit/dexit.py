@@ -18,7 +18,7 @@ class DexitWorkflow(ProductWorkflow):
         """
         from app.core.settings import DexitSettings, get_settings
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
-        from app.cli.temporal.dexit.starter import trigger_workflow
+        from app.cli.temporal.starter import trigger_workflow
 
         product_config: DexitSettings = get_settings().dexit
         await trigger_workflow(
@@ -33,7 +33,7 @@ class DexitWorkflow(ProductWorkflow):
         deprovision method
         """
         from app.core.settings import DexitSettings, get_settings
-        from app.cli.temporal.dexit.starter import trigger_workflow
+        from app.cli.temporal.starter import trigger_workflow
         from app.cli.temporal.dexit.workflows.deprovisioning import DexitDeProvisioningWorkflow
 
         product_config: DexitSettings = get_settings().dexit
@@ -48,7 +48,7 @@ class DexitWorkflow(ProductWorkflow):
         """
         approve method
         """
-        from app.cli.temporal.dexit.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
 
         handle = await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
@@ -60,7 +60,7 @@ class DexitWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.dexit.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
 
         handle = await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
@@ -72,7 +72,7 @@ class DexitWorkflow(ProductWorkflow):
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.dexit.starter import get_workflow_handle
+        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
