@@ -538,7 +538,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     realm_name=realm_name,
                     client_name="jeeves",
                     template_path=TemplatePath,
-                    template_name="keycloak_tenant_internal_user.json",
+                    template_name=f"{config.env}_internal_users.json",
                 ),
                 retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
