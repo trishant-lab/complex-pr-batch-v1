@@ -162,7 +162,7 @@ class DexitOnboardingWorkflow(Workflow):
             postgres_database_name = "dexit"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
-            dicom_database_name = f"{ProductName}_dicom_{dexit.tenant}"
+            dicom_database_name = f"{ProductName}_dicom_{tenant}"
             dicom_database_password = generate_password(length=20)
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
