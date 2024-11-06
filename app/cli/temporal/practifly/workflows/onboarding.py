@@ -58,6 +58,8 @@ class PractiflyOnboardingWorkflow(Workflow):
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
             )
 
+        # todo add all the necessary activities
+
     @workflow.signal
     async def approve(self: "Workflow") -> None:
         """
