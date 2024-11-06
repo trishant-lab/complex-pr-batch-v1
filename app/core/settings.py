@@ -347,6 +347,9 @@ class DexitSettings(BaseModel):
     zone_name: str = "e314ecorptech"
     # grafana: GrafanaSettings = GrafanaSettings()
 
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
+
     temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"
     temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
 
