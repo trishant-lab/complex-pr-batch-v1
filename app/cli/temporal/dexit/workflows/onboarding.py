@@ -77,7 +77,7 @@ ProductName = "dexit"
 OnePasswordVaultName = "Dexit"
 
 
-@workflow.defn
+@workflow.defn(name="DexitOnboardingWorkflow", sandboxed=False)
 class DexitOnboardingWorkflow(Workflow):
     """
     Dexit Onboarding Workflow
@@ -120,6 +120,8 @@ class DexitOnboardingWorkflow(Workflow):
             TemporalSearchAttributesCreationActivity.defn,
             FaxSetupActivity.defn,
             HFInferenceEndpointSetupActivity.defn,
+            OnePasswordActivity.defn,
+            PostgresDatabaseCreationActivity.defn,
         ]
 
     @classmethod
@@ -353,7 +355,7 @@ class DexitOnboardingWorkflow(Workflow):
                         namespace=tenant,
                         name=config_map["name"],
                         template_file_name=config_map["key"],
-                        bucket_name="jeeves-config",
+                        bucket_name="dexit-config",
                         template_payload={"tenant": tenant},
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),

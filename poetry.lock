@@ -543,6 +543,25 @@ files = [
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
+name = "cloudflare"
+version = "3.1.0"
+description = "The official Python library for the cloudflare API"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "cloudflare-3.1.0-py3-none-any.whl", hash = "sha256:e93ddafa85ab34f0dc4e38b2e6807da77dedbf41d34a9019f3ad5569879a6f37"},
+    {file = "cloudflare-3.1.0.tar.gz", hash = "sha256:fcb72f22803071054820a152ff403834c5df27f731f732ac26fcf681e909ef58"},
+]
+
+[package.dependencies]
+anyio = ">=3.5.0,<5"
+distro = ">=1.7.0,<2"
+httpx = ">=0.23.0,<1"
+pydantic = ">=1.9.0,<3"
+sniffio = "*"
+typing-extensions = ">=4.7,<5"
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -702,6 +721,17 @@ python-versions = "*"
 files = [
     {file = "distlib-0.3.8-py2.py3-none-any.whl", hash = "sha256:034db59a0b96f8ca18035f36290806a9a6e6bd9d1ff91e45a7f172eb17e51784"},
     {file = "distlib-0.3.8.tar.gz", hash = "sha256:1530ea13e350031b6312d8580ddb6b27a104275a31106523b8f123787f494f64"},
+]
+
+[[package]]
+name = "distro"
+version = "1.9.0"
+description = "Distro - an OS platform information API"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "distro-1.9.0-py3-none-any.whl", hash = "sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2"},
+    {file = "distro-1.9.0.tar.gz", hash = "sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed"},
 ]
 
 [[package]]
@@ -2762,4 +2792,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "4da0ef66dc2b3d834ee4cf3a30e8462cc6e3de90f732b9d3c5eaa6ed77965984"
+content-hash = "33a129d9e6dfcb13f64a79c995d48d40cb301900c68a90003fc7179581aee1a4"

@@ -1,3 +1,4 @@
+import base64
 import os
 from pathlib import Path
 
@@ -26,9 +27,7 @@ def get_r2_storage_client(config: AppSettings) -> boto3.client:
     )
 
 
-def get_storage_client(
-    config: AppSettings, access_key: str, secret_key: str, endpoint: None | str = None
-) -> boto3.client:
+def get_storage_client(config: AppSettings, access_key: str, secret_key: str, endpoint: str) -> boto3.client:
     """
     Get s3 client object to connect with buckets
     :param access_key:
@@ -39,7 +38,7 @@ def get_storage_client(
     """
     return boto3.client(
         "s3",
-        endpoint_url=endpoint if endpoint else config.s3.endpoint,
+        endpoint_url=endpoint,
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
         use_ssl=config.s3.use_ssl,
@@ -135,3 +134,18 @@ def delete_file_from_storage(object_name: str, bucket_name: str, config: AppSett
     create_rclone_remote(config)
     rclone.delete(f"{config.s3.rclone_remote}:{bucket_name}/{object_name}/")
     logger.info(f"deleted object from s3: {object_name}")
+
+
+def copy_files_to_cloudflare(
+    tenant: str, input_path: str, output_path: str, endpoint: str, access_key: str, secret_key: str, session_token: str
+) -> None:
+    """
+    Copy objects from local to cloudflare
+    """
+    session_token = base64.b64decode(session_token).decode("utf-8")
+    url = endpoint.split("://")[1]
+    command = (
+        f"MC_HOST_launchpad_{tenant}=https://{access_key}:{secret_key}:{session_token}@{url} "
+        f"mc mirror --remove --overwrite {input_path} launchpad_{tenant}/{output_path}"
+    )
+    os.system(command)  # nosec

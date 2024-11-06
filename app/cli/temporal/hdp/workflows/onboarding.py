@@ -394,21 +394,24 @@ class HDPOnboardingWorkflow(Workflow):
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
+                    bundle_name="bundle.zip",
                 ),
                 retry_policy=UiSetupActivity.get_retry_policy(),
                 start_to_close_timeout=UiSetupActivity.get_timeout(),
             )
 
             # superset ui setup
-            superset_src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
-            superset_bundle_path = "bundle/dist"
+            superset_src_object_name = f"{repo_name}/{image_tag}/bundle_superset.zip"
+            superset_bundle_path = "bundle/static"
+            superset_dest_dir = f"{tenant}.{hdp_config.domain_name}/static"
 
             await workflow.execute_activity(
                 activity=UiSetupActivity.defn,
                 arg=UiSetupActivityModel(
                     src_object_name=superset_src_object_name,
-                    dest_dir=dest_dir,
+                    dest_dir=superset_dest_dir,
                     bundle_path=superset_bundle_path,
+                    bundle_name="bundle_superset.zip",
                 ),
                 retry_policy=UiSetupActivity.get_retry_policy(),
                 start_to_close_timeout=UiSetupActivity.get_timeout(),
@@ -589,7 +592,8 @@ class HDPOnboardingWorkflow(Workflow):
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
-                        {"name": "DATABASE_DB", "value": ProductName.lower()},
+                        {"name": "SUPERSET_CONFIG_PATH", "value": "/hdpapi/app/superset_config.py"},
+                        {"name": "DATABASE_DB", "value": postgres_database_name},
                         {"name": "DATABASE_HOST", "value": get_settings().postgres.host},
                         {"name": "DATABASE_PASSWORD", "value": postgres_password},
                         {"name": "DATABASE_USER", "value": f"{ProductName.lower()}_{tenant}"},
@@ -729,6 +733,32 @@ class HDPOnboardingWorkflow(Workflow):
                 retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
                 start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
             )
+
+            # job to deploy dashboard
+            # await workflow.execute_activity(
+            #     activity=JobActivity.defn,
+            #     arg=JobActivityModel(
+            #         namespace=tenant,
+            #         job_name="hdp-dashboard-deploy",
+            #         docker_image=docker_image,
+            #         volumes=[],
+            #         volume_mounts=[],
+            #         container_envs=[
+            #             {"name": "SUPERSET_URL", "value": f"https://{tenant}.hdp.314ecorp.tech/hdpsuperset"},
+            #             {"name": "SUPERSET_ADMIN_USERNAME", "value": "admin"},
+            #             {"name": "SUPERSET_ADMIN_PASSWORD", "value": superset_password},
+            #             {"name": "STARROCKS_HOST", "value": ""},
+            #             {"name": "STARROCKS_PORT", "value": ""},
+            #             {"name": "STARROCKS_USERNAME", "value": ""},
+            #             {"name": "STARROCKS_PASSWORD", "value": ""},
+            #         ],
+            #         argument="",
+            #         job_type="dashboard",
+            #         product=ProductName,
+            #     ),
+            #     retry_policy=JobActivity.get_retry_policy(),
+            #     start_to_close_timeout=JobActivity.get_timeout(),
+            # )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")

@@ -98,6 +98,7 @@ class S3Settings(BaseModel):
     region: str = "us-east-1"
     use_ssl: bool = True
     rclone_remote: str = "s3_rclone_remote"
+    s3_alias: str = "launchpad"
     bucket: str = ""
 
 
@@ -142,6 +143,21 @@ class GSuiteModel(BaseSettings):
     model_config = ConfigDict(extra="ignore")
 
 
+class CloudflareSettings(BaseModel):
+    """
+    Cloudflare Settings
+    """
+
+    account_id: str = ""
+    api_token: str = ""
+    access_key: str = ""
+    s3_alias: str = "launchpad"
+    r2_endpoint: str = "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com"
+    r2_secret_key: str = ""
+    r2_access_key: str = ""
+    api_url: str = "https://api.cloudflare.com/client/v4"
+
+
 class VeritableSettings(BaseModel):
     """
     Veritable Settings
@@ -163,15 +179,16 @@ class JeevesSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "jeeves.314ecorp.tech"
-    zone_name: str = "e314ecorptech"
+    domain_name: str = "okjeeves.tech"
+    # zone_name: str = "e314ecorptech"
+    zone_id: str = ""
     # grafana: GrafanaSettings = GrafanaSettings()
 
     sender_email: str = "support@okjeeves.com"
     sender_name: str = "Jeeves Support"
 
-    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue1"
-    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue1"
+    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
+    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
 
     novu_url: str = "https://alerting.314ecorp.tech"
     novu_admin_user: str = "jeeves.assistant@314ecorp.com"
@@ -210,8 +227,8 @@ class HDPSettings(BaseModel):
 
     # grafana: GrafanaSettings = GrafanaSettings()
 
-    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue"
-    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue"
+    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue1"
+    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue1"
 
     kestra_username: str = "kestra.user@314ecorp.com"
 
@@ -367,6 +384,15 @@ class ZSegmentSettings(BaseModel):
     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
 
 
+class PractiflySettings(BaseModel):
+    """
+    Practifly Settings
+    """
+
+    temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
+    temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -380,6 +406,7 @@ class AppSettings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
+    cloudflare: CloudflareSettings = CloudflareSettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
@@ -387,6 +414,7 @@ class AppSettings(BaseSettings):
     penknife: PenknifeSettings = PenknifeSettings()
     hdp: HDPSettings = HDPSettings()
     zsegment: ZSegmentSettings = ZSegmentSettings()
+    practifly: PractiflySettings = PractiflySettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
@@ -397,6 +425,7 @@ class AppSettings(BaseSettings):
 
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.314ecorp.tech."
+    k8s_cname: str = "k8s.314ecorp.tech."
 
     grafana_url: str = "https://monitor.314ecorp.tech"
     grafana_datasource_uid: str = "e4hhV8CGk"

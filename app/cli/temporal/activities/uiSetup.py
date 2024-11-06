@@ -21,6 +21,7 @@ class UiSetupActivityModel(LaunchpadCLIBaseModel):
     src_object_name: str
     dest_dir: str
     bundle_path: str
+    bundle_name: str
 
 
 class UiSetupActivity(Activity):
@@ -63,13 +64,13 @@ class UiSetupActivity(Activity):
             with tempfile.TemporaryDirectory() as tmp_dir:
                 download_file_from_storage(
                     object_name=activity_model.src_object_name,
-                    file_path=f"{tmp_dir}/bundle.zip",
+                    file_path=f"{tmp_dir}/{activity_model.bundle_name}",
                     storage_client=s3_int_client,
                     bucket_name="artifacts",
                 )
 
                 # unzip the file
-                with zipfile.ZipFile(f"{tmp_dir}/bundle.zip", "r") as zip_ref:
+                with zipfile.ZipFile(f"{tmp_dir}/{activity_model.bundle_name}", "r") as zip_ref:
                     zip_ref.extractall(f"{tmp_dir}/bundle")
 
                 # copy the files to the destination directory

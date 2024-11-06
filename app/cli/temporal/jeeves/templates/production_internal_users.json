@@ -10,5 +10,11 @@
       "email": "ryan.seratt@314ecorp.com",
       "firstname": "Ryan",
       "lastname": "Seratt"
+  },
+  {
+      "username": "jeeves-systemuser@314ecorp.com",
+      "email": "jeeves-systemuser@314ecorp.com",
+      "firstname": "System",
+      "lastname": "User"
   }
 ]

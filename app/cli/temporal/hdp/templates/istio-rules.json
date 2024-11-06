@@ -17,6 +17,7 @@
             }
         ],
         "match": [
+            {"uri": {"regex": "^/hdpsuperset/.*"}},
             {"uri": {"regex": "^/api/v1/.*"}},
             {"uri": {"regex": "^/public/api/v1/.*"}},
             {"uri": {"prefix": "/docs"}},

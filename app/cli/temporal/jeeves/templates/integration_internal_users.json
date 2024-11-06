@@ -1,0 +1,20 @@
+[
+  {
+      "username": "supriya.sen@314ecorp.com",
+      "email": "supriya.sen@314ecorp.com",
+      "firstname": "Supriya",
+      "lastname": "Sen"
+  },
+  {
+      "username": "sohini.chakraborty@314ecorp.com",
+      "email": "sohini.chakraborty@314ecorp.com",
+      "firstname": "Sohini",
+      "lastname": "Chakraborty"
+  },
+  {
+      "username": "jeeves-systemuser@314ecorp.com",
+      "email": "jeeves-systemuser@314ecorp.com",
+      "firstname": "System",
+      "lastname": "User"
+  }
+]
