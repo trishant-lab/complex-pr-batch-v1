@@ -300,6 +300,7 @@ class KeycloakCreateInternalUsersActivityModel(LaunchpadCLIBaseModel):
     roles: list[str] | None = None
     template_path: str
     template_name: str
+    users: list[dict]
 
 
 class KeycloakCreateInternalUsersActivity(Activity):
@@ -330,9 +331,6 @@ class KeycloakCreateInternalUsersActivity(Activity):
         jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
         template = jinja_env.get_template(activity_model.template_name)
 
-        with open(f"{activity_model.template_path}/internal_admin_users.json") as f:
-            users = orjson.loads(f.read())
-
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
         client_id = keycloak_client.get_client_id(
@@ -344,7 +342,7 @@ class KeycloakCreateInternalUsersActivity(Activity):
         else:
             roles = activity_model.roles
 
-        for user in users:
+        for user in activity_model.users:
             user_config = template.render(
                 username=user["username"],
                 email=user["email"],

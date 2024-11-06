@@ -152,7 +152,9 @@ class CloudflareSettings(BaseModel):
     api_token: str = ""
     access_key: str = ""
     s3_alias: str = "launchpad"
-    endpoint: str = ""
+    r2_endpoint: str = "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com"
+    r2_secret_key: str = ""
+    r2_access_key: str = ""
     api_url: str = "https://api.cloudflare.com/client/v4"
 
 

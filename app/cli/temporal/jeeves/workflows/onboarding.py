@@ -142,6 +142,7 @@ class JeevesOnboardingWorkflow(Workflow):
             CreateCloudflareBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
             CopyArtifactsToBucketActivity.defn,
+            PropagateDNSRecordActivity.defn,
         ]
 
     @classmethod
@@ -440,24 +441,13 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
-            # dns setup for admin
-            await workflow.execute_activity(
-                activity=CreateCloudflareDNSRecordActivity.defn,
-                arg=CreateCloudflareDNSRecordActivityModel(
-                    domain_name=f"{tenant}.{jeeves_config.domain_name}",
-                    zone_id=jeeves_config.zone_id,
-                ),
-                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
-            )
-
             repo_name = "jeeves-ui"
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{tenant}.{jeeves_config.domain_name}/"
+                dest_dir = f"{bucket_name}/"
             else:
-                dest_dir = f"{tenant}.{jeeves_config.domain_name}/{image_tag}"
+                dest_dir = f"{bucket_name}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -472,6 +462,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
                     bundle_name="bundle.zip",
+                    tenant=tenant,
                 ),
                 retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
@@ -561,7 +552,8 @@ class JeevesOnboardingWorkflow(Workflow):
                     realm_name=realm_name,
                     client_name="jeeves",
                     template_path=TemplatePath,
-                    template_name=f"{config.env}_internal_users.json",
+                    template_name="keycloak_tenant_internal_user.json",
+                    users=orjson.loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
                 ),
                 retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
@@ -644,7 +636,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=KubernetesIstioVirtualServiceActivity.defn,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
-                    host=f"{tenant}.{jeeves_config.domain_name}",
+                    host=f"{tenant}.api.{jeeves_config.domain_name}",
                     service_name="jeeves-vs",
                     payload=http_list,
                 ),
@@ -832,12 +824,12 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # preload assets job
-            await workflow.execute_activity(
-                activity=PreloadAssetsJobActivity.defn,
-                arg=jeeves,
-                retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
-                start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=PreloadAssetsJobActivity.defn,
+            #     arg=jeeves,
+            #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
+            #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            # )
 
             # update tenant status
             await workflow.execute_activity(

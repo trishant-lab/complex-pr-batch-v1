@@ -154,6 +154,7 @@ class CopyArtifactsToBucketActivityModel(LaunchpadCLIBaseModel):
     CopyArtifactsToBucketActivityModel
     """
 
+    tenant: str
     bucket_name: str
     src_object_name: str
     bundle_name: str
@@ -190,20 +191,21 @@ class CopyArtifactsToBucketActivity(Activity):
 
         environment: str = config.env
 
-        artifacts_temporary_credentials = await get_temporary_credentials(config, "artifacts")
-        artifacts_access_key = artifacts_temporary_credentials["accessKeyId"]
-        artifacts_secret_key = artifacts_temporary_credentials["secretAccessKey"]
+        # artifacts_temporary_credentials = await get_temporary_credentials(config, "artifacts")
+        artifacts_access_key = config.cloudflare.r2_access_key
+        artifacts_secret_key = config.cloudflare.r2_secret_key
 
         artifacts_s3_client = get_storage_client(
             config=config,
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
-            endpoint=config.cloudflare.endpoint,
+            endpoint=config.cloudflare.r2_endpoint,
         )
 
         bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
-        bucket_access_key = bucket_temporary_credentials["accessKeyId"]
-        bucket_secret_key = bucket_temporary_credentials["secretAccessKey"]
+        bucket_access_key = bucket_temporary_credentials.access_key_id
+        bucket_secret_key = bucket_temporary_credentials.secret_access_key
+        bucket_session_token = bucket_temporary_credentials.session_token
 
         try:
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -223,9 +225,10 @@ class CopyArtifactsToBucketActivity(Activity):
                     tenant=activity_input.tenant,
                     input_path=f"{tmp_dir}/{activity_input.bundle_path}",
                     output_path=activity_input.dest_dir,
-                    endpoint=config.cloudflare.endpoint,
+                    endpoint=config.cloudflare.r2_endpoint,
                     access_key=bucket_access_key,
                     secret_key=bucket_secret_key,
+                    session_token=bucket_temporary_credentials.session_token,
                 )
 
                 # todo: check if this is needed for all products
@@ -234,9 +237,10 @@ class CopyArtifactsToBucketActivity(Activity):
                         tenant=activity_input.tenant,
                         input_path=f"{tmp_dir}/{activity_input.bundle_path}/index.html",
                         output_path=f"{activity_input.dest_dir}/custom/index.html",
-                        endpoint=config.cloudflare.endpoint,
+                        endpoint=config.cloudflare.r2_endpoint,
                         access_key=bucket_access_key,
                         secret_key=bucket_secret_key,
+                        session_token=bucket_session_token,
                     )
 
                 log_info(f"UI setup completed for {activity_input.dest_dir}")

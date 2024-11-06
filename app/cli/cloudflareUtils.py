@@ -1,4 +1,5 @@
 from cloudflare import AsyncCloudflare
+from cloudflare.types.r2 import TemporaryCredentialCreateResponse
 from loguru import logger
 import requests
 
@@ -12,7 +13,7 @@ async def get_cloudflare_client(config: AppSettings) -> AsyncCloudflare:
     return AsyncCloudflare(api_token=config.cloudflare.api_token)
 
 
-async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> dict:
+async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> TemporaryCredentialCreateResponse:
     """
     Get temporary credentials
     """
@@ -22,16 +23,17 @@ async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> di
         bucket=bucket_name,
         parent_access_key_id=config.cloudflare.access_key,
         permission="object-read-write",
-        ttl_seconds=5 * 60,
+        ttl_seconds=10 * 60,
     )
 
 
-async def get_bucket(config: AppSettings, bucket_name: str) -> dict:
+async def get_bucket(config: AppSettings, bucket_name: str) -> list:
     """
     Get a bucket
     """
     client: AsyncCloudflare = await get_cloudflare_client(config=config)
-    return await client.r2.buckets.get(account_id=config.cloudflare.account_id, bucket_name=bucket_name)
+    response = await client.r2.buckets.list(account_id=config.cloudflare.account_id, name_contains=bucket_name)
+    return response.result.get("buckets", [])
 
 
 async def create_bucket(config: AppSettings, bucket_name: str) -> dict | None:
@@ -81,7 +83,7 @@ async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dic
     )
 
 
-async def delete_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dict:
+async def delete_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> None:
     """
     Delete a DNS record
     """
@@ -93,14 +95,26 @@ async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, cu
     """
     Link a bucket to a custom domain
     """
+    url_base = f"https://api.cloudflare.com/client/v4/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom"
+    headers = {"Authorization": f"Bearer {config.cloudflare.api_token}"}
+
+    list_response = requests.get(url_base, headers=headers, timeout=120)
+
+    if list_response.status_code == 200:
+        existing_domains = list_response.json().get("result", {}).get("domains", [])
+        existing_hostnames = [domain["domain"] for domain in existing_domains]
+        if custom_domain in existing_hostnames:
+            logger.info(f"The custom domain {custom_domain} is already associated with the bucket.")
+            return
+
     response = requests.post(
-        url=f"https://api.cloudflare.com/client/v4/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
-        headers={"Authorization": f"Bearer {config.cloudflare.api_token}"},
+        url=url_base,
+        headers=headers,
         json={"domain": custom_domain, "zoneId": zone_id, "enabled": True},
         timeout=120,
     )
     if response.status_code == 200:
-        return response.json()
+        return
     else:
         raise Exception(
             f"Failed to link bucket {bucket_name} to custom domain {custom_domain}. Status Code: {response.status_code}"
