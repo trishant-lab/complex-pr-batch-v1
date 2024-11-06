@@ -41,7 +41,7 @@ class TemporalSearchAttributesCreationActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="TemporalNamespaceActivity")
+    @activity.defn(name="TemporalSearchAttributesCreationActivity")
     async def defn(activity_input: TemporalSearchAttributesCreationActivityModel) -> None:
         """
         Callable for the activity

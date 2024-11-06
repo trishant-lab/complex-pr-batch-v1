@@ -77,7 +77,7 @@ ProductName = "dexit"
 OnePasswordVaultName = "Dexit"
 
 
-@workflow.defn
+@workflow.defn(name="DexitOnboardingWorkflow", sandboxed=False)
 class DexitOnboardingWorkflow(Workflow):
     """
     Dexit Onboarding Workflow
