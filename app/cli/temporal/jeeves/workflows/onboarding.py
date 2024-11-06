@@ -198,6 +198,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
+                return
 
             postgres_schema_name = tenant
             postgres_database_name = "jeeves"

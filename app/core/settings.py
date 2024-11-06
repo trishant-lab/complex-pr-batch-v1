@@ -384,6 +384,15 @@ class ZSegmentSettings(BaseModel):
     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
 
 
+class PractiflySettings(BaseModel):
+    """
+    Practifly Settings
+    """
+
+    temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
+    temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -405,6 +414,7 @@ class AppSettings(BaseSettings):
     penknife: PenknifeSettings = PenknifeSettings()
     hdp: HDPSettings = HDPSettings()
     zsegment: ZSegmentSettings = ZSegmentSettings()
+    practifly: PractiflySettings = PractiflySettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
