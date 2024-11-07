@@ -51,5 +51,23 @@
         "match": [
             {"uri": {"prefix": "/"}}
         ]
+    },
+    {
+        "name": "dexit-dicom",
+        "route": [
+            {
+                "destination": {
+                    "host": "dexit-dicom.{{tenant}}.svc.cluster.local",
+                    "port": {"number": 8042}
+                }
+            }
+        ],
+        "match": [
+            {
+                "uri": {
+                    "regex": "(/dicom-web/.*|/instances/.*|/studies/.*|/series/.*|/patients/.*|/wadu/.*)"
+                }
+            }
+        ]
     }
 ]
