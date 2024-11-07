@@ -123,6 +123,7 @@ class KeycloakServiceAccountSetupActivityModel(LaunchpadCLIBaseModel):
     tenant: str
     domain: str
     secret: str
+    realm_name: str
     template_path: str
     template_name: str
 
@@ -163,7 +164,7 @@ class KeycloakServiceAccountSetupActivity(Activity):
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
         keycloak_client.create_client(orjson.loads(service_account_config), activity_model.realm_name)
 
-        log_info(f"Keycloak service account {activity_model.client_name} created successfully")
+        log_info(f"Keycloak service account {activity_model.tenant} created successfully")
 
 
 class KeycloakCreateClientRolesActivityModel(LaunchpadCLIBaseModel):

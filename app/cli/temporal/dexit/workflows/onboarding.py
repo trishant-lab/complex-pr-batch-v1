@@ -122,6 +122,7 @@ class DexitOnboardingWorkflow(Workflow):
             HFInferenceEndpointSetupActivity.defn,
             OnePasswordActivity.defn,
             PostgresDatabaseCreationActivity.defn,
+            KeycloakServiceAccountSetupActivity.defn,
         ]
 
     @classmethod
@@ -423,9 +424,12 @@ class DexitOnboardingWorkflow(Workflow):
                     tenant=tenant,
                     domain=dexit_config.domain_name,
                     secret=client_secret,
+                    realm_name=realm_name,
                     template_path=TemplatePath,
                     template_name="keycloak_service_account.json",
                 ),
+                retry_policy=KeycloakServiceAccountSetupActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakServiceAccountSetupActivity.get_timeout(),
             )
 
             # keycloak tenant customer admin user setup
