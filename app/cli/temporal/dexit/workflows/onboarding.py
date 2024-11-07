@@ -342,62 +342,6 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=FaxSetupActivity.get_timeout(),
             )
 
-            # setup tenant configmap
-            for config_map in [
-                {"name": "dexit-tenant-config", "key": "tenant-config.json"},
-                {"name": "dexit-env-config", "key": "env-config.json"},
-                {"name": "dexit-dicom-config", "key": "dicom-config.json"},
-                {"name": "dexit-cli-vector-config", "key": "vector-config.toml"},
-            ]:
-                await workflow.execute_activity(
-                    activity=K8sConfigMapCreationActivity.defn,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map["key"],
-                        bucket_name="dexit-config",
-                        template_payload={"tenant": tenant},
-                    ),
-                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
-                )
-
-            # dns setup
-            await workflow.execute_activity(
-                activity=DnsSetupActivity.defn,
-                arg=DnsSetupActivityModel(
-                    cname=config.google_dns_cname,
-                    fqdn=f"{tenant}.{dexit_config.domain_name}.",
-                    zone_name=dexit_config.zone_name,
-                ),
-                retry_policy=DnsSetupActivity.get_retry_policy(),
-                start_to_close_timeout=DnsSetupActivity.get_timeout(),
-            )
-
-            # ui setup
-            repo_name = "dexit-ui"
-            image_tag = "production" if config.env == "production" else "sprint"
-
-            if config.env == "production":
-                dest_dir = f"{tenant}.{dexit_config.domain_name}/"
-            else:
-                dest_dir = f"{tenant}.{dexit_config.domain_name}/{image_tag}"
-
-            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
-
-            bundle_path = "bundle/dist/admin"
-
-            await workflow.execute_activity(
-                activity=UiSetupActivity.defn,
-                arg=UiSetupActivityModel(
-                    src_object_name=src_object_name,
-                    dest_dir=dest_dir,
-                    bundle_path=bundle_path,
-                ),
-                retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=UiSetupActivity.get_timeout(),
-            )
-
             realm_name = tenant
             # keycloak realm setup
             await workflow.execute_activity(
@@ -507,6 +451,62 @@ class DexitOnboardingWorkflow(Workflow):
                 arg=dexit,
                 retry_policy=HFInferenceEndpointSetupActivity.get_retry_policy(),
                 start_to_close_timeout=HFInferenceEndpointSetupActivity.get_timeout(),
+            )
+
+            # setup tenant configmap
+            for config_map in [
+                {"name": "dexit-tenant-config", "key": "tenant-config.json"},
+                {"name": "dexit-env-config", "key": "env-config.json"},
+                {"name": "dexit-dicom-config", "key": "dicom-config.json"},
+                {"name": "dexit-cli-vector-config", "key": "vector-config.toml"},
+            ]:
+                await workflow.execute_activity(
+                    activity=K8sConfigMapCreationActivity.defn,
+                    arg=K8sConfigMapCreationActivityModel(
+                        namespace=tenant,
+                        name=config_map["name"],
+                        template_file_name=config_map["key"],
+                        bucket_name="dexit-config",
+                        template_payload={"tenant": tenant},
+                    ),
+                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
+                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
+                )
+
+            # dns setup
+            await workflow.execute_activity(
+                activity=DnsSetupActivity.defn,
+                arg=DnsSetupActivityModel(
+                    cname=config.google_dns_cname,
+                    fqdn=f"{tenant}.{dexit_config.domain_name}.",
+                    zone_name=dexit_config.zone_name,
+                ),
+                retry_policy=DnsSetupActivity.get_retry_policy(),
+                start_to_close_timeout=DnsSetupActivity.get_timeout(),
+            )
+
+            # ui setup
+            repo_name = "dexit-ui"
+            image_tag = "production" if config.env == "production" else "sprint"
+
+            if config.env == "production":
+                dest_dir = f"{tenant}.{dexit_config.domain_name}/"
+            else:
+                dest_dir = f"{tenant}.{dexit_config.domain_name}/{image_tag}"
+
+            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+
+            bundle_path = "bundle/dist/admin"
+
+            await workflow.execute_activity(
+                activity=UiSetupActivity.defn,
+                arg=UiSetupActivityModel(
+                    src_object_name=src_object_name,
+                    dest_dir=dest_dir,
+                    bundle_path=bundle_path,
+                ),
+                retry_policy=UiSetupActivity.get_retry_policy(),
+                start_to_close_timeout=UiSetupActivity.get_timeout(),
             )
 
             # atlas job
