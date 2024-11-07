@@ -358,7 +358,7 @@ class ZSegmentSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "zsegment.314ecorp.tech"
+    domain_name: str = "zsegment.tech"
     zone_name: str = "e314ecorptech"
 
     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
