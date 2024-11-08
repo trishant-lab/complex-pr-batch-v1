@@ -1,0 +1,124 @@
+{
+  "spec": {
+    "http": [
+      {
+        "match": [
+          {
+            "headers": {
+              "stage": {
+                "exact": "dev-grpc"
+              }
+            }
+          }
+        ],
+        "name": "zsegment-grpc-dev",
+        "route": [
+          {
+            "destination": {
+              "host": "zsegment-api-dev-grpc.{{tenant}}.svc.cluster.local",
+              "port": {
+                "number": 6565
+              }
+            }
+          }
+        ]
+      },
+      {
+        "match": [
+          {
+            "uri": {
+              "regex": "^/api/v1/dev/.*"
+            }
+          }
+        ],
+        "name": "zsegment-api-dev",
+        "route": [
+          {
+            "destination": {
+              "host": "zsegment-api-dev.{{tenant}}.svc.cluster.local",
+              "port": {
+                "number": 8090
+              }
+            }
+          }
+        ]
+      },
+      {
+        "match": [
+          {
+            "uri": {
+              "regex": "^/select/0/prometheus/api/v1.*"
+            }
+          }
+        ],
+        "name": "zsegment-api-dev",
+        "route": [
+          {
+            "destination": {
+              "host": "vmselect-vm-cluster.monitoring-system.svc.cluster.local",
+              "port": {
+                "number": 8481
+              }
+            }
+          }
+        ]
+      },
+      {
+        "match": [
+          {
+            "uri": {
+              "prefix": "/lsp/"
+            }
+          }
+        ],
+        "name": "zsegment-api-dev-lsp",
+        "rewrite": {
+          "uri": "/"
+        },
+        "route": [
+          {
+            "destination": {
+              "host": "zsegment-lsp.zsegment-lsp.svc.cluster.local",
+              "port": {
+                "number": 8000
+              }
+            }
+          }
+        ]
+      },
+      {
+        "match": [
+          {
+            "uri": {
+              "exact": "/"
+            }
+          }
+        ],
+        "name": "redirect",
+        "redirect": {
+          "uri": "/sprint/"
+        }
+      },
+      {
+        "match": [
+          {
+            "uri": {
+              "prefix": "/"
+            }
+          }
+        ],
+        "name": "zsegment-ui",
+        "route": [
+          {
+            "destination": {
+              "host": "varnish-svc.varnish.svc.cluster.local",
+              "port": {
+                "number": 80
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
