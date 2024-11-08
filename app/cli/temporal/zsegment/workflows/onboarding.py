@@ -493,6 +493,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
                     },
                 ),
+                retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
             )
 
             # setup engine-dev-config
@@ -518,6 +520,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "redisPassword": redis_tenant_password,
                     },
                 ),
+                retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
             )
 
             # setup api-prod-config
@@ -552,6 +556,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
                     },
                 ),
+                retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
             )
 
             # setup engine-prod-config
@@ -577,6 +583,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "redisPassword": redis_tenant_password,
                     },
                 ),
+                retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
             )
 
             # dns setup for api
