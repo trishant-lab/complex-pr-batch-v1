@@ -1,4 +1,6 @@
 from collections.abc import Callable
+from uuid import uuid4
+
 from temporalio import workflow
 import pydash
 import orjson
@@ -17,6 +19,7 @@ from app.cli.temporal.activities.cloudflareSetup import (
 )
 from app.cli.temporal.activities.gitea_service import GiteaProperties
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.lago_service import LagoSetupActivity, LagoProperties
 from app.cli.temporal.activities.onePassword import OnePasswordActivity, OnePasswordActivityModel
 from app.cli.temporal.activities.redpanda_service import RedpandaProperties
 from app.cli.temporal.activities.sendMail import (
@@ -262,50 +265,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            # await workflow.execute_activity(
-            #     activity=KeycloakUserMappingActivity.defn,
-            #     arg=KeycloakUserMappingActivityModel(
-            #         username=postgres_username,
-            #         database_name=postgres_database_name,
-            #     ),
-            #     retry_policy=KeycloakUserMappingActivity.get_retry_policy(),
-            #     start_to_close_timeout=KeycloakUserMappingActivity.get_timeout(),
-            # )
-
-            # await workflow.execute_activity(
-            #     activity=MatomoUserMappingActivity.defn,
-            #     arg=MatomoUserMappingActivityModel(
-            #         username=postgres_username,
-            #         database_name=postgres_database_name,
-            #     ),
-            #     retry_policy=MatomoUserMappingActivity.get_retry_policy(),
-            #     start_to_close_timeout=MatomoUserMappingActivity.get_timeout(),
-            # )
-
-            # await workflow.execute_activity(
-            #     activity=PostgresGrantAllPrivilegesOnTableActivity.defn,
-            #     arg=PostgresGrantAllPrivilegesOnTableActivityModel(
-            #         database_name=postgres_database_name,
-            #         username=postgres_username,
-            #         tables=[
-            #             "user_entity",
-            #             "realm",
-            #             "user_attribute",
-            #             "keycloak_role",
-            #             "user_role_mapping",
-            #             # "matomo_log_visit",
-            #             # "matomo_log_action",
-            #             # "matomo_log_media",
-            #             # "matomo_log_link_visit_action",
-            #             # "matomo_log_visit_view",
-            #             # "matomo_log_action_view",
-            #             # "matomo_log_media_view",
-            #             # "matomo_log_link_visit_action_view",
-            #         ],
-            #     ),
-            #     retry_policy=PostgresGrantAllPrivilegesOnTableActivity.get_retry_policy(),
-            #     start_to_close_timeout=PostgresGrantAllPrivilegesOnTableActivity.get_timeout(),
-            # )
             installer_secret = generate_password(length=20)
 
             # keycloak realm setup
@@ -385,19 +344,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
-
-            # # keycloak internal users setup
-            # await workflow.execute_activity(
-            #     activity=KeycloakCreateInternalUsersActivity.defn,
-            #     arg=KeycloakCreateInternalUsersActivityModel(
-            #         realm_name=realm_name,
-            #         client_name="zsegment",
-            #         template_path=TemplatePath,
-            #         template_name="keycloak_tenant_internal_user.json",
-            #     ),
-            #     retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
-            #     start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
-            # )
 
             await workflow.execute_activity(
                 activity=K8sNamespaceCreationActivity.defn,
@@ -483,12 +429,41 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=GiteaSetupActivity.get_timeout(),
             )
 
-            # setup dev-api configmap
+            # setup lago
+            lago_customer_id = uuid4()
+            lago_subscription_id = uuid4()
+            lago_plan_code = zsegment_config.lago_plan_code
+            lago_api_key = zsegment_config.lago_api_key
+            lago_api_url = zsegment_config.lago_api_url
+
+            OnePasswordUtil(
+                tenant=f"{ProductName}_{tenant}",
+                server_item="application-config",
+                vault=OnePasswordVaultName,
+            ).create_or_replace("lago_customer_id", str(lago_customer_id))
+
+            await workflow.execute_activity(
+                activity=LagoSetupActivity.defn,
+                arg=LagoProperties(
+                    tenant=tenant,
+                    customer_id=lago_customer_id,
+                    customer_name=tenant,
+                    customer_email=email,
+                    subscription_id=lago_subscription_id,
+                    plan_code=lago_plan_code,
+                    api_key=lago_api_key,
+                    api_url=lago_api_url,
+                ),
+                retry_policy=LagoSetupActivity.get_retry_policy(),
+                start_to_close_timeout=LagoSetupActivity.get_timeout(),
+            )
+
+            # setup api-dev-config
             await workflow.execute_activity(
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="dev-api-config",
+                    name="api-dev-config",
                     template_file_name="api-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
@@ -496,48 +471,107 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "environment": "dev",
                         "server-environment": config.env.upper(),
                         "keycloakRealm": realm_name,
-                        "KeycloakAuthServerUrl": "https://auth.314ecorp.tech/auth",
-                        "keycloakSecret": installer_secret,  # Need discussion
-                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,  # Need discussion
+                        "KeycloakAuthServerUrl": zsegment_config.keycloak_auth_server_url,
+                        "keycloakSecret": installer_secret,
+                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,
                         "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": config.lago_url,  # Need discussion
-                        "lagoKey": config.lago_key,  # Need discussion
-                        "lagoCustomerId": config.lago_customer_id,  # Need discussion
+                        "lagoUrl": zsegment_config.lago_api_url,
+                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoCustomerId": lago_customer_id,
                         "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",
                         "victoriaMetricsUrl": "http://vmselect-vm-cluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus",
-                        "postgresUrl": "db-cluster-ha.postgresql.svc.cluster.local",
+                        "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
-                        "gitea_api_base_url": config.gitea_api_base_url,  # Need discussion
-                        "gitea_api_repo_url": config.gitea_api_repo_url,  # Need discussion
-                        "gitea_admin_username": config.gitea_admin_username,  # Need discussion
-                        "gitea_admin_password": config.gitea_admin_password,  # Need discussion
+                        "gitea_api_base_url": zsegment_config.gitea_base_url,
+                        "gitea_api_repo_url": zsegment_config.gitea_api_repo_url,
+                        "gitea_admin_username": zsegment_config.gitea_admin_username,
+                        "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
-                        "matomoAuthToken": "e9c5ba18c4d7af04c4fdb1443d604e88&force_api_session=1",
+                        "matomoAuthToken": zsegment_config.matomo_auth_token,
                     },
                 ),
             )
 
-            # setup dev-engine configmap
+            # setup engine-dev-config
             await workflow.execute_activity(
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="dev-engine-config",
+                    name="engine-dev-config",
                     template_file_name="engine-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
                         "environment": "dev",
-                        "redpandaBrokerUrl": config.broker_url,  # Need discussion
-                        "redpandaPassword": config.password,  # Need discussion
-                        "lagoUrl": config.lago_url,  # Need discussion
-                        "lagoKey": config.lago_key,  # Need discussion
-                        "lagoCustomerId": config.lago_customer_id,  # Need discussion
-                        "postgresUrl": "db-cluster-ha.postgresql.svc.cluster.local",
-                        "postgresSecret": config.secret_name,  # Need discussion
-                        "gitea_admin_username": config.gitea_admin_username,  # Need discussion
-                        "gitea_admin_password": config.gitea_admin_password,  # Need discussion
-                        "redisPassword": config.redis_password,  # Need discussion
+                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,
+                        "redpandaPassword": redpanda_tenant_password,
+                        "lagoUrl": zsegment_config.lago_api_url,
+                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoCustomerId": lago_customer_id,
+                        "postgresUrl": zsegment_config.postgres_url,
+                        "postgresSecret": postgres_password,
+                        "gitea_admin_username": zsegment_config.gitea_admin_username,
+                        "gitea_admin_password": zsegment_config.gitea_admin_password,
+                        "redisPassword": redis_tenant_password,
+                    },
+                ),
+            )
+
+            # setup api-prod-config
+            await workflow.execute_activity(
+                activity=K8sConfigMapCreationActivity.defn,
+                arg=K8sConfigMapCreationActivityModel(
+                    namespace=tenant,
+                    name="api-prod-config",
+                    template_file_name="api-config.json",
+                    bucket_name="zsegment-config",
+                    template_payload={
+                        "tenantName": tenant,
+                        "environment": "prod",
+                        "server-environment": config.env.upper(),
+                        "keycloakRealm": realm_name,
+                        "KeycloakAuthServerUrl": zsegment_config.keycloak_auth_server_url,
+                        "keycloakSecret": installer_secret,
+                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,
+                        "redpandaPassword": redpanda_tenant_password,
+                        "lagoUrl": zsegment_config.lago_api_url,
+                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoCustomerId": lago_customer_id,
+                        "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",
+                        "victoriaMetricsUrl": "http://vmselect-vm-cluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus",
+                        "postgresUrl": zsegment_config.postgres_url,
+                        "postgresSecret": postgres_password,
+                        "gitea_api_base_url": zsegment_config.gitea_base_url,
+                        "gitea_api_repo_url": zsegment_config.gitea_api_repo_url,
+                        "gitea_admin_username": zsegment_config.gitea_admin_username,
+                        "gitea_admin_password": zsegment_config.gitea_admin_password,
+                        "redisPassword": redis_tenant_password,
+                        "matomoAuthToken": zsegment_config.matomo_auth_token,
+                    },
+                ),
+            )
+
+            # setup engine-prod-config
+            await workflow.execute_activity(
+                activity=K8sConfigMapCreationActivity.defn,
+                arg=K8sConfigMapCreationActivityModel(
+                    namespace=tenant,
+                    name="engine-prod-config",
+                    template_file_name="engine-config.json",
+                    bucket_name="zsegment-config",
+                    template_payload={
+                        "tenantName": tenant,
+                        "environment": "prod",
+                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,
+                        "redpandaPassword": redpanda_tenant_password,
+                        "lagoUrl": zsegment_config.lago_api_url,
+                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoCustomerId": lago_customer_id,
+                        "postgresUrl": zsegment_config.postgres_url,
+                        "postgresSecret": postgres_password,
+                        "gitea_admin_username": zsegment_config.gitea_admin_username,
+                        "gitea_admin_password": zsegment_config.gitea_admin_password,
+                        "redisPassword": redis_tenant_password,
                     },
                 ),
             )
@@ -613,42 +647,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
-
-            # dns setup
-            # await workflow.execute_activity(
-            #     activity=DnsSetupActivity.defn,
-            #     arg=DnsSetupActivityModel(
-            #         cname=config.google_dns_cname,
-            #         fqdn=f"{tenant}.{zsegment_config.domain_name}.",
-            #         zone_name=zsegment_config.zone_name,
-            #     ),
-            #     retry_policy=DnsSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=DnsSetupActivity.get_timeout(),
-            # )
-
-            # # ui setup
-            # repo_name = "zsegment-ui"
-            # image_tag = "production" if config.env == "production" else "sprint"
-
-            # if config.env == "production":
-            #     dest_dir = f"{tenant}.{zsegment_config.domain_name}/"
-            # else:
-            #     dest_dir = f"{tenant}.{zsegment_config.domain_name}/{image_tag}"
-
-            # src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
-
-            # bundle_path = "bundle/dist/admin"
-
-            # await workflow.execute_activity(
-            #     activity=UiSetupActivity.defn,
-            #     arg=UiSetupActivityModel(
-            #         src_object_name=src_object_name,
-            #         dest_dir=dest_dir,
-            #         bundle_path=bundle_path,
-            #     ),
-            #     retry_policy=UiSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=UiSetupActivity.get_timeout(),
-            # )
 
             # statefulset pod creation for server
             await workflow.execute_activity(

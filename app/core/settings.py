@@ -393,10 +393,21 @@ class ZSegmentSettings(BaseModel):
     redpanda_admin_password: str = ""
     redpanda_admin_api_base_url: str = "http://redpanda.redpanda-system.svc.cluster.local:9644"
 
+    keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
+
     gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1"
     gitea_admin_username: str = ""
     gitea_admin_password: str = ""
+    gitea_api_repo_url: str = ""
     gitea_template_owner: str = ""
+
+    lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000/api/v1"
+    lago_plan_code: str = "Free"
+    lago_api_key: str = ""
+
+    postgres_url: str = "db-cluster-ha.postgresql.svc.cluster.local"
+
+    matomo_auth_token: str = "e9c5ba18c4d7af04c4fdb1443d604e88&force_api_session=1"
 
     sender_name: str = ""
     sender_email: str = ""
