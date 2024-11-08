@@ -12,8 +12,15 @@ from pydantic_settings import BaseSettings
 
 from app.core.log import setup_logging
 
-CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
+CONFIG_FILE_NAMES: Final[list[str]] = [
+    "settings.json",
+    "veritable.json",
+    "jeeves.json",
+    "dexit.json",
+    "penknife.json",
+    "zsegment.json",
+]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json", "zsegment.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -380,6 +387,16 @@ class ZSegmentSettings(BaseModel):
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "zsegment.tech"
     zone_name: str = "e314ecorptech"
+    zone_id: str = ""
+    redpanda_broker: str = "redpanda.redpanda-system.svc.cluster.local:9092"
+    redpanda_admin_username: str = "superuser"
+    redpanda_admin_password: str = ""
+    redpanda_admin_api_base_url: str = "http://redpanda.redpanda-system.svc.cluster.local:9644"
+
+    gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1"
+    gitea_admin_username: str = ""
+    gitea_admin_password: str = ""
+    gitea_template_owner: str = ""
 
     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
 
