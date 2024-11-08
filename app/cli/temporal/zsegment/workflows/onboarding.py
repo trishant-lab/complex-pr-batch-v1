@@ -17,7 +17,8 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
 )
-from app.cli.temporal.activities.gitea_service import GiteaProperties
+
+# from app.cli.temporal.activities.gitea_service import GiteaProperties
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.lago_service import LagoSetupActivity, LagoProperties
 from app.cli.temporal.activities.onePassword import OnePasswordActivity, OnePasswordActivityModel
@@ -128,6 +129,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
             K8sNamespaceCreationActivity.defn,
+            LagoSetupActivity.defn,
         ]
 
     @classmethod
@@ -386,7 +388,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
-            # setup redpanda
+            # # setup redpanda
             redpanda_tenant_password = generate_password(length=20)
             OnePasswordUtil(
                 tenant=f"{ProductName}_{tenant}",
@@ -415,20 +417,20 @@ class ZSegmentOnboardingWorkflow(Workflow):
             gitea_admin_password = zsegment_config.gitea_admin_password
             gitea_template_owner = zsegment_config.gitea_template_owner
 
-            await workflow.execute_activity(
-                activity=GiteaSetupActivity.defn,
-                arg=GiteaProperties(
-                    tenant=tenant,
-                    email=email,
-                    base_url=gitea_base_url,
-                    admin_username=gitea_admin_username,
-                    admin_password=gitea_admin_password,
-                    template_repo="ZSegmentTemplate",
-                    template_owner=gitea_template_owner,
-                ),
-                retry_policy=GiteaSetupActivity.get_retry_policy(),
-                start_to_close_timeout=GiteaSetupActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=GiteaSetupActivity.defn,
+            #     arg=GiteaProperties(
+            #         tenant=tenant,
+            #         email=email,
+            #         base_url=gitea_base_url,
+            #         admin_username=gitea_admin_username,
+            #         admin_password=gitea_admin_password,
+            #         template_repo="ZSegmentTemplate",
+            #         template_owner=gitea_template_owner,
+            #     ),
+            #     retry_policy=GiteaSetupActivity.get_retry_policy(),
+            #     start_to_close_timeout=GiteaSetupActivity.get_timeout(),
+            # )
 
             # setup lago
             lago_customer_id = uuid4()
@@ -964,11 +966,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=tenant,
-                    status="Completed",
-                    product=ProductName,
-                ),
+                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )

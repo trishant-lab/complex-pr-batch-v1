@@ -3,13 +3,14 @@ import lago_python_client
 
 from datetime import datetime
 from datetime import timedelta
-from temporalio.common import  RetryPolicy
+from temporalio.common import RetryPolicy
 from temporalio import activity
 
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Activity
 from lago_python_client.exceptions import LagoApiError
 from lago_python_client.models import Customer, Subscription
 from loguru import logger
+
 
 class LagoProperties(LaunchpadCLIBaseModel):
     tenant: str
@@ -21,12 +22,14 @@ class LagoProperties(LaunchpadCLIBaseModel):
     api_key: str
     api_url: str
 
+
 def get_lago_client(properties: LagoProperties) -> lago_python_client.Client:
     """Initialize and return a Lago API client."""
     return lago_python_client.Client(
         api_key=properties.api_key,
         api_url=properties.api_url,
     )
+
 
 def create_new_customer(properties: LagoProperties) -> bool:
     """Create a new customer in Lago using the specified properties."""
@@ -35,18 +38,19 @@ def create_new_customer(properties: LagoProperties) -> bool:
         legal_name=properties.customer_name,
         firstname=properties.customer_name,
         email=properties.customer_email,
-        external_id=str(properties.customer_id)
+        external_id=str(properties.customer_id),
     )
     logger.info(f"Creating new customer with tenant '{properties.tenant}' and ID '{properties.customer_id}'")
     try:
         client = get_lago_client(properties)
-        response = client.customers().create(Customer.model_validate(customer))
+        response = client.customers().create(customer)
         logger.info(f"Customer '{properties.tenant}' created successfully with response: {response}")
         return True
     except LagoApiError as e:
         logger.error(f"Failed to create customer '{properties.tenant}': Status Code {e.status_code}")
         logger.error(f"API Response: {e.response}")
         return False
+
 
 def create_subscription(properties: LagoProperties) -> bool:
     """Create a new subscription in Lago for the specified customer."""
@@ -58,7 +62,8 @@ def create_subscription(properties: LagoProperties) -> bool:
         external_id=str(properties.subscription_id),
     )
     logger.info(
-        f"Creating subscription with ID '{properties.subscription_id}' for customer '{properties.customer_id}' using plan '{properties.plan_code}'"
+        f"Creating subscription with ID '{properties.subscription_id}' for customer "
+        f"{properties.customer_id} using plan '{properties.plan_code}'"
     )
     try:
         client = get_lago_client(properties)
@@ -67,9 +72,12 @@ def create_subscription(properties: LagoProperties) -> bool:
         return True
     except LagoApiError as e:
         logger.error(
-            f"Failed to create subscription '{properties.subscription_id}' for customer '{properties.customer_id}': Status Code {e.status_code}")
+            f"Failed to create subscription '{properties.subscription_id}' "
+            f"for customer '{properties.customer_id}': Status Code {e.status_code}"
+        )
         logger.error(f"API Response: {e.response}")
         return False
+
 
 class LagoSetupActivity(Activity):
     @staticmethod
@@ -78,6 +86,7 @@ class LagoSetupActivity(Activity):
         Timeout for the activity
         """
         return timedelta(seconds=120)
+
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
         """
@@ -88,6 +97,7 @@ class LagoSetupActivity(Activity):
             backoff_coefficient=2,
             maximum_attempts=5,
         )
+
     @staticmethod
     @activity.defn(name="LagoSetupActivity")
     async def defn(properties: LagoProperties) -> None:
@@ -103,6 +113,11 @@ class LagoSetupActivity(Activity):
         # Step 2: Create subscription for the customer
         subscription_created = create_subscription(properties)
         if not subscription_created:
-            logger.error(f"Failed to create subscription '{properties.subscription_id}' for customer '{properties.customer_id}'")
+            logger.error(
+                f"Failed to create subscription '{properties.subscription_id}' for customer '{properties.customer_id}'"
+            )
             return
-        logger.info(f"Lago setup completed successfully for tenant '{properties.tenant}' with customer ID '{properties.customer_id}'")
+        logger.info(
+            f"Lago setup completed successfully for tenant '{properties.tenant}' "
+            f"with customer ID '{properties.customer_id}'"
+        )
