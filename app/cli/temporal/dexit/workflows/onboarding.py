@@ -155,6 +155,7 @@ class DexitOnboardingWorkflow(Workflow):
                         tenant_name=pydash.get(dexit, "tenant"),
                         status="Declined",
                         error_msg="Request Declined",
+                        product=ProductName,
                     ),
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                     start_to_close_timeout=timedelta(seconds=120),
@@ -816,7 +817,7 @@ class DexitOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed"),
+                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
@@ -849,6 +850,7 @@ class DexitOnboardingWorkflow(Workflow):
                     tenant_name=pydash.get(dexit, "tenant"),
                     status="Failed",
                     error_msg=str(e),
+                    product=ProductName,
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
