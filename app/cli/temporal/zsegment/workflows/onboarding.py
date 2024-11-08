@@ -218,18 +218,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
             )
 
-            # await workflow.execute_activity(
-            #     activity=PostgresSupavisorPollUserActivity.defn,
-            #     arg=PostgresSupavisorPollUserActivityModel(
-            #         username=postgres_username,
-            #         database_name=postgres_database_name,
-            #         db_password=postgres_password,
-            #         template_path=TemplatePath,
-            #     ),
-            #     retry_policy=PostgresSupavisorPollUserActivity.get_retry_policy(),
-            #     start_to_close_timeout=PostgresSupavisorPollUserActivity.get_timeout(),
-            # )
-
             await workflow.execute_activity(
                 activity=PostgresSchemaCreationActivity.defn,
                 arg=PostgresSchemaCreationActivityModel(
@@ -475,10 +463,10 @@ class ZSegmentOnboardingWorkflow(Workflow):
             )
 
             # setup gitea
-            gitea_base_url = (zsegment_config.gitea_base_url,)
-            gitea_admin_username = (zsegment_config.gitea_admin_username,)
-            gitea_admin_password = (zsegment_config.gitea_admin_password,)
-            gitea_template_owner = (zsegment_config.gitea_template_owner,)
+            gitea_base_url = zsegment_config.gitea_base_url
+            gitea_admin_username = zsegment_config.gitea_admin_username
+            gitea_admin_password = zsegment_config.gitea_admin_password
+            gitea_template_owner = zsegment_config.gitea_template_owner
 
             await workflow.execute_activity(
                 activity=GiteaSetupActivity.defn,

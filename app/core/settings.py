@@ -398,6 +398,9 @@ class ZSegmentSettings(BaseModel):
     gitea_admin_password: str = ""
     gitea_template_owner: str = ""
 
+    sender_name: str = ""
+    sender_email: str = ""
+
     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
 
 
