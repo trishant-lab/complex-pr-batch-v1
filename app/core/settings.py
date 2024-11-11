@@ -12,8 +12,15 @@ from pydantic_settings import BaseSettings
 
 from app.core.log import setup_logging
 
-CONFIG_FILE_NAMES: Final[list[str]] = ["settings.json", "veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json"]
+CONFIG_FILE_NAMES: Final[list[str]] = [
+    "settings.json",
+    "veritable.json",
+    "jeeves.json",
+    "dexit.json",
+    "penknife.json",
+    "zsegment.json",
+]
+PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json", "zsegment.json"]
 
 
 class KeycloakSettings(BaseModel):
@@ -33,6 +40,7 @@ class KeycloakSettings(BaseModel):
     internal_auth_url: str = "http://keycloak-service.keycloak.svc.cluster.local:8080"
     auth_user: str = "installer"
     auth_secret: str = ""
+    keycloak_db_password: str = ""
 
     realm_path: str = "/auth/admin/realms/"
 
@@ -97,6 +105,7 @@ class S3Settings(BaseModel):
     region: str = "us-east-1"
     use_ssl: bool = True
     rclone_remote: str = "s3_rclone_remote"
+    s3_alias: str = "launchpad"
     bucket: str = ""
 
 
@@ -141,6 +150,21 @@ class GSuiteModel(BaseSettings):
     model_config = ConfigDict(extra="ignore")
 
 
+class CloudflareSettings(BaseModel):
+    """
+    Cloudflare Settings
+    """
+
+    account_id: str = ""
+    api_token: str = ""
+    access_key: str = ""
+    s3_alias: str = "launchpad"
+    r2_endpoint: str = "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com"
+    r2_secret_key: str = ""
+    r2_access_key: str = ""
+    api_url: str = "https://api.cloudflare.com/client/v4"
+
+
 class VeritableSettings(BaseModel):
     """
     Veritable Settings
@@ -162,9 +186,13 @@ class JeevesSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "jeeves.314ecorp.tech"
-    zone_name: str = "e314ecorptech"
+    domain_name: str = "okjeeves.tech"
+    # zone_name: str = "e314ecorptech"
+    zone_id: str = ""
     # grafana: GrafanaSettings = GrafanaSettings()
+
+    sender_email: str = "support@okjeeves.com"
+    sender_name: str = "Jeeves Support"
 
     temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
     temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
@@ -192,6 +220,28 @@ class JeevesSettings(BaseModel):
     reporting_site_id: str = "1"
 
 
+class HDPSettings(BaseModel):
+    """
+    Jeeves Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "hdp.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
+
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
+
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue1"
+    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue1"
+
+    kestra_username: str = "kestra.user@314ecorp.com"
+
+    reporting_site_id: str = "1"
+
+
 class PenknifeSettings(BaseModel):
     """
     Penknife Settings
@@ -200,6 +250,9 @@ class PenknifeSettings(BaseModel):
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "penknife.314ecorp.tech"
     zone_name: str = "e314ecorptech"
+
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
 
     temporal_penknife_onboarding_task_queue: str = "temporal_penknife_onboarding_task_queue"
     temporal_penknife_deboarding_task_queue: str = "temporal_penknife_deboarding_task_queue"
@@ -301,6 +354,9 @@ class DexitSettings(BaseModel):
     zone_name: str = "e314ecorptech"
     # grafana: GrafanaSettings = GrafanaSettings()
 
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
+
     temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"
     temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
 
@@ -323,6 +379,51 @@ class DexitSettings(BaseModel):
     ai_config: DexitAISettings = DexitAISettings()
 
 
+class ZSegmentSettings(BaseModel):
+    """
+    ZSegment Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "zsegment.tech"
+    zone_name: str = "e314ecorptech"
+    zone_id: str = ""
+    redpanda_broker: str = "redpanda.redpanda-system.svc.cluster.local:9092"
+    redpanda_admin_username: str = "superuser"
+    redpanda_admin_password: str = ""
+    redpanda_admin_api_base_url: str = "http://redpanda.redpanda-system.svc.cluster.local:9644"
+
+    keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
+
+    gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1"
+    gitea_admin_username: str = ""
+    gitea_admin_password: str = ""
+    gitea_api_repo_url: str = ""
+    gitea_template_owner: str = ""
+
+    lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000"
+    lago_plan_code: str = "Free"
+    lago_api_key: str = ""
+
+    postgres_url: str = "db-cluster-ha.postgresql.svc.cluster.local"
+
+    matomo_auth_token: str = "e9c5ba18c4d7af04c4fdb1443d604e88&force_api_session=1"
+
+    sender_name: str = ""
+    sender_email: str = ""
+
+    temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
+
+
+class PractiflySettings(BaseModel):
+    """
+    Practifly Settings
+    """
+
+    temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
+    temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -336,19 +437,26 @@ class AppSettings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
+    cloudflare: CloudflareSettings = CloudflareSettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
     dexit: DexitSettings = DexitSettings()
     penknife: PenknifeSettings = PenknifeSettings()
+    hdp: HDPSettings = HDPSettings()
+    zsegment: ZSegmentSettings = ZSegmentSettings()
+    practifly: PractiflySettings = PractiflySettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
     s3: S3Settings = S3Settings()
     r2: S3Settings = S3Settings()
 
+    matomo_db_password: str = ""
+
     docker_image_pull_secret: str = ""
-    google_dns_cname: str = "k8s.314ecorp.tech"
+    google_dns_cname: str = "k8s.314ecorp.tech."
+    k8s_cname: str = "k8s.314ecorp.tech."
 
     grafana_url: str = "https://monitor.314ecorp.tech"
     grafana_datasource_uid: str = "e4hhV8CGk"

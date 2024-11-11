@@ -155,6 +155,16 @@ class DBManager:
                 await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
                 await conn.execute(query % mapping, *values.values())
 
+    async def create_database(self: "DBManager", db_name: str) -> None:
+        """
+        Creates a new database. This method should be called outside of any transaction.
+        """
+        async with self.pool.acquire() as conn:
+            # Disable autocommit to run CREATE DATABASE
+            # await conn.execute('SET autocommit = on;')
+            await conn.execute(f'CREATE DATABASE "{db_name}";')
+            # await conn.execute('SET autocommit = off;')
+
 
 async def get_db_manager(dsn: PostgresDsn) -> DBManager:
     """

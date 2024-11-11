@@ -8,14 +8,8 @@ class ResourceSpec(LaunchpadCLIBaseModel):
 
     request_memory: str = "500Mi"
     request_cpu: str = "500m"
-    limit_memory: str = "3000Mi"
+    limit_memory: str = "5000Mi"
     limit_cpu: str = "3000m"
-
-
-class CustomerDetails(LaunchpadCLIBaseModel):
-    """
-    CustomerDetails dataclass
-    """
 
 
 class JeevesSpec(LaunchpadCLIBaseModel):
