@@ -130,6 +130,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             PropagateDNSRecordActivity.defn,
             K8sNamespaceCreationActivity.defn,
             LagoSetupActivity.defn,
+            CopyArtifactsToBucketActivity.defn,
         ]
 
     @classmethod
@@ -357,6 +358,21 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
             )
 
+            # secret setup for docker registry
+            await workflow.execute_activity(
+                activity=K8sSecretCreationActivity.defn,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="registrycred",
+                    type="kubernetes.io/dockerconfigjson",
+                    data={
+                        ".dockerconfigjson": config.docker_image_pull_secret,
+                    },
+                ),
+                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+            )
+
             # secret setup for redis password
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
@@ -435,7 +451,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # setup lago
             lago_customer_id = uuid4()
             lago_subscription_id = uuid4()
-            lago_plan_code = zsegment_config.lago_plan_code
+            lago_plan_code = pydash.get(zsegment, "PlanName", "Free")
             lago_api_key = zsegment_config.lago_api_key
             lago_api_url = zsegment_config.lago_api_url
 
@@ -472,7 +488,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     template_payload={
                         "tenantName": tenant,
                         "environment": "dev",
-                        "server-environment": config.env.upper(),
+                        "server_environment": config.env.upper(),
                         "keycloakRealm": realm_name,
                         "KeycloakAuthServerUrl": zsegment_config.keycloak_auth_server_url,
                         "keycloakSecret": installer_secret,
@@ -632,17 +648,17 @@ class ZSegmentOnboardingWorkflow(Workflow):
             )
 
             # ui setup
-            repo_name = "zsegment-ui"
+            repo_name = "zsegment-web"
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{tenant}.{zsegment_config.domain_name}/"
+                dest_dir = f"{bucket_name}/"
             else:
-                dest_dir = f"{tenant}.{zsegment_config.domain_name}/{image_tag}"
+                dest_dir = f"{bucket_name}/{image_tag}"
 
-            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+            src_object_name = f"{repo_name}/{image_tag}/dist.zip"
 
-            bundle_path = "bundle/dist/admin"
+            bundle_path = "bundle/dist"
 
             # copy artifacts to bucket
             await workflow.execute_activity(
@@ -685,7 +701,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-tenant-config",
+                            "config_map_name": "api-dev-config",
                             "key": "api-config.json",
                             "path": "api-config.json",
                         }
@@ -730,7 +746,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-tenant-config",
+                            "config_map_name": "api-prod-config",
                             "key": "api-config.json",
                             "path": "api-config.json",
                         }
@@ -775,7 +791,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-tenant-config",
+                            "config_map_name": "engine-dev-config",
                             "key": "engine-config.json",
                             "path": "engine-config.json",
                         }
@@ -820,7 +836,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-tenant-config",
+                            "config_map_name": "engine-prod-config",
                             "key": "engine-config.json",
                             "path": "engine-config.json",
                         }

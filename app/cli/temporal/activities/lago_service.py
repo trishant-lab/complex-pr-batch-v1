@@ -39,6 +39,7 @@ def create_new_customer(properties: LagoProperties) -> bool:
         firstname=properties.customer_name,
         email=properties.customer_email,
         external_id=str(properties.customer_id),
+        finalize_zero_amount_invoice="inherit",
     )
     logger.info(f"Creating new customer with tenant '{properties.tenant}' and ID '{properties.customer_id}'")
     try:
@@ -67,7 +68,7 @@ def create_subscription(properties: LagoProperties) -> bool:
     )
     try:
         client = get_lago_client(properties)
-        response = client.subscriptions().create(Subscription.model_validate(subscription))
+        response = client.subscriptions().create(subscription)
         logger.info(f"Subscription '{properties.subscription_id}' created successfully with response: {response}")
         return True
     except LagoApiError as e:

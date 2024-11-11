@@ -3,7 +3,7 @@
 
   "SERVER.PORT": "8090",
   "SERVER.DEPLOYMENT": "{{environment}}",
-  "SERVER.ENVIRONMENT": "{{server-environment}}",
+  "SERVER.ENVIRONMENT": "{{server_environment}}",
 
   "GRPC.SERVER.PORT": "6565",
 

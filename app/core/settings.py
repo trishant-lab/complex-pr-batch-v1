@@ -401,7 +401,7 @@ class ZSegmentSettings(BaseModel):
     gitea_api_repo_url: str = ""
     gitea_template_owner: str = ""
 
-    lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000/api/v1"
+    lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000"
     lago_plan_code: str = "Free"
     lago_api_key: str = ""
 
