@@ -286,10 +286,11 @@ class PractiflyOnboardingWorkflow(Workflow):
         )
         
         for config_map in [
+                {"name": "practifly-common-config", "key": "common-config.json"},
+                {"name": "practifly-env-config", "key": "env-config.json"},
                 {"name": "practifly-tenant-config", "key": "tenant-config.json"},
-                {"name": "practifly-rclone-config", "key": "rclone.conf"},
                 {"name": "practifly-cli-vector-config", "key": "vector-config.toml"},
-                {"name": "practifly-statestore-config", "key": "statestore.yaml"},
+                {"name": "practifly-provisioning-config", "key": "provisioning-config.json"},
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
