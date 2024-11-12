@@ -66,3 +66,45 @@ class K8sSecretCreationActivity(Activity):
         )
 
         log_info(f"Secret {activity_model.name} created successfully")
+
+
+class K8sSecretDeletionActivityModel(LaunchpadCLIBaseModel):
+    """
+    K8sSecretDeletionActivityModel
+    """
+
+    namespace: str
+    name: str
+
+
+class K8sSecretDeletionActivity(Activity):
+    """
+    K8sSecretDeletionActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="DeleteK8sSecretActivity")
+    async def defn(activity_model: K8sSecretDeletionActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        k8s_dynamic_client = get_dynamic_client()
+        resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1")
+
+        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+
+        log_info(f"Secret {activity_model.name} deleted in namespace {activity_model.namespace}")

@@ -105,3 +105,45 @@ class K8sConfigMapCreationActivity(Activity):
         k8s_dynamic_client.server_side_apply(resource=resource, body=payload, field_manager="kubectl-client-side-apply")
 
         log_info(f"ConfigMap {activity_model.name} created successfully")
+
+
+class DeleteK8sConfigMapActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteK8sConfigMapActivityModel
+    """
+
+    namespace: str
+    name: str
+
+
+class DeleteK8sConfigMapActivity(Activity):
+    """
+    DeleteK8sConfigMapActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="DeleteK8sConfigMapActivity")
+    async def defn(activity_model: DeleteK8sConfigMapActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        k8s_dynamic_client = get_dynamic_client()
+        resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1")
+
+        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+
+        log_info(f"ConfigMap {activity_model.name} deleted in namespace {activity_model.namespace}")

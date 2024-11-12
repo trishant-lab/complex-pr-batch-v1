@@ -365,3 +365,48 @@ class KeycloakCreateInternalUsersActivity(Activity):
             )
 
             log_info(f"Keycloak internal user {user['username']} assigned to client roles successfully")
+
+
+class DeleteKeycloakClientActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteKeycloakClientActivityModel
+    """
+
+    client_name: str
+    realm_name: str
+
+
+class DeleteKeycloakClientActivity(Activity):
+    """
+    DeleteKeycloakClientActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="DeleteKeycloakClientActivity")
+    async def defn(activity_model: DeleteKeycloakClientActivityModel) -> None:
+        """
+        Delete keycloak client
+        """
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+        client_id = keycloak_client.get_client_id(
+            client=activity_model.client_name, realm_name=activity_model.realm_name
+        )
+
+        keycloak_client.delete_client(client_id=client_id, realm_name=activity_model.realm_name)
+
+        log_info(f"Keycloak client {activity_model.client_name} deleted successfully")

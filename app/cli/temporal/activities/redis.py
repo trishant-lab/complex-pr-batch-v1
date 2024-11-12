@@ -211,3 +211,69 @@ class RedisSetupActivity(Activity):
         )
 
         log_info(f"Product namespace {activity_model.namespace} created successfully")
+
+
+def delete_product_namespace(tenant: str, product: str, k8s_dynamic_client: DynamicClient) -> None:
+    """
+    Delete namespace in redis
+    """
+    redis_host = CACHE_HOST.format(tenant=tenant)
+    redis_port = 6379
+
+    resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1")
+
+    secret = base64.b64decode(
+        k8s_dynamic_client.get(resource, namespace=tenant, name="cache-secret").data.get("REDIS_PASSWORD")
+    )
+
+    redis = Redis(host=redis_host, port=redis_port, password=secret)
+
+    response = redis.execute_command("namespace", "GET", product)
+
+    if response:
+        redis.execute_command("namespace", "DEL", product)
+    else:
+        log_info(f"Namespace {product} not found in redis")
+
+
+class RedisDeleteNamespaceActivityModel(LaunchpadCLIBaseModel):
+    """
+    RedisDeleteNamespaceActivityModel
+    """
+
+    namespace: str
+    product: str
+
+
+class RedisDeleteNamespaceActivity(Activity):
+    """
+    RedisDeleteNamespaceActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="RedisDeleteNamespaceActivity")
+    async def defn(activity_model: RedisDeleteNamespaceActivityModel) -> None:
+        """
+        Delete redis namespace
+        """
+        k8s_dynamic_client = get_dynamic_client()
+
+        delete_product_namespace(
+            tenant=activity_model.namespace,
+            product=activity_model.product,
+            k8s_dynamic_client=k8s_dynamic_client,
+        )
