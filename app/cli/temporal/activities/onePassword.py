@@ -10,9 +10,9 @@ with workflow.unsafe.imports_passed_through():
     from app.onepasswordutil import OnePasswordUtil
 
 
-class OnePasswordActivityModel(LaunchpadCLIBaseModel):
+class OnePasswordCreateOrUpdateActivityModel(LaunchpadCLIBaseModel):
     """
-    OnePasswordActivityModel
+    OnePasswordCreateOrUpdateActivityModel
     """
 
     tenant: str
@@ -22,9 +22,9 @@ class OnePasswordActivityModel(LaunchpadCLIBaseModel):
     secret_value: str
 
 
-class OnePasswordActivity(Activity):
+class OnePasswordCreateOrUpdateActivity(Activity):
     """
-    OnePasswordActivity
+    OnePasswordCreateOrUpdateActivity
     """
 
     @staticmethod
@@ -42,8 +42,8 @@ class OnePasswordActivity(Activity):
         return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
 
     @staticmethod
-    @activity.defn(name="OnePasswordActivity")
-    async def defn(activity_input: OnePasswordActivityModel) -> None:
+    @activity.defn(name="OnePasswordCreateOrUpdateActivity")
+    async def defn(activity_input: OnePasswordCreateOrUpdateActivityModel) -> None:
         """
         Callable for the activity
         """
@@ -52,3 +52,32 @@ class OnePasswordActivity(Activity):
             server_item=activity_input.server_item,
             vault=activity_input.vault,
         ).create_or_replace(activity_input.secret_name, activity_input.secret_value)
+
+
+class OnePasswordGetActivityModel(LaunchpadCLIBaseModel):
+    """
+    OnePasswordGetActivityModel
+    """
+
+    tenant: str
+    server_item: str
+    vault: str
+    secret_name: str
+
+
+class OnePasswordGetActivity(Activity):
+    """
+    OnePasswordGetActivity
+    """
+
+    @staticmethod
+    @activity.defn(name="OnePasswordGetActivity")
+    async def defn(activity_input: OnePasswordGetActivityModel) -> str | None:
+        """
+        Callable for the activity
+        """
+        return OnePasswordUtil(
+            tenant=activity_input.tenant,
+            server_item=activity_input.server_item,
+            vault=activity_input.vault,
+        ).get_key(key=activity_input.secret_name)

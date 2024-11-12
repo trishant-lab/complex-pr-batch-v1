@@ -21,7 +21,12 @@ from app.cli.temporal.activities.cloudflareSetup import (
 # from app.cli.temporal.activities.gitea_service import GiteaProperties
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.lago_service import LagoSetupActivity, LagoProperties
-from app.cli.temporal.activities.onePassword import OnePasswordActivity, OnePasswordActivityModel
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordGetActivity,
+    OnePasswordGetActivityModel,
+)
 from app.cli.temporal.activities.redpanda_service import RedpandaProperties
 from app.cli.temporal.activities.sendMail import (
     SendAfterProvisioningMailActivity,
@@ -103,7 +108,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
         """
         return [
             GiteaSetupActivity.defn,
-            OnePasswordActivity.defn,
+            OnePasswordCreateOrUpdateActivity.defn,
             RedpandaSetupActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             SendBeforeProvisioningMailActivity.defn,
@@ -151,7 +156,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
         last_name = pydash.get(zsegment, "lastName")
         email = pydash.get(zsegment, "email")
         tenant = pydash.get(zsegment, "tenant")
-        realm_name = tenant
+        realm_name = f"zsegment-{tenant}"
 
         try:
             if not pydash.get(zsegment, "emailSent"):
@@ -188,8 +193,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
-            # Todo Add Activties
-
             # postgres setup
             postgres_dev_schema_name = f"{tenant}_dev"
             postgres_prod_schema_name = f"{tenant}_prod"
@@ -201,16 +204,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
             engine_docker_image = f"registry.314ecorp.tech/zsegment-engine:{image_tag}"
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -268,7 +271,32 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            installer_secret = generate_password(length=20)
+            installer_secret = await workflow.execute_activity(
+                activity=OnePasswordGetActivity.defn,
+                arg=OnePasswordGetActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="installer_secret",
+                ),
+                retry_policy=OnePasswordGetActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
+            )
+
+            installer_secret = generate_password(length=20) if not installer_secret else installer_secret
+
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="installer_secret",
+                    secret_value=installer_secret,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
 
             # keycloak realm setup
             await workflow.execute_activity(
@@ -388,16 +416,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
             redis_tenant_password = generate_password(length=20)
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="redis_password",
                     secret_value=redis_tenant_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -415,16 +443,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
             redpanda_tenant_password = generate_password(length=20)
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="redpanda_password",
                     secret_value=redpanda_tenant_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -471,16 +499,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
             lago_api_url = zsegment_config.lago_api_url
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="lago_customer_id",
                     secret_value=str(lago_customer_id),
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(

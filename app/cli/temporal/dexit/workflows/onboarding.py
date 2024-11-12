@@ -33,7 +33,10 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakServiceAccountSetupActivity,
     KeycloakServiceAccountSetupActivityModel,
 )
-from app.cli.temporal.activities.onePassword import OnePasswordActivity, OnePasswordActivityModel
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+)
 from app.cli.temporal.activities.postgresSetup import (
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
@@ -120,7 +123,7 @@ class DexitOnboardingWorkflow(Workflow):
             TemporalSearchAttributesCreationActivity.defn,
             FaxSetupActivity.defn,
             HFInferenceEndpointSetupActivity.defn,
-            OnePasswordActivity.defn,
+            OnePasswordCreateOrUpdateActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             KeycloakServiceAccountSetupActivity.defn,
         ]
@@ -173,16 +176,16 @@ class DexitOnboardingWorkflow(Workflow):
             server_item = "production-config" if config.env == "production" else "integration-config"
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="pg_dicom_password",
                     secret_value=dicom_database_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             # create postgres database for dicom
@@ -218,16 +221,16 @@ class DexitOnboardingWorkflow(Workflow):
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -407,16 +410,16 @@ class DexitOnboardingWorkflow(Workflow):
             client_secret = generate_password(length=32)
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="service_account_secret",
                     secret_value=client_secret,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(

@@ -46,7 +46,10 @@ from app.cli.temporal.activities.postgresSetup import (
     PostgresUserCreationActivityModel,
 )
 
-from app.cli.temporal.activities.onePassword import OnePasswordActivity, OnePasswordActivityModel
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+)
 
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.hdp import TemplatePath
@@ -99,7 +102,7 @@ class HDPOnboardingWorkflow(Workflow):
             KubernetesServiceActivity.defn,
             K8sConfigMapCreationActivity.defn,
             PVCSetupActivity.defn,
-            OnePasswordActivity.defn,
+            OnePasswordCreateOrUpdateActivity.defn,
         ]
 
     @classmethod
@@ -169,55 +172,55 @@ class HDPOnboardingWorkflow(Workflow):
             superset_password = generate_password(20)
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="hdp_pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="kestra_pg_password",
                     secret_value=kestra_postgres_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="kestra_password",
                     secret_value=kestra_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="superset_password",
                     secret_value=superset_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             # create postgres database for hdp
@@ -323,16 +326,16 @@ class HDPOnboardingWorkflow(Workflow):
             # setup redis
             redis_tenant_password = generate_password(length=20)
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="redis_password",
                     secret_value=redis_tenant_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
