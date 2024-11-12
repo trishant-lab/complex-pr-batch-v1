@@ -32,13 +32,17 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
+from app.cli.temporal.activities.statefulSetPodCreation import (
+    KubernetesStatefulSetActivity,
+    KubernetesStatefulSetActivityModel,
+)
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
 from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
 from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
 from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
-
+from app.cli.temporal.activities.onePassword import OnePasswordActivity, OnePasswordActivityModel
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     KubernetesIstioVirtualServiceActivity,
@@ -129,9 +133,10 @@ class PractiflyOnboardingWorkflow(Workflow):
         postgres_password = generate_password(length=20)
         template_env = get_env(template_path=TemplatePath)
         image_tag = "production" if config.env == "production" else "sprint"
+        docker_image = f"registry.314ecorp.tech/practifly-app:{image_tag}"
         template = template_env.get_template("istio-rules.json")
         output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
-
+        
         http_list = orjson.loads(output)
         if config.env != "production":
             http_list.append(
@@ -141,12 +146,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                     "redirect": {"uri": f"/{image_tag}/"},
                 }
             )
-        
-        OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-            vault=OnePasswordVaultName,
-        ).create_or_replace("pg_password", postgres_password)
         
         # temporal namespace creation
         await workflow.execute_activity(
@@ -236,6 +235,18 @@ class PractiflyOnboardingWorkflow(Workflow):
                 namespace=tenant,
                 name="cache-secret",
                 string_data={"REDIS_PASSWORD": config.cache_admin_password},
+            ),
+            retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+            start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+        )
+        
+        # secret setup for postgres password
+        await workflow.execute_activity(
+            activity=K8sSecretCreationActivity.defn,
+            arg=K8sSecretCreationActivityModel(
+                namespace=tenant,
+                name="postgres-secret",
+                string_data={"POSTGRES_PASSWORD": postgres_password},
             ),
             retry_policy=K8sSecretCreationActivity.get_retry_policy(),
             start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
@@ -414,6 +425,178 @@ class PractiflyOnboardingWorkflow(Workflow):
             retry_policy=PVCSetupActivity.get_retry_policy(),
             start_to_close_timeout=PVCSetupActivity.get_timeout(),
         )
+        
+        # statefulset pod creation for server
+        await workflow.execute_activity(
+            activity=KubernetesStatefulSetActivity.defn,
+            arg=KubernetesStatefulSetActivityModel(
+                namespace=tenant,
+                name="practifly",
+                docker_image=docker_image,
+                request_resource={
+                    "cpu": pydash.get(practifly, "serverSpec.request_cpu"),
+                    "memory": pydash.get(practifly, "serverSpec.request_memory"),
+                },
+                limit_resource={
+                    "cpu": pydash.get(practifly, "serverSpec.limit_cpu"),
+                    "memory": pydash.get(practifly, "serverSpec.limit_memory"),
+                },
+                container_ports=[8000],
+                volume_mounts=[
+                    {
+                        "name": "common-volume",
+                        "mount_path": "/config/common-config.json",
+                        "sub_path": "common-config.json",
+                    },
+                    {
+                        "name": "env-volume",
+                        "mount_path": "/config/env-config.json",
+                        "sub_path": "env-config.json",
+                    },
+                    {
+                        "name": "tenant-volume",
+                        "mount_path": "/config/tenant-config.json",
+                        "sub_path": "tenant-config.json",
+                    },
+                    {
+                        "name": "provisioning-volume",
+                        "mount_path": "/config/provisioning-config.json",
+                        "sub_path": "provisioning-config.json",
+                    },
+                    {
+                        "name": "vector-volume",
+                        "mount_path": "/config/vector-config.toml",
+                        "sub_path": "vector-config.toml",
+                    },
+                ],
+                volumes=[
+                    {
+                        "name": "tenant-volume",
+                        "config_map_name": "practifly-tenant-config",
+                        "key": "tenant-config.json",
+                        "path": "tenant-config.json",
+                    },
+                    {
+                        "name": "common-volume",
+                        "config_map_name": "practifly-common-config",
+                        "key": "common-config.json",
+                        "path": "common-config.json",
+                    },
+                    {
+                        "name": "env-volume",
+                        "config_map_name": "practifly-env-config",
+                        "key": "env-config.json",
+                        "path": "env-config.json",
+                    },
+                    {
+                        "name": "provisioning-volume",
+                        "config_map_name": "practifly-provisioning-config",
+                        "key": "provisioning-config.json",
+                        "path": "provisioning-config.json",
+                    },
+                    {
+                        "name": "vector-volume",
+                        "config_map_name": "practifly-cli-vector-config",
+                        "key": "vector-config.toml",
+                        "path": "vector-config.toml",
+                    },
+                ],
+                container_envs=[
+                    {"name": "DEPLOYMENT", "value": config.env},
+                    {"name": "APP_CONFIG_DIR", "value": "/config"},
+                    {"name": "POSTGRES_PASSWORD", "value": postgres_password},
+                    {"name": "POSTGRES_USER", "value": postgres_username},
+                ],
+            ),
+            retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
+            start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+        )
+
+        # statefulset pod creation for cli
+        await workflow.execute_activity(
+            activity=KubernetesStatefulSetActivity.defn,
+            arg=KubernetesStatefulSetActivityModel(
+                namespace=tenant,
+                name="practifly-worker",
+                docker_image=docker_image,
+                request_resource={
+                    "cpu": pydash.get(practifly, "cliSpec.request_cpu"),
+                    "memory": pydash.get(practifly, "cliSpec.request_memory"),
+                },
+                limit_resource={
+                    "cpu": pydash.get(practifly, "cliSpec.limit_cpu"),
+                    "memory": pydash.get(practifly, "cliSpec.limit_memory"),
+                },
+                container_ports=[8000],
+                volume_mounts=[
+                    {
+                        "name": "common-volume",
+                        "mount_path": "/config/common-config.json",
+                        "sub_path": "common-config.json",
+                    },
+                    {
+                        "name": "env-volume",
+                        "mount_path": "/config/env-config.json",
+                        "sub_path": "env-config.json",
+                    },
+                    {
+                        "name": "tenant-volume",
+                        "mount_path": "/config/tenant-config.json",
+                        "sub_path": "tenant-config.json",
+                    },
+                    {
+                        "name": "provisioning-volume",
+                        "mount_path": "/config/provisioning-config.json",
+                        "sub_path": "provisioning-config.json",
+                    },
+                    {
+                        "name": "vector-volume",
+                        "mount_path": "/config/vector-config.toml",
+                        "sub_path": "vector-config.toml",
+                    },
+                ],
+                volumes=[
+                    {
+                        "name": "tenant-volume",
+                        "config_map_name": "practifly-tenant-config",
+                        "key": "tenant-config.json",
+                        "path": "tenant-config.json",
+                    },
+                    {
+                        "name": "common-volume",
+                        "config_map_name": "practifly-common-config",
+                        "key": "common-config.json",
+                        "path": "common-config.json",
+                    },
+                    {
+                        "name": "env-volume",
+                        "config_map_name": "practifly-env-config",
+                        "key": "env-config.json",
+                        "path": "env-config.json",
+                    },
+                    {
+                        "name": "provisioning-volume",
+                        "config_map_name": "practifly-provisioning-config",
+                        "key": "provisioning-config.json",
+                        "path": "provisioning-config.json",
+                    },
+                    {
+                        "name": "vector-volume",
+                        "config_map_name": "practifly-cli-vector-config",
+                        "key": "vector-config.toml",
+                        "path": "vector-config.toml",
+                    },
+                ],
+                container_envs=[
+                    {"name": "DEPLOYMENT", "value": config.env},
+                    {"name": "APP_CONFIG_DIR", "value": "/config"},
+                    {"name": "POSTGRES_PASSWORD", "value": postgres_password},
+                    {"name": "POSTGRES_USER", "value": postgres_username},
+                ],
+            ),
+            retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
+        start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+    )
 
     @workflow.signal
     async def approve(self: "Workflow") -> None:
