@@ -194,6 +194,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         tenant_name=tenant,
                         status="Declined",
                         error_msg="Request Declined",
+                        product=ProductName,
                     ),
                     start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
@@ -835,7 +836,7 @@ class JeevesOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed"),
+                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
@@ -868,6 +869,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     tenant_name=tenant,
                     status="Failed",
                     error_msg=str(e),
+                    product=ProductName,
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),

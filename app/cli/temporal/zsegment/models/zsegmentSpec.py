@@ -31,3 +31,4 @@ class ZSegmentSpec(LaunchpadCLIBaseModel):
     emailSent: bool = False
     serverSpec: None | ResourceSpec = ResourceSpec()
     kestraSpec: None | ResourceSpec = ResourceSpec()
+    PlanName: str = "Free"

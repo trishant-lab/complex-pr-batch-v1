@@ -155,6 +155,7 @@ class DexitOnboardingWorkflow(Workflow):
                         tenant_name=pydash.get(dexit, "tenant"),
                         status="Declined",
                         error_msg="Request Declined",
+                        product=ProductName,
                     ),
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                     start_to_close_timeout=timedelta(seconds=120),
@@ -508,6 +509,7 @@ class DexitOnboardingWorkflow(Workflow):
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
+                    bundle_name="bundle.zip",
                 ),
                 retry_policy=UiSetupActivity.get_retry_policy(),
                 start_to_close_timeout=UiSetupActivity.get_timeout(),
@@ -652,7 +654,7 @@ class DexitOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "TIKA_SERVER_ENDPOINT", "value": dexit_config.tika_server_endpoint},
-                        {"name": "CLI", "value": False},
+                        {"name": "CLI", "value": "FALSE"},
                     ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
@@ -716,7 +718,7 @@ class DexitOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "TIKA_SERVER_ENDPOINT", "value": dexit_config.tika_server_endpoint},
-                        {"name": "CLI", "value": True},
+                        {"name": "CLI", "value": "TRUE"},
                     ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
@@ -738,7 +740,7 @@ class DexitOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(dexit, "serverSpec.limit_cpu"),
                         "memory": pydash.get(dexit, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports=[],
                     volume_mounts=[
                         {
                             "name": "dicom-volume",
@@ -764,6 +766,18 @@ class DexitOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+            )
+
+            # kubernetes service for dicom
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="dexit-dicom",
+                    port=8042,
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
             # vm pod scraper
@@ -803,7 +817,7 @@ class DexitOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed"),
+                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
@@ -836,6 +850,7 @@ class DexitOnboardingWorkflow(Workflow):
                     tenant_name=pydash.get(dexit, "tenant"),
                     status="Failed",
                     error_msg=str(e),
+                    product=ProductName,
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),

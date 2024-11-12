@@ -17,6 +17,7 @@ class TenantStatus(LaunchpadCLIBaseModel):
     """
 
     tenant_name: str
+    product: str
     status: str
     error_msg: None | str = None
 
@@ -72,14 +73,13 @@ class UpdateTenantStatusActivity(Activity):
         Callable for the activity
         """
         # Update tenant status
-        from app.cli.temporal.jeeves.jeeves import ProductName
         from app.models.tenant import TenantStatusEnum
 
         status = TenantStatusEnum(activity_input.status)
 
         await update_tenant_status(
             tenant_name=activity_input.tenant_name,
-            product=ProductName,
+            product=activity_input.product,
             status=status,
             error_message=activity_input.error_msg,
         )

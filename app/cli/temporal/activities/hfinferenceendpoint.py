@@ -148,7 +148,7 @@ class HFInferenceEndpointSetup:
             try:
                 async with session.post(hf_url, headers=headers, json=payload) as response:
                     if response.status == HTTP_409_CONFLICT:
-                        logger.error(f"Endpoint {endpoint_name} already exists.")
+                        logger.warning(f"Endpoint {endpoint_name} already exists.")
                     logger.info(f"Response: {response.status}")
                     response.raise_for_status()  # Raises a HTTPError if the response status is 4xx, 5xx
                     logger.info(f"Endpoint {endpoint_name} creation has been submitted successfully to HF.")
@@ -209,7 +209,7 @@ class HFInferenceEndpointSetupActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=120)
+        return timedelta(minutes=30)
 
     @staticmethod
     @activity.defn(name="hf_inference_endpoint_setup_activity")

@@ -21,6 +21,7 @@ class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
     domain: str
     template_path: str
     template_name: str
+    installer_secret: str | None = None
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -57,6 +58,7 @@ class KeycloakRealmSetupActivity(Activity):
             tenant=activity_model.tenant,
             sendgrid_api_key=config.sendgrid.api_key,
             domain=activity_model.domain,
+            installer_secret=activity_model.installer_secret,
         )
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
