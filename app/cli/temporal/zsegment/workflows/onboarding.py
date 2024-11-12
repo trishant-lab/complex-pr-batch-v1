@@ -135,6 +135,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             K8sNamespaceCreationActivity.defn,
             LagoSetupActivity.defn,
             CopyArtifactsToBucketActivity.defn,
+            OnePasswordGetActivity.defn,
         ]
 
     @classmethod
