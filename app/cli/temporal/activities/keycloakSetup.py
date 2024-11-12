@@ -55,7 +55,7 @@ class KeycloakRealmSetupActivity(Activity):
         template = jinja_env.get_template(activity_model.template_name)
 
         realm_config = template.render(
-            realm_name=activity_model.realm_name,
+            tenant=activity_model.realm_name,
             sendgrid_api_key=config.sendgrid.api_key,
             domain=activity_model.domain,
             installer_secret=activity_model.installer_secret,
