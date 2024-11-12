@@ -710,7 +710,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/api-config.json"},
+                        {
+                            "name": "SPRING_APPLICATION_JSON",
+                            "value_from": {
+                                "config_map_key_ref": {
+                                    "name": "api-dev-config",
+                                    "key": "api-config.json",
+                                }
+                            },
+                        },
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -755,7 +763,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/api-config.json"},
+                        {
+                            "name": "SPRING_APPLICATION_JSON",
+                            "value_from": {
+                                "config_map_key_ref": {
+                                    "name": "api-prod-config",
+                                    "key": "api-config.json",
+                                }
+                            },
+                        },
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -800,7 +816,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/api-config.json"},
+                        {
+                            "name": "SPRING_APPLICATION_JSON",
+                            "value_from": {
+                                "config_map_key_ref": {
+                                    "name": "engine-dev-config",
+                                    "key": "engine-config.json",
+                                }
+                            },
+                        },
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -845,7 +869,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/api-config.json"},
+                        {
+                            "name": "SPRING_APPLICATION_JSON",
+                            "value_from": {
+                                "config_map_key_ref": {
+                                    "name": "engine-prod-config",
+                                    "key": "engine-config.json",
+                                }
+                            },
+                        },
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
