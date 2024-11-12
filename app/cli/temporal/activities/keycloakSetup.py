@@ -17,7 +17,7 @@ class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
     KeycloakRealmSetupActivityModel
     """
 
-    tenant: str
+    realm_name: str
     domain: str
     template_path: str
     template_name: str
@@ -55,7 +55,7 @@ class KeycloakRealmSetupActivity(Activity):
         template = jinja_env.get_template(activity_model.template_name)
 
         realm_config = template.render(
-            tenant=activity_model.tenant,
+            realm_name=activity_model.realm_name,
             sendgrid_api_key=config.sendgrid.api_key,
             domain=activity_model.domain,
             installer_secret=activity_model.installer_secret,
@@ -64,7 +64,7 @@ class KeycloakRealmSetupActivity(Activity):
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
         keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
 
-        log_info(f"Keycloak realm {activity_model.tenant} created successfully")
+        log_info(f"Keycloak realm {activity_model.realm_name} created successfully")
 
 
 class KeycloakClientSetupActivityModel(LaunchpadCLIBaseModel):

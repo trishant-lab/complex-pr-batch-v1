@@ -303,7 +303,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=zsegment_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
