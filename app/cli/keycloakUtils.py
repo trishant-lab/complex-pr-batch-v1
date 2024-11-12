@@ -248,6 +248,20 @@ class KeycloakAdminClient:
         res = self.kc_client.get_client_service_account_user(client_id=client_id)
         return res["id"]
 
+    def create_realm_role(self, role_config: dict, realm_name: str) -> None:
+        """
+        Create a new role in the specified realm
+        """
+        self.kc_client.connection.realm_name = realm_name
+        self.kc_client.create_realm_role(payload=role_config, skip_exists=True)
+
+    def assign_realm_roles(self, realm_name: str, user_id: str, roles: list) -> None:
+        """
+        Assign realm roles
+        """
+        self.kc_client.connection.realm_name = realm_name
+        self.kc_client.assign_realm_roles(user_id=user_id, roles=roles)
+
 
 @lru_cache
 def get_keycloak_manager() -> "KeycloakAdminClient":

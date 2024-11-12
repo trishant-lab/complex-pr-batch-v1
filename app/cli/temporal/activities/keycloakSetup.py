@@ -283,10 +283,19 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
         else:
             roles = activity_model.roles
 
+        user_id = keycloak_client.get_user_id(username=activity_model.username, realm_name=activity_model.realm_name)
+
         keycloak_client.assign_client_role(
             client_id=client_uuid,
-            user_id=keycloak_client.get_user_id(username=activity_model.email, realm_name=activity_model.realm_name),
+            user_id=user_id,
             roles=roles,
+            realm_name=activity_model.realm_name,
+        )
+
+        realm_roles = keycloak_client.get_realm_roles(realm_name=activity_model.realm_name)
+        keycloak_client.assign_realm_roles(
+            user_id=user_id,
+            roles=realm_roles,
             realm_name=activity_model.realm_name,
         )
 
@@ -365,3 +374,45 @@ class KeycloakCreateInternalUsersActivity(Activity):
             )
 
             log_info(f"Keycloak internal user {user['username']} assigned to client roles successfully")
+
+
+class KeycloakCreateRealmRolesActivityModel(LaunchpadCLIBaseModel):
+    """
+    KeycloakCreateRealmRolesActivityModel
+    """
+
+    realm_name: str
+    roles: list[str]
+
+
+class KeycloakCreateRealmRolesActivity(Activity):
+    """
+    KeycloakCreateRealmRolesActivity for creating roles at the realm level
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakCreateRealmRolesActivity")
+    async def defn(activity_model: KeycloakCreateRealmRolesActivityModel) -> None:
+        """
+        Create keycloak realm roles
+        """
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+        for role in activity_model.roles:
+            keycloak_client.create_realm_role(role_config={"name": role}, realm_name=activity_model.realm_name)
+
+        log_info(f"Keycloak realm roles created successfully in realm {activity_model.realm_name}")

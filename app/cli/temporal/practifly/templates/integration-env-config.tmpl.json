@@ -1,0 +1,55 @@
+{
+  "cf_form_bucket_url": "https://pub-5c70660a2e3e446fac8482079c4bba4f.r2.dev/",
+
+  "keycloak.auth_url": "https://auth.practifly.app",
+  "keycloak.client_id": "installer",
+  "keycloak.client_secret": "{{op://Practifly/application-config/INTEGRATION-CONFIG/keycloak_client_secret}}",
+
+  "minio.access_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/minio_access_key}}",
+  "minio.secret_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/minio_secret_key}}",
+  "minio.url": "http://ostore-hl.ostore.svc.cluster.local:9000",
+
+  "postgres.host": "db-cluster-ha.postgresql.svc.cluster.local",
+  "postgres.port": "5432",
+
+  "postgres_.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
+  "postgres_.port": "6543",
+
+  "sendgrid.api_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/sendgrid_api_key}}",
+
+  "rabbitmq.uri": "amqp://admin:{{op://Practifly/application-config/INTEGRATION-CONFIG/rabbitmq_queue_password}}@rabbitmq.queue-system.svc.cluster.local:5672",
+
+  "static_r2.url": "{{op://Practifly/application-config/INTEGRATION-CONFIG/tenant_r2_url}}",
+  "static_r2.bucket": "practifly-static-int",
+  "static_r2.access_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/tenant_r2_access_key}}",
+  "static_r2.secret_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/tenant_r2_secret_key}}",
+
+  "signalwire.project_id": "{{op://Practifly/application-config/COMMON-CONFIG/signalwire_project_id}}",
+  "signalwire.api_token": "{{op://Practifly/application-config/COMMON-CONFIG/signalwire_api_token}}",
+  "signalwire.space_url": "{{op://Practifly/application-config/COMMON-CONFIG/signalwire_space_url}}",
+  "signalwire.from_number": "{{op://Practifly/application-config/COMMON-CONFIG/signalwire_from_number}}",
+
+  "tenant_r2.url": "{{op://Practifly/application-config/INTEGRATION-CONFIG/tenant_r2_url}}",
+  "tenant_r2.bucket": "{{op://Practifly/application-config/INTEGRATION-CONFIG/tenant_r2_bucket}}",
+  "tenant_r2.access_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/tenant_r2_access_key}}",
+  "tenant_r2.secret_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/tenant_r2_secret_key}}",
+
+  "ehr_test_settings.client_id": "{{op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_client_id}}",
+  "ehr_test_settings.client_secret": "{{op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_client_secret}}",
+  "ehr_test_settings.practice_id": "{{op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_practice_id}}",
+  "ehr_test_settings.api_token": "{{op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_api_token}}",
+  "ehr_test_settings.subdomain": "{{op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_subdomain}}",
+  "ehr_test_settings.location_id": "{{op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_location_id}}",
+  "ehr_test_settings.base_url": "{{op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_base_url}}",
+
+  "payment_test_setting.stripe_api_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/payment_test_setting_stripe_api_key}}",
+  "payment_test_setting.anet_api_login_id": "{{op://Practifly/application-config/INTEGRATION-CONFIG/payment_test_setting_anet_api_login_id}}",
+  "payment_test_setting.anet_transaction_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/payment_test_setting_anet_transaction_key}}",
+
+  "temporal.host": "temporal-frontend.temporal.svc.cluster.local",
+
+  "r2.url": "{{op://Practifly/application-config/INTEGRATION-CONFIG/r2_url}}",
+  "r2.bucket": "{{op://Practifly/application-config/INTEGRATION-CONFIG/r2_bucket}}",
+  "r2.access_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/r2_access_key}}",
+  "r2.secret_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/r2_secret_key}}"
+}
