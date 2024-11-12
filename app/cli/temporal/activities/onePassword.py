@@ -71,6 +71,20 @@ class OnePasswordGetActivity(Activity):
     """
 
     @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
     @activity.defn(name="OnePasswordGetActivity")
     async def defn(activity_input: OnePasswordGetActivityModel) -> str | None:
         """
