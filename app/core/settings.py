@@ -248,7 +248,8 @@ class PenknifeSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "penknife.314ecorp.tech"
+    domain_name: str = "penknife.tech"
+    zone_id: str = ""
     zone_name: str = "e314ecorptech"
 
     sender_email: str = "developer@314ecorp.com"
