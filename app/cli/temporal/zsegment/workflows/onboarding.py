@@ -72,14 +72,13 @@ from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMP
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.core.base import Workflow
 
-from app.cli.temporal.activities.gitea_service import GiteaSetupActivity
+from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
     from app.core.settings import AppSettings, ZSegmentSettings, get_settings
-    from app.onepasswordutil import OnePasswordUtil
     from app.template_env import get_env
 
 
@@ -387,11 +386,19 @@ class ZSegmentOnboardingWorkflow(Workflow):
 
             # setup redis
             redis_tenant_password = generate_password(length=20)
-            OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).create_or_replace("redis_password", redis_tenant_password)
+
+            await workflow.execute_activity(
+                activity=OnePasswordActivity.defn,
+                arg=OnePasswordActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="redis_password",
+                    secret_value=redis_tenant_password,
+                ),
+                retry_policy=OnePasswordActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+            )
 
             await workflow.execute_activity(
                 activity=RedisSetupActivity.defn,
@@ -404,13 +411,21 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
-            # # setup redpanda
+            ## setup redpanda
             redpanda_tenant_password = generate_password(length=20)
-            OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).create_or_replace("redpanda_password", redpanda_tenant_password)
+
+            await workflow.execute_activity(
+                activity=OnePasswordActivity.defn,
+                arg=OnePasswordActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="redpanda_password",
+                    secret_value=redpanda_tenant_password,
+                ),
+                retry_policy=OnePasswordActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+            )
 
             await workflow.execute_activity(
                 activity=RedpandaSetupActivity.defn,
@@ -433,20 +448,20 @@ class ZSegmentOnboardingWorkflow(Workflow):
             gitea_admin_password = zsegment_config.gitea_admin_password
             gitea_template_owner = zsegment_config.gitea_template_owner
 
-            # await workflow.execute_activity(
-            #     activity=GiteaSetupActivity.defn,
-            #     arg=GiteaProperties(
-            #         tenant=tenant,
-            #         email=email,
-            #         base_url=gitea_base_url,
-            #         admin_username=gitea_admin_username,
-            #         admin_password=gitea_admin_password,
-            #         template_repo="ZSegmentTemplate",
-            #         template_owner=gitea_template_owner,
-            #     ),
-            #     retry_policy=GiteaSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=GiteaSetupActivity.get_timeout(),
-            # )
+            await workflow.execute_activity(
+                activity=GiteaSetupActivity.defn,
+                arg=GiteaProperties(
+                    tenant=tenant,
+                    email=email,
+                    base_url=gitea_base_url,
+                    admin_username=gitea_admin_username,
+                    admin_password=gitea_admin_password,
+                    template_repo="ZSegmentTemplate",
+                    template_owner=gitea_template_owner,
+                ),
+                retry_policy=GiteaSetupActivity.get_retry_policy(),
+                start_to_close_timeout=GiteaSetupActivity.get_timeout(),
+            )
 
             # setup lago
             lago_customer_id = uuid4()
@@ -455,11 +470,18 @@ class ZSegmentOnboardingWorkflow(Workflow):
             lago_api_key = zsegment_config.lago_api_key
             lago_api_url = zsegment_config.lago_api_url
 
-            OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).create_or_replace("lago_customer_id", str(lago_customer_id))
+            await workflow.execute_activity(
+                activity=OnePasswordActivity.defn,
+                arg=OnePasswordActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="lago_customer_id",
+                    secret_value=str(lago_customer_id),
+                ),
+                retry_policy=OnePasswordActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+            )
 
             await workflow.execute_activity(
                 activity=LagoSetupActivity.defn,

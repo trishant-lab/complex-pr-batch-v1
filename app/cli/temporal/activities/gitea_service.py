@@ -5,7 +5,6 @@ import logging
 import uuid
 import re
 import hashlib
-from typing import List
 from temporalio import activity
 from temporalio.common import  RetryPolicy
 from dataclasses import dataclass
@@ -70,17 +69,22 @@ class GiteaService:
             }
             response = httpx.post(url, json=payload, auth=self.auth)
             response.raise_for_status()
+
             logger.info(f"User created successfully: {response.json()}")
             return GiteaUser(username=username, email=email)
         except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to create user {username}: {e}")
-            raise Exception("Error creating user") from e
+            if e.response.status_code == 422 :
+                logger.info(f"User '{username}' already exists. Skipping creation.")
+                return GiteaUser(username=username, email=email)
+            else:
+                logger.error(f"Failed to create user '{username}': {e}")
+                raise Exception("Error creating user") from e
 
-    def create_repository(self, branches: List[str], gitea_user: GiteaUser, repo_name: str):
+    def create_repository(self, gitea_user: GiteaUser, repo_name: str):
         try:
             self._create_repo_from_template(gitea_user.username, repo_name)
-            for branch in [branch for branch in branches if branch != "test"]:
-                self._create_branch(gitea_user.username, repo_name, branch)
+            self._create_branch(gitea_user.username, repo_name, "prod")
+            logger.info(f"Repository created successfully.")
         except Exception as e:
             logger.error(f"Could not create repository for user {gitea_user.username}")
             raise Exception("Error creating repository") from e
@@ -97,7 +101,7 @@ class GiteaService:
 
     def _create_repo_from_template(self, username: str, repo_name: str):
         try:
-            url = f"{self.base_url}/repos/{self.template_owner}/{self.template_repo}/generate"
+            url = f"{self.base_url}/repos/gitea_admin/{self.template_repo}/generate"
             payload = {
                 "name": repo_name,
                 "owner": username,
@@ -107,22 +111,28 @@ class GiteaService:
             response.raise_for_status()
             logger.info(f"Repository created successfully: {response.json()}")
         except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to create repository {repo_name}: {e}")
-            raise Exception("Error creating repository") from e
+            if e.response.status_code == 409:
+                pass
+            else:
+                logger.error(f"Failed to create repository {repo_name}: {e}")
+                raise Exception("Error creating repository") from e
 
     def _create_branch(self, owner: str, repo: str, new_branch: str):
         try:
             url = f"{self.base_url}/repos/{owner}/{repo}/branches"
             payload = {
                 "new_branch_name": new_branch,
-                "old_ref_name": "test"
+                "old_ref_name": "dev"
             }
             response = httpx.post(url, json=payload, auth=self.auth)
             response.raise_for_status()
             logger.info(f"Branch '{new_branch}' created successfully.")
         except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to create branch {new_branch}: {e}")
-            raise Exception("Error creating branch") from e
+            if e.response.status_code == 409:
+                pass
+            else:
+                logger.error(f"Failed to create branch {new_branch}: {e}")
+                raise Exception("Error creating branch") from e
 
 class GiteaSetupActivity(Activity):
     @staticmethod
@@ -148,26 +158,22 @@ class GiteaSetupActivity(Activity):
     async def defn(properties: GiteaProperties) -> None:
         gitea_service = GiteaService(properties)
 
-        # Extract branches, user info, and repo name from zsegment
-        branches = ["dev", "prod"]
+        # Extract user info, and repo name from zsegment
         username = GiteaService.extract_username(properties.email)
         email = properties.email
         tenant = properties.tenant
 
         gitea_user = GiteaUser(username=username, email=email)
 
+        logger.info(f"Creating repository '{tenant}' for user '{username}' with branches: dev and prod")
+
         # Create repository
         try:
-            logger.info(f"Creating repository '{tenant}' for user '{username}' with branches: {branches}")
-
-            gitea_service.create_repository(branches=branches, gitea_user=gitea_user, repo_name=tenant)
-            logger.info(f"Repository '{tenant}' created successfully.")
-
             gitea_service.create_gitea_user(username=username, email=email)
+            gitea_service.create_repository(gitea_user=gitea_user, repo_name=tenant)
+
             logger.info(f"Repository '{tenant}' setup successfully for user '{username}'")
+
         except Exception as e:
             logger.error(f"Failed to setup Gitea repository for tenant '{tenant}': {e}")
             raise
-
-
-
