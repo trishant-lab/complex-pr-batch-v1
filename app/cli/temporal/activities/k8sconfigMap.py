@@ -20,12 +20,14 @@ with workflow.unsafe.imports_passed_through():
 class K8sConfigMapCreationActivityModel(LaunchpadCLIBaseModel):
     """
     K8sConfigMapCreationActivityModel
+    read from minio
     """
 
     namespace: str
     name: str
     template_file_name: str
     bucket_name: str | None = None
+    cloudflare_r2_folder_path: str | None = None
     template_payload: dict
 
 
@@ -65,17 +67,38 @@ class K8sConfigMapCreationActivity(Activity):
             }"""
 
         with TemporaryDirectory() as temp_dir:
-            s3_int_client: boto3.client = get_storage_client(
-                config=app_config,
-                access_key=app_config.s3_int.access_key,
-                secret_key=app_config.s3_int.secret_key,
-                endpoint=app_config.s3_int.endpoint,
+            s3_client: boto3.client = (
+                get_storage_client(
+                    config=app_config,
+                    access_key=app_config.s3_int.access_key,
+                    secret_key=app_config.s3_int.secret_key,
+                    endpoint=app_config.s3_int.endpoint,
+                )
+                if activity_model.cloudflare_r2_folder_path is None
+                else get_storage_client(
+                    config=app_config,
+                    access_key=app_config.cloudflare.r2_access_key,
+                    secret_key=app_config.cloudflare.r2_secret_key,
+                    endpoint=app_config.cloudflare.r2_endpoint,
+                )
             )
+
+            object_name = (
+                f"{activity_model.cloudflare_r2_folder_path}/{template_file_name}"
+                if activity_model.cloudflare_r2_folder_path is not None
+                else template_file_name
+            )
+            bucket_name = (
+                activity_model.bucket_name
+                if activity_model.cloudflare_r2_folder_path is None
+                else "launchpad-config-templates"
+            )
+
             download_file_from_storage(
-                object_name=template_file_name,
+                object_name=object_name,
                 file_path=f"{temp_dir}/{template_file_name}",
-                storage_client=s3_int_client,
-                bucket_name=activity_model.bucket_name,
+                storage_client=s3_client,
+                bucket_name=bucket_name,
             )
 
             template_env = get_env(template_path=temp_dir)
