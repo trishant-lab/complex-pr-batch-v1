@@ -185,7 +185,7 @@ def create_user(properties: RedpandaProperties) -> bool:
             log_info(f"Created user for tenant {properties.tenant}")
             return True
         else:
-            log_error(f"Failed to create user: {response.status_code}")
+            log_error(f"Failed to create user: {response.status_code} {response}")
             return False
     except httpx.HTTPStatusError as e:
         log_error(f"Failed to create user: {e}")
