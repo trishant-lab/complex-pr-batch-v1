@@ -1,0 +1,61 @@
+[
+    {
+        "name": "penknife-api",
+        "route": [
+            {
+                "destination": {
+                    "host": "penknife.{{tenant}}.svc.cluster.local",
+                    "port": {
+                        "number": 8000
+                    }
+                },
+                "headers": {
+                    "response": {
+                        "add": {
+                            "Strict-Transport-Security": "max-age=31536000;includeSubDomains;preload"
+                        }
+                    }
+                }
+            }
+        ],
+        "match": [
+            {
+                "uri": {
+                    "regex": "^/careerportal/api/v1/.*"
+                }
+            },
+            {
+                "uri": {
+                    "regex": "^/public/api/v1/.*"
+                }
+            }
+        ]
+    },
+    {
+        "name": "penknife-ui-root",
+        "route": [
+            {
+                "destination": {
+                    "host": "varnish-svc.varnish.svc.cluster.local",
+                    "port": {
+                        "number": 80
+                    }
+                },
+                "headers": {
+                    "response": {
+                        "remove": [
+                            "x-envoy-upstream-service-time"
+                        ]
+                    }
+                }
+            }
+        ],
+        "match": [
+            {
+                "uri": {
+                    "prefix": "/"
+                }
+            }
+        ]
+    }
+]

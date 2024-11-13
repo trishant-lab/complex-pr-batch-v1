@@ -1,5 +1,8 @@
+from pydash import py_
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
+
+from app.onepasswordutil import OnePasswordUtil
 
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
@@ -77,6 +80,7 @@ class KeycloakClientSetupActivityModel(LaunchpadCLIBaseModel):
     domain: str
     template_path: str
     template_name: str
+    auth_credential: str | None = None
 
 
 class KeycloakClientSetupActivity(Activity):
@@ -109,6 +113,7 @@ class KeycloakClientSetupActivity(Activity):
         client_config = template.render(
             tenant=activity_model.tenant,
             domain=activity_model.domain,
+            auth_credential=activity_model.auth_credential
         )
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
@@ -410,3 +415,64 @@ class DeleteKeycloakClientActivity(Activity):
         keycloak_client.delete_client(client_id=client_id, realm_name=activity_model.realm_name)
 
         log_info(f"Keycloak client {activity_model.client_name} deleted successfully")
+
+
+class KeycloakCreateIDPFlowActivity(Activity):
+    """
+    KeycloakCreateIDPFlowActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakCreateIDPFlowActivity")
+    async def defn(activity_model: KeycloakClientSetupActivityModel) -> None:
+        """
+        Create keycloak client
+        """
+        jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
+        template = jinja_env.get_template(activity_model.template_name)
+
+        googleclientid = OnePasswordUtil(
+        tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
+        ).get_key("provider_client_id")
+
+        googlesecret = OnePasswordUtil(
+            tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
+        ).get_key("provider_client_secret")
+
+        client_config = template.render(googleclientid=googleclientid, googlesecret=googlesecret)
+        client_config = orjson.loads(client_config)
+        flow_configs = client_config["authenticationFlows"]
+        idp_configs = client_config["identityProviders"]
+        idp_mapper_configs = client_config["identityProviderMappers"]
+
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+        for flow_config in flow_configs:
+            keycloak_client.create_authentication_flow(flow_config, activity_model.realm_name)
+
+        identity_providers = keycloak_client.get_identity_providers(realm_name=activity_model.realm_name)
+        for idp_config in idp_configs:
+            if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
+                keycloak_client.create_identity_provider(idp_config, activity_model.realm_name)
+                for idp_mapper_config in idp_mapper_configs:
+                    if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
+                        keycloak_client.add_mapper_to_idp(
+                            idp_alias=idp_mapper_config["identityProviderAlias"],
+                            mapper_config=idp_mapper_config,
+                            realm_name=activity_model.realm_name,
+                        )
+
+        log_info(f"Keycloak idp and flows for {activity_model.tenant} created successfully.")

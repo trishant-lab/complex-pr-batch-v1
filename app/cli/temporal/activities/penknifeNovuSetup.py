@@ -306,7 +306,7 @@ class NovuSetup:
 
         log_info(f"Novu environment setup completed for tenant: {self.penknife.tenant}")
 
-    def create_subscriber_in_novu(self: "NovuSetup", subscriber_id: str) -> str:
+    def create_subscriber_in_novu(self: "NovuSetup", subscriber_id: str) -> None:
         """
         Create subscriber in the new organization
         """
