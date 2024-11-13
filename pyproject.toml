@@ -183,3 +183,4 @@ lint.ignore = [
 "app/cli/temporal/activities/jeevesNovuSetup.py" = ["E501"]
 "app/s3_utils.py" = ["S605"]
 "app/cli/temporal/activities/aiVoiceSetup.py" = ["S605"]
+"app/cli/temporal/activities/redpanda_service.py" = ["G004"]
