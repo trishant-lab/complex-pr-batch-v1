@@ -93,7 +93,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             PostgresGrantAccessToUserActivity.defn,
             KeycloakRealmSetupActivity.defn,
             KeycloakClientSetupActivity.defn,
-            KeycloakCreateRealmRolesActivity.defn,  
+            KeycloakCreateRealmRolesActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
             VMPodScrapperActivity.defn,
             PVCSetupActivity.defn,
@@ -105,7 +105,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             K8sConfigMapCreationActivity.defn,
             DnsSetupActivity.defn,
             UiSetupActivity.defn,
-            DatabaseMigrationJobActivity.defn,  
+            DatabaseMigrationJobActivity.defn,
         ]
 
     @workflow.run
@@ -164,17 +164,9 @@ class PractiflyOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/practifly-app:{image_tag}"
             template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
+            output = template.render(tenant=tenant, image_tag=image_tag)
 
             http_list = orjson.loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
 
             # temporal namespace creation
             await workflow.execute_activity(
@@ -256,6 +248,17 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
+            # pvc setup
+            await workflow.execute_activity(
+                activity=PVCSetupActivity.defn,
+                arg=PVCSetupActivityModel(
+                    tenant=tenant,
+                    pvc_name="practifly-pvc",
+                ),
+                retry_policy=PVCSetupActivity.get_retry_policy(),
+                start_to_close_timeout=PVCSetupActivity.get_timeout(),
+            )
+
             # secret setup for docker registry
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
@@ -264,7 +267,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                     name="registrycred",
                     type="kubernetes.io/dockerconfigjson",
                     data={
-                        ".dockerconfigjson": redis_tenant_password,
+                        ".dockerconfigjson": config.docker_image_pull_secret,
                     },
                 ),
                 retry_policy=K8sSecretCreationActivity.get_retry_policy(),
@@ -344,8 +347,8 @@ class PractiflyOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=DnsSetupActivity.defn,
                 arg=DnsSetupActivityModel(
-                    cname=config.google_dns_cname,
-                    fqdn=f"{tenant}.{practifly_config.domain_name}.",
+                    cname=config.k8s_cname,
+                    fqdn=f"{tenant}.api.{practifly_config.domain_name}.",
                     zone_name=practifly_config.zone_name,
                 ),
                 retry_policy=DnsSetupActivity.get_retry_policy(),
@@ -353,13 +356,13 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             # ui setup
-            repo_name = "dexit-ui"
+            repo_name = "practifly-ui"
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{tenant}.{practifly_config.domain_name}/"
+                dest_dir = f"{tenant}.api.{practifly_config.domain_name}/"
             else:
-                dest_dir = f"{tenant}.{practifly_config.domain_name}/{image_tag}"
+                dest_dir = f"{tenant}.api.{practifly_config.domain_name}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -382,7 +385,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=DatabaseMigrationJobActivity.defn,
                 arg=DatabaseMigrationJobActivityModel(
                     namespace=tenant,
-                    job_name="dexit-atlas-migration-job",
+                    job_name="practifly-atlas-migration-job",
                     docker_image=docker_image,
                     volume_mounts=[
                         {
@@ -471,21 +474,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
-            roles = [
-                ## TODO: add roles here
-            ]
-
-            # keycloak realm roles setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateRealmRolesActivity.defn,
-                arg=KeycloakCreateRealmRolesActivityModel(
-                    realm_name=realm_name,
-                    roles=roles,
-                ),
-                retry_policy=KeycloakCreateRealmRolesActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateRealmRolesActivity.get_timeout(),
-            )
-
+            ## TODO: check if this is needed
             # keycloak client setup
             await workflow.execute_activity(
                 activity=KeycloakClientSetupActivity.defn,
@@ -506,12 +495,12 @@ class PractiflyOnboardingWorkflow(Workflow):
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
                     client_name=ProductName,
-                    username=email,
-                    email=email,
+                    username="admin",
+                    email="practifly-be@314ecorp.com",
                     firstname=first_name,
                     lastname=last_name,
                     template_path=TemplatePath,
-                    template_name="keycloak_tenant_customer_admin.json",
+                    template_name="keycloak_tenant_admin.json",
                 ),
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
@@ -701,17 +690,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=VMPodScrapperActivity.get_retry_policy(),
                 start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
-            )
-
-            # pvc setup
-            await workflow.execute_activity(
-                activity=PVCSetupActivity.defn,
-                arg=PVCSetupActivityModel(
-                    tenant=tenant,
-                    pvc_name="practifly-data",
-                ),
-                retry_policy=PVCSetupActivity.get_retry_policy(),
-                start_to_close_timeout=PVCSetupActivity.get_timeout(),
             )
 
             # send mail
