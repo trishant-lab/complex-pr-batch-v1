@@ -292,13 +292,6 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
             realm_name=activity_model.realm_name,
         )
 
-        realm_roles = keycloak_client.get_realm_roles(realm_name=activity_model.realm_name)
-        keycloak_client.assign_realm_roles(
-            user_id=user_id,
-            roles=realm_roles,
-            realm_name=activity_model.realm_name,
-        )
-
         log_info(f"Keycloak tenant customer admin user {activity_model.username} assigned to client roles successfully")
 
 

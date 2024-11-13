@@ -23,13 +23,6 @@
         ]
     },
     {
-        "name": "redirect",
-        "match": [
-            {"uri": {"exact": "/"}}
-        ],
-        "redirect": {"uri": "/{{image_tag}}/"}
-    },
-    {
         "name": "practifly-ui",
         "route": [
             {

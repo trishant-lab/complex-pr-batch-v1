@@ -22,10 +22,6 @@ from app.cli.temporal.activities.postgresSetup import (
     PostgresSchemaCreationActivityModel,
 )
 from app.cli.temporal.activities.keycloakSetup import (
-    KeycloakCreateRealmRolesActivity,
-    KeycloakCreateRealmRolesActivityModel,
-    KeycloakClientSetupActivity,
-    KeycloakClientSetupActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
@@ -92,8 +88,6 @@ class PractiflyOnboardingWorkflow(Workflow):
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
             KeycloakRealmSetupActivity.defn,
-            KeycloakClientSetupActivity.defn,
-            KeycloakCreateRealmRolesActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
             VMPodScrapperActivity.defn,
             PVCSetupActivity.defn,
@@ -167,6 +161,14 @@ class PractiflyOnboardingWorkflow(Workflow):
             output = template.render(tenant=tenant, image_tag=image_tag)
 
             http_list = orjson.loads(output)
+            if config.env != "production":
+                http_list.append(
+                    {
+                        "name": "redirect",
+                        "match": [{"uri": {"exact": "/"}}],
+                        "redirect": {"uri": f"/{image_tag}/"},
+                    }
+                )
 
             # temporal namespace creation
             await workflow.execute_activity(
@@ -474,21 +476,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
-            ## TODO: check if this is needed
-            # keycloak client setup
-            await workflow.execute_activity(
-                activity=KeycloakClientSetupActivity.defn,
-                arg=KeycloakClientSetupActivityModel(
-                    tenant=tenant,
-                    realm_name=realm_name,
-                    domain=practifly_config.domain_name,
-                    template_path=TemplatePath,
-                    template_name="keycloak_practifly_client.json",
-                ),
-                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
-            )
-
             # keycloak tenant customer admin user setup
             await workflow.execute_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
@@ -597,7 +584,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=KubernetesStatefulSetActivity.defn,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
-                    name="practifly-worker",
+                    name="practifly-cli",
                     docker_image=docker_image,
                     request_resource={
                         "cpu": pydash.get(practifly, "cliSpec.request_cpu"),

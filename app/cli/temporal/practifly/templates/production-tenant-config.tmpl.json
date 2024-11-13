@@ -1,11 +1,11 @@
 {
-    "fernet_key": "{{op://Practifly/practifly-tenant-config-production/<< tenant >>/fernet_key}}",
+    "fernet_key": "{{ open_brackets }}op://Practifly/practifly-tenant-config-production/{{ tenant }}/fernet_key{{ close_brackets }}",
 
     "postgres.db": "practifly-production",
     "postgres.timezone": "UTC",
   
-    "recaptcha.recaptcha_secret_key": "{{op://Practifly/practifly-tenant-config-production/<< tenant >>/recaptcha_secret_key}}",
-    "recaptcha.recaptcha_site_key": "{{op://Practifly/practifly-tenant-config-production/<< tenant >>/recaptcha_site_key}}",
+    "recaptcha.recaptcha_secret_key": "{{ open_brackets }}op://Practifly/practifly-tenant-config-production/{{ tenant }}/recaptcha_secret_key{{ close_brackets }}",
+    "recaptcha.recaptcha_site_key": "{{ open_brackets }}op://Practifly/practifly-tenant-config-production/{{ tenant }}/recaptcha_site_key{{ close_brackets }}",
 
-    "tenant_name": "<< tenant >>"
+    "tenant_name": "{{ tenant }}"
 }
