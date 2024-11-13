@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import timedelta
 from typing import Optional
 from temporalio import activity
@@ -37,7 +38,8 @@ def kafka_client(properties: RedpandaProperties):
         'security.protocol': properties.security_protocol,
         'sasl.mechanism': properties.admin_sasl_mechanism,
         'sasl.username': properties.admin_username,
-        'sasl.password': properties.admin_password
+        'sasl.password': properties.admin_password,
+        'receive.message.max.bytes': 1213486160,
     }
     return AdminClient(conf)
 
@@ -52,11 +54,29 @@ def create_topics(properties: RedpandaProperties) -> bool:
             NewTopic(f"zsegment-{properties.tenant}-{properties.environment}-event",
                      num_partitions=properties.partition, replication_factor=properties.replica)
         ]
-        client.create_topics(topics)
-        logger.info(f"Created topics for tenant {properties.tenant}")
-        return True
+
+        response = client.create_topics(topics)
+
+        # Check if each topic was successfully created or had an exception
+        success = True
+        for topic, future in response.items():
+            try:
+                # This will raise an exception if topic creation failed
+                future.result()
+                logger.info(f"Topic '{topic}' created successfully.")
+            except KafkaError as e:
+                success = False
+                logger.error(f"Failed to create topic '{topic}': {e}")
+
+        if success:
+            logger.info(f"All topics created successfully for tenant '{properties.tenant}'.")
+        else:
+            logger.error(f"Some topics failed to create for tenant '{properties.tenant}'.")
+
+        return success
+
     except KafkaError as e:
-        logger.error(f"Failed to create topics: {e}")
+        logger.error(f"Error creating topics: {e}")
         return False
 
 def delete_topics(properties: RedpandaProperties) -> bool:

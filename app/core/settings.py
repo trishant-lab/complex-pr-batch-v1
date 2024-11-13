@@ -389,10 +389,10 @@ class ZSegmentSettings(BaseModel):
     domain_name: str = "zsegment.tech"
     zone_name: str = "e314ecorptech"
     zone_id: str = ""
-    redpanda_broker: str = "redpanda.redpanda-system.svc.cluster.local:9092"
+    redpanda_broker: str = "redpanda-0.redpanda.redpanda-system.svc.cluster.local:9092"
     redpanda_admin_username: str = "superuser"
     redpanda_admin_password: str = ""
-    redpanda_admin_api_base_url: str = "http://redpanda.redpanda-system.svc.cluster.local:9644"
+    redpanda_admin_api_base_url: str = "http://redpanda-0.redpanda.redpanda-system.svc.cluster.local:9644"
 
     keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
 
