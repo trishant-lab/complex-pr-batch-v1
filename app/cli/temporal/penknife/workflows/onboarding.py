@@ -66,8 +66,6 @@ from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActi
 from app.cli.temporal.activities.sendMail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
-    SendBeforeProvisioningMailActivity,
-    SendBeforeProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
     KubernetesStatefulSetActivity,
@@ -106,35 +104,34 @@ class PenknifeOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            SendBeforeProvisioningMailActivity,
-            UpdateTenantStatusActivity,
-            SendAfterProvisioningMailActivity,
-            VMPodScrapperActivity,
-            TemporalNamespaceActivity,
-            PostgresUserCreationActivity,
-            PostgresSupavisorPollUserActivity,
-            PostgresSchemaCreationActivity,
-            PostgresGrantAccessToUserActivity,
-            KeycloakUserMappingActivity,
-            MatomoUserMappingActivity,
-            PostgresGrantAllPrivilegesOnTableActivity,
-            TableSpaceActivity,
-            K8sNamespaceCreationActivity,
-            K8sSecretCreationActivity,
-            PenknifeNovuSetupActivity,
-            RedisSetupActivity,
-            KeycloakRealmSetupActivity,
-            KeycloakClientSetupActivity,
-            K8sConfigMapCreationActivity,
-            CreateCloudflareDNSRecordActivity,
-            CopyArtifactsToBucketActivity,
-            CreateCloudflareBucketActivity,
-            LinkBucketToDomainActivity,
-            PropagateDNSRecordActivity,
-            DatabaseMigrationJobActivity,
-            KubernetesStatefulSetActivity,
-            KubernetesServiceActivity,
-            KubernetesIstioVirtualServiceActivity,
+            UpdateTenantStatusActivity.defn,
+            SendAfterProvisioningMailActivity.defn,
+            VMPodScrapperActivity.defn,
+            TemporalNamespaceActivity.defn,
+            PostgresUserCreationActivity.defn,
+            PostgresSupavisorPollUserActivity.defn,
+            PostgresSchemaCreationActivity.defn,
+            PostgresGrantAccessToUserActivity.defn,
+            KeycloakUserMappingActivity.defn,
+            MatomoUserMappingActivity.defn,
+            PostgresGrantAllPrivilegesOnTableActivity.defn,
+            TableSpaceActivity.defn,
+            K8sNamespaceCreationActivity.defn,
+            K8sSecretCreationActivity.defn,
+            PenknifeNovuSetupActivity.defn,
+            RedisSetupActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            KeycloakClientSetupActivity.defn,
+            K8sConfigMapCreationActivity.defn,
+            CreateCloudflareDNSRecordActivity.defn,
+            CopyArtifactsToBucketActivity.defn,
+            CreateCloudflareBucketActivity.defn,
+            LinkBucketToDomainActivity.defn,
+            PropagateDNSRecordActivity.defn,
+            DatabaseMigrationJobActivity.defn,
+            KubernetesStatefulSetActivity.defn,
+            KubernetesServiceActivity.defn,
+            KubernetesIstioVirtualServiceActivity.defn,
         ]
 
     @classmethod
@@ -158,22 +155,22 @@ class PenknifeOnboardingWorkflow(Workflow):
         tenant = pydash.get(penknife, "tenant")
 
         try:
-            if not pydash.get(penknife, "emailSent"):
-                await workflow.execute_activity(
-                    activity=SendBeforeProvisioningMailActivity.defn,
-                    arg=SendBeforeProvisioningMailActivityModel(
-                        user_details={
-                            "firstName": first_name,
-                            "lastName": last_name,
-                            "email": email,
-                        },
-                        product=ProductName,
-                        from_name=penknife_config.sender_name,
-                        email_from=penknife_config.sender_email,
-                    ),
-                    retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
-                )
+            # if not pydash.get(penknife, "emailSent"):
+            #     await workflow.execute_activity(
+            #         activity=SendBeforeProvisioningMailActivity.defn,
+            #         arg=SendBeforeProvisioningMailActivityModel(
+            #             user_details={
+            #                 "firstName": first_name,
+            #                 "lastName": last_name,
+            #                 "email": email,
+            #             },
+            #             product=ProductName,
+            #             from_name=penknife_config.sender_name,
+            #             email_from=penknife_config.sender_email,
+            #         ),
+            #         retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
+            #         start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
+            #     )
 
             # Wait for approval or denial
             await workflow.wait_condition(lambda: self.approved or self.deny)
