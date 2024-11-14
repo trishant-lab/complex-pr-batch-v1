@@ -45,7 +45,8 @@
       "subscription_id": "test-pub-sub-subscription",
       "request_size": 25
   },
-  "APP_SERVER_URL": "https://{{tenant}}.penknife.314ecorp.tech",
+  "APP_SERVER_URL": "https://{{tenant}}.api.{{domain}}",
+  "APP_UI_URL": "https://{{tenant}}.{{domain}}",
   "novu": {
       "api_key": "{{ open_brackets }}op://Penknife/application-config/PENKNIFE_{{tenant}}/novu_api_key{{ close_brackets }}",
       "url": "http://api.novu.svc.cluster.local:4000"
