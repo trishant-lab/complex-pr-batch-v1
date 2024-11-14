@@ -111,9 +111,7 @@ class KeycloakClientSetupActivity(Activity):
         jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
         template = jinja_env.get_template(activity_model.template_name)
         client_config = template.render(
-            tenant=activity_model.tenant,
-            domain=activity_model.domain,
-            auth_credential=activity_model.auth_credential
+            tenant=activity_model.tenant, domain=activity_model.domain, auth_credential=activity_model.auth_credential
         )
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
@@ -446,7 +444,7 @@ class KeycloakCreateIDPFlowActivity(Activity):
         template = jinja_env.get_template(activity_model.template_name)
 
         googleclientid = OnePasswordUtil(
-        tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
+            tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
         ).get_key("provider_client_id")
 
         googlesecret = OnePasswordUtil(
@@ -455,13 +453,11 @@ class KeycloakCreateIDPFlowActivity(Activity):
 
         client_config = template.render(googleclientid=googleclientid, googlesecret=googlesecret)
         client_config = orjson.loads(client_config)
-        flow_configs = client_config["authenticationFlows"]
+        # authentication flows creation is moved to realm creation config
         idp_configs = client_config["identityProviders"]
         idp_mapper_configs = client_config["identityProviderMappers"]
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-        for flow_config in flow_configs:
-            keycloak_client.create_authentication_flow(flow_config, activity_model.realm_name)
 
         identity_providers = keycloak_client.get_identity_providers(realm_name=activity_model.realm_name)
         for idp_config in idp_configs:

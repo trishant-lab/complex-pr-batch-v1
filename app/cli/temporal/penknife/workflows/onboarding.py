@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from datetime import timedelta
-from uuid import uuid4
 import orjson
 import pydash
 from temporalio import workflow
@@ -35,8 +34,6 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateClientRolesActivity,
     KeycloakCreateClientRolesActivityModel,
     KeycloakCreateIDPFlowActivity,
-    KeycloakCreateInternalUsersActivity,
-    KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
@@ -52,7 +49,6 @@ from app.cli.temporal.activities.postgresSetup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
     MatomoUserMappingActivity,
-    MatomoUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
@@ -83,8 +79,6 @@ from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMP
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec, TenantType
 from app.cli.temporal.penknife import TemplatePath
-from app.onepasswordutil import OnePasswordUtil
-
 
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
@@ -287,10 +281,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                 arg=PostgresGrantAllPrivilegesOnTableActivityModel(
                     database_name=postgres_database_name,
                     username=postgres_username,
-                    tables=[
-                        "user_entity",
-                        "realm"
-                    ],
+                    tables=["user_entity", "realm"],
                 ),
                 retry_policy=PostgresGrantAllPrivilegesOnTableActivity.get_retry_policy(),
                 start_to_close_timeout=PostgresGrantAllPrivilegesOnTableActivity.get_timeout(),
@@ -406,12 +397,20 @@ class PenknifeOnboardingWorkflow(Workflow):
             # todo: add the rest of the activities for keycloak
             # Setup keycloak auth client
             auth_credential = generate_password(length=32)
-            OnePasswordUtil(
-                tenant=f"PENKNIFE_{penknife.tenant}",
-                server_item="application-config",
-                vault="Penknife",
-            ).create_or_replace("auth_credential", auth_credential)
-            
+
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="auth_credential",
+                    secret_value=auth_credential,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
             await workflow.execute_activity(
                 activity=KeycloakClientSetupActivity.defn,
                 arg=KeycloakClientSetupActivityModel(
@@ -420,7 +419,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                     domain=penknife_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_penknife_auth_client.json",
-                    auth_credential=auth_credential
+                    auth_credential=auth_credential,
                 ),
                 retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
@@ -486,9 +485,9 @@ class PenknifeOnboardingWorkflow(Workflow):
                 "_write-jobs",
                 "_write-opportunity",
                 "_write-placement",
-                "_write-staticlist"
+                "_write-staticlist",
             ]
-            
+
             # keycloak client roles setup
             await workflow.execute_activity(
                 activity=KeycloakCreateClientRolesActivity.defn,
@@ -526,7 +525,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                     realm_name=realm_name,
                     domain=penknife_config.domain_name,
                     template_path=TemplatePath,
-                    template_name="keycloak_idp_and_flows.json"
+                    template_name="keycloak_idp_and_flows.json",
                 ),
                 retry_policy=KeycloakCreateIDPFlowActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateIDPFlowActivity.get_timeout(),
@@ -545,7 +544,11 @@ class PenknifeOnboardingWorkflow(Workflow):
                         name=config_map["name"],
                         template_file_name=config_map["key"],
                         bucket_name="penknife-config",
-                        template_payload={"tenant": tenant, "tenant_type": TenantType.get_tenant_type(penknife.tenantType), "domain": penknife_config.domain_name},
+                        template_payload={
+                            "tenant": tenant,
+                            "tenant_type": TenantType.get_tenant_type(penknife.tenantType),
+                            "domain": penknife_config.domain_name,
+                        },
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
                     start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
