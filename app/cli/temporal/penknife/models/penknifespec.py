@@ -56,7 +56,7 @@ class PenknifeSpec(LaunchpadCLIBaseModel):
     lastName: str
     email: str
     organization: str
-    contactNumber: str
+    phoneNumber: str
     companyDomain: str
     tenantType: TenantType = TenantType.staffing
     # TODO: add emailprovider related changes to config
