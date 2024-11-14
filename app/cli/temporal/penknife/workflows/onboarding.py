@@ -126,6 +126,9 @@ class PenknifeOnboardingWorkflow(Workflow):
             RedisSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
             KeycloakClientSetupActivity.defn,
+            KeycloakCreateIDPFlowActivity.defn,
+            KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            KeycloakCreateClientRolesActivity.defn,
             K8sConfigMapCreationActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
@@ -136,7 +139,6 @@ class PenknifeOnboardingWorkflow(Workflow):
             KubernetesStatefulSetActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
-            KeycloakCreateIDPFlowActivity.defn,
             PenknifeUserSetupActivity.defn
         ]
 
