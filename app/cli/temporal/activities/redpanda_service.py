@@ -241,13 +241,11 @@ class RedpandaSetupActivity(Activity):
         user_created = create_user(properties)
         if not user_created:
             log_error(f"Failed to create user for tenant {properties.tenant}")
-        log_info(f"User created successfully for tenant {properties.tenant}")
 
         # Step 2: Set up ACLs
         acls_created = create_acls(properties)
         if not acls_created:
             log_error(f"Failed to create ACLs for tenant {properties.tenant}")
-        log_info(f"ACLs created successfully for tenant {properties.tenant}")
 
         # Step 3: Create topics for each environment stage if provided
         if properties.environment:
@@ -256,8 +254,5 @@ class RedpandaSetupActivity(Activity):
                 log_error(
                     f"Failed to create topics for tenant {properties.tenant} in environment {properties.environment}"
                 )
-            log_info(
-                f"Topics created successfully for tenant {properties.tenant} in environment {properties.environment}"
-            )
 
         log_info(f"Redpanda setup completed for tenant {properties.tenant}")
