@@ -250,6 +250,82 @@ class CopyArtifactsToBucketActivity(Activity):
             raise e
 
 
+class CopyWebCoreToBucketActivityModel(LaunchpadCLIBaseModel):
+    """
+    CopyWebCoreToBucketActivityModel
+    """
+
+    src_object_name: str
+    tenant: str
+    bucket_name: str
+    bundle_name: str
+    dest_dir: str
+
+
+class CopyWebCoreToBucketActivity(Activity):
+    """
+    CopyWebCoreToBucketActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="CopyWebCoreToBucketActivity")
+    async def defn(activity_input: CopyWebCoreToBucketActivityModel) -> None:
+        """
+        Copy webcore to a bucket
+        """
+        config: AppSettings = get_settings()
+
+        bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
+        bucket_access_key = bucket_temporary_credentials.access_key_id
+        bucket_secret_key = bucket_temporary_credentials.secret_access_key
+        artifacts_access_key = config.cloudflare.r2_access_key
+        artifacts_secret_key = config.cloudflare.r2_secret_key
+        artifacts_s3_client = get_storage_client(
+            config=config,
+            access_key=artifacts_access_key,
+            secret_key=artifacts_secret_key,
+            endpoint=config.cloudflare.r2_endpoint,
+        )
+        try:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                download_file_from_storage(
+                    object_name=activity_input.src_object_name,
+                    file_path=f"{tmp_dir}/{activity_input.bundle_name}",
+                    storage_client=artifacts_s3_client,
+                    bucket_name="artifacts",
+                )
+
+                copy_files_to_cloudflare(
+                    tenant=activity_input.tenant,
+                    input_path=f"{tmp_dir}/{activity_input.bundle_name}",
+                    output_path=activity_input.dest_dir,
+                    endpoint=config.cloudflare.r2_endpoint,
+                    access_key=bucket_access_key,
+                    secret_key=bucket_secret_key,
+                    session_token=bucket_temporary_credentials.session_token,
+                )
+
+                log_info(f"Web Core Deployment successful: {activity_input.tenant}")
+
+        except Exception as e:
+            log_error(f"Error deploying webcore: {e}")
+            raise e
+
+
 class DeleteCloudflareBucketActivityModel(LaunchpadCLIBaseModel):
     """
     DeleteCloudflareBucketActivityModel

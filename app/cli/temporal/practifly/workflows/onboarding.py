@@ -6,9 +6,20 @@ from app.cli.temporal.practifly import TemplatePath
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
-from app.cli.temporal.activities.dnsSetup import DnsSetupActivityModel, DnsSetupActivity
-from app.cli.temporal.activities.uiSetup import UiSetupActivity, UiSetupActivityModel
-
+from app.cli.temporal.activities.cloudflareSetup import (
+    CopyArtifactsToBucketActivity,
+    CopyArtifactsToBucketActivityModel,
+    CreateCloudflareBucketActivity,
+    CreateCloudflareBucketActivityModel,
+    CreateCloudflareDNSRecordActivity,
+    CreateCloudflareDNSRecordActivityModel,
+    LinkBucketToDomainActivity,
+    LinkBucketToDomainActivityModel,
+    PropagateDNSRecordActivity,
+    PropagateDNSRecordActivityModel,
+    CopyWebCoreToBucketActivity,
+    CopyWebCoreToBucketActivityModel,
+)
 from app.cli.temporal.activities.postgresSetup import (
     PostgresDatabaseCreationActivity,
     PostgresUserCreationActivity,
@@ -97,9 +108,13 @@ class PractiflyOnboardingWorkflow(Workflow):
             KubernetesIstioVirtualServiceActivity.defn,
             RedisSetupActivity.defn,
             K8sConfigMapCreationActivity.defn,
-            DnsSetupActivity.defn,
-            UiSetupActivity.defn,
             DatabaseMigrationJobActivity.defn,
+            CreateCloudflareDNSRecordActivity.defn,
+            CopyArtifactsToBucketActivity.defn,
+            CopyWebCoreToBucketActivity.defn,
+            CreateCloudflareBucketActivity.defn,
+            LinkBucketToDomainActivity.defn,
+            PropagateDNSRecordActivity.defn,
         ]
 
     @workflow.run
@@ -156,7 +171,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             postgres_password = generate_password(length=20)
             template_env = get_env(template_path=TemplatePath)
             image_tag = "production" if config.env == "production" else "sprint"
-            docker_image = f"registry.314ecorp.tech/practifly-app:{image_tag}"
+            docker_image = f"registry.314ecorp.tech/practifly-server:{image_tag}"
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag)
 
@@ -347,42 +362,94 @@ class PractiflyOnboardingWorkflow(Workflow):
 
             # dns setup
             await workflow.execute_activity(
-                activity=DnsSetupActivity.defn,
-                arg=DnsSetupActivityModel(
-                    cname=config.k8s_cname,
-                    fqdn=f"{tenant}.api.{practifly_config.domain_name}.",
-                    zone_name=practifly_config.zone_name,
+                activity=CreateCloudflareDNSRecordActivity.defn,
+                arg=CreateCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{practifly_config.domain_name}",
+                    zone_id=practifly_config.zone_id,
                 ),
-                retry_policy=DnsSetupActivity.get_retry_policy(),
-                start_to_close_timeout=DnsSetupActivity.get_timeout(),
+                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
-            # ui setup
+            # create bucket
+            bucket_name = f"{tenant}.{practifly_config.domain_name}"
+            bucket_name = bucket_name.replace(".", "-")
+            await workflow.execute_activity(
+                activity=CreateCloudflareBucketActivity.defn,
+                arg=CreateCloudflareBucketActivityModel(
+                    bucket_name=bucket_name,
+                ),
+                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
+            )
+
+            # link bucket to custom domain
+            await workflow.execute_activity(
+                activity=LinkBucketToDomainActivity.defn,
+                arg=LinkBucketToDomainActivityModel(
+                    bucket_name=bucket_name,
+                    domain_name=f"{tenant}.{practifly_config.domain_name}",
+                    zone_id=practifly_config.zone_id,
+                ),
+                retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
+                start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
+            )
+
+            # propagate the dns record
+            await workflow.execute_activity(
+                activity=PropagateDNSRecordActivity.defn,
+                arg=PropagateDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{practifly_config.domain_name}",
+                ),
+                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
+            )
+
             repo_name = "practifly-ui"
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{tenant}.api.{practifly_config.domain_name}/"
+                dest_dir = f"{image_tag}/{bucket_name}"
             else:
-                dest_dir = f"{tenant}.api.{practifly_config.domain_name}/{image_tag}"
+                dest_dir = f"/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
-            bundle_path = "bundle/dist/admin"
+            bundle_path = "bundle/dist"
 
+            # copy artifacts to bucket
             await workflow.execute_activity(
-                activity=UiSetupActivity.defn,
-                arg=UiSetupActivityModel(
+                activity=CopyArtifactsToBucketActivity.defn,
+                arg=CopyArtifactsToBucketActivityModel(
+                    bucket_name=bucket_name,
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
                     bundle_name="bundle.zip",
+                    tenant=tenant,
                 ),
-                retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=UiSetupActivity.get_timeout(),
+                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            # atlas job
+            src_object_name = f"{repo_name}/{image_tag}/release.zip"
+            dest_dir = f"{image_tag}/{bucket_name}"
+
+            # copy webcore to bucket
+            await workflow.execute_activity(
+                activity=CopyWebCoreToBucketActivity.defn,
+                arg=CopyWebCoreToBucketActivityModel(
+                    src_object_name=src_object_name,
+                    tenant=tenant,
+                    bucket_name=bucket_name,
+                    bundle_name="release.zip",
+                    dest_dir=dest_dir,
+                ),
+                retry_policy=CopyWebCoreToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CopyWebCoreToBucketActivity.get_timeout(),
+            )
+
+            # alembic job
             await workflow.execute_activity(
                 activity=DatabaseMigrationJobActivity.defn,
                 arg=DatabaseMigrationJobActivityModel(
@@ -391,61 +458,17 @@ class PractiflyOnboardingWorkflow(Workflow):
                     docker_image=docker_image,
                     volume_mounts=[
                         {
-                            "name": "common-volume",
-                            "mount_path": "/config/common-config.json",
-                            "sub_path": "common-config.json",
-                        },
-                        {
-                            "name": "env-volume",
-                            "mount_path": "/config/env-config.json",
-                            "sub_path": "env-config.json",
-                        },
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "mount_path": "/config/provisioning-config.json",
-                            "sub_path": "provisioning-config.json",
-                        },
-                        {
-                            "name": "vector-volume",
-                            "mount_path": "/config/vector-config.toml",
-                            "sub_path": "vector-config.toml",
+                            "name": "practifly-provisioning-config",
+                            "mount_path": "/provisioningConfig",
+                            "read_only": True,
                         },
                     ],
                     volumes=[
                         {
-                            "name": "tenant-volume",
-                            "config_map_name": "practifly-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
-                        },
-                        {
-                            "name": "common-volume",
-                            "config_map_name": "practifly-common-config",
-                            "key": "common-config.json",
-                            "path": "common-config.json",
-                        },
-                        {
-                            "name": "env-volume",
-                            "config_map_name": "practifly-env-config",
-                            "key": "env-config.json",
-                            "path": "env-config.json",
-                        },
-                        {
-                            "name": "provisioning-volume",
+                            "name": "practifly-provisioning-config",
                             "config_map_name": "practifly-provisioning-config",
                             "key": "provisioning-config.json",
                             "path": "provisioning-config.json",
-                        },
-                        {
-                            "name": "vector-volume",
-                            "config_map_name": "practifly-cli-vector-config",
-                            "key": "vector-config.toml",
-                            "path": "vector-config.toml",
                         },
                     ],
                     container_envs=[
@@ -454,8 +477,8 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                     ],
-                    argument="python3 /app/provisioning/atlas_migration.py",
-                    job_type="atlas",
+                    argument="alembic upgrade head",
+                    job_type="alembic",
                     product=ProductName,
                 ),
                 retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
@@ -525,16 +548,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "mount_path": "/config/tenant-config.json",
                             "sub_path": "tenant-config.json",
                         },
-                        {
-                            "name": "provisioning-volume",
-                            "mount_path": "/config/provisioning-config.json",
-                            "sub_path": "provisioning-config.json",
-                        },
-                        {
-                            "name": "vector-volume",
-                            "mount_path": "/config/vector-config.toml",
-                            "sub_path": "vector-config.toml",
-                        },
                     ],
                     volumes=[
                         {
@@ -561,18 +574,17 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "key": "provisioning-config.json",
                             "path": "provisioning-config.json",
                         },
-                        {
-                            "name": "vector-volume",
-                            "config_map_name": "practifly-cli-vector-config",
-                            "key": "vector-config.toml",
-                            "path": "vector-config.toml",
-                        },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
+                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {"name": "POSTGRES__USER", "value": postgres_username},
+                        {"name": "REDIS__HOST", "value": config.cache_host},
+                        {"name": "REDIS__PASSWORD", "value": config.cache_admin_password},
+                        {"name": "RELEASE_VERSION", "value": image_tag},
+                        {"name": "CLIENT_CODE", "value": tenant},
+                        {"name": "IS_CLI", "value": "FALSE"},
                     ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
@@ -612,14 +624,14 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "sub_path": "tenant-config.json",
                         },
                         {
-                            "name": "provisioning-volume",
-                            "mount_path": "/config/provisioning-config.json",
-                            "sub_path": "provisioning-config.json",
+                            "name": "vector-volume",
+                            "mount_path": "/vector",
+                            "read_only": True,
                         },
                         {
-                            "name": "vector-volume",
-                            "mount_path": "/config/vector-config.toml",
-                            "sub_path": "vector-config.toml",
+                            "name": "practifly-pvcq",
+                            "mount_path": "/data",
+                            "read_only": False,
                         },
                     ],
                     volumes=[
@@ -642,12 +654,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "path": "env-config.json",
                         },
                         {
-                            "name": "provisioning-volume",
-                            "config_map_name": "practifly-provisioning-config",
-                            "key": "provisioning-config.json",
-                            "path": "provisioning-config.json",
-                        },
-                        {
                             "name": "vector-volume",
                             "config_map_name": "practifly-cli-vector-config",
                             "key": "vector-config.toml",
@@ -657,15 +663,20 @@ class PractiflyOnboardingWorkflow(Workflow):
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
+                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {"name": "POSTGRES__USER", "value": postgres_username},
+                        {"name": "REDIS__HOST", "value": config.cache_host},
+                        {"name": "REDIS__PASSWORD", "value": config.cache_admin_password},
+                        {"name": "RELEASE_VERSION", "value": image_tag},
+                        {"name": "CLIENT_CODE", "value": tenant},
+                        {"name": "IS_CLI", "value": "TRUE"},
                     ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
-            # vm pod scraper
+            # vm pod scraper for server
             await workflow.execute_activity(
                 activity=VMPodScrapperActivity.defn,
                 arg=VMPodScrapperActivityModel(
@@ -673,7 +684,21 @@ class PractiflyOnboardingWorkflow(Workflow):
                     name="practifly-metrics",
                     app=ProductName,
                     path="/metrics/",
-                    interval="15s",
+                    interval="5s",
+                ),
+                retry_policy=VMPodScrapperActivity.get_retry_policy(),
+                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
+            )
+
+            # vm pod scraper
+            await workflow.execute_activity(
+                activity=VMPodScrapperActivity.defn,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="practifly-cli-metrics",
+                    app=ProductName,
+                    path="/metrics/",
+                    interval="5s",
                 ),
                 retry_policy=VMPodScrapperActivity.get_retry_policy(),
                 start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
