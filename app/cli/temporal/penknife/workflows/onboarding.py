@@ -31,6 +31,11 @@ from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivit
 from app.cli.temporal.activities.keycloakSetup import (
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
+    KeycloakCreateClientRolesActivity,
+    KeycloakCreateClientRolesActivityModel,
+    KeycloakCreateIDPFlowActivity,
+    KeycloakCreateTenantCustomerAdminUserActivity,
+    KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
@@ -39,11 +44,11 @@ from app.cli.temporal.activities.onePassword import (
     OnePasswordCreateOrUpdateActivityModel,
 )
 from app.cli.temporal.activities.penknifeNovuSetup import PenknifeNovuSetupActivity
+from app.cli.temporal.activities.penknifeUserSetup import PenknifeUserSetupActivity
 from app.cli.temporal.activities.postgresSetup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
     MatomoUserMappingActivity,
-    MatomoUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
@@ -72,9 +77,8 @@ from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActiv
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec, TenantType
 from app.cli.temporal.penknife import TemplatePath
-
 
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
@@ -262,34 +266,22 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakUserMappingActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=MatomoUserMappingActivity.defn,
-                arg=MatomoUserMappingActivityModel(
-                    username=postgres_username,
-                    database_name=postgres_database_name,
-                ),
-                retry_policy=MatomoUserMappingActivity.get_retry_policy(),
-                start_to_close_timeout=MatomoUserMappingActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=MatomoUserMappingActivity.defn,
+            #     arg=MatomoUserMappingActivityModel(
+            #         username=postgres_username,
+            #         database_name=postgres_database_name,
+            #     ),
+            #     retry_policy=MatomoUserMappingActivity.get_retry_policy(),
+            #     start_to_close_timeout=MatomoUserMappingActivity.get_timeout(),
+            # )
 
             await workflow.execute_activity(
                 activity=PostgresGrantAllPrivilegesOnTableActivity.defn,
                 arg=PostgresGrantAllPrivilegesOnTableActivityModel(
                     database_name=postgres_database_name,
                     username=postgres_username,
-                    tables=[
-                        "user_entity",
-                        "realm",
-                        "user_attribute",
-                        "matomo_log_visit",
-                        "matomo_log_action",
-                        "matomo_log_media",
-                        "matomo_log_link_visit_action",
-                        "matomo_log_visit_view",
-                        "matomo_log_action_view",
-                        "matomo_log_media_view",
-                        "matomo_log_link_visit_action_view",
-                    ],
+                    tables=["user_entity", "realm"],
                 ),
                 retry_policy=PostgresGrantAllPrivilegesOnTableActivity.get_retry_policy(),
                 start_to_close_timeout=PostgresGrantAllPrivilegesOnTableActivity.get_timeout(),
@@ -403,6 +395,141 @@ class PenknifeOnboardingWorkflow(Workflow):
             )
 
             # todo: add the rest of the activities for keycloak
+            # Setup keycloak auth client
+            auth_credential = generate_password(length=32)
+
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="auth_credential",
+                    secret_value=auth_credential,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=KeycloakClientSetupActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=penknife_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_penknife_auth_client.json",
+                    auth_credential=auth_credential,
+                ),
+                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
+            )
+
+            roles = [
+                "_broadcast-mail",
+                "_bulk-account",
+                "_bulk-application",
+                "_bulk-candidate",
+                "_bulk-contact",
+                "_bulk-jobs",
+                "_bulk-opportunity",
+                "_bulk-placement",
+                "_bulk-staticlist",
+                "_delete-account",
+                "_delete-application",
+                "_delete-candidate",
+                "_delete-contact",
+                "_delete-jobs",
+                "_delete-opportunity",
+                "_delete-placement",
+                "_delete-staticlist",
+                "_export-account",
+                "_export-application",
+                "_export-candidate",
+                "_export-contact",
+                "_export-jobs",
+                "_export-opportunity",
+                "_export-placement",
+                "_manage-activities",
+                "_manage-assessment-cards",
+                "_manage-career-portal",
+                "_manage-company",
+                "_manage-duplicates",
+                "_manage-email-settings",
+                "_manage-fields",
+                "_manage-integrations",
+                "_manage-listofvalues",
+                "_manage-locations-departments",
+                "_manage-pipelines",
+                "_manage-screening-questionnaire",
+                "_manage-teams",
+                "_manage-workflows",
+                "_penknife-admin",
+                "_send-mail",
+                "_view-account",
+                "_view-application",
+                "_view-candidate",
+                "_view-contact",
+                "_view-imports",
+                "_view-insights",
+                "_view-jobs",
+                "_view-others-saved-search",
+                "_view-opportunity",
+                "_view-placement",
+                "_view-staticlist",
+                "_workspace-admin",
+                "_write-account",
+                "_write-application",
+                "_write-candidate",
+                "_write-contact",
+                "_write-jobs",
+                "_write-opportunity",
+                "_write-placement",
+                "_write-staticlist",
+            ]
+
+            # keycloak client roles setup
+            await workflow.execute_activity(
+                activity=KeycloakCreateClientRolesActivity.defn,
+                arg=KeycloakCreateClientRolesActivityModel(
+                    client_name="penknife",
+                    realm_name=realm_name,
+                    roles=roles,
+                ),
+                retry_policy=KeycloakCreateClientRolesActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
+            )
+
+            # keycloak tenant customer admin user setup
+            await workflow.execute_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
+                arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
+                    realm_name=realm_name,
+                    client_name="penknife",
+                    username=email,
+                    email=email,
+                    firstname=first_name,
+                    lastname=last_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_customer_admin.json",
+                ),
+                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
+            )
+
+            # Create IDP and flows in keycloak
+            await workflow.execute_activity(
+                activity=KeycloakCreateIDPFlowActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=penknife_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_idp_and_flows.json",
+                ),
+                retry_policy=KeycloakCreateIDPFlowActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateIDPFlowActivity.get_timeout(),
+            )
 
             # setup tenant configmap
             for config_map in [
@@ -417,7 +544,11 @@ class PenknifeOnboardingWorkflow(Workflow):
                         name=config_map["name"],
                         template_file_name=config_map["key"],
                         bucket_name="penknife-config",
-                        template_payload={"tenant": tenant, "tenant_type": penknife.tenant_type},
+                        template_payload={
+                            "tenant": tenant,
+                            "tenant_type": TenantType.get_tenant_type(penknife.tenantType),
+                            "domain": penknife_config.domain_name,
+                        },
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
                     start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
@@ -646,13 +777,18 @@ class PenknifeOnboardingWorkflow(Workflow):
             )
 
             # kubernetes virtual service for careers
+            template_career = template_env.get_template("istio-rules-careers.json")
+            output_career = template_career.render(tenant=tenant, image_tag=image_tag, env=config.env)
+
+            http_list_career = orjson.loads(output_career)
+
             await workflow.execute_activity(
                 activity=KubernetesIstioVirtualServiceActivity.defn,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}-careers.api.{penknife_config.domain_name}",
                     service_name="penknife-careers-vs",
-                    payload=http_list,
+                    payload=http_list_career,
                 ),
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
@@ -803,7 +939,12 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
             )
 
-            # Todo add user entry in postgres
+            await workflow.execute_activity(
+                activity=PenknifeUserSetupActivity.defn,
+                arg=penknife,
+                retry_policy=PenknifeUserSetupActivity.get_retry_policy(),
+                start_to_close_timeout=PenknifeUserSetupActivity.get_timeout(),
+            )
 
             # update tenant status
             await workflow.execute_activity(
