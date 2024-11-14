@@ -136,6 +136,8 @@ class PenknifeOnboardingWorkflow(Workflow):
             KubernetesStatefulSetActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
+            KeycloakCreateIDPFlowActivity.defn,
+            PenknifeUserSetupActivity.defn
         ]
 
     @classmethod
