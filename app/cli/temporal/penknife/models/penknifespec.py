@@ -7,7 +7,7 @@ class TenantType(str, Enum):
     internalhiring = "InternalHiring"
 
     @classmethod
-    def get_tenant_type(cls: "TenantType", enum_value: "TenantType") -> str:
+    def get_tenant_type(cls: "TenantType", enum_value: str) -> str:
         """
         Get the tenant type for the given enum value
         @param enum_value:
@@ -16,9 +16,9 @@ class TenantType(str, Enum):
         @rtype:
         """
         match enum_value:
-            case cls.staffing:
+            case "Staffing":
                 return "staffing"
-            case cls.internalhiring:
+            case "InternalHiring":
                 return "internal_hiring"
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
