@@ -2,7 +2,7 @@ from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
 
-with workflow.unsafe.imports():
+with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
     import os
     import orjson

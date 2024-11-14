@@ -73,27 +73,32 @@ def create_topics(properties: RedpandaProperties) -> bool:
                 num_partitions=properties.partition,
                 replication_factor=properties.replica,
             ),
+            NewTopic(
+                f"zsegment-{properties.tenant}-{properties.environment}-event-response",
+                 num_partitions=1,
+                replication_factor=properties.replica,
+            )
         ]
 
         response = client.create_topics(topics)
 
         # Check if each topic was successfully created or had an exception
-        success = True
+        all_successful = True
         for topic, future in response.items():
             try:
-                # This will raise an exception if topic creation failed
                 future.result()
                 log_info(f"Topic '{topic}' created successfully.")
-            except KafkaError as e:
-                success = False
-                log_error(f"Failed to create topic '{topic}': {e}")
+            except Exception as e:
+                if(e.args[0] == KafkaError.TOPIC_ALREADY_EXISTS):
+                    log_info(f"Topic '{topic}' already exists; continuing.")
+                else:
+                    all_successful = False
+                    log_info(f"Unexpected error creating topic '{topic}': {e}")
 
-        if success:
-            log_info(f"All topics created successfully for tenant '{properties.tenant}'.")
-        else:
+        if not all_successful:
             log_error(f"Some topics failed to create for tenant '{properties.tenant}'.")
-
-        return success
+            return False
+        return True
 
     except KafkaError as e:
         log_error(f"Error creating topics: {e}")
@@ -175,6 +180,28 @@ def create_user(properties: RedpandaProperties) -> bool:
     """
     try:
         client = httpx.Client()
+        username = f"zsegment_{properties.tenant}"
+
+        list_user = client.get(f"{properties.admin_api_base_url}/v1/security/users")
+        if list_user.status_code == 200:
+            existing_users = list_user.json()
+            if username in existing_users:
+                # change the user password
+                user_payload = {
+                    "algorithm": properties.tenant_sasl_mechanism,
+                    "password": properties.tenant_password,
+                }
+                response = client.put(f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload)
+                if response.status_code == 200:
+                    log_info(f"User '{username}' already exists for tenant '{properties.tenant}'. Password updated successfully.")
+                    return True
+                else:
+                    log_error(f"User '{username}' exists for tenant '{properties.tenant}', but failed to update password. Status code: {response.status_code}")
+                    return False
+        else:
+            log_error(f"Failed to retrieve user list for tenant '{properties.tenant}'. Status code: {list_user.status_code}")
+
+        # User does not exist; create the user
         user_payload = {
             "username": f"zsegment_{properties.tenant}",
             "algorithm": properties.tenant_sasl_mechanism,
@@ -184,13 +211,16 @@ def create_user(properties: RedpandaProperties) -> bool:
         if response.status_code == 200:
             log_info(f"Created user for tenant {properties.tenant}")
             return True
-        else:
-            log_error(f"Failed to create user: {response.status_code} {response}")
-            return False
-    except httpx.HTTPStatusError as e:
-        log_error(f"Failed to create user: {e}")
-        return False
 
+    except httpx.RequestError as req_err:
+        log_error(f"Network error occurred while creating user for tenant {properties.tenant}: {req_err}")
+        return False
+    except httpx.HTTPStatusError as http_err:
+        log_error(f"HTTP error occurred while creating user for tenant {properties.tenant}: {http_err}")
+        return False
+    except Exception as e:
+        log_error(f"Unexpected error occurred while creating user for tenant {properties.tenant}: {e}")
+        return False
 
 def delete_user(properties: RedpandaProperties) -> bool:
     """
