@@ -9,10 +9,9 @@ from temporalio import activity
 from temporalio.common import  RetryPolicy
 from dataclasses import dataclass
 
-
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Activity
+from app.cli.temporal.core.log import log_info, log_error
 
-logger = logging.getLogger(__name__)
 
 @dataclass
 class GiteaUser:
@@ -70,23 +69,23 @@ class GiteaService:
             response = httpx.post(url, json=payload, auth=self.auth)
             response.raise_for_status()
 
-            logger.info(f"User created successfully: {response.json()}")
+            log_info(f"User created successfully: {response.json()}")
             return GiteaUser(username=username, email=email)
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 422 :
-                logger.info(f"User '{username}' already exists. Skipping creation.")
+                log_info(f"User '{username}' already exists. Skipping creation.")
                 return GiteaUser(username=username, email=email)
             else:
-                logger.error(f"Failed to create user '{username}': {e}")
+                log_error(f"Failed to create user '{username}': {e}")
                 raise Exception("Error creating user") from e
 
     def create_repository(self, gitea_user: GiteaUser, repo_name: str):
         try:
             self._create_repo_from_template(gitea_user.username, repo_name)
             self._create_branch(gitea_user.username, repo_name, "prod")
-            logger.info(f"Repository created successfully.")
+            log_info(f"Repository created successfully.")
         except Exception as e:
-            logger.error(f"Could not create repository for user {gitea_user.username}")
+            log_error(f"Could not create repository for user {gitea_user.username}")
             raise Exception("Error creating repository") from e
 
     def delete_user(self, username: str):
@@ -94,9 +93,9 @@ class GiteaService:
             url = f"{self.base_url}/admin/users/{username}"
             response = httpx.delete(url, auth=self.auth)
             response.raise_for_status()
-            logger.info("User deleted successfully.")
+            log_info("User deleted successfully.")
         except httpx.HTTPStatusError as e:
-            logger.error(f"Could not delete user {username}: {e}")
+            log_error(f"Could not delete user {username}: {e}")
             raise Exception("Error deleting user") from e
 
     def _create_repo_from_template(self, username: str, repo_name: str):
@@ -109,12 +108,12 @@ class GiteaService:
             }
             response = httpx.post(url, json=payload, auth=self.auth)
             response.raise_for_status()
-            logger.info(f"Repository created successfully: {response.json()}")
+            log_info(f"Repository created successfully: {response.json()}")
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 409:
                 pass
             else:
-                logger.error(f"Failed to create repository {repo_name}: {e}")
+                log_error(f"Failed to create repository {repo_name}: {e}")
                 raise Exception("Error creating repository") from e
 
     def _create_branch(self, owner: str, repo: str, new_branch: str):
@@ -126,12 +125,12 @@ class GiteaService:
             }
             response = httpx.post(url, json=payload, auth=self.auth)
             response.raise_for_status()
-            logger.info(f"Branch '{new_branch}' created successfully.")
+            log_info(f"Branch '{new_branch}' created successfully.")
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 409:
                 pass
             else:
-                logger.error(f"Failed to create branch {new_branch}: {e}")
+                log_error(f"Failed to create branch {new_branch}: {e}")
                 raise Exception("Error creating branch") from e
 
 class GiteaSetupActivity(Activity):
@@ -165,15 +164,15 @@ class GiteaSetupActivity(Activity):
 
         gitea_user = GiteaUser(username=username, email=email)
 
-        logger.info(f"Creating repository '{tenant}' for user '{username}' with branches: dev and prod")
+        log_info(f"Creating repository '{tenant}' for user '{username}' with branches: dev and prod")
 
         # Create repository
         try:
             gitea_service.create_gitea_user(username=username, email=email)
             gitea_service.create_repository(gitea_user=gitea_user, repo_name=tenant)
 
-            logger.info(f"Repository '{tenant}' setup successfully for user '{username}'")
+            log_info(f"Repository '{tenant}' setup successfully for user '{username}'")
 
         except Exception as e:
-            logger.error(f"Failed to setup Gitea repository for tenant '{tenant}': {e}")
+            log_error(f"Failed to setup Gitea repository for tenant '{tenant}': {e}")
             raise
