@@ -161,6 +161,8 @@ class PenknifeOnboardingWorkflow(Workflow):
         last_name = pydash.get(penknife, "lastName")
         email = pydash.get(penknife, "email")
         tenant = pydash.get(penknife, "tenant")
+        tenant_type = pydash.get(penknife, "tenantType")
+        tenant_type = TenantType.get_tenant_type(tenant_type)
 
         try:
             if not pydash.get(penknife, "emailSent"):
@@ -551,7 +553,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                         bucket_name="penknife-config",
                         template_payload={
                             "tenant": tenant,
-                            "tenant_type": TenantType.get_tenant_type(penknife.tenantType),
+                            "tenant_type": tenant_type,
                             "domain": penknife_config.domain_name,
                         },
                     ),
