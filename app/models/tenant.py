@@ -14,6 +14,7 @@ class TenantStatusEnum(str, Enum):
     Failed = "Failed"
     DeProvisioning = "DeProvisioning"
     DeProvisioned = "DeProvisioned"
+    DeploymentFailed = "DeploymentFailed"
 
 
 class TenantCreateRequestModel(BaseModel):

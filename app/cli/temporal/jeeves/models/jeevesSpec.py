@@ -25,3 +25,4 @@ class JeevesSpec(LaunchpadCLIBaseModel):
     emailSent: bool = False
     serverSpec: None | ResourceSpec = ResourceSpec()
     cliSpec: None | ResourceSpec = ResourceSpec()
+    is_deployment: bool = False

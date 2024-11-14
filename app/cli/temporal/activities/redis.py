@@ -57,10 +57,10 @@ class RedisService(K8sResourceBaseClass):
             metadata=V1ObjectMeta(
                 name="cache-new",
                 namespace=self.tenant,
-                labels={"app": "cache-new", "kind": "redis"},
+                labels={"app": "cache", "kind": "redis"},
             ),
             spec=V1ServiceSpec(
-                selector={"app": "cache-new", "kind": "redis"},
+                selector={"app": "cache", "kind": "redis"},
                 type="ClusterIP",
                 ports=[
                     V1ServicePort(
@@ -155,7 +155,7 @@ class RedisSetupActivity(Activity):
         redis_resource = get_resource(
             dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
         )
-        name = "cache-new"
+        name = "cache"
 
         body = V1StatefulSet(
             api_version="apps/v1",

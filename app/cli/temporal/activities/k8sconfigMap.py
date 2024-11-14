@@ -125,7 +125,9 @@ class K8sConfigMapCreationActivity(Activity):
             )
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        k8s_dynamic_client.server_side_apply(resource=resource, body=payload, field_manager="kubectl-client-side-apply")
+        k8s_dynamic_client.server_side_apply(
+            resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+        )
 
         log_info(f"ConfigMap {activity_model.name} created successfully")
 

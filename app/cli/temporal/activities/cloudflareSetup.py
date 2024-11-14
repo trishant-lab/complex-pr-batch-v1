@@ -58,9 +58,9 @@ class CreateCloudflareBucketActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        bucket = await create_bucket(config=config, bucket_name=activity_input.bucket_name)
+        await create_bucket(config=config, bucket_name=activity_input.bucket_name)
 
-        log_info(f"Created bucket {bucket}")
+        log_info(f"Created bucket {activity_input.bucket_name}")
 
 
 class CreateCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
