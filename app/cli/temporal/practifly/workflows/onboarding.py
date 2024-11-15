@@ -252,7 +252,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             redis_tenant_password = generate_password(length=20)
-            #todo: clear about getting redis password config or generating new one
+
             # secret setup for docker registry
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
@@ -275,6 +275,18 @@ class PractiflyOnboardingWorkflow(Workflow):
                     namespace=tenant,
                     name="cache-secret",
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
+                ),
+                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+            )
+
+            # secret setup for redis password
+            await workflow.execute_activity(
+                activity=K8sSecretCreationActivity.defn,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="tenant-cache-secret",
+                    string_data={"REDIS_PASSWORD": redis_tenant_password},
                 ),
                 retry_policy=K8sSecretCreationActivity.get_retry_policy(),
                 start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
@@ -450,12 +462,11 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             # alembic job
-            #todo: clear about alembic job
             await workflow.execute_activity(
                 activity=DatabaseMigrationJobActivity.defn,
                 arg=DatabaseMigrationJobActivityModel(
                     namespace=tenant,
-                    job_name="practifly-atlas-migration-job",
+                    job_name="practifly-tenant-alembic-job",
                     docker_image=docker_image,
                     volume_mounts=[
                         {
@@ -474,11 +485,12 @@ class PractiflyOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
+                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {"name": "POSTGRES__USER", "value": postgres_username},
+                        {"name": "RELEASE_VERSION", "value": image_tag},
+                        {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
                     ],
-                    argument="alembic upgrade head",
+                    argument="cd /app && python3 /app/provisioning/alembic_.py --config /provisioningConfig/provisioning-config.json",
                     job_type="alembic",
                     product=ProductName,
                 ),
@@ -683,7 +695,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="practifly-metrics",
-                    app=ProductName,
+                    app="practifly",
                     path="/metrics/",
                     interval="5s",
                 ),
@@ -697,7 +709,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="practifly-cli-metrics",
-                    app=ProductName,
+                    app="practifly-cli",
                     path="/metrics/",
                     interval="5s",
                 ),
