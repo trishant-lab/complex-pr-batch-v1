@@ -4,8 +4,10 @@ import pydash
 import orjson
 from app.cli.temporal.practifly import TemplatePath
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
+from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
+
 from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
@@ -102,7 +104,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
             VMPodScrapperActivity.defn,
             PVCSetupActivity.defn,
-            TemporalNamespaceActivity.defn,
+            K8sConfigMapCreationActivity.defn,
             K8sSecretCreationActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
@@ -115,6 +117,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             CreateCloudflareBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
+            TemporalNamespaceActivity.defn,
         ]
 
     @workflow.run
@@ -185,14 +188,14 @@ class PractiflyOnboardingWorkflow(Workflow):
                     }
                 )
 
-            # temporal namespace creation
+            # kubernetes namespace creation
             await workflow.execute_activity(
-                activity=TemporalNamespaceActivity.defn,
-                arg=TemporalNamespaceActivityModel(
-                    namespace=f"{ProductName}_{tenant}",
+                activity=K8sNamespaceCreationActivity.defn,
+                arg=K8sNamespaceCreationActivityModel(
+                    namespace=tenant,
                 ),
-                retry_policy=TemporalNamespaceActivity.get_retry_policy(),
-                start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
+                retry_policy=K8sNamespaceCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
             )
 
             # create postgres database
@@ -446,6 +449,16 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
+            )
+
+            # temporal namespace creation
+            await workflow.execute_activity(
+                activity=TemporalNamespaceActivity.defn,
+                arg=TemporalNamespaceActivityModel(
+                    namespace=f"practifly_{tenant}",
+                ),
+                retry_policy=TemporalNamespaceActivity.get_retry_policy(),
+                start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
             )
 
             # vm pod scraper for server
