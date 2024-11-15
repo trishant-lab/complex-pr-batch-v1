@@ -1036,7 +1036,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=KubernetesIstioVirtualServiceActivity.defn,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
-                    host=f"{tenant}.{zsegment_config.domain_name}",
+                    host=f"{tenant}.api.{zsegment_config.domain_name}",
                     service_name="zsegment-api-dev-vs",
                     payload=http_list,
                 ),
@@ -1062,7 +1062,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=KubernetesIstioVirtualServiceActivity.defn,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
-                    host=f"{tenant}.{zsegment_config.domain_name}",
+                    host=f"{tenant}.api.{zsegment_config.domain_name}",
                     service_name="zsegment-api-prod-vs",
                     payload=http_list,
                 ),
