@@ -494,7 +494,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
 
                 # todo: check artifact copy for production, since we are using tag based copy from artifact
 
-                log_info(f"UI setup completed for {activity_input.dest_dir}")
+                log_info(f"UI setup completed for {activity_input.tenant}")
 
         except Exception as e:
             log_error(f"Error downloading UI bundle: {e}")
