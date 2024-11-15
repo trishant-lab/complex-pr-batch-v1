@@ -399,7 +399,6 @@ class ZSegmentSettings(BaseModel):
     gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1/"
     gitea_admin_username: str = ""
     gitea_admin_password: str = ""
-    gitea_api_repo_url: str = ""
     gitea_template_owner: str = ""
 
     lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000"
