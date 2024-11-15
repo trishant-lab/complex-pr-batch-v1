@@ -106,35 +106,40 @@ class PenknifeOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            SendBeforeProvisioningMailActivity,
-            UpdateTenantStatusActivity,
-            SendAfterProvisioningMailActivity,
-            VMPodScrapperActivity,
-            TemporalNamespaceActivity,
-            PostgresUserCreationActivity,
-            PostgresSupavisorPollUserActivity,
-            PostgresSchemaCreationActivity,
-            PostgresGrantAccessToUserActivity,
-            KeycloakUserMappingActivity,
-            MatomoUserMappingActivity,
-            PostgresGrantAllPrivilegesOnTableActivity,
-            TableSpaceActivity,
-            K8sNamespaceCreationActivity,
-            K8sSecretCreationActivity,
-            PenknifeNovuSetupActivity,
-            RedisSetupActivity,
-            KeycloakRealmSetupActivity,
-            KeycloakClientSetupActivity,
-            K8sConfigMapCreationActivity,
-            CreateCloudflareDNSRecordActivity,
-            CopyArtifactsToBucketActivity,
-            CreateCloudflareBucketActivity,
-            LinkBucketToDomainActivity,
-            PropagateDNSRecordActivity,
-            DatabaseMigrationJobActivity,
-            KubernetesStatefulSetActivity,
-            KubernetesServiceActivity,
-            KubernetesIstioVirtualServiceActivity,
+            SendBeforeProvisioningMailActivity.defn,
+            OnePasswordCreateOrUpdateActivity.defn,
+            UpdateTenantStatusActivity.defn,
+            SendAfterProvisioningMailActivity.defn,
+            VMPodScrapperActivity.defn,
+            TemporalNamespaceActivity.defn,
+            PostgresUserCreationActivity.defn,
+            PostgresSupavisorPollUserActivity.defn,
+            PostgresSchemaCreationActivity.defn,
+            PostgresGrantAccessToUserActivity.defn,
+            KeycloakUserMappingActivity.defn,
+            MatomoUserMappingActivity.defn,
+            PostgresGrantAllPrivilegesOnTableActivity.defn,
+            TableSpaceActivity.defn,
+            K8sNamespaceCreationActivity.defn,
+            K8sSecretCreationActivity.defn,
+            PenknifeNovuSetupActivity.defn,
+            RedisSetupActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            KeycloakClientSetupActivity.defn,
+            KeycloakCreateIDPFlowActivity.defn,
+            KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            KeycloakCreateClientRolesActivity.defn,
+            K8sConfigMapCreationActivity.defn,
+            CreateCloudflareDNSRecordActivity.defn,
+            CopyArtifactsToBucketActivity.defn,
+            CreateCloudflareBucketActivity.defn,
+            LinkBucketToDomainActivity.defn,
+            PropagateDNSRecordActivity.defn,
+            DatabaseMigrationJobActivity.defn,
+            KubernetesStatefulSetActivity.defn,
+            KubernetesServiceActivity.defn,
+            KubernetesIstioVirtualServiceActivity.defn,
+            PenknifeUserSetupActivity.defn
         ]
 
     @classmethod
@@ -156,6 +161,8 @@ class PenknifeOnboardingWorkflow(Workflow):
         last_name = pydash.get(penknife, "lastName")
         email = pydash.get(penknife, "email")
         tenant = pydash.get(penknife, "tenant")
+        tenant_type = pydash.get(penknife, "tenantType")
+        tenant_type = TenantType.get_tenant_type(tenant_type)
 
         try:
             if not pydash.get(penknife, "emailSent"):
@@ -546,7 +553,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                         bucket_name="penknife-config",
                         template_payload={
                             "tenant": tenant,
-                            "tenant_type": TenantType.get_tenant_type(penknife.tenantType),
+                            "tenant_type": tenant_type,
                             "domain": penknife_config.domain_name,
                         },
                     ),
