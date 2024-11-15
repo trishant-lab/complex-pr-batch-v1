@@ -5,14 +5,14 @@ import pydash
 from temporalio import workflow
 
 from app.cli.temporal.activities.cloudflareSetup import (
-    CopyArtifactsToBucketActivity,
-    CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivity,
     CreateCloudflareBucketActivityModel,
     CreateCloudflareDNSRecordActivity,
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
     LinkBucketToDomainActivityModel,
+    PenknifeCopyArtifactsToBucketActivity,
+    PenknifeCopyArtifactsToBucketActivityModel,
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
 )
@@ -131,7 +131,7 @@ class PenknifeOnboardingWorkflow(Workflow):
             KeycloakCreateClientRolesActivity.defn,
             K8sConfigMapCreationActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
-            CopyArtifactsToBucketActivity.defn,
+            PenknifeCopyArtifactsToBucketActivity.defn,
             CreateCloudflareBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
@@ -595,43 +595,6 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
-            # propagate the dns record
-            await workflow.execute_activity(
-                activity=PropagateDNSRecordActivity.defn,
-                arg=PropagateDNSRecordActivityModel(
-                    domain_name=f"{tenant}.api.{penknife_config.domain_name}",
-                ),
-                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
-            )
-
-            repo_name = "penknife-ui"
-            image_tag = "production" if config.env == "production" else "sprint"
-
-            if config.env == "production":
-                dest_dir = f"{bucket_name}/"
-            else:
-                dest_dir = f"{bucket_name}/{image_tag}"
-
-            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
-
-            bundle_path = "bundle/dist"
-
-            # copy artifacts to bucket
-            await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
-                arg=CopyArtifactsToBucketActivityModel(
-                    bucket_name=bucket_name,
-                    src_object_name=src_object_name,
-                    dest_dir=dest_dir,
-                    bundle_path=bundle_path,
-                    bundle_name="bundle.zip",
-                    tenant=tenant,
-                ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
-            )
-
             # for career portal
 
             # dns setup for api
@@ -668,6 +631,18 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
+            # Propagate both the dns record at last, since this is time taking process.
+
+            # propagate the dns record
+            await workflow.execute_activity(
+                activity=PropagateDNSRecordActivity.defn,
+                arg=PropagateDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{penknife_config.domain_name}",
+                ),
+                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
+            )
+
             # propagate the dns record
             await workflow.execute_activity(
                 activity=PropagateDNSRecordActivity.defn,
@@ -678,31 +653,21 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
+            # This activity handle copy of artifacts of both main as well as careerportal
             repo_name = "penknife-ui"
-            image_tag = "production" if config.env == "production" else "sprint"
+            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
-            if config.env == "production":
-                dest_dir = f"{careers_bucket_name}/"
-            else:
-                dest_dir = f"{careers_bucket_name}/{image_tag}"
-
-            src_object_name = "penknife-careers/bundle.zip"
-
-            bundle_path = "bundle/dist"
-
-            # copy artifacts to bucket
             await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
-                arg=CopyArtifactsToBucketActivityModel(
-                    bucket_name=careers_bucket_name,
-                    src_object_name=src_object_name,
-                    dest_dir=dest_dir,
-                    bundle_path=bundle_path,
-                    bundle_name="bundle.zip",
+                activity=PenknifeCopyArtifactsToBucketActivity.defn,
+                arg=PenknifeCopyArtifactsToBucketActivityModel(
                     tenant=tenant,
+                    bucket_name=bucket_name,
+                    careerportal_bucket_name=careers_bucket_name,
+                    src_object_name=src_object_name,
+                    bundle_name="bundle.zip",
                 ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
+                retry_policy=PenknifeCopyArtifactsToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=PenknifeCopyArtifactsToBucketActivity.get_timeout(),
             )
 
             # database migration job

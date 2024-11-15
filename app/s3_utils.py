@@ -149,3 +149,17 @@ def copy_files_to_cloudflare(
         f"mc mirror --remove --overwrite {input_path} launchpad_{tenant}/{output_path}"
     )
     os.system(command)  # nosec
+
+def copy_files_to_cloudflare_with_exclude(
+    tenant: str, input_path: str, output_path: str, exclude_pattern: str, endpoint: str, access_key: str, secret_key: str, session_token: str
+) -> None:
+    """
+    Copy objects from local to cloudflare
+    """
+    session_token = base64.b64decode(session_token).decode("utf-8")
+    url = endpoint.split("://")[1]
+    command = (
+        f"MC_HOST_launchpad_{tenant}=https://{access_key}:{secret_key}:{session_token}@{url} "
+        f"mc mirror --remove --overwrite --exclude \"{exclude_pattern}\" {input_path} launchpad_{tenant}/{output_path}"
+    )
+    os.system(command)  # nosec
