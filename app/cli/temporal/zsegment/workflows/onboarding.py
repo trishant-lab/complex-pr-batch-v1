@@ -1007,6 +1007,17 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="zsegment-engine-dev",
+                    port=8089,
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            )
+
             # For Prod
             await workflow.execute_activity(
                 activity=KubernetesServiceActivity.defn,
@@ -1014,6 +1025,17 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     namespace=tenant,
                     service_name="zsegment-api-prod",
                     port=8090,
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="zsegment-engine-prod",
+                    port=8089,
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
