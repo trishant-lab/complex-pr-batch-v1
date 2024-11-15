@@ -77,7 +77,7 @@ from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMP
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.core.base import Workflow
 
-from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties
+from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties, GiteaService
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
@@ -528,6 +528,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LagoSetupActivity.get_timeout(),
             )
 
+            gitea_username = GiteaService.extract_username(email)
+            gitea_repo_url = f"/repos/{gitea_username}/{tenant}/"
             # setup api-dev-config
             await workflow.execute_activity(
                 activity=K8sConfigMapCreationActivity.defn,
@@ -553,7 +555,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
                         "gitea_api_base_url": zsegment_config.gitea_base_url,
-                        "gitea_api_repo_url": zsegment_config.gitea_api_repo_url,
+                        "gitea_api_repo_url": gitea_repo_url,
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
@@ -616,7 +618,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
                         "gitea_api_base_url": zsegment_config.gitea_base_url,
-                        "gitea_api_repo_url": zsegment_config.gitea_api_repo_url,
+                        "gitea_api_repo_url": gitea_repo_url,
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
