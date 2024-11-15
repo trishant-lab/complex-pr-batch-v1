@@ -166,7 +166,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 )
 
             postgres_schema_name = tenant
-            postgres_database_name = ProductName
+            postgres_database_name = f"{ProductName}-{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
             template_env = get_env(template_path=TemplatePath)
@@ -251,31 +251,8 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            # setup redis
             redis_tenant_password = generate_password(length=20)
-
-            await workflow.execute_activity(
-                activity=RedisSetupActivity.defn,
-                arg=RedisSetupActivityModel(
-                    namespace=tenant,
-                    product=ProductName,
-                    redis_tenant_password=redis_tenant_password,
-                ),
-                retry_policy=RedisSetupActivity.get_retry_policy(),
-                start_to_close_timeout=RedisSetupActivity.get_timeout(),
-            )
-
-            # pvc setup
-            await workflow.execute_activity(
-                activity=PVCSetupActivity.defn,
-                arg=PVCSetupActivityModel(
-                    tenant=tenant,
-                    pvc_name="practifly-pvc",
-                ),
-                retry_policy=PVCSetupActivity.get_retry_policy(),
-                start_to_close_timeout=PVCSetupActivity.get_timeout(),
-            )
-
+            #todo: clear about getting redis password config or generating new one
             # secret setup for docker registry
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
@@ -313,6 +290,29 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=K8sSecretCreationActivity.get_retry_policy(),
                 start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+            )
+
+            # setup redis
+            await workflow.execute_activity(
+                activity=RedisSetupActivity.defn,
+                arg=RedisSetupActivityModel(
+                    namespace=tenant,
+                    product=ProductName,
+                    redis_tenant_password=redis_tenant_password,
+                ),
+                retry_policy=RedisSetupActivity.get_retry_policy(),
+                start_to_close_timeout=RedisSetupActivity.get_timeout(),
+            )
+
+            # pvc setup
+            await workflow.execute_activity(
+                activity=PVCSetupActivity.defn,
+                arg=PVCSetupActivityModel(
+                    tenant=tenant,
+                    pvc_name="practifly-pvc",
+                ),
+                retry_policy=PVCSetupActivity.get_retry_policy(),
+                start_to_close_timeout=PVCSetupActivity.get_timeout(),
             )
 
             # kubernetes service
@@ -450,6 +450,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             # alembic job
+            #todo: clear about alembic job
             await workflow.execute_activity(
                 activity=DatabaseMigrationJobActivity.defn,
                 arg=DatabaseMigrationJobActivityModel(
