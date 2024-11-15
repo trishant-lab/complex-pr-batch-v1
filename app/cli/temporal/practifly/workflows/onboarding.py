@@ -417,6 +417,102 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
+            # keycloak realm setup
+            realm_name = tenant
+            await workflow.execute_activity(
+                activity=KeycloakRealmSetupActivity.defn,
+                arg=KeycloakRealmSetupActivityModel(
+                    tenant=tenant,
+                    domain=practifly_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_realm.json",
+                ),
+                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
+            )
+
+            # keycloak tenant customer admin user setup
+            await workflow.execute_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
+                arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
+                    realm_name=realm_name,
+                    client_name=ProductName,
+                    username="admin",
+                    email="practifly-be@314ecorp.com",
+                    firstname=first_name,
+                    lastname=last_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_admin.json",
+                ),
+                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
+            )
+
+            # vm pod scraper for server
+            await workflow.execute_activity(
+                activity=VMPodScrapperActivity.defn,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="practifly-metrics",
+                    app="practifly",
+                    path="/metrics/",
+                    interval="5s",
+                ),
+                retry_policy=VMPodScrapperActivity.get_retry_policy(),
+                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
+            )
+
+            # vm pod scraper
+            await workflow.execute_activity(
+                activity=VMPodScrapperActivity.defn,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="practifly-cli-metrics",
+                    app="practifly-cli",
+                    path="/metrics/",
+                    interval="5s",
+                ),
+                retry_policy=VMPodScrapperActivity.get_retry_policy(),
+                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
+            )
+
+            # alembic job
+            await workflow.execute_activity(
+                activity=DatabaseMigrationJobActivity.defn,
+                arg=DatabaseMigrationJobActivityModel(
+                    namespace=tenant,
+                    job_name="practifly-tenant-alembic-job",
+                    docker_image=docker_image,
+                    volume_mounts=[
+                        {
+                            "name": "practifly-provisioning-config",
+                            "mount_path": "/provisioningConfig",
+                            "read_only": True,
+                        },
+                    ],
+                    volumes=[
+                        {
+                            "name": "practifly-provisioning-config",
+                            "config_map_name": "practifly-provisioning-config",
+                            "key": "provisioning-config.json",
+                            "path": "provisioning-config.json",
+                        },
+                    ],
+                    container_envs=[
+                        {"name": "DEPLOYMENT", "value": config.env},
+                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {"name": "POSTGRES__USER", "value": postgres_username},
+                        {"name": "RELEASE_VERSION", "value": image_tag},
+                        {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
+                    ],
+                    argument="cd /app && python3 /app/provisioning/alembic_.py --config /provisioningConfig/provisioning-config.json",
+                    job_type="alembic",
+                    product=ProductName,
+                ),
+                retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
+                start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
+            )
+
             repo_name = "practifly-ui"
             image_tag = "production" if config.env == "production" else "sprint"
 
@@ -459,74 +555,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=CopyWebCoreToBucketActivity.get_retry_policy(),
                 start_to_close_timeout=CopyWebCoreToBucketActivity.get_timeout(),
-            )
-
-            # alembic job
-            await workflow.execute_activity(
-                activity=DatabaseMigrationJobActivity.defn,
-                arg=DatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="practifly-tenant-alembic-job",
-                    docker_image=docker_image,
-                    volume_mounts=[
-                        {
-                            "name": "practifly-provisioning-config",
-                            "mount_path": "/provisioningConfig",
-                            "read_only": True,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "practifly-provisioning-config",
-                            "config_map_name": "practifly-provisioning-config",
-                            "key": "provisioning-config.json",
-                            "path": "provisioning-config.json",
-                        },
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
-                    ],
-                    argument="cd /app && python3 /app/provisioning/alembic_.py --config /provisioningConfig/provisioning-config.json",
-                    job_type="alembic",
-                    product=ProductName,
-                ),
-                retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
-                start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
-            )
-
-            # keycloak realm setup
-            realm_name = tenant
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
-                arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
-                    domain=practifly_config.domain_name,
-                    template_path=TemplatePath,
-                    template_name="keycloak_realm.json",
-                ),
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
-            )
-
-            # keycloak tenant customer admin user setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
-                arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=realm_name,
-                    client_name=ProductName,
-                    username="admin",
-                    email="practifly-be@314ecorp.com",
-                    firstname=first_name,
-                    lastname=last_name,
-                    template_path=TemplatePath,
-                    template_name="keycloak_tenant_admin.json",
-                ),
-                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
             # statefulset pod creation for server
@@ -687,34 +715,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
-            )
-
-            # vm pod scraper for server
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="practifly-metrics",
-                    app="practifly",
-                    path="/metrics/",
-                    interval="5s",
-                ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
-            )
-
-            # vm pod scraper
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="practifly-cli-metrics",
-                    app="practifly-cli",
-                    path="/metrics/",
-                    interval="5s",
-                ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # send mail
