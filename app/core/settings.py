@@ -396,7 +396,7 @@ class ZSegmentSettings(BaseModel):
 
     keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
 
-    gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1"
+    gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1/"
     gitea_admin_username: str = ""
     gitea_admin_password: str = ""
     gitea_api_repo_url: str = ""
