@@ -64,8 +64,8 @@ from app.cli.temporal.activities.postgresSetup import (
 )
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
-    SendAfterProvisioningMailActivity,
-    SendAfterProvisioningMailActivityModel,
+    # SendAfterProvisioningMailActivity,
+    # SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
 )
@@ -109,7 +109,7 @@ class PenknifeOnboardingWorkflow(Workflow):
             SendBeforeProvisioningMailActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
             UpdateTenantStatusActivity.defn,
-            SendAfterProvisioningMailActivity.defn,
+            # SendAfterProvisioningMailActivity.defn,
             VMPodScrapperActivity.defn,
             TemporalNamespaceActivity.defn,
             PostgresUserCreationActivity.defn,
@@ -631,6 +631,23 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
+            # This activity handle copy of artifacts of both main as well as careerportal
+            repo_name = "penknife-ui"
+            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+
+            await workflow.execute_activity(
+                activity=PenknifeCopyArtifactsToBucketActivity.defn,
+                arg=PenknifeCopyArtifactsToBucketActivityModel(
+                    tenant=tenant,
+                    bucket_name=bucket_name,
+                    careerportal_bucket_name=careers_bucket_name,
+                    src_object_name=src_object_name,
+                    bundle_name="bundle.zip",
+                ),
+                retry_policy=PenknifeCopyArtifactsToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=PenknifeCopyArtifactsToBucketActivity.get_timeout(),
+            )
+
             # Propagate both the dns record at last, since this is time taking process.
 
             # propagate the dns record
@@ -651,23 +668,6 @@ class PenknifeOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
-            )
-
-            # This activity handle copy of artifacts of both main as well as careerportal
-            repo_name = "penknife-ui"
-            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
-
-            await workflow.execute_activity(
-                activity=PenknifeCopyArtifactsToBucketActivity.defn,
-                arg=PenknifeCopyArtifactsToBucketActivityModel(
-                    tenant=tenant,
-                    bucket_name=bucket_name,
-                    careerportal_bucket_name=careers_bucket_name,
-                    src_object_name=src_object_name,
-                    bundle_name="bundle.zip",
-                ),
-                retry_policy=PenknifeCopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=PenknifeCopyArtifactsToBucketActivity.get_timeout(),
             )
 
             # database migration job
@@ -927,24 +927,25 @@ class PenknifeOnboardingWorkflow(Workflow):
             )
 
             # send mail
-            await workflow.execute_activity(
-                activity=SendAfterProvisioningMailActivity.defn,
-                arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=realm_name,
-                    tenant=tenant,
-                    user_details={
-                        "firstName": first_name,
-                        "lastName": last_name,
-                        "email": email,
-                    },
-                    domain_name=penknife_config.domain_name,
-                    product=ProductName,
-                    from_name=penknife_config.sender_name,
-                    email_from=penknife_config.sender_email,
-                ),
-                retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
-            )
+            # This activity is commented, since adding url and origin to google console need to be done manually, and there is no need of sending any temporary password.
+            # await workflow.execute_activity(
+            #     activity=SendAfterProvisioningMailActivity.defn,
+            #     arg=SendAfterProvisioningMailActivityModel(
+            #         realm_name=realm_name,
+            #         tenant=tenant,
+            #         user_details={
+            #             "firstName": first_name,
+            #             "lastName": last_name,
+            #             "email": email,
+            #         },
+            #         domain_name=penknife_config.domain_name,
+            #         product=ProductName,
+            #         from_name=penknife_config.sender_name,
+            #         email_from=penknife_config.sender_email,
+            #     ),
+            #     retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
+            #     start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
+            # )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
