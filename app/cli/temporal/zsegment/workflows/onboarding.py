@@ -77,7 +77,7 @@ from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMP
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.core.base import Workflow
 
-from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties
+from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties, GiteaService
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
@@ -528,6 +528,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LagoSetupActivity.get_timeout(),
             )
 
+            gitea_username = GiteaService.extract_username(email)
+            gitea_repo_url = f"/repos/{gitea_username}/{tenant}/"
             # setup api-dev-config
             await workflow.execute_activity(
                 activity=K8sConfigMapCreationActivity.defn,
@@ -553,11 +555,12 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
                         "gitea_api_base_url": zsegment_config.gitea_base_url,
-                        "gitea_api_repo_url": zsegment_config.gitea_api_repo_url,
+                        "gitea_api_repo_url": gitea_repo_url,
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
+                        "giteaUserName": gitea_username,
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -585,6 +588,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
+                        "giteaUserName": gitea_username,
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -616,11 +620,12 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
                         "gitea_api_base_url": zsegment_config.gitea_base_url,
-                        "gitea_api_repo_url": zsegment_config.gitea_api_repo_url,
+                        "gitea_api_repo_url": gitea_repo_url,
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
+                        "giteaUserName": gitea_username,
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -648,6 +653,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
+                        "giteaUserName": gitea_username,
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -1005,6 +1011,17 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="zsegment-engine-dev",
+                    port=8089,
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            )
+
             # For Prod
             await workflow.execute_activity(
                 activity=KubernetesServiceActivity.defn,
@@ -1012,6 +1029,17 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     namespace=tenant,
                     service_name="zsegment-api-prod",
                     port=8090,
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="zsegment-engine-prod",
+                    port=8089,
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
