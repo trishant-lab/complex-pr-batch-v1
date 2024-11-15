@@ -21,7 +21,7 @@
 
   "ZSEGMENT-ENGINE.URL": "http://zsegment-engine-{{environment}}.{{tenantName}}.svc.cluster.local:8089",
 
-  "ZSEGMENT.LAGO.BASEURL": "{{lagoUrl}}",
+  "ZSEGMENT.LAGO.BASEURL": "{{lagoUrl}}/api/v1",
   "ZSEGMENT.LAGO.KEY": "{{lagoKey}}",
   "ZSEGMENT.LAGO.CUSTOMER_ID": "{{lagoCustomerId}}",
 
