@@ -7,9 +7,7 @@
         "timezone": "UTC",
         "port": 5432
     },
-    "customer_id": "{{ customerId }}",
     "tenant_name": "{{ tenant }}",
-    "org_name": "{{ orgName }}",
     "cloudinary": {
         "folder": "{{ tenant }}",
         "cloud_name": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudinary_cloud_name{{ close_brackets }}",
