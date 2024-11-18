@@ -286,9 +286,11 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
         else:
             roles = activity_model.roles
 
+        user_id = keycloak_client.get_user_id(username=activity_model.username, realm_name=activity_model.realm_name)
+
         keycloak_client.assign_client_role(
             client_id=client_uuid,
-            user_id=keycloak_client.get_user_id(username=activity_model.email, realm_name=activity_model.realm_name),
+            user_id=user_id,
             roles=roles,
             realm_name=activity_model.realm_name,
         )

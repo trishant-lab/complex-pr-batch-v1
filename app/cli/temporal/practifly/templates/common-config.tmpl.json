@@ -1,0 +1,48 @@
+{  
+    "cloudflare.account_id": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudflare_account_id{{ close_brackets }}",
+    "cloudflare.api_key": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudflare_api_key{{ close_brackets }}",
+    "cloudflare.api_token": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudflare_api_token{{ close_brackets }}",
+    "cloudflare.client_email": "swapnil@practifly.com",
+    "cloudflare.submission_uri": "https://api.cloudflare.com/client/v4",
+
+    "googleclientsecret.project_id": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/google_project_id{{ close_brackets }}",
+    "googleclientsecret.private_key_id": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/google_private_key_id{{ close_brackets }}",
+    "googleclientsecret.private_key": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/google_private_key{{ close_brackets }}",
+    "googleclientsecret.client_email": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/google_client_email{{ close_brackets }}",
+    "googleclientsecret.client_id": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/google_client_id{{ close_brackets }}",
+    "googleclientsecret.auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "googleclientsecret.auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "googleclientsecret.client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/pracserv1%40practifly-1.iam.gserviceaccount.com",
+    "googleclientsecret.type": "service_account",
+    "googleclientsecret.token_uri": "https://oauth2.googleapis.com/token",
+
+    "gitcredentials.user_name": "",
+    "gitcredentials.user_email": "",
+    "gitcredentials.access_token": "",
+    "gitcredentials.local_repo_location": "/home/cli/site_publish",
+    "gitcredentials.clone_url": "",
+    "gitcredentials.branch": "",
+
+    "validation.site_dir": "/home/cli/validation",
+    "validation.pagespeed_api_url": "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
+
+    "recaptcha.recaptcha_api_url": "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    "google_maps_api_key": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/google_maps_api_key{{ close_brackets }}",
+
+    "invalid_page": "/404",
+
+    "sendgrid.api_key": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/sendgrid_api_key{{ close_brackets }}",
+
+    "cloudinary.cloud_name": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudinary_cloud_name{{ close_brackets }}",
+    "cloudinary.api_secret": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudinary_api_secret{{ close_brackets }}",
+    "cloudinary.api_key": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudinary_api_key{{ close_brackets }}",
+
+    "minio.bucket": "practifly-web-core",
+
+    "webcore_r2.url": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/webcore_r2_url{{ close_brackets }}",
+    "webcore_r2.bucket": "practifly-web-core",
+    "webcore_r2.access_key": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/webcore_r2_access_key{{ close_brackets }}",
+    "webcore_r2.secret_key": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/webcore_r2_secret_key{{ close_brackets }}",
+
+    "persistant_path": "/data"
+}

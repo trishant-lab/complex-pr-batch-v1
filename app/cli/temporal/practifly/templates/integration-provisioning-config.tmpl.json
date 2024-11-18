@@ -1,0 +1,21 @@
+
+{
+    "postgres": {
+        "host": "db-cluster-ha.postgresql.svc.cluster.local",
+        "db": "{{ open_brackets }}op://Practifly/application-config/INTEGRATION-CONFIG/postgres_database{{ close_brackets }}",
+        "schema_name": "{{ tenant }}",
+        "timezone": "UTC",
+        "port": 5432
+    },
+    "tenant_name": "{{ tenant }}",
+    "cloudinary": {
+        "folder": "{{ tenant }}",
+        "cloud_name": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudinary_cloud_name{{ close_brackets }}",
+        "api_secret": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudinary_api_secret{{ close_brackets }}",
+        "api_key": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudinary_api_key{{ close_brackets }}"
+    },
+    "cloudflare": {
+        "account_id": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudflare_account_id{{ close_brackets }}",
+        "api_token": "{{ open_brackets }}op://Practifly/application-config/COMMON-CONFIG/cloudflare_api_token{{ close_brackets }}"
+    }
+}
