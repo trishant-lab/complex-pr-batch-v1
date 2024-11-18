@@ -22,6 +22,8 @@ class ResourceKindEnum(Enum):
     PersistentVolume = "PersistentVolume"
     VMPodScrape = "VMPodScrape"
     StatefulSet = "StatefulSet"
+    VeritableTenant = "VeritableTenant"
+    PractiflyTenant = "PractiflyTenant"
 
 
 @lru_cache
@@ -31,6 +33,15 @@ def get_dynamic_client() -> DynamicClient:
     """
     k8s_api_client = api_client.ApiClient(configuration=k8s_config.load_kube_config())
     return DynamicClient(k8s_api_client)
+
+
+@lru_cache
+def get_custom_objects_api() -> api_client.CustomObjectsApi:
+    """
+    Get k8s custom objects api
+    """
+    k8s_api_client = api_client.ApiClient(configuration=k8s_config.load_kube_config())
+    return api_client.CustomObjectsApi(api_client=k8s_api_client)
 
 
 def get_resource(dynamic_client: DynamicClient, kind: ResourceKindEnum, api_version: str) -> Resource:
