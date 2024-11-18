@@ -2,7 +2,7 @@
     "clientId": "auth",
     "name": "",
     "description": "",
-    "rootUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
+    "rootUrl": "https://{{tenant}}.{{domain}}",
     "adminUrl": "https://dashboard.314ecorp.{{domain}}/",
     "baseUrl": "",
     "surrogateAuthRequired": false,
@@ -14,7 +14,7 @@
         "https://dashboard.314ecorp.{{domain}}/*"
     ],
     "webOrigins": [
-        "http://{{tenant}}.penknife.314ecorp.{{domain}}/*",
+        "http://{{tenant}}.{{domain}}/*",
         "https://dashboard.314ecorp.{{domain}}/*"
     ],
     "notBefore": 0,

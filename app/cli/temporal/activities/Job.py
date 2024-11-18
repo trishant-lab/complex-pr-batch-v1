@@ -157,3 +157,43 @@ def delete(k8s_dynamic_client: DynamicClient, resource: Resource, job_name: str,
         k8s_dynamic_client.delete(resource=resource, name=job_name, namespace=namespace)
     except NotFoundError:
         log_error(f"{job_name} job not found for {namespace}")
+
+
+class DeleteJobActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteJobActivityModel
+    """
+
+    namespace: str
+    job_name: str
+
+
+class DeleteJobActivity(Activity):
+    """
+    DeleteJobActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="DeleteJobActivity")
+    async def defn(activity_model: DeleteJobActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        k8s_dynamic_client = get_dynamic_client()
+        resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="v1")
+
+        delete(k8s_dynamic_client, resource, activity_model.job_name, activity_model.namespace)

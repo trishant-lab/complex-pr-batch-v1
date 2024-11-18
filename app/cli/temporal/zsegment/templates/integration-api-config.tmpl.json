@@ -21,7 +21,7 @@
 
   "ZSEGMENT-ENGINE.URL": "http://zsegment-engine-{{environment}}.{{tenantName}}.svc.cluster.local:8089",
 
-  "ZSEGMENT.LAGO.BASEURL": "{{lagoUrl}}",
+  "ZSEGMENT.LAGO.BASEURL": "{{lagoUrl}}/api/v1",
   "ZSEGMENT.LAGO.KEY": "{{lagoKey}}",
   "ZSEGMENT.LAGO.CUSTOMER_ID": "{{lagoCustomerId}}",
 
@@ -45,7 +45,7 @@
   "JGIT.TENANT": "{{tenantName}}",
   "JGIT.GIT.DIR.PARENT": "/data",
   "JGIT.GIT.BRANCH": "{{environment}}",
-  "JGIT.GIT.URL": "http://zsegment-git-server.{{tenantName}}.svc.cluster.local:8084/git/zsegment",
+  "JGIT.GIT.URL": "http://zsegment-git-server.{{tenantName}}.svc.cluster.local:8084/{{giteaUserName}}/{{tenantName}}",
 
   "GITEA.API.BASE.URL": "{{gitea_api_base_url}}",
   "GITEA.API.REPO.URL": "{{gitea_api_repo_url}}",

@@ -83,3 +83,50 @@ class VMPodScrapperActivity(Activity):
             force_conflicts=True,
         )
         log_info(f"VMPodScrapper created in namespace {activity_model.namespace}")
+
+
+class VMPodScrapperDeletionActivityModel(LaunchpadCLIBaseModel):
+    """
+    VMPodScrapperDeletionActivityModel
+    """
+
+    namespace: str
+    name: str
+
+
+class VMPodScrapperDeletionActivity(Activity):
+    """
+    VMPodScrapperDeletionActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="VMPodScrapperDeletionActivity")
+    async def defn(activity_model: VMPodScrapperDeletionActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        k8s_dynamic_client = get_dynamic_client()
+
+        resource = get_resource(
+            dynamic_client=k8s_dynamic_client,
+            kind=ResourceKindEnum.VMPodScrape,
+            api_version="operator.victoriametrics.com/v1beta1",
+        )
+
+        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+
+        log_info(f"VMPodScrapperDeletion deleted in namespace {activity_model.namespace}")

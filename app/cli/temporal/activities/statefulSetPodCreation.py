@@ -179,3 +179,47 @@ class KubernetesStatefulSetActivity(Activity):
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
         resource.server_side_apply(body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True)
         log_info(f"StatefulSetPodCreation created in namespace {activity_model.namespace}")
+
+
+class StatefulSetPodDeletionActivityModel(LaunchpadCLIBaseModel):
+    """
+    StatefulSetPodDeletionActivityModel
+    """
+
+    namespace: str
+    name: str
+
+
+class StatefulSetPodDeletionActivity(Activity):
+    """
+    StatefulSetPodDeletionActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="StatefulSetPodDeletionActivity")
+    async def defn(activity_model: StatefulSetPodDeletionActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        k8s_dynamic_client = get_dynamic_client()
+        resource = get_resource(
+            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
+        )
+
+        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+
+        log_info(f"StatefulSetPodDeletion deleted in namespace {activity_model.namespace}")
