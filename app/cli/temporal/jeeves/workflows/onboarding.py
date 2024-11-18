@@ -15,12 +15,19 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
 )
+from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
 from app.cli.temporal.activities.vespaJob import VespaJobActivity
 from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
 from app.cli.temporal.activities.chatwootSetup import ChatwootSetupActivity, ChatwootSetupActivityModel
 from app.cli.temporal.activities.databaseMigrationJob import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
+)
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordGetActivity,
+    OnePasswordGetActivityModel,
 )
 from app.cli.temporal.activities.jeevesNovuSetup import JeevesNovuSetupActivity
 from app.cli.temporal.activities.k8sIstioVirtualService import (
@@ -84,7 +91,6 @@ from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
     from app.core.settings import AppSettings, JeevesSettings, get_settings
-    from app.onepasswordutil import OnePasswordUtil
     from app.template_env import get_env
 
 
@@ -143,6 +149,9 @@ class JeevesOnboardingWorkflow(Workflow):
             LinkBucketToDomainActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             PropagateDNSRecordActivity.defn,
+            OnePasswordCreateOrUpdateActivity.defn,
+            OnePasswordGetActivity.defn,
+            DeploymentDeletionActivity.defn,
         ]
 
     @classmethod
@@ -164,9 +173,10 @@ class JeevesOnboardingWorkflow(Workflow):
         last_name = pydash.get(jeeves, "lastName")
         email = pydash.get(jeeves, "email")
         tenant = pydash.get(jeeves, "tenant")
+        is_deployment = pydash.get(jeeves, "is_deployment")
 
         try:
-            if not pydash.get(jeeves, "emailSent"):
+            if not pydash.get(jeeves, "emailSent") and not is_deployment:
                 await workflow.execute_activity(
                     activity=SendBeforeProvisioningMailActivity.defn,
                     arg=SendBeforeProvisioningMailActivityModel(
@@ -184,7 +194,8 @@ class JeevesOnboardingWorkflow(Workflow):
                 )
 
             # Wait for approval or denial
-            await workflow.wait_condition(lambda: self.approved or self.deny)
+            if not is_deployment:
+                await workflow.wait_condition(lambda: self.approved or self.deny)
 
             # Update tenant status if request is declined
             if self.deny:
@@ -208,12 +219,6 @@ class JeevesOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/jeeves-app:{image_tag}"
 
-            OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).create_or_replace("pg_password", postgres_password)
-
             await workflow.execute_activity(
                 activity=PostgresUserCreationActivity.defn,
                 arg=PostgresUserCreationActivityModel(
@@ -223,6 +228,19 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=PostgresUserCreationActivity.get_retry_policy(),
                 start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="pg_password",
+                    secret_value=postgres_password,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -362,12 +380,6 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # setup redis
             redis_tenant_password = generate_password(length=20)
-            OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).create_or_replace("redis_password", redis_tenant_password)
-
             await workflow.execute_activity(
                 activity=RedisSetupActivity.defn,
                 arg=RedisSetupActivityModel(
@@ -379,19 +391,45 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="redis_password",
+                    secret_value=redis_tenant_password,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
             # setup tenant configmap
             for config_map in [
-                {"name": "jeeves-tenant-config", "key": "tenant-config.json"},
-                {"name": "jeeves-rclone-config", "key": "rclone.conf"},
-                {"name": "jeeves-cli-vector-config", "key": "vector-config.toml"},
-                {"name": "jeeves-statestore-config", "key": "statestore.yaml"},
+                {
+                    "name": "jeeves-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": "tenant-config.tmpl.json",
+                },
+                {"name": "jeeves-rclone-config", "key": "rclone.conf", "template_file_name": "rclone.tmpl.conf"},
+                {
+                    "name": "jeeves-cli-vector-config",
+                    "key": "vector-config.toml",
+                    "template_file_name": "vector-config.tmpl.toml",
+                },
+                {
+                    "name": "jeeves-statestore-config",
+                    "key": "statestore.yaml",
+                    "template_file_name": "statestore.tmpl.yaml",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
                         bucket_name="jeeves-config",
                         template_payload={"tenant": tenant},
                     ),
@@ -475,7 +513,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
@@ -646,11 +684,17 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
-            dynamic_url_hash_key = OnePasswordUtil(
-                tenant=f"Jeeves_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).get_key("dynamic_url_hash_key")
+            dynamic_url_hash_key = await workflow.execute_activity(
+                activity=OnePasswordGetActivity.defn,
+                arg=OnePasswordGetActivityModel(
+                    tenant="INTEGRATION_COMMON_CONFIG" if config.env != "production" else "PRODUCTION_COMMON_CONFIG",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="dynamic_url_hash_key",
+                ),
+                retry_policy=OnePasswordGetActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
+            )
 
             # statefulset pod creation for server
             await workflow.execute_activity(
@@ -790,6 +834,27 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
+            # delete deployment if exists (for update)
+            await workflow.execute_activity(
+                activity=DeploymentDeletionActivity.defn,
+                arg=DeploymentDeletionActivityModel(
+                    namespace=tenant,
+                    name="jeeves",
+                ),
+                retry_policy=DeploymentDeletionActivity.get_retry_policy(),
+                start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=DeploymentDeletionActivity.defn,
+                arg=DeploymentDeletionActivityModel(
+                    namespace=tenant,
+                    name="jeeves-worker",
+                ),
+                retry_policy=DeploymentDeletionActivity.get_retry_policy(),
+                start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
+            )
+
             # vm pod scraper
             await workflow.execute_activity(
                 activity=VMPodScrapperActivity.defn,
@@ -842,24 +907,25 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # send mail
-            await workflow.execute_activity(
-                activity=SendAfterProvisioningMailActivity.defn,
-                arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=realm_name,
-                    tenant=tenant,
-                    user_details={
-                        "firstName": first_name,
-                        "lastName": last_name,
-                        "email": email,
-                    },
-                    domain_name=jeeves_config.domain_name,
-                    product=ProductName,
-                    from_name=jeeves_config.sender_name,
-                    email_from=jeeves_config.sender_email,
-                ),
-                retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
-            )
+            if not is_deployment:
+                await workflow.execute_activity(
+                    activity=SendAfterProvisioningMailActivity.defn,
+                    arg=SendAfterProvisioningMailActivityModel(
+                        realm_name=realm_name,
+                        tenant=tenant,
+                        user_details={
+                            "firstName": first_name,
+                            "lastName": last_name,
+                            "email": email,
+                        },
+                        domain_name=jeeves_config.domain_name,
+                        product=ProductName,
+                        from_name=jeeves_config.sender_name,
+                        email_from=jeeves_config.sender_email,
+                    ),
+                    retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
+                    start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
+                )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
@@ -867,7 +933,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity.defn,
                 arg=TenantStatus(
                     tenant_name=tenant,
-                    status="Failed",
+                    status="Failed" if not is_deployment else "DeploymentFailed",
                     error_msg=str(e),
                     product=ProductName,
                 ),

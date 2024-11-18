@@ -163,7 +163,7 @@ async def prepare_schema(product: ProductEnum, schema: dict) -> dict:
     #         detail="Tenant name not available",
     #     )
 
-    schema["tenant"] = tenant_name
+    schema["tenant"] = tenant_name if schema.get("tenant") is None else schema.get("tenant")
 
     return schema
 
@@ -307,6 +307,11 @@ async def retry_provisioning(
     Retry provisioning
     """
     config: AppSettings = get_settings()
+
+    product_details = await get_product(product=product)
+    if not product_details:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
+
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
         response = await db.fetch_one("getTenant.sql", tenant_id=str(tenant_id))
@@ -318,9 +323,14 @@ async def retry_provisioning(
         )
         schema = orjson.loads(response["schema"])
         schema["emailSent"] = True
+
+        product_details = dict(product_details)
+
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(schema)
-        await product_workflow.approve(schema)
+
+        if product_details["approvalRequired"]:
+            await product_workflow.approve(schema)
 
         # await product_workflow.approve(schema)
         logger.info(f"Retried provisioning workflow for tenant: {response['name']}")

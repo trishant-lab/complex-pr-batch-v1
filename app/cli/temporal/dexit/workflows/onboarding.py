@@ -33,7 +33,10 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakServiceAccountSetupActivity,
     KeycloakServiceAccountSetupActivityModel,
 )
-from app.cli.temporal.activities.onePassword import OnePasswordActivity, OnePasswordActivityModel
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+)
 from app.cli.temporal.activities.postgresSetup import (
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
@@ -120,7 +123,7 @@ class DexitOnboardingWorkflow(Workflow):
             TemporalSearchAttributesCreationActivity.defn,
             FaxSetupActivity.defn,
             HFInferenceEndpointSetupActivity.defn,
-            OnePasswordActivity.defn,
+            OnePasswordCreateOrUpdateActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             KeycloakServiceAccountSetupActivity.defn,
         ]
@@ -173,16 +176,16 @@ class DexitOnboardingWorkflow(Workflow):
             server_item = "production-config" if config.env == "production" else "integration-config"
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="pg_dicom_password",
                     secret_value=dicom_database_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             # create postgres database for dicom
@@ -218,16 +221,16 @@ class DexitOnboardingWorkflow(Workflow):
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -349,7 +352,7 @@ class DexitOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=dexit_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
@@ -407,16 +410,16 @@ class DexitOnboardingWorkflow(Workflow):
             client_secret = generate_password(length=32)
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="service_account_secret",
                     secret_value=client_secret,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -460,17 +463,30 @@ class DexitOnboardingWorkflow(Workflow):
 
             # setup tenant configmap
             for config_map in [
-                {"name": "dexit-tenant-config", "key": "tenant-config.json"},
-                {"name": "dexit-env-config", "key": "env-config.json"},
-                {"name": "dexit-dicom-config", "key": "dicom-config.json"},
-                {"name": "dexit-cli-vector-config", "key": "vector-config.toml"},
+                {
+                    "name": "dexit-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": "tenant-config.tmpl.json",
+                },
+                {"name": "dexit-env-config", "key": "env-config.json", "template_file_name": "env-config.tmpl.json"},
+                {
+                    "name": "dexit-dicom-config",
+                    "key": "dicom-config.json",
+                    "template_file_name": "dicom-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-cli-vector-config",
+                    "key": "vector-config.toml",
+                    "template_file_name": "vector-config.tmpl.toml",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
                         bucket_name="dexit-config",
                         template_payload={"tenant": tenant},
                     ),

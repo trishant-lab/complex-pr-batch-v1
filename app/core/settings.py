@@ -248,7 +248,8 @@ class PenknifeSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "penknife.314ecorp.tech"
+    domain_name: str = "penknife.tech"
+    zone_id: str = ""
     zone_name: str = "e314ecorptech"
 
     sender_email: str = "developer@314ecorp.com"
@@ -388,17 +389,16 @@ class ZSegmentSettings(BaseModel):
     domain_name: str = "zsegment.tech"
     zone_name: str = "e314ecorptech"
     zone_id: str = ""
-    redpanda_broker: str = "redpanda.redpanda-system.svc.cluster.local:9092"
+    redpanda_broker: str = "redpanda-0.redpanda.redpanda-system.svc.cluster.local:9092"
     redpanda_admin_username: str = "superuser"
     redpanda_admin_password: str = ""
-    redpanda_admin_api_base_url: str = "http://redpanda.redpanda-system.svc.cluster.local:9644"
+    redpanda_admin_api_base_url: str = "http://redpanda-0.redpanda.redpanda-system.svc.cluster.local:9644"
 
     keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
 
-    gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1"
+    gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1/"
     gitea_admin_username: str = ""
     gitea_admin_password: str = ""
-    gitea_api_repo_url: str = ""
     gitea_template_owner: str = ""
 
     lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000"

@@ -53,25 +53,5 @@
     "redirect": {
       "uri": "/sprint/"
     }
-  },
-  {
-    "match": [
-      {
-        "uri": {
-          "prefix": "/"
-        }
-      }
-    ],
-    "name": "zsegment-ui",
-    "route": [
-      {
-        "destination": {
-          "host": "varnish-svc.varnish.svc.cluster.local",
-          "port": {
-            "number": 80
-          }
-        }
-      }
-    ]
   }
 ]

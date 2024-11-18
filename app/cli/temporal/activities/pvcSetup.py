@@ -74,3 +74,45 @@ class PVCSetupActivity(Activity):
         )
 
         log_info(f"PVC {activity_model.pvc_name} created successfully")
+
+
+class PVCDeletionActivityModel(LaunchpadCLIBaseModel):
+    """
+    Model for PVCDeletionActivity
+    """
+
+    tenant: str
+    pvc_name: str
+
+
+class PVCDeletionActivity(Activity):
+    """
+    Activity to delete PVC
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="PVCDeletionActivity")
+    async def defn(activity_model: PVCDeletionActivityModel) -> None:
+        """
+        Activity definition
+        """
+        k8s_dynamic_client = get_dynamic_client()
+        pvc_resource = get_resource(
+            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.PersistentVolumeClaim, api_version="v1"
+        )
+
+        k8s_dynamic_client.delete(resource=pvc_resource, name=activity_model.pvc_name, namespace=activity_model.tenant)
