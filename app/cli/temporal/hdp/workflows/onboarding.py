@@ -354,9 +354,13 @@ class HDPOnboardingWorkflow(Workflow):
                 {
                     "name": "hdp-tenant-config",
                     "key": "tenant-config.json",
-                    "template_file_name": "tenant-config.tmpl.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
-                {"name": "kestra-config", "key": "kestra-config.yml", "template_file_name": "kestra-config.tmpl.yml"},
+                {
+                    "name": "kestra-config",
+                    "key": "kestra-config.yml",
+                    "template_file_name": f"{config.env}-kestra-config.tmpl.yml",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,

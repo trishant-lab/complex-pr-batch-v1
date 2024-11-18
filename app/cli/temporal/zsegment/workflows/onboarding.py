@@ -536,7 +536,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="api-dev-config",
-                    template_file_name="api-config.tmpl.json",
+                    template_file_name=f"{config.env}-api-config.tmpl.json",
                     destination_file_name="api-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
@@ -574,7 +574,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="engine-dev-config",
-                    template_file_name="engine-config.tmpl.json",
+                    template_file_name=f"{config.env}-engine-config.tmpl.json",
                     destination_file_name="engine-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
@@ -603,7 +603,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="api-prod-config",
-                    template_file_name="api-config.tmpl.json",
+                    template_file_name=f"{config.env}-api-config.tmpl.json",
                     destination_file_name="api-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
@@ -641,7 +641,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="engine-prod-config",
-                    template_file_name="engine-config.tmpl.json",
+                    template_file_name=f"{config.env}-engine-config.tmpl.json",
                     destination_file_name="engine-config.json",
                     bucket_name="zsegment-config",
                     template_payload={

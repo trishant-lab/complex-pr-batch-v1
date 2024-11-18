@@ -466,18 +466,22 @@ class DexitOnboardingWorkflow(Workflow):
                 {
                     "name": "dexit-tenant-config",
                     "key": "tenant-config.json",
-                    "template_file_name": "tenant-config.tmpl.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
-                {"name": "dexit-env-config", "key": "env-config.json", "template_file_name": "env-config.tmpl.json"},
+                {
+                    "name": "dexit-env-config",
+                    "key": "env-config.json",
+                    "template_file_name": f"{config.env}-env-config.tmpl.json",
+                },
                 {
                     "name": "dexit-dicom-config",
                     "key": "dicom-config.json",
-                    "template_file_name": "dicom-config.tmpl.json",
+                    "template_file_name": f"{config.env}-dicom-config.tmpl.json",
                 },
                 {
                     "name": "dexit-cli-vector-config",
                     "key": "vector-config.toml",
-                    "template_file_name": "vector-config.tmpl.toml",
+                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
                 },
             ]:
                 await workflow.execute_activity(

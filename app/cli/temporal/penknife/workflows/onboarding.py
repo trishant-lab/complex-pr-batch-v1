@@ -543,17 +543,17 @@ class PenknifeOnboardingWorkflow(Workflow):
                 {
                     "name": "penknife-tenant-config",
                     "key": "tenant-config.json",
-                    "template_file_name": "tenant-config.tmpl.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "penknife-cli-vector-config",
                     "key": "vector-config.toml",
-                    "template_file_name": "vector-config.tmpl.toml",
+                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
                 },
                 {
                     "name": "penknife-statestore-config",
                     "key": "statestore.yaml",
-                    "template_file_name": "statestore.tmpl.yaml",
+                    "template_file_name": f"{config.env}-statestore.tmpl.yaml",
                 },
             ]:
                 await workflow.execute_activity(

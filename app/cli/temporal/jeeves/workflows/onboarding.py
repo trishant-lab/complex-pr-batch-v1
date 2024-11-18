@@ -409,18 +409,18 @@ class JeevesOnboardingWorkflow(Workflow):
                 {
                     "name": "jeeves-tenant-config",
                     "key": "tenant-config.json",
-                    "template_file_name": "tenant-config.tmpl.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {"name": "jeeves-rclone-config", "key": "rclone.conf", "template_file_name": "rclone.tmpl.conf"},
                 {
                     "name": "jeeves-cli-vector-config",
                     "key": "vector-config.toml",
-                    "template_file_name": "vector-config.tmpl.toml",
+                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
                 },
                 {
                     "name": "jeeves-statestore-config",
                     "key": "statestore.yaml",
-                    "template_file_name": "statestore.tmpl.yaml",
+                    "template_file_name": f"{config.env}-statestore.tmpl.yaml",
                 },
             ]:
                 await workflow.execute_activity(
