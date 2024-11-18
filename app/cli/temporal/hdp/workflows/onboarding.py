@@ -351,15 +351,20 @@ class HDPOnboardingWorkflow(Workflow):
 
             # setup tenant configmap
             for config_map in [
-                {"name": "hdp-tenant-config", "key": "tenant-config.json"},
-                {"name": "kestra-config", "key": "kestra-config.yml"},
+                {
+                    "name": "hdp-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": "tenant-config.tmpl.json",
+                },
+                {"name": "kestra-config", "key": "kestra-config.yml", "template_file_name": "kestra-config.tmpl.yml"},
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
                         bucket_name="hdp-config",
                         template_payload={"tenant": tenant},
                     ),

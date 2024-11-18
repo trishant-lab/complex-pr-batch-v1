@@ -26,6 +26,7 @@ class K8sConfigMapCreationActivityModel(LaunchpadCLIBaseModel):
     namespace: str
     name: str
     template_file_name: str
+    destination_file_name: str
     bucket_name: str | None = None
     cloudflare_r2_folder_path: str | None = None
     template_payload: dict
@@ -53,18 +54,11 @@ class K8sConfigMapCreationActivity(Activity):
         Callable for the activity
         """
         app_config: AppSettings = get_settings()
-        env = app_config.env
 
         k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1")
 
-        template_file_name = f"""{env}-{activity_model.template_file_name
-            .replace('.json', '.tmpl.json')
-            .replace('.toml', '.tmpl.toml')
-            .replace('.yaml', '.tmpl.yaml')
-            .replace('.conf', '.tmpl.conf')
-            .replace('.yml', '.tmpl.yml')
-            }"""
+        template_file_name = activity_model.template_file_name
 
         with TemporaryDirectory() as temp_dir:
             s3_client: boto3.client = (
@@ -112,7 +106,7 @@ class K8sConfigMapCreationActivity(Activity):
             # inject secret into tenant-config.json from 1Password
             secret_inject(
                 source_file_path=f"{temp_dir}/{template_file_name}",
-                destination_path=f"{temp_dir}/{activity_model.template_file_name}",
+                destination_path=f"{temp_dir}/{activity_model.destination_file_name}",
             )
 
             body = V1ConfigMap(
@@ -120,7 +114,7 @@ class K8sConfigMapCreationActivity(Activity):
                 kind=ResourceKindEnum.ConfigMap.value,
                 metadata=V1ObjectMeta(namespace=activity_model.namespace, name=activity_model.name),
                 data={
-                    activity_model.template_file_name: open(f"{temp_dir}/{activity_model.template_file_name}").read()
+                    activity_model.template_file_name: open(f"{temp_dir}/{activity_model.destination_file_name}").read()
                 },
             )
 

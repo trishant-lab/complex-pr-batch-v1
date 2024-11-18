@@ -406,17 +406,30 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # setup tenant configmap
             for config_map in [
-                {"name": "jeeves-tenant-config", "key": "tenant-config.json"},
-                {"name": "jeeves-rclone-config", "key": "rclone.conf"},
-                {"name": "jeeves-cli-vector-config", "key": "vector-config.toml"},
-                {"name": "jeeves-statestore-config", "key": "statestore.yaml"},
+                {
+                    "name": "jeeves-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": "tenant-config.tmpl.json",
+                },
+                {"name": "jeeves-rclone-config", "key": "rclone.conf", "template_file_name": "rclone.tmpl.conf"},
+                {
+                    "name": "jeeves-cli-vector-config",
+                    "key": "vector-config.toml",
+                    "template_file_name": "vector-config.tmpl.toml",
+                },
+                {
+                    "name": "jeeves-statestore-config",
+                    "key": "statestore.yaml",
+                    "template_file_name": "statestore.tmpl.yaml",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
                         bucket_name="jeeves-config",
                         template_payload={"tenant": tenant},
                     ),

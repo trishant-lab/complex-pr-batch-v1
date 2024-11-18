@@ -139,7 +139,7 @@ class PenknifeOnboardingWorkflow(Workflow):
             KubernetesStatefulSetActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
-            PenknifeUserSetupActivity.defn
+            PenknifeUserSetupActivity.defn,
         ]
 
     @classmethod
@@ -540,16 +540,29 @@ class PenknifeOnboardingWorkflow(Workflow):
 
             # setup tenant configmap
             for config_map in [
-                {"name": "penknife-tenant-config", "key": "tenant-config.json"},
-                {"name": "penknife-cli-vector-config", "key": "vector-config.toml"},
-                {"name": "penknife-statestore-config", "key": "statestore.yaml"},
+                {
+                    "name": "penknife-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": "tenant-config.tmpl.json",
+                },
+                {
+                    "name": "penknife-cli-vector-config",
+                    "key": "vector-config.toml",
+                    "template_file_name": "vector-config.tmpl.toml",
+                },
+                {
+                    "name": "penknife-statestore-config",
+                    "key": "statestore.yaml",
+                    "template_file_name": "statestore.tmpl.yaml",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
                         bucket_name="penknife-config",
                         template_payload={
                             "tenant": tenant,
@@ -927,7 +940,8 @@ class PenknifeOnboardingWorkflow(Workflow):
             )
 
             # send mail
-            # This activity is commented, since adding url and origin to google console need to be done manually, and there is no need of sending any temporary password.
+            # This activity is commented, since adding url and origin to google console need to be done manually, and
+            # there is no need of sending any temporary password.
             # await workflow.execute_activity(
             #     activity=SendAfterProvisioningMailActivity.defn,
             #     arg=SendAfterProvisioningMailActivityModel(

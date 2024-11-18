@@ -463,17 +463,30 @@ class DexitOnboardingWorkflow(Workflow):
 
             # setup tenant configmap
             for config_map in [
-                {"name": "dexit-tenant-config", "key": "tenant-config.json"},
-                {"name": "dexit-env-config", "key": "env-config.json"},
-                {"name": "dexit-dicom-config", "key": "dicom-config.json"},
-                {"name": "dexit-cli-vector-config", "key": "vector-config.toml"},
+                {
+                    "name": "dexit-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": "tenant-config.tmpl.json",
+                },
+                {"name": "dexit-env-config", "key": "env-config.json", "template_file_name": "env-config.tmpl.json"},
+                {
+                    "name": "dexit-dicom-config",
+                    "key": "dicom-config.json",
+                    "template_file_name": "dicom-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-cli-vector-config",
+                    "key": "vector-config.toml",
+                    "template_file_name": "vector-config.tmpl.toml",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
                         bucket_name="dexit-config",
                         template_payload={"tenant": tenant},
                     ),
