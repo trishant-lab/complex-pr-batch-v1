@@ -576,6 +576,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             src_object_name = f"{repo_name}/{image_tag}/release.zip"
+            bucket_name = "practifly-web-core"
             dest_dir = f"{image_tag}/{bucket_name}"
 
             # copy webcore to bucket
