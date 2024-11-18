@@ -66,6 +66,15 @@ from app.cli.temporal.activities.databaseMigrationJob import (
     DatabaseMigrationJobActivityModel,
 )
 
+from app.cli.temporal.activities.tenantCrd import (
+    TenantCrdCreationActivity,
+    TenantCrdCreationActivityModel,
+    GetTenantCrdActivity,
+    GetTenantCrdActivityModel,
+)
+
+from app.cli.k8s_util import ResourceKindEnum
+
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
     from app.core.settings import AppSettings, PractiflySettings, get_settings
@@ -118,6 +127,8 @@ class PractiflyOnboardingWorkflow(Workflow):
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
             TemporalNamespaceActivity.defn,
+            GetTenantCrdActivity.defn,
+            TenantCrdCreationActivity.defn,
         ]
 
     @workflow.run
@@ -134,6 +145,24 @@ class PractiflyOnboardingWorkflow(Workflow):
         email = pydash.get(practifly, "email")
 
         try:
+            # get tenant crd
+            response = await workflow.execute_activity(
+                activity=GetTenantCrdActivity.defn,
+                arg=GetTenantCrdActivityModel(
+                    tenant=tenant,
+                    kind=ResourceKindEnum.PractiflyTenant,
+                    product=ProductName,
+                ),
+                retry_policy=GetTenantCrdActivity.get_retry_policy(),
+                start_to_close_timeout=GetTenantCrdActivity.get_timeout(),
+            )
+
+            if [
+                item
+                for item in response.get("items", [])
+                if response and item.get("metadata", {}).get("name") == tenant
+            ]:
+                raise Exception(f"Tenant {tenant} already exists")  # noqa: TRY301
             if not pydash.get(practifly, "emailSent"):
                 await workflow.execute_activity(
                     activity=SendBeforeProvisioningMailActivity.defn,
@@ -518,7 +547,10 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
                     ],
-                    argument="cd /app && python3 /app/provisioning/alembic_.py --config /provisioningConfig/provisioning-config.json",
+                    argument=(
+                        "cd /app && python3 /app/provisioning/alembic_.py "
+                        "--config /provisioningConfig/provisioning-config.json"
+                    ),
                     job_type="alembic",
                     product=ProductName,
                 ),
@@ -730,6 +762,18 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
+            # update tenant status
+            await workflow.execute_activity(
+                activity=UpdateTenantStatusActivity.defn,
+                arg=TenantStatus(
+                    tenant_name=tenant,
+                    status="Completed",
+                    product=ProductName,
+                ),
+                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
+                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
+            )
+
             # send mail
             await workflow.execute_activity(
                 activity=SendAfterProvisioningMailActivity.defn,
@@ -748,6 +792,19 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
                 start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
+            )
+
+            # create tenant crd
+            await workflow.execute_activity(
+                activity=TenantCrdCreationActivity.defn,
+                arg=TenantCrdCreationActivityModel(
+                    tenant=tenant,
+                    kind=ResourceKindEnum.PractiflyTenant,
+                    product=ProductName,
+                    data=orjson.dumps(practifly),
+                ),
+                retry_policy=TenantCrdCreationActivity.get_retry_policy(),
+                start_to_close_timeout=TenantCrdCreationActivity.get_timeout(),
             )
 
         except Exception as e:
