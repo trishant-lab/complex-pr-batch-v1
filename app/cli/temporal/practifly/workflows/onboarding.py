@@ -355,21 +355,43 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
+            # kubernetes config map creation
             for config_map in [
-                {"name": "practifly-common-config", "key": "common-config.json"},
-                {"name": "practifly-env-config", "key": "env-config.json"},
-                {"name": "practifly-tenant-config", "key": "tenant-config.json"},
-                {"name": "practifly-cli-vector-config", "key": "vector-config.toml"},
-                {"name": "practifly-provisioning-config", "key": "provisioning-config.json"},
+                {
+                    "name": "practifly-common-config",
+                    "key": "common-config.json",
+                    "template_file_name": "common-config.tmpl.json",
+                },
+                {
+                    "name": "practifly-env-config",
+                    "key": "env-config.json",
+                    "template_file_name": f"{config.env}-env-config.tmpl.json",
+                },
+                {
+                    "name": "practifly-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                },
+                {
+                    "name": "practifly-cli-vector-config",
+                    "key": "vector-config.toml",
+                    "template_file_name": "vector-config.tmpl.toml",
+                },
+                {
+                    "name": "practifly-provisioning-config",
+                    "key": "provisioning-config.json",
+                    "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
+                        template_file_name=config_map["template_file_name"],
                         cloudflare_r2_folder_path="practifly-config",
                         template_payload={"tenant": tenant},
+                        destination_file_name=config_map["key"],
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
                     start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
