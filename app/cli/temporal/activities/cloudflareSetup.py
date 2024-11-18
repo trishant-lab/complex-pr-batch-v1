@@ -3,6 +3,8 @@ import socket
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
+from app.s3_utils import copy_files_to_cloudflare_with_exclude
+
 
 with workflow.unsafe.imports_passed_through():
     import zipfile
@@ -371,3 +373,129 @@ class PropagateDNSRecordActivity(Activity):
                     raise Exception(f"DNS propagation check timed out after [10 min]: {activity_input.domain_name}")
                 log_info(f"DNS not propagated yet: {activity_input.domain_name}")
                 await asyncio.sleep(10)
+
+
+class PenknifeCopyArtifactsToBucketActivityModel(LaunchpadCLIBaseModel):
+    """
+    PenknifeCopyArtifactsToBucketActivityModel
+    """
+
+    tenant: str
+    bucket_name: str
+    careerportal_bucket_name: str
+    src_object_name: str
+    bundle_name: str
+
+
+class PenknifeCopyArtifactsToBucketActivity(Activity):
+    """
+    PenknifeCopyArtifactsToBucketActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="PenknifeCopyArtifactsToBucketActivity")
+    async def defn(activity_input: PenknifeCopyArtifactsToBucketActivityModel) -> None:
+        """
+        Copy artifacts to a bucket
+        """
+        config: AppSettings = get_settings()
+
+        environment: str = config.env
+
+        artifacts_access_key = config.cloudflare.r2_access_key
+        artifacts_secret_key = config.cloudflare.r2_secret_key
+
+        artifacts_s3_client = get_storage_client(
+            config=config,
+            access_key=artifacts_access_key,
+            secret_key=artifacts_secret_key,
+            endpoint=config.cloudflare.r2_endpoint,
+        )
+
+        try:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                download_file_from_storage(
+                    object_name=activity_input.src_object_name,
+                    file_path=f"{tmp_dir}/{activity_input.bundle_name}",
+                    storage_client=artifacts_s3_client,
+                    bucket_name="artifacts",
+                )
+
+                # unzip the file
+                with zipfile.ZipFile(f"{tmp_dir}/{activity_input.bundle_name}", "r") as zip_ref:
+                    zip_ref.extractall(f"{tmp_dir}/bundle")
+
+
+                # copy artifacts for main UI
+
+                bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
+                bucket_access_key = bucket_temporary_credentials.access_key_id
+                bucket_secret_key = bucket_temporary_credentials.secret_access_key
+
+                image_tag = "production" if environment == "production" else "sprint"
+
+                if environment == "production":
+                    dest_dir = f"{activity_input.bucket_name}/"
+                else:
+                    dest_dir = f"{activity_input.bucket_name}/{image_tag}"
+
+                copy_files_to_cloudflare_with_exclude(
+                    tenant=activity_input.tenant,
+                    input_path=f"{tmp_dir}/bundle/dist",
+                    output_path=dest_dir,
+                    exclude_pattern="dist/careerpages/**",
+                    endpoint=config.cloudflare.r2_endpoint,
+                    access_key=bucket_access_key,
+                    secret_key=bucket_secret_key,
+                    session_token=bucket_temporary_credentials.session_token,
+                )
+
+                # copy artifacts for careerportal UI
+
+                bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.careerportal_bucket_name)
+                bucket_access_key = bucket_temporary_credentials.access_key_id
+                bucket_secret_key = bucket_temporary_credentials.secret_access_key
+
+                # copy "apply" directory
+                copy_files_to_cloudflare(
+                    tenant=activity_input.tenant,
+                    input_path=f"{tmp_dir}/bundle/dist/careerpages/apply",
+                    output_path=f"{activity_input.careerportal_bucket_name}/apply",
+                    endpoint=config.cloudflare.r2_endpoint,
+                    access_key=bucket_access_key,
+                    secret_key=bucket_secret_key,
+                    session_token=bucket_temporary_credentials.session_token,
+                )
+
+                # copy "public" directory
+                copy_files_to_cloudflare(
+                    tenant=activity_input.tenant,
+                    input_path=f"{tmp_dir}/bundle/dist/careerpages/public",
+                    output_path=f"{activity_input.careerportal_bucket_name}/public",
+                    endpoint=config.cloudflare.r2_endpoint,
+                    access_key=bucket_access_key,
+                    secret_key=bucket_secret_key,
+                    session_token=bucket_temporary_credentials.session_token,
+                )
+
+                # todo: check artifact copy for production, since we are using tag based copy from artifact
+
+                log_info(f"UI setup completed for {activity_input.tenant}")
+
+        except Exception as e:
+            log_error(f"Error downloading UI bundle: {e}")
+            raise e

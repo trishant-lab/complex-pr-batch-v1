@@ -46,7 +46,7 @@ class PenknifeUserSetupActivity(Activity):
         NovuSetup(penknife=penknife).create_subscriber_in_novu(subscriber_id=subscriber_id)
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-        keycloak_user_id = await keycloak_client.get_user_id(username=penknife.email, realm_name=penknife.tenant)
+        keycloak_user_id = keycloak_client.get_user_id(username=penknife.email, realm_name=penknife.tenant)
 
         penknife_config: PenknifeSettings = get_settings().penknife
 
