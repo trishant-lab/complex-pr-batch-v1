@@ -131,6 +131,13 @@ class PractiflyOnboardingWorkflow(Workflow):
             TenantCrdCreationActivity.defn,
         ]
 
+    @classmethod
+    def get_workflow_id(cls: "Workflow", practifly: PractiflySpec) -> str:
+        """
+        Return workflow id
+        """
+        return f"practifly_onboarding_workflow_{pydash.get(practifly, 'tenant')}"
+
     @workflow.run
     async def run(self: "Workflow", practifly: PractiflySpec) -> None:
         """
