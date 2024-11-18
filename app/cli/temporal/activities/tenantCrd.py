@@ -3,7 +3,7 @@ from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
-    from app.cli.k8s_util import ResourceKindEnum, get_custom_objects_api
+    from app.cli.k8s_util import get_custom_objects_api
     from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
     from app.cli.temporal.core.log import log_info
 
@@ -13,7 +13,7 @@ class TenantCrdCreationActivityModel(LaunchpadCLIBaseModel):
     TenantCrdCreationActivityModel
     """
 
-    kind: ResourceKindEnum
+    kind: str
     tenant: str
     data: dict | None = None
     product: str
@@ -48,7 +48,7 @@ class TenantCrdCreationActivity(Activity):
 
         body = {
             "apiVersion": "apiextensions.k8s.io/v1",
-            "kind": activity_model.kind.value,
+            "kind": activity_model.kind,
             "metadata": {
                 "name": f"{activity_model.product}-{activity_model.tenant}",
                 "namespace": "default",
@@ -66,7 +66,7 @@ class TenantCrdCreationActivity(Activity):
             plural=f"{activity_model.product.lower()}tenants",
             body=body,
         )
-        log_info(f"{activity_model.kind.value} {activity_model.tenant} created")
+        log_info(f"{activity_model.kind} {activity_model.tenant} created")
 
 
 class TenantCrdDeletionActivityModel(LaunchpadCLIBaseModel):
@@ -74,7 +74,7 @@ class TenantCrdDeletionActivityModel(LaunchpadCLIBaseModel):
     TenantCrdDeletionActivityModel
     """
 
-    kind: ResourceKindEnum
+    kind: str
     tenant: str
     product: str
 
@@ -120,8 +120,7 @@ class GetTenantCrdActivityModel(LaunchpadCLIBaseModel):
     GetTenantCrdActivityModel
     """
 
-    kind: ResourceKindEnum
-    tenant: str
+    kind: str
     product: str
 
 
@@ -157,5 +156,4 @@ class GetTenantCrdActivity(Activity):
             version="v1",
             namespace="default",
             plural=f"{activity_model.product.lower()}tenants",
-            name=f"{activity_model.product}-{activity_model.tenant}",
         )

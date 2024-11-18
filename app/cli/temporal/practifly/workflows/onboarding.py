@@ -73,8 +73,6 @@ from app.cli.temporal.activities.tenantCrd import (
     GetTenantCrdActivityModel,
 )
 
-from app.cli.k8s_util import ResourceKindEnum
-
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
     from app.core.settings import AppSettings, PractiflySettings, get_settings
@@ -118,7 +116,6 @@ class PractiflyOnboardingWorkflow(Workflow):
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             RedisSetupActivity.defn,
-            K8sConfigMapCreationActivity.defn,
             DatabaseMigrationJobActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
@@ -157,7 +154,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=GetTenantCrdActivity.defn,
                 arg=GetTenantCrdActivityModel(
                     tenant=tenant,
-                    kind=ResourceKindEnum.PractiflyTenant,
+                    kind="PractiflyTenant",
                     product=ProductName,
                 ),
                 retry_policy=GetTenantCrdActivity.get_retry_policy(),
@@ -830,7 +827,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=TenantCrdCreationActivity.defn,
                 arg=TenantCrdCreationActivityModel(
                     tenant=tenant,
-                    kind=ResourceKindEnum.PractiflyTenant,
+                    kind="PractiflyTenant",
                     product=ProductName,
                     data=orjson.dumps(practifly),
                 ),
