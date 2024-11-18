@@ -66,13 +66,6 @@ from app.cli.temporal.activities.databaseMigrationJob import (
     DatabaseMigrationJobActivityModel,
 )
 
-from app.cli.temporal.activities.tenantCrd import (
-    TenantCrdCreationActivity,
-    TenantCrdCreationActivityModel,
-    GetTenantCrdActivity,
-    GetTenantCrdActivityModel,
-)
-
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
     from app.core.settings import AppSettings, PractiflySettings, get_settings
@@ -100,40 +93,33 @@ class PractiflyOnboardingWorkflow(Workflow):
         """
         return [
             SendBeforeProvisioningMailActivity.defn,
-            SendAfterProvisioningMailActivity.defn,
-            UpdateTenantStatusActivity.defn,
+            K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
-            KeycloakRealmSetupActivity.defn,
-            KeycloakCreateTenantCustomerAdminUserActivity.defn,
-            VMPodScrapperActivity.defn,
-            PVCSetupActivity.defn,
-            K8sConfigMapCreationActivity.defn,
             K8sSecretCreationActivity.defn,
+            RedisSetupActivity.defn,
+            PVCSetupActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
-            RedisSetupActivity.defn,
-            DatabaseMigrationJobActivity.defn,
+            K8sConfigMapCreationActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
-            CopyArtifactsToBucketActivity.defn,
-            CopyWebCoreToBucketActivity.defn,
             CreateCloudflareBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            KeycloakCreateTenantCustomerAdminUserActivity.defn,
             TemporalNamespaceActivity.defn,
-            GetTenantCrdActivity.defn,
-            TenantCrdCreationActivity.defn,
+            VMPodScrapperActivity.defn,
+            DatabaseMigrationJobActivity.defn,
+            CopyArtifactsToBucketActivity.defn,
+            CopyWebCoreToBucketActivity.defn,
+            KubernetesStatefulSetActivity.defn,
+            UpdateTenantStatusActivity.defn,
+            SendAfterProvisioningMailActivity.defn,
         ]
-
-    @classmethod
-    def get_workflow_id(cls: "Workflow", practifly: PractiflySpec) -> str:
-        """
-        Return workflow id
-        """
-        return f"practifly_onboarding_workflow_{pydash.get(practifly, 'tenant')}"
 
     @workflow.run
     async def run(self: "Workflow", practifly: PractiflySpec) -> None:
@@ -149,25 +135,6 @@ class PractiflyOnboardingWorkflow(Workflow):
         email = pydash.get(practifly, "email")
 
         try:
-            # get tenant crd
-            response = await workflow.execute_activity(
-                activity=GetTenantCrdActivity.defn,
-                arg=GetTenantCrdActivityModel(
-                    tenant=tenant,
-                    kind="PractiflyTenant",
-                    product=ProductName,
-                ),
-                retry_policy=GetTenantCrdActivity.get_retry_policy(),
-                start_to_close_timeout=GetTenantCrdActivity.get_timeout(),
-            )
-
-            if [
-                item
-                for item in response.get("items", [])
-                if response and item.get("metadata", {}).get("name") == tenant
-            ]:
-                raise Exception(f"Tenant {tenant} already exists")  # noqa: TRY301
-
             if not pydash.get(practifly, "emailSent"):
                 await workflow.execute_activity(
                     activity=SendBeforeProvisioningMailActivity.defn,
@@ -793,11 +760,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=tenant,
-                    status="Completed",
-                    product=ProductName,
-                ),
+                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
@@ -820,19 +783,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
                 start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
-            )
-
-            # create tenant crd
-            await workflow.execute_activity(
-                activity=TenantCrdCreationActivity.defn,
-                arg=TenantCrdCreationActivityModel(
-                    tenant=tenant,
-                    kind="PractiflyTenant",
-                    product=ProductName,
-                    data=orjson.dumps(practifly),
-                ),
-                retry_policy=TenantCrdCreationActivity.get_retry_policy(),
-                start_to_close_timeout=TenantCrdCreationActivity.get_timeout(),
             )
 
         except Exception as e:
