@@ -163,6 +163,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 if response and item.get("metadata", {}).get("name") == tenant
             ]:
                 raise Exception(f"Tenant {tenant} already exists")  # noqa: TRY301
+
             if not pydash.get(practifly, "emailSent"):
                 await workflow.execute_activity(
                     activity=SendBeforeProvisioningMailActivity.defn,
