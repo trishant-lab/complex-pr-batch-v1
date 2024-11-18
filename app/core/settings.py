@@ -19,8 +19,16 @@ CONFIG_FILE_NAMES: Final[list[str]] = [
     "dexit.json",
     "penknife.json",
     "zsegment.json",
+    "practifly.json",
 ]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["veritable.json", "jeeves.json", "dexit.json", "penknife.json", "zsegment.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = [
+    "veritable.json",
+    "jeeves.json",
+    "dexit.json",
+    "penknife.json",
+    "zsegment.json",
+    "practifly.json",
+]
 
 
 class KeycloakSettings(BaseModel):
@@ -420,6 +428,10 @@ class PractiflySettings(BaseModel):
     Practifly Settings
     """
 
+    zone_id: str = ""
+    domain_name: str = "practifly.tech"
+    sender_name: str = ""
+    sender_email: str = ""
     temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
     temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
 

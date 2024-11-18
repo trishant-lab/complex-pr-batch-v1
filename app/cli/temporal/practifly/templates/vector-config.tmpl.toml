@@ -1,0 +1,23 @@
+[log_schema]
+host_key = "host"
+message_key = "message"
+source_type_key = "source_type"
+timestamp_key = "timestamp"
+
+# sources for logs
+
+[sources.custom_logs]
+type = "file"
+include = ["/var/log/supervisord/practifly_*"]
+fingerprint.strategy = "device_and_inode"
+
+[sinks.vector_sink]
+type = "loki"
+inputs = ["custom_logs"]
+endpoint = "http://loki.monitoring-system.svc.cluster.local:3100"
+
+[sinks.vector_sink.encoding]
+codec = "json"
+
+[sinks.vector_sink.labels]
+name = "practifly_custom_logs_{{ tenant }}"
