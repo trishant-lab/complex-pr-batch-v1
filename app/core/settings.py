@@ -436,6 +436,19 @@ class PractiflySettings(BaseModel):
     temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
 
 
+class VeritableSettings(BaseModel):
+    """
+    Veritable Settings
+    """
+
+    zone_id: str = ""
+    domain_name: str = "veritable.tech"
+    sender_name: str = ""
+    sender_email: str = ""
+    temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
+    temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
