@@ -794,6 +794,10 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "key": "vector-config.toml",
                             "path": "vector-config.toml",
                         },
+                        {
+                            "name": "practifly-pvc",
+                            "persistent_volume_claim": "practifly-pvc",
+                        },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
