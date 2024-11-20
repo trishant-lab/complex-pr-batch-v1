@@ -1,0 +1,26 @@
+# Schema definition for log fields
+[log_schema]
+host_key = "host"
+message_key = "message"
+source_type_key = "source_type"
+timestamp_key = "timestamp"
+
+# Source configuration for log collection
+[sources.custom_logs]
+type = "file"
+include = ["/var/log/supervisord/veritable_*"]
+fingerprint.strategy = "device_and_inode"
+
+# Sink configuration for Loki
+[sinks.vector_sink]
+type = "loki"
+inputs = ["custom_logs"]
+endpoint = "http://loki.monitoring-system.svc.cluster.local:3100"
+
+# JSON encoding configuration for the sink
+[sinks.vector_sink.encoding]
+codec = "json"
+
+# Labels for Loki identification
+[sinks.vector_sink.labels]
+name = "veritable_custom_logs_{{tenant}}"
