@@ -22,7 +22,12 @@ with workflow.unsafe.imports_passed_through():
     )
     from app.cli.temporal.core.log import log_error, log_info
     from app.core.settings import AppSettings, get_settings
-    from app.s3_utils import download_file_from_storage, copy_files_to_cloudflare, get_storage_client
+    from app.s3_utils import (
+        download_file_from_storage,
+        copy_files_to_cloudflare,
+        get_storage_client,
+        delete_files_from_cloudflare,
+    )
 
 
 class CreateCloudflareBucketActivityModel(LaunchpadCLIBaseModel):
@@ -366,6 +371,56 @@ class DeleteCloudflareBucketActivity(Activity):
         await delete_bucket(config=config, bucket_name=activity_input.bucket_name)
 
 
+class DeleteFilesFromCloudflareActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteFilesFromCloudflareActivityModel
+    """
+
+    tenant: str
+    bucket_name: str
+    bundle_name: str
+    dest_dir: str
+
+
+class DeleteFilesFromCloudflareActivity(Activity):
+    """
+    DeleteFilesFromCloudflareActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="DeleteFilesFromCloudflareActivity")
+    async def defn(activity_input: DeleteFilesFromCloudflareActivityModel) -> None:
+        """
+        Delete files from Cloudflare
+        """
+        config: AppSettings = get_settings()
+        bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
+        bucket_access_key = bucket_temporary_credentials.access_key_id
+        bucket_secret_key = bucket_temporary_credentials.secret_access_key
+        delete_files_from_cloudflare(
+            tenant=activity_input.tenant,
+            input_path=f"{activity_input.dest_dir}/{activity_input.bundle_name}",
+            endpoint=config.cloudflare.r2_endpoint,
+            access_key=bucket_access_key,
+            secret_key=bucket_secret_key,
+            session_token=bucket_temporary_credentials.session_token,
+        )
+
+
 class DeleteCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
     """
     DeleteCloudflareDNSRecordActivityModel
@@ -515,7 +570,6 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                 with zipfile.ZipFile(f"{tmp_dir}/{activity_input.bundle_name}", "r") as zip_ref:
                     zip_ref.extractall(f"{tmp_dir}/bundle")
 
-
                 # copy artifacts for main UI
 
                 bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
@@ -542,7 +596,9 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
 
                 # copy artifacts for careerportal UI
 
-                bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.careerportal_bucket_name)
+                bucket_temporary_credentials = await get_temporary_credentials(
+                    config, activity_input.careerportal_bucket_name
+                )
                 bucket_access_key = bucket_temporary_credentials.access_key_id
                 bucket_secret_key = bucket_temporary_credentials.secret_access_key
 
