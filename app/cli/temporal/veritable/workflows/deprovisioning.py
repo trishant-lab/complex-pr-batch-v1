@@ -102,8 +102,19 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 start_to_close_timeout=DeleteKubernetesIstioVirtualServiceActivity.get_timeout(),
                 retry_policy=DeleteKubernetesIstioVirtualServiceActivity.get_retry_policy(),
             )
+            
+            # delete provisioning job
+            await workflow.execute_activity(
+                DeleteDatabaseMigrationJobActivity.defn,
+                arg=DeleteDatabaseMigrationJobActivityModel(
+                    namespace=tenant,
+                    job_name="veritable-tenant-provisioning-job",
+                ),
+                start_to_close_timeout=DeleteDatabaseMigrationJobActivity.get_timeout(),
+                retry_policy=DeleteDatabaseMigrationJobActivity.get_retry_policy(),
+            )
 
-            # delete database migration job
+            # delete alembic job
             await workflow.execute_activity(
                 DeleteDatabaseMigrationJobActivity.defn,
                 arg=DeleteDatabaseMigrationJobActivityModel(

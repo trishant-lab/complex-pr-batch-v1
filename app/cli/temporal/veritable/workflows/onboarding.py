@@ -93,6 +93,7 @@ class VeritableOnboardingWorkflow(Workflow):
         """
         return [
             GetTenantCrdActivity.defn,
+            SendBeforeProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
             K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
@@ -103,20 +104,20 @@ class VeritableOnboardingWorkflow(Workflow):
             K8sSecretCreationActivity.defn,
             RedisSetupActivity.defn,
             K8sConfigMapCreationActivity.defn,
-            KubernetesIstioVirtualServiceActivity.defn,
-            VMPodScrapperActivity.defn,
-            DatabaseMigrationJobActivity.defn,
-            CopyArtifactsToBucketActivity.defn,
-            KubernetesStatefulSetActivity.defn,
-            KeycloakRealmSetupActivity.defn,
-            KeycloakCreateTenantCustomerAdminUserActivity.defn,
-            KubernetesServiceActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
             CreateCloudflareBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
-            SendBeforeProvisioningMailActivity.defn,
+            CopyArtifactsToBucketActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            DatabaseMigrationJobActivity.defn,
+            KubernetesServiceActivity.defn,
+            KubernetesIstioVirtualServiceActivity.defn,
+            KubernetesStatefulSetActivity.defn,
+            VMPodScrapperActivity.defn,
             SendAfterProvisioningMailActivity.defn,
+            TenantCrdCreationActivity.defn,
         ]
 
     @classmethod
@@ -435,6 +436,33 @@ class VeritableOnboardingWorkflow(Workflow):
                 retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
+            
+            repo_name = "veritable-ui"
+            image_tag = "production" if config.env == "production" else "sprint"
+
+            if config.env == "production":
+                dest_dir = f"{image_tag}/{bucket_name}"
+            else:
+                dest_dir = f"/{image_tag}"
+
+            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+
+            bundle_path = "bundle/dist"
+
+            # copy artifacts to bucket
+            await workflow.execute_activity(
+                activity=CopyArtifactsToBucketActivity.defn,
+                arg=CopyArtifactsToBucketActivityModel(
+                    bucket_name=bucket_name,
+                    src_object_name=src_object_name,
+                    dest_dir=dest_dir,
+                    bundle_path=bundle_path,
+                    bundle_name="bundle.zip",
+                    tenant=tenant,
+                ),
+                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
+            )
 
             # keycloak realm setup
             realm_name = f"veritable_{tenant}"
@@ -466,6 +494,45 @@ class VeritableOnboardingWorkflow(Workflow):
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
+            
+            # provisioning job
+            await workflow.execute_activity(
+                activity=DatabaseMigrationJobActivity.defn,
+                arg=DatabaseMigrationJobActivityModel(
+                    namespace=tenant,
+                    job_name="veritable-tenant-provisioning-job",
+                    docker_image=docker_image,
+                    volume_mounts=[
+                        {
+                            "name": "veritable-provisioning-config",
+                            "mount_path": "/provisioningConfig",
+                            "read_only": True,
+                        },
+                    ],
+                    volumes=[
+                        {
+                            "name": "veritable-provisioning-config",
+                            "config_map_name": "veritable-provisioning-config",
+                            "key": "provisioning-config.json",
+                            "path": "provisioning-config.json",
+                        },
+                    ],
+                    container_envs=[
+                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {"name": "POSTGRES__USER", "value": postgres_username},
+                        {"name": "RELEASE_VERSION", "value": image_tag},
+                        {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
+                    ],
+                    argument=(
+                        "cd /app && python3 /app/provisioning/provisioning_.py "
+                        "--config /provisioningConfig/provisioning-config.json"
+                    ),
+                    job_type="provisioning",
+                    product=ProductName,
+                ),
+                retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
+                start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
+            )
 
             # kubernetes service
             await workflow.execute_activity(
@@ -491,101 +558,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
-
-            # vm pod scraper for server
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="veritable-metrics",
-                    app="veritable",
-                    path="/metrics/",
-                    interval="5s",
-                ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
-            )
-
-            # vm pod scraper
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="veritable-cli-metrics",
-                    app="veritable-cli",
-                    path="/metrics/",
-                    interval="5s",
-                ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
-            )
-
-            # alembic job
-            await workflow.execute_activity(
-                activity=DatabaseMigrationJobActivity.defn,
-                arg=DatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="veritable-tenant-alembic-job",
-                    docker_image=docker_image,
-                    volume_mounts=[
-                        {
-                            "name": "veritable-provisioning-config",
-                            "mount_path": "/provisioningConfig",
-                            "read_only": True,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "veritable-provisioning-config",
-                            "config_map_name": "veritable-provisioning-config",
-                            "key": "provisioning-config.json",
-                            "path": "provisioning-config.json",
-                        },
-                    ],
-                    container_envs=[
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
-                    ],
-                    argument=(
-                        "cd /app && python3 /app/provisioning/alembic_.py "
-                        "--config /provisioningConfig/provisioning-config.json"
-                    ),
-                    job_type="alembic",
-                    product=ProductName,
-                ),
-                retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
-                start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
-            )
-
-            repo_name = "veritable-ui"
-            image_tag = "production" if config.env == "production" else "sprint"
-
-            if config.env == "production":
-                dest_dir = f"{image_tag}/{bucket_name}"
-            else:
-                dest_dir = f"/{image_tag}"
-
-            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
-
-            bundle_path = "bundle/dist"
-
-            # copy artifacts to bucket
-            await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
-                arg=CopyArtifactsToBucketActivityModel(
-                    bucket_name=bucket_name,
-                    src_object_name=src_object_name,
-                    dest_dir=dest_dir,
-                    bundle_path=bundle_path,
-                    bundle_name="bundle.zip",
-                    tenant=tenant,
-                ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
-            )
-
+            
             # statefulset pod creation for server
             await workflow.execute_activity(
                 activity=KubernetesStatefulSetActivity.defn,
@@ -759,6 +732,34 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+            )
+
+            # vm pod scraper for server
+            await workflow.execute_activity(
+                activity=VMPodScrapperActivity.defn,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="veritable-metrics",
+                    app="veritable",
+                    path="/metrics/",
+                    interval="5s",
+                ),
+                retry_policy=VMPodScrapperActivity.get_retry_policy(),
+                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
+            )
+
+            # vm pod scraper
+            await workflow.execute_activity(
+                activity=VMPodScrapperActivity.defn,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="veritable-cli-metrics",
+                    app="veritable-cli",
+                    path="/metrics/",
+                    interval="5s",
+                ),
+                retry_policy=VMPodScrapperActivity.get_retry_policy(),
+                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # update tenant status
