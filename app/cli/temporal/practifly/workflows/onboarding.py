@@ -7,7 +7,12 @@ from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateT
 from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
-
+from app.cli.temporal.activities.tenantCrd import (
+    TenantCrdCreationActivity,
+    TenantCrdCreationActivityModel,
+    GetTenantCrdActivity,
+    GetTenantCrdActivityModel,
+)
 from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
@@ -119,7 +124,16 @@ class PractiflyOnboardingWorkflow(Workflow):
             KubernetesStatefulSetActivity.defn,
             UpdateTenantStatusActivity.defn,
             SendAfterProvisioningMailActivity.defn,
+            GetTenantCrdActivity.defn,
+            TenantCrdCreationActivity.defn,
         ]
+
+    @classmethod
+    def get_workflow_id(cls: "Workflow", practifly: PractiflySpec) -> str:
+        """
+        Return workflow id
+        """
+        return f"practifly_onboarding_workflow_{pydash.get(practifly, 'tenant')}"
 
     @workflow.run
     async def run(self: "Workflow", practifly: PractiflySpec) -> None:
@@ -135,6 +149,25 @@ class PractiflyOnboardingWorkflow(Workflow):
         email = pydash.get(practifly, "email")
 
         try:
+            # get tenant crd
+            response = await workflow.execute_activity(
+                activity=GetTenantCrdActivity.defn,
+                arg=GetTenantCrdActivityModel(
+                    tenant=tenant,
+                    kind="PractiflyTenant",
+                    product=ProductName,
+                ),
+                retry_policy=GetTenantCrdActivity.get_retry_policy(),
+                start_to_close_timeout=GetTenantCrdActivity.get_timeout(),
+            )
+
+            if [
+                item
+                for item in response.get("items", [])
+                if response and item.get("metadata", {}).get("name") == tenant
+            ]:
+                raise Exception(f"Tenant {tenant} already exists")  # noqa: TRY301
+
             if not pydash.get(practifly, "emailSent"):
                 await workflow.execute_activity(
                     activity=SendBeforeProvisioningMailActivity.defn,
@@ -783,6 +816,19 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
                 start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
+            )
+
+            # create tenant crd
+            await workflow.execute_activity(
+                activity=TenantCrdCreationActivity.defn,
+                arg=TenantCrdCreationActivityModel(
+                    tenant=tenant,
+                    kind="PractiflyTenant",
+                    product=ProductName,
+                    data=orjson.dumps(practifly),
+                ),
+                retry_policy=TenantCrdCreationActivity.get_retry_policy(),
+                start_to_close_timeout=TenantCrdCreationActivity.get_timeout(),
             )
 
         except Exception as e:
