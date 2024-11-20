@@ -7,7 +7,12 @@ from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateT
 from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
-
+from app.cli.temporal.activities.tenantCrd import (
+    TenantCrdCreationActivity,
+    TenantCrdCreationActivityModel,
+    GetTenantCrdActivity,
+    GetTenantCrdActivityModel,
+)
 from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
@@ -35,6 +40,8 @@ from app.cli.temporal.activities.postgresSetup import (
     PostgresSchemaCreationActivityModel,
 )
 from app.cli.temporal.activities.keycloakSetup import (
+    KeycloakCreateInternalUsersActivity,
+    KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
@@ -66,13 +73,6 @@ from app.cli.temporal.activities.databaseMigrationJob import (
     DatabaseMigrationJobActivityModel,
 )
 
-from app.cli.temporal.activities.tenantCrd import (
-    TenantCrdCreationActivity,
-    TenantCrdCreationActivityModel,
-    GetTenantCrdActivity,
-    GetTenantCrdActivityModel,
-)
-
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
     from app.core.settings import AppSettings, PractiflySettings, get_settings
@@ -100,33 +100,35 @@ class PractiflyOnboardingWorkflow(Workflow):
         """
         return [
             SendBeforeProvisioningMailActivity.defn,
-            SendAfterProvisioningMailActivity.defn,
-            UpdateTenantStatusActivity.defn,
             K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
-            KeycloakRealmSetupActivity.defn,
-            KeycloakCreateTenantCustomerAdminUserActivity.defn,
-            VMPodScrapperActivity.defn,
-            PVCSetupActivity.defn,
-            K8sConfigMapCreationActivity.defn,
             K8sSecretCreationActivity.defn,
+            RedisSetupActivity.defn,
+            PVCSetupActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
-            RedisSetupActivity.defn,
-            DatabaseMigrationJobActivity.defn,
+            K8sConfigMapCreationActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
-            CopyArtifactsToBucketActivity.defn,
-            CopyWebCoreToBucketActivity.defn,
             CreateCloudflareBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            KeycloakCreateTenantCustomerAdminUserActivity.defn,
             TemporalNamespaceActivity.defn,
+            VMPodScrapperActivity.defn,
+            DatabaseMigrationJobActivity.defn,
+            CopyArtifactsToBucketActivity.defn,
+            CopyWebCoreToBucketActivity.defn,
+            KubernetesStatefulSetActivity.defn,
+            UpdateTenantStatusActivity.defn,
+            SendAfterProvisioningMailActivity.defn,
             GetTenantCrdActivity.defn,
             TenantCrdCreationActivity.defn,
+            KeycloakCreateInternalUsersActivity.defn,
         ]
 
     @classmethod
@@ -478,7 +480,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = f"practifly_{tenant}"
+            realm_name = f"{tenant}"
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
@@ -491,21 +493,39 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
-            # keycloak tenant customer admin user setup
             await workflow.execute_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=realm_name,
-                    client_name=ProductName,
-                    username="admin",
-                    email="practifly-be@314ecorp.com",
+                    realm_name=f"practifly_{tenant}",
+                    username=email,
+                    email=email,
                     firstname=first_name,
                     lastname=last_name,
                     template_path=TemplatePath,
-                    template_name="keycloak_tenant_admin.json",
+                    template_name="keycloak_customer_admin.json",
                 ),
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
+            )
+
+            # keycloak tenant internal admin user setup
+            await workflow.execute_activity(
+                activity=KeycloakCreateInternalUsersActivity.defn,
+                arg=KeycloakCreateInternalUsersActivityModel(
+                    realm_name=f"practifly_{tenant}",
+                    users=[
+                        {
+                            "username": "admin",
+                            "email": "practifly-be@314ecorp.com",
+                            "firstname": "Admin",
+                            "lastname": "",
+                        },
+                    ],
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_admin.json",
+                ),
+                retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
             )
 
             # temporal namespace creation
@@ -590,9 +610,9 @@ class PractiflyOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{image_tag}/{bucket_name}"
+                dest_dir = f"{bucket_name}/"
             else:
-                dest_dir = f"/{image_tag}"
+                dest_dir = f"{bucket_name}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -613,9 +633,9 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            src_object_name = f"{repo_name}/{image_tag}/release.zip"
-            bucket_name = "practifly-web-core"
-            dest_dir = f"{image_tag}/{bucket_name}"
+            src_object_name = f"practifly-web-core/{image_tag}/release.zip"
+            web_core_bucket_name = "practifly-web-core"
+            dest_dir = f"{web_core_bucket_name}/{bucket_name}"
 
             # copy webcore to bucket
             await workflow.execute_activity(
@@ -623,7 +643,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 arg=CopyWebCoreToBucketActivityModel(
                     src_object_name=src_object_name,
                     tenant=tenant,
-                    bucket_name=bucket_name,
+                    bucket_name=web_core_bucket_name,
                     bundle_name="release.zip",
                     dest_dir=dest_dir,
                 ),
@@ -695,8 +715,8 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                         {"name": "POSTGRES__PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": config.cache_host},
-                        {"name": "REDIS__PASSWORD", "value": config.cache_admin_password},
+                        {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "FALSE"},
@@ -744,7 +764,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "read_only": True,
                         },
                         {
-                            "name": "practifly-pvcq",
+                            "name": "practifly-pvc",
                             "mount_path": "/data",
                             "read_only": False,
                         },
@@ -780,8 +800,8 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                         {"name": "POSTGRES__PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": config.cache_host},
-                        {"name": "REDIS__PASSWORD", "value": config.cache_admin_password},
+                        {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "TRUE"},
@@ -794,11 +814,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=tenant,
-                    status="Completed",
-                    product=ProductName,
-                ),
+                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
@@ -807,7 +823,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=SendAfterProvisioningMailActivity.defn,
                 arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=realm_name,
+                    realm_name=f"practifly_{tenant}",
                     tenant=tenant,
                     user_details={
                         "firstName": first_name,

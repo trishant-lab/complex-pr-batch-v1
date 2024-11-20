@@ -1,11 +1,15 @@
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
+from app.cli.k8s_util import get_resource
+
+
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
-    from app.cli.k8s_util import get_custom_objects_api
+    from app.cli.k8s_util import get_custom_objects_api, get_dynamic_client
     from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
     from app.cli.temporal.core.log import log_info
+    from app.cli.k8s_util import ResourceKindEnum
 
 
 class TenantCrdCreationActivityModel(LaunchpadCLIBaseModel):
@@ -15,7 +19,7 @@ class TenantCrdCreationActivityModel(LaunchpadCLIBaseModel):
 
     kind: str
     tenant: str
-    data: dict | None = None
+    data: str | None = None
     product: str
 
 
@@ -44,27 +48,29 @@ class TenantCrdCreationActivity(Activity):
         """
         Callable for the activity
         """
-        k8s_custom_objects_api = get_custom_objects_api()
+        k8s_dynamic_client = get_dynamic_client()
+
+        resource = get_resource(
+            dynamic_client=k8s_dynamic_client,
+            kind=ResourceKindEnum.PractiflyTenant,
+            api_version="com.softwareartistry/v1",
+        )
 
         body = {
-            "apiVersion": "apiextensions.k8s.io/v1",
+            "apiVersion": "com.softwareartistry/v1",
             "kind": activity_model.kind,
             "metadata": {
                 "name": f"{activity_model.product}-{activity_model.tenant}",
                 "namespace": "default",
             },
             "spec": {
-                "tenant": activity_model.tenant,
                 "data": activity_model.data,
             },
         }
 
-        k8s_custom_objects_api.create_namespaced_custom_object(
-            group="com.softwareartistry",
-            version="v1",
-            namespace="default",
-            plural=f"{activity_model.product.lower()}tenants",
-            body=body,
+        payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
+        k8s_dynamic_client.server_side_apply(
+            resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
         )
         log_info(f"{activity_model.kind} {activity_model.tenant} created")
 

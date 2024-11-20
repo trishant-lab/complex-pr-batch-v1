@@ -114,7 +114,9 @@ class K8sConfigMapCreationActivity(Activity):
                 kind=ResourceKindEnum.ConfigMap.value,
                 metadata=V1ObjectMeta(namespace=activity_model.namespace, name=activity_model.name),
                 data={
-                    activity_model.template_file_name: open(f"{temp_dir}/{activity_model.destination_file_name}").read()
+                    activity_model.destination_file_name: open(
+                        f"{temp_dir}/{activity_model.destination_file_name}"
+                    ).read()
                 },
             )
 
