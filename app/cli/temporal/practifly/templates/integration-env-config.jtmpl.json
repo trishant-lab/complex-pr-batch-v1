@@ -15,7 +15,7 @@
   "postgres_.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
   "postgres_.port": "6543",
 
-  "sendgrid.api_key": "{{op://Practifly/application-config/INTEGRATION-CONFIG/sendgrid_api_key}}",
+  "sendgrid.api_key": "{{ open_brackets }}op://Practifly/application-config/INTEGRATION-CONFIG/sendgrid_api_key{{ close_brackets }}",
 
   "rabbitmq.uri": "amqp://admin:{{ open_brackets }}op://Practifly/application-config/INTEGRATION-CONFIG/rabbitmq_queue_password{{ close_brackets }}@rabbitmq.queue-system.svc.cluster.local:5672",
 

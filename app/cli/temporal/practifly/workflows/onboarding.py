@@ -102,6 +102,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             SendBeforeProvisioningMailActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
+            K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
@@ -394,27 +395,27 @@ class PractiflyOnboardingWorkflow(Workflow):
                 {
                     "name": "practifly-common-config",
                     "key": "common-config.json",
-                    "template_file_name": "common-config.tmpl.json",
+                    "template_file_name": "common-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-env-config",
                     "key": "env-config.json",
-                    "template_file_name": f"{config.env}-env-config.tmpl.json",
+                    "template_file_name": f"{config.env}-env-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-tenant-config",
                     "key": "tenant-config.json",
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                    "template_file_name": f"{config.env}-tenant-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-cli-vector-config",
                     "key": "vector-config.toml",
-                    "template_file_name": "vector-config.tmpl.toml",
+                    "template_file_name": "vector-config.jtmpl.toml",
                 },
                 {
                     "name": "practifly-provisioning-config",
                     "key": "provisioning-config.json",
-                    "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
+                    "template_file_name": f"{config.env}-provisioning-config.jtmpl.json",
                 },
             ]:
                 await workflow.execute_activity(
@@ -477,11 +478,11 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = tenant
+            realm_name = f"practifly_{tenant}"
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=practifly_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
