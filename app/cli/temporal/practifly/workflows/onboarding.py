@@ -40,6 +40,8 @@ from app.cli.temporal.activities.postgresSetup import (
     PostgresSchemaCreationActivityModel,
 )
 from app.cli.temporal.activities.keycloakSetup import (
+    KeycloakCreateInternalUsersActivity,
+    KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
@@ -126,6 +128,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             SendAfterProvisioningMailActivity.defn,
             GetTenantCrdActivity.defn,
             TenantCrdCreationActivity.defn,
+            KeycloakCreateInternalUsersActivity.defn,
         ]
 
     @classmethod
@@ -394,27 +397,27 @@ class PractiflyOnboardingWorkflow(Workflow):
                 {
                     "name": "practifly-common-config",
                     "key": "common-config.json",
-                    "template_file_name": "common-config.tmpl.json",
+                    "template_file_name": "common-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-env-config",
                     "key": "env-config.json",
-                    "template_file_name": f"{config.env}-env-config.tmpl.json",
+                    "template_file_name": f"{config.env}-env-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-tenant-config",
                     "key": "tenant-config.json",
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                    "template_file_name": f"{config.env}-tenant-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-cli-vector-config",
                     "key": "vector-config.toml",
-                    "template_file_name": "vector-config.tmpl.toml",
+                    "template_file_name": "vector-config.jtmpl.toml",
                 },
                 {
                     "name": "practifly-provisioning-config",
                     "key": "provisioning-config.json",
-                    "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
+                    "template_file_name": f"{config.env}-provisioning-config.jtmpl.json",
                 },
             ]:
                 await workflow.execute_activity(
@@ -477,11 +480,11 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = f"practifly_{tenant}"
+            realm_name = f"{tenant}"
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=practifly_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
@@ -490,21 +493,39 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
-            # keycloak tenant customer admin user setup
             await workflow.execute_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=realm_name,
-                    client_name=ProductName,
-                    username="admin",
-                    email="practifly-be@314ecorp.com",
+                    realm_name=f"practifly_{tenant}",
+                    username=email,
+                    email=email,
                     firstname=first_name,
                     lastname=last_name,
                     template_path=TemplatePath,
-                    template_name="keycloak_tenant_admin.json",
+                    template_name="keycloak_customer_admin.json",
                 ),
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
+            )
+
+            # keycloak tenant internal admin user setup
+            await workflow.execute_activity(
+                activity=KeycloakCreateInternalUsersActivity.defn,
+                arg=KeycloakCreateInternalUsersActivityModel(
+                    realm_name=f"practifly_{tenant}",
+                    users=[
+                        {
+                            "username": "admin",
+                            "email": "practifly-be@314ecorp.com",
+                            "firstname": "Admin",
+                            "lastname": "",
+                        },
+                    ],
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_admin.json",
+                ),
+                retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
             )
 
             # temporal namespace creation
@@ -589,9 +610,9 @@ class PractiflyOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{image_tag}/{bucket_name}"
+                dest_dir = f"{bucket_name}/"
             else:
-                dest_dir = f"/{image_tag}"
+                dest_dir = f"{bucket_name}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -612,9 +633,9 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            src_object_name = f"{repo_name}/{image_tag}/release.zip"
-            bucket_name = "practifly-web-core"
-            dest_dir = f"{image_tag}/{bucket_name}"
+            src_object_name = f"practifly-web-core/{image_tag}/release.zip"
+            web_core_bucket_name = "practifly-web-core"
+            dest_dir = f"{web_core_bucket_name}/{bucket_name}"
 
             # copy webcore to bucket
             await workflow.execute_activity(
@@ -622,7 +643,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 arg=CopyWebCoreToBucketActivityModel(
                     src_object_name=src_object_name,
                     tenant=tenant,
-                    bucket_name=bucket_name,
+                    bucket_name=web_core_bucket_name,
                     bundle_name="release.zip",
                     dest_dir=dest_dir,
                 ),
@@ -743,7 +764,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "read_only": True,
                         },
                         {
-                            "name": "practifly-pvcq",
+                            "name": "practifly-pvc",
                             "mount_path": "/data",
                             "read_only": False,
                         },
@@ -772,6 +793,10 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "config_map_name": "practifly-cli-vector-config",
                             "key": "vector-config.toml",
                             "path": "vector-config.toml",
+                        },
+                        {
+                            "name": "practifly-pvc",
+                            "persistent_volume_claim": "practifly-pvc",
                         },
                     ],
                     container_envs=[
@@ -802,7 +827,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=SendAfterProvisioningMailActivity.defn,
                 arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=realm_name,
+                    realm_name=f"practifly_{tenant}",
                     tenant=tenant,
                     user_details={
                         "firstName": first_name,

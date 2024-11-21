@@ -215,7 +215,7 @@ class PostgresGrantAccessToUserActivity(Activity):
         db: DBManager = await get_db_manager(dsn=dsn)
 
         await db.execute_raw_sql(
-            query=f"GRANT CONNECT, CREATE ON DATABASE {activity_model.database_name} TO {activity_model.username};",
+            query=f'GRANT CONNECT, CREATE ON DATABASE "{activity_model.database_name}" TO {activity_model.username};',
         )
 
         log_info(

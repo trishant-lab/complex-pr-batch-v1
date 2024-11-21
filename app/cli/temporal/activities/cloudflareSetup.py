@@ -3,8 +3,6 @@ import socket
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
-from app.s3_utils import copy_files_to_cloudflare_with_exclude
-
 
 with workflow.unsafe.imports_passed_through():
     import zipfile
@@ -24,9 +22,11 @@ with workflow.unsafe.imports_passed_through():
     from app.core.settings import AppSettings, get_settings
     from app.s3_utils import (
         download_file_from_storage,
-        copy_files_to_cloudflare,
+        mirror_files_to_cloudflare,
         get_storage_client,
         delete_files_from_cloudflare,
+        copy_files_to_cloudflare,
+        copy_files_to_cloudflare_with_exclude,
     )
 
 
@@ -228,7 +228,7 @@ class CopyArtifactsToBucketActivity(Activity):
                     zip_ref.extractall(f"{tmp_dir}/bundle")
 
                 # copy the files to the destination directory
-                copy_files_to_cloudflare(
+                mirror_files_to_cloudflare(
                     tenant=activity_input.tenant,
                     input_path=f"{tmp_dir}/{activity_input.bundle_path}",
                     output_path=activity_input.dest_dir,
@@ -240,7 +240,7 @@ class CopyArtifactsToBucketActivity(Activity):
 
                 # todo: check if this is needed for all products
                 if environment == "production":
-                    copy_files_to_cloudflare(
+                    mirror_files_to_cloudflare(
                         tenant=activity_input.tenant,
                         input_path=f"{tmp_dir}/{activity_input.bundle_path}/index.html",
                         output_path=f"{activity_input.dest_dir}/custom/index.html",
@@ -299,6 +299,7 @@ class CopyWebCoreToBucketActivity(Activity):
         bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
         bucket_access_key = bucket_temporary_credentials.access_key_id
         bucket_secret_key = bucket_temporary_credentials.secret_access_key
+
         artifacts_access_key = config.cloudflare.r2_access_key
         artifacts_secret_key = config.cloudflare.r2_secret_key
         artifacts_s3_client = get_storage_client(
@@ -603,7 +604,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                 bucket_secret_key = bucket_temporary_credentials.secret_access_key
 
                 # copy "apply" directory
-                copy_files_to_cloudflare(
+                mirror_files_to_cloudflare(
                     tenant=activity_input.tenant,
                     input_path=f"{tmp_dir}/bundle/dist/careerpages/apply",
                     output_path=f"{activity_input.careerportal_bucket_name}/apply",
@@ -614,7 +615,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                 )
 
                 # copy "public" directory
-                copy_files_to_cloudflare(
+                mirror_files_to_cloudflare(
                     tenant=activity_input.tenant,
                     input_path=f"{tmp_dir}/bundle/dist/careerpages/public",
                     output_path=f"{activity_input.careerportal_bucket_name}/public",
