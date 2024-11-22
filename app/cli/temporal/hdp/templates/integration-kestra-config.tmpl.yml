@@ -1,16 +1,16 @@
 datasources:
     postgres:
-      url: jdbc:postgresql://db-cluster-ha.postgresql.svc.cluster.local:5432/kestra_{{tenant}} 
+      url: jdbc:postgresql://db-cluster-ha.postgresql.svc.cluster.local:5432/kestra_<<tenant>> 
       driverClassName: org.postgresql.Driver
-      username: kestra_{{tenant}}
-      password: {{ open_brackets }}op://hdp/application-config/hdp_{{tenant}}/kestra_pg_password{{ close_brackets }}
+      username: kestra_<<tenant>>
+      password: {{ op://hdp/application-config/hdp_<<tenant>>/kestra_pg_password }}
       schema: hdpcqm
 kestra:
   server:
     basic-auth:
       enabled: true
       username: kestra@314ecorp.com
-      password: {{open_brackets}}op://hdp/application-config/hdp_{{tenant}}/kestra_password{{close_brackets}}
+      password: {{op://hdp/application-config/hdp_<<tenant>>/kestra_password}}
   repository:
     type: postgres
   storage:

@@ -40,7 +40,7 @@ if !exists(.time) || !exists(.level) {
   "{",
   "\"type\": \"", "Worker","\"",
   "\"message\": \"", .message, "\", ",
-  "\"tenant\": \"", "{{tenant}}","\"",
+  "\"tenant\": \"", "<<tenant>>","\"",
   "}"
 ])
 '''
@@ -57,7 +57,7 @@ uri = "https://vector-slack-http-sink.314e.workers.dev/"
 method = "post"
 
 [sinks.jeeves_kubernetes_logs_decode_out.request.headers]
-Authorization = "{{ open_brackets }}op://314e DevOps/Application/slack_bearer_token_vector_toml{{ close_brackets }}"
+Authorization = "{{ op://314e DevOps/Application/slack_bearer_token_vector_toml }}"
 
 [sinks.jeeves_kubernetes_logs_decode_out.encoding]
 codec = "json"

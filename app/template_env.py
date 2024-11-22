@@ -16,10 +16,10 @@ def get_env(template_path: str) -> jinja2.Environment:
         trim_blocks=True,
         autoescape=True,
         keep_trailing_newline=True,
+        variable_start_string="<<",
+        variable_end_string=">>",
         extensions=[
             "jinja2.ext.do",
         ],
     )
-    env.globals.update(open_brackets="{{", close_brackets="}}")
-
     return env

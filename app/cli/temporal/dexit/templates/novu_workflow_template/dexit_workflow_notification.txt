@@ -5,7 +5,7 @@
     "steps": [
       {
         "template": {
-          "content": "{{ '{{workflow.content}}' }}",
+          "content": "<< '<<workflow.content>>' >>",
           "type": "in_app"
         },
         "active": true,
@@ -13,7 +13,7 @@
       }
     ],
     "active": true,
-    "notification_group_id": "{{notification.notification_grp_id}}",
+    "notification_group_id": "<<notification.notification_grp_id>>",
     "critical": false,
     "draft": false,
     "preference_settings":  {

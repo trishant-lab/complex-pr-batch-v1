@@ -4,7 +4,7 @@
         "route": [
             {
                 "destination": {
-                    "host": "penknife.{{tenant}}.svc.cluster.local",
+                    "host": "penknife.<<tenant>>.svc.cluster.local",
                     "port": {
                         "number": 8000
                     }

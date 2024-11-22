@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from datetime import timedelta
 
 import pydash
 from temporalio import workflow
@@ -32,7 +31,6 @@ from app.cli.temporal.activities.statefulSetPodCreation import (
 from app.cli.temporal.activities.pvcSetup import PVCDeletionActivity, PVCDeletionActivityModel
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
-from app.cli.temporal.activities.keycloakSetup import DeleteKeycloakRealmActivity, DeleteKeycloakRealmActivityModel
 from app.cli.temporal.activities.temporalNamespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,

@@ -4,7 +4,7 @@
         "route": [
             {
                 "destination": {
-                    "host": "veritable.{{tenant}}.svc.cluster.local",
+                    "host": "veritable.<<tenant>>.svc.cluster.local",
                     "port": {"number": 8000}
                 },
                 "headers": {

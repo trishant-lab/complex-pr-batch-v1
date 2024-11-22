@@ -3,11 +3,11 @@
     "postgres": {
         "host": "db-cluster-ha.postgresql.svc.cluster.local",
         "db": "veritable_integration",
-        "schema_name": "{{ tenant }}",
+        "schema_name": "<<tenant>>",
         "timezone": "UTC",
         "port": 5432
     },
-    "customer_id": "{{ customerId }}",
-    "tenant_name": "{{ tenant }}",
-    "org_name": "{{ orgName }}"
+    "customer_id": "<<customerId>>",
+    "tenant_name": "<<tenant>>",
+    "org_name": "<<orgName>>"
 }

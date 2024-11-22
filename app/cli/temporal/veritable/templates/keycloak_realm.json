@@ -1,5 +1,5 @@
 {
-  "realm": "veritable_{{tenant}}",
+  "realm": "veritable_<<tenant>>",
   "displayName": "",
   "displayNameHtml": "",
   "notBefore": 0,
@@ -369,7 +369,7 @@
       "clientRoles": {},
       "name": "vt-customer-admin",
       "path": "/vt-customer-admin",
-      "realmRoles": "{{customerRealmRoles}}",
+      "realmRoles": "<<customerRealmRoles>>",
       "subGroups": []
     },
     {
@@ -440,13 +440,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/veritable_{{tenant}}/account/",
+      "baseUrl": "/realms/veritable_<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/veritable_{{tenant}}/account/*"
+        "/realms/veritable_<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -598,19 +598,19 @@
       "clientId": "app",
       "name": "Veritable application client",
       "description": "",
-      "rootUrl": "https://{{tenant}}.veritable.{{domain_org}}",
-      "adminUrl": "https://{{tenant}}.veritable.{{domain_org}}",
+      "rootUrl": "https://<<tenant>>.veritable.<<domain_org>>",
+      "adminUrl": "https://<<tenant>>.veritable.<<domain_org>>",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://{{tenant}}.veritable.{{domain_org}}/*",
-        "https://{{tenant}}.veritable.{{domain_org}}/*"
+        "http://<<tenant>>.veritable.<<domain_org>>/*",
+        "https://<<tenant>>.veritable.<<domain_org>>/*"
       ],
       "webOrigins": [
-        "https://{{tenant}}.veritable.{{domain_org}}",
-        "http://{{tenant}}.veritable.{{domain_org}}"
+        "https://<<tenant>>.veritable.<<domain_org>>",
+        "http://<<tenant>>.veritable.<<domain_org>>"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -758,13 +758,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/veritable_{{tenant}}/console/",
+      "baseUrl": "/admin/veritable_<<tenant>>/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/veritable_{{tenant}}/console/*"
+        "/admin/veritable_<<tenant>>/console/*"
       ],
       "webOrigins": [
         "+"
@@ -1320,7 +1320,7 @@
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
   "smtpServer": {
-    "password": "{{sendgrid_api_key}}",
+    "password": "<<sendgrid_api_key>>",
     "starttls": "true",
     "auth": "true",
     "port": "587",

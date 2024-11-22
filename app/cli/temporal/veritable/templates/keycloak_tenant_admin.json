@@ -1,9 +1,9 @@
 {
-  "username": "{{username}}",
+  "username": "<<username>>",
   "enabled": true,
   "totp": false,
   "emailVerified": true,
-  "firstName": "{{username}}",
+  "firstName": "<<username>>",
   "lastName": "",
   "email": "support@veritable.app",
   "access": {

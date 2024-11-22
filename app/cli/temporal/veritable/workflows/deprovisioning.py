@@ -8,7 +8,6 @@ from app.cli.temporal.activities.cloudflareSetup import (
     DeleteCloudflareDNSRecordActivity,
     DeleteCloudflareDNSRecordActivityModel,
     DeleteFilesFromCloudflareActivity,
-    DeleteFilesFromCloudflareActivityModel,
 )
 from app.cli.temporal.activities.databaseMigrationJob import (
     DeleteDatabaseMigrationJobActivity,
@@ -17,6 +16,10 @@ from app.cli.temporal.activities.databaseMigrationJob import (
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     DeleteKubernetesIstioVirtualServiceActivity,
     DeleteKubernetesIstioVirtualServiceActivityModel,
+)
+from app.cli.temporal.activities.temporalNamespace import (
+    DeleteTemporalNamespaceActivity,
+    DeleteTemporalNamespaceActivityModel,
 )
 from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
 from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
@@ -55,6 +58,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             DeleteKubernetesServiceActivity.defn,
             StatefulSetPodDeletionActivity.defn,
             VMPodScrapperDeletionActivity.defn,
+            DeleteTemporalNamespaceActivity.defn,
             DeleteK8sConfigMapActivity.defn,
             K8sSecretDeletionActivity.defn,
             DeleteCloudflareBucketActivity.defn,
@@ -203,6 +207,16 @@ class VeritableDeProvisioningWorkflow(Workflow):
                     start_to_close_timeout=VMPodScrapperDeletionActivity.get_timeout(),
                     retry_policy=VMPodScrapperDeletionActivity.get_retry_policy(),
                 )
+                
+            # delete temporal namespace
+            await workflow.execute_activity(
+                DeleteTemporalNamespaceActivity.defn,
+                arg=DeleteTemporalNamespaceActivityModel(
+                    namespace=f"veritable_{tenant}",
+                ),
+                start_to_close_timeout=DeleteTemporalNamespaceActivity.get_timeout(),
+                retry_policy=DeleteTemporalNamespaceActivity.get_retry_policy(),
+            )
 
             # update tenant status
             await workflow.execute_activity(

@@ -20,4 +20,4 @@ endpoint = "http://loki.monitoring-system.svc.cluster.local:3100"
 codec = "json"
 
 [sinks.vector_sink.labels]
-name = "penknife_custom_logs_{{tenant}}"
+name = "penknife_custom_logs_<<tenant>>"

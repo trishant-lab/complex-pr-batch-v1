@@ -23,4 +23,4 @@ codec = "json"
 
 # Labels for Loki identification
 [sinks.vector_sink.labels]
-name = "veritable_custom_logs_{{tenant}}"
+name = "veritable_custom_logs_<<tenant>>"

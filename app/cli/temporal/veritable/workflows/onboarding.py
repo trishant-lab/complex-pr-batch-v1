@@ -10,7 +10,10 @@ from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActi
 from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
-
+from app.cli.temporal.activities.temporalNamespace import (
+    TemporalNamespaceActivity,
+    TemporalNamespaceActivityModel,
+)
 
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.activities.postgresSetup import (
@@ -115,6 +118,7 @@ class VeritableOnboardingWorkflow(Workflow):
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             KubernetesStatefulSetActivity.defn,
+            TemporalNamespaceActivity.defn,
             VMPodScrapperActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             TenantCrdCreationActivity.defn,
@@ -732,6 +736,16 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+            )
+            
+            # temporal namespace creation
+            await workflow.execute_activity(
+                activity=TemporalNamespaceActivity.defn,
+                arg=TemporalNamespaceActivityModel(
+                    namespace=f"veritable_{tenant}",
+                ),
+                retry_policy=TemporalNamespaceActivity.get_retry_policy(),
+                start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
             )
 
             # vm pod scraper for server
