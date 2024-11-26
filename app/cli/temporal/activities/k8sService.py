@@ -17,6 +17,7 @@ class KubernetesServiceActivityModel(LaunchpadCLIBaseModel):
 
     namespace: str
     service_name: str
+    selector: str | None = None
     port: int
 
 
@@ -57,7 +58,7 @@ class KubernetesServiceActivity(Activity):
                 labels={"app": activity_model.service_name},
             ),
             spec=V1ServiceSpec(
-                selector={"app": activity_model.service_name},
+                selector={"app": activity_model.selector if activity_model.selector else activity_model.service_name},
                 type="ClusterIP",
                 ports=[
                     V1ServicePort(
