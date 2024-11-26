@@ -80,7 +80,7 @@ class KubernetesStatefulSetActivity(Activity):
             dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
         )
 
-        container_port_name = "http" if len(activity_model.container_port) <=1 else ""
+        container_port_name = "http" if len(activity_model.container_ports) <= 1 else ""
 
         body = V1StatefulSet(
             api_version="apps/v1",
@@ -117,7 +117,9 @@ class KubernetesStatefulSetActivity(Activity):
                                 security_context=V1SecurityContext(privileged=True),
                                 ports=[
                                     V1ContainerPort(
-                                        name=container_port_name if container_port_name else f"http-{container_port}", protocol="TCP", container_port=container_port
+                                        name=container_port_name if container_port_name else f"http-{container_port}",
+                                        protocol="TCP",
+                                        container_port=container_port,
                                     )
                                     for container_port in activity_model.container_ports
                                 ],
