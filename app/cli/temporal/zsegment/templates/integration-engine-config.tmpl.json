@@ -1,20 +1,20 @@
 {
-  "TENANT.NAME": "{{tenantName}}",
+  "TENANT.NAME": "<<tenantName>>",
 
   "SERVER.PORT": "8089",
-  "SERVER.DEPLOYMENT": "{{environment}}",
+  "SERVER.DEPLOYMENT": "<<environment>>",
 
   "APPLICATION.NAME": "zsegment-engine",
 
-  "REDPANDA.BROKER.URL": "{{redpandaBrokerUrl}}",
-  "REDPANDA.PASSWORD": "{{redpandaPassword}}",
+  "REDPANDA.BROKER.URL": "<<redpandaBrokerUrl>>",
+  "REDPANDA.PASSWORD": "<<redpandaPassword>>",
   "REDPANDA.USER.SASL.MECHANISM": "SCRAM-SHA-256",
 
   "JGIT.LFS.URL": "",
-  "JGIT.TENANT": "{{tenantName}}",
+  "JGIT.TENANT": "<<tenantName>>",
   "JGIT.GIT.DIR.PARENT": "/data",
-  "JGIT.GIT.BRANCH": "{{environment}}",
-  "JGIT.GIT.URL": "http://zsegment-git-server.{{tenantName}}.svc.cluster.local:8084/{{giteaUserName}}/{{tenantName}}",
+  "JGIT.GIT.BRANCH": "<<environment>>",
+  "JGIT.GIT.URL": "http://zsegment-git-server.<<tenantName>>.svc.cluster.local:8084/<<giteaUserName>>/<<tenantName>>",
 
   "CAMEL.ERROR-HANDLER.BACKOFF-MULTIPLIER": "0.75",
   "CAMEL.ERROR-HANDLER.MAXIMUM-REDELIVERIES": "2",
@@ -28,23 +28,23 @@
   "LOGGING.LEVEL.ECLIPSE.AETHER": "INFO",
   "LOGGING.LEVEL.MAVEN": "INFO",
 
-  "ZSEGMENT.LAGO.BASEURL": "{{lagoUrl}}/api/v1",
-  "ZSEGMENT.LAGO.KEY": "{{lagoKey}}",
-  "ZSEGMENT.LAGO.CUSTOMER_ID": "{{lagoCustomerId}}",
+  "ZSEGMENT.LAGO.BASEURL": "<<lagoUrl>>/api/v1",
+  "ZSEGMENT.LAGO.KEY": "<<lagoKey>>",
+  "ZSEGMENT.LAGO.CUSTOMER_ID": "<<lagoCustomerId>>",
 
-  "DB.URL": "{{postgresUrl}}",
-  "DB.PASSWORD": "{{postgresSecret}}",
+  "DB.URL": "<<postgresUrl>>",
+  "DB.PASSWORD": "<<postgresSecret>>",
 
   "VICTORIA.METRICS.SELECT.URL": "http://vmselect-vm-cluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus",
   "VICTORIA.METRICS.INSERT.URL": "http://vminsert-vm-cluster.monitoring-system.svc.cluster.local:8480/insert/0/prometheus",
 
-  "GITEA.ADMIN.USERNAME": "{{gitea_admin_username}}",
-  "GITEA.ADMIN.PASSWORD": "{{gitea_admin_password}}",
+  "GITEA.ADMIN.USERNAME": "<<gitea_admin_username>>",
+  "GITEA.ADMIN.PASSWORD": "<<gitea_admin_password>>",
 
   "INSTANCE.ID": "engine1",
 
-  "REDIS.HOST": "cache-new.{{tenantName}}.svc.cluster.local",
+  "REDIS.HOST": "cache-new.<<tenantName>>.svc.cluster.local",
   "REDIS.PORT": "6379",
   "REDIS.USERNAME": "zsegment",
-  "REDIS.PASSWORD": "{{redisPassword}}"
+  "REDIS.PASSWORD": "<<redisPassword>>"
 }

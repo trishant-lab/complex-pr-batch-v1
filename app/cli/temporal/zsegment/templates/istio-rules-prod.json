@@ -13,7 +13,7 @@
     "route": [
       {
         "destination": {
-          "host": "zsegment-api-prod.{{tenant}}.svc.cluster.local",
+          "host": "zsegment-api-prod.<<tenant>>.svc.cluster.local",
           "port": {
             "number": 6565
           }
@@ -33,7 +33,7 @@
     "route": [
       {
         "destination": {
-          "host": "zsegment-api-prod.{{tenant}}.svc.cluster.local",
+          "host": "zsegment-api-prod.<<tenant>>.svc.cluster.local",
           "port": {
             "number": 8090
           }

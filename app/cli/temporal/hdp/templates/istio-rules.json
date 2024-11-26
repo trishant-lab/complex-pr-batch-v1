@@ -4,7 +4,7 @@
         "route": [
             {
                 "destination": {
-                    "host": "hdp.{{tenant}}.svc.cluster.local",
+                    "host": "hdp.<<tenant>>.svc.cluster.local",
                     "port": {"number": 8000}
                 },
                 "headers": {

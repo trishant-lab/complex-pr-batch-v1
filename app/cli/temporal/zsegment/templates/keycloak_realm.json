@@ -1,7 +1,7 @@
 {
-  "id": "{{tenant}}",
-  "realm": "{{tenant}}",
-  "displayName": "{{tenant}}",
+  "id": "<<tenant>>",
+  "realm": "<<tenant>>",
+  "displayName": "<<tenant>>",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
@@ -51,7 +51,7 @@
         "description": "${role_offline-access}",
         "composite": false,
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       },
       {
@@ -59,11 +59,11 @@
         "description": "${role_uma_authorization}",
         "composite": false,
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       },
       {
-        "name": "default-roles-{{tenant}}",
+        "name": "default-roles-<<tenant>>",
         "description": "${role_default-roles}",
         "composite": true,
         "composites": {
@@ -79,7 +79,7 @@
           }
         },
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       }
     ],
@@ -347,11 +347,11 @@
   },
   "groups": [],
   "defaultRole": {
-    "name": "default-roles-{{tenant}}",
+    "name": "default-roles-<<tenant>>",
     "description": "${role_default-roles}",
     "composite": true,
     "clientRole": false,
-    "containerId": "{{tenant}}"
+    "containerId": "<<tenant>>"
   },
   "requiredCredentials": [
     "password"
@@ -402,7 +402,7 @@
       "disableableCredentialTypes": [],
       "requiredActions": [],
       "realmRoles": [
-        "default-roles-{{tenant}}"
+        "default-roles-<<tenant>>"
       ],
       "clientRoles": {
         "realm-management": [
@@ -439,13 +439,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/{{tenant}}/account/",
+      "baseUrl": "/realms/<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/{{tenant}}/account/*"
+        "/realms/<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -491,13 +491,13 @@
       "clientId": "account-console",
       "name": "${client_account-console}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/{{tenant}}/account/",
+      "baseUrl": "/realms/<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/{{tenant}}/account/*"
+        "/realms/<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -647,7 +647,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "{{installer_secret}}",
+      "secret": "<<installer_secret>>",
       "redirectUris": [
         "http://localhost"
       ],
@@ -866,13 +866,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/{{tenant}}/console/",
+      "baseUrl": "/admin/<<tenant>>/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/{{tenant}}/console/*"
+        "/admin/<<tenant>>/console/*"
       ],
       "webOrigins": [
         "+"
@@ -1445,7 +1445,7 @@
     "auth": "true",
     "envelopeFrom": "",
     "ssl": "false",
-    "password": "{{sendgrid_api_key}}",
+    "password": "<<sendgrid_api_key>>",
     "port": "587",
     "replyTo": "support@314ecorp.com",
     "host": "smtp.sendgrid.net",

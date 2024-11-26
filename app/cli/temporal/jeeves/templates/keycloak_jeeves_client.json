@@ -2,22 +2,22 @@
     "clientId": "jeeves",
     "name": "jeeves",
     "description": "Jeeves application client",
-    "rootUrl": "https://{{tenant}}.{{domain}}",
-    "adminUrl": "https://{{tenant}}.{{domain}}",
-    "baseUrl": "https://{{tenant}}.{{domain}}",
+    "rootUrl": "https://<<tenant>>.<<domain>>",
+    "adminUrl": "https://<<tenant>>.<<domain>>",
+    "baseUrl": "https://<<tenant>>.<<domain>>",
     "surrogateAuthRequired": false,
     "enabled": true,
     "alwaysDisplayInConsole": false,
     "clientAuthenticatorType": "client-secret",
     "redirectUris": [
-      "https://{{tenant}}.{{domain}}/*",
-      "https://jeeves-agent.{{domain}}/*",
-      "https://okjeeves.{{domain}}/*"
+      "https://<<tenant>>.<<domain>>/*",
+      "https://jeeves-agent.<<domain>>/*",
+      "https://okjeeves.<<domain>>/*"
     ],
     "webOrigins": [
-      "https://jeeves-agent.{{domain}}",
-      "https://{{tenant}}.{{domain}}",
-      "https://okjeeves.{{domain}}"
+      "https://jeeves-agent.<<domain>>",
+      "https://<<tenant>>.<<domain>>",
+      "https://okjeeves.<<domain>>"
     ],
     "notBefore": 0,
     "bearerOnly": false,

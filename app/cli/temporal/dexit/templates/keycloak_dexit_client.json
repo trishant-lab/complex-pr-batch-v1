@@ -2,19 +2,19 @@
   "clientId": "dexit",
   "name": "dexit",
   "description": "DEXIT application client",
-  "rootUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
-  "adminUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
+  "rootUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>",
+  "adminUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>",
   "surrogateAuthRequired": false,
   "enabled": true,
   "alwaysDisplayInConsole": false,
   "clientAuthenticatorType": "client-secret",
   "redirectUris": [
-    "https://{{tenant}}.dexit.314ecorp.{{domain}}/*",
-    "http://{{tenant}}.dexit.314ecorp.{{domain}}/*"
+    "https://<<tenant>>.dexit.314ecorp.<<domain>>/*",
+    "http://<<tenant>>.dexit.314ecorp.<<domain>>/*"
   ],
   "webOrigins": [
-    "http://{{tenant}}.dexit.314ecorp.{{domain}}",
-    "https://{{tenant}}.dexit.314ecorp.{{domain}}"
+    "http://<<tenant>>.dexit.314ecorp.<<domain>>",
+    "https://<<tenant>>.dexit.314ecorp.<<domain>>"
   ],
   "notBefore": 0,
   "bearerOnly": false,

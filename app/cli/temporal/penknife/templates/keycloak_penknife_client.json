@@ -2,22 +2,22 @@
   "clientId": "penknife",
   "name": "penknife",
   "description": "PENKNIFE application client",
-  "rootUrl": "https://{{tenant}}.{{domain}}",
-  "adminUrl": "https://{{tenant}}.{{domain}}",
+  "rootUrl": "https://<<tenant>>.<<domain>>",
+  "adminUrl": "https://<<tenant>>.<<domain>>",
   "baseUrl": "",
   "surrogateAuthRequired": false,
   "enabled": true,
   "alwaysDisplayInConsole": false,
   "clientAuthenticatorType": "client-secret",
   "redirectUris": [
-    "https://{{tenant}}.{{domain}}/*",
-    "http://{{tenant}}.{{domain}}/*",
-    "https://{{tenant}}-careers.{{domain}}/*"
+    "https://<<tenant>>.<<domain>>/*",
+    "http://<<tenant>>.<<domain>>/*",
+    "https://<<tenant>>-careers.<<domain>>/*"
   ],
   "webOrigins": [
-    "http://{{tenant}}.{{domain}}",
-    "https://{{tenant}}.{{domain}}",
-    "https://{{tenant}}-careers.{{domain}}"
+    "http://<<tenant>>.<<domain>>",
+    "https://<<tenant>>.<<domain>>",
+    "https://<<tenant>>-careers.<<domain>>"
   ],
   "notBefore": 0,
   "bearerOnly": false,
