@@ -13,7 +13,7 @@
     "route": [
       {
         "destination": {
-          "host": "zsegment-api-dev-grpc.{{tenant}}.svc.cluster.local",
+          "host": "zsegment-api-dev.{{tenant}}.svc.cluster.local",
           "port": {
             "number": 6565
           }
