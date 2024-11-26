@@ -1,0 +1,5 @@
+{
+  "postgres.timezone": "UTC",
+  "fernet_key": "{{ op://Practifly/veritable-tenant-config-integration/<<tenant>>/fernet_key }}",
+  "tenant_name": "<<tenant>>"
+}

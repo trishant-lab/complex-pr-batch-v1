@@ -1,29 +1,29 @@
 {
-  "TENANT.NAME": "{{tenantName}}",
+  "TENANT.NAME": "<<tenantName>>",
 
   "SERVER.PORT": "8090",
-  "SERVER.DEPLOYMENT": "{{environment}}",
-  "SERVER.ENVIRONMENT": "{{server_environment}}",
+  "SERVER.DEPLOYMENT": "<<environment>>",
+  "SERVER.ENVIRONMENT": "<<server_environment>>",
 
   "GRPC.SERVER.PORT": "6565",
 
   "APPLICATION.NAME": "zsegment-api",
 
   "KEYCLOAK.MASTER.CLIENT": "installer",
-  "KEYCLOAK.REALM": "{{keycloakRealm}}",
-  "KEYCLOAK.AUTH.SERVER.URL": "{{KeycloakAuthServerUrl}}",
+  "KEYCLOAK.REALM": "<<keycloakRealm>>",
+  "KEYCLOAK.AUTH.SERVER.URL": "<<KeycloakAuthServerUrl>>",
   "KEYCLOAK.RESOURCE": "zsegment",
-  "KEYCLOAK.AUTH.CLIENT.SECRET": "{{keycloakSecret}}",
+  "KEYCLOAK.AUTH.CLIENT.SECRET": "<<keycloakSecret>>",
 
-  "REDPANDA.BROKER.URL": "{{redpandaBrokerUrl}}",
-  "REDPANDA.PASSWORD": "{{redpandaPassword}}",
+  "REDPANDA.BROKER.URL": "<<redpandaBrokerUrl>>",
+  "REDPANDA.PASSWORD": "<<redpandaPassword>>",
   "REDPANDA.USER.SASL.MECHANISM": "SCRAM-SHA-256",
 
-  "ZSEGMENT-ENGINE.URL": "http://zsegment-engine-{{environment}}.{{tenantName}}.svc.cluster.local:8089",
+  "ZSEGMENT-ENGINE.URL": "http://zsegment-engine-<<environment>>.<<tenantName>>.svc.cluster.local:8089",
 
-  "ZSEGMENT.LAGO.BASEURL": "{{lagoUrl}}/api/v1",
-  "ZSEGMENT.LAGO.KEY": "{{lagoKey}}",
-  "ZSEGMENT.LAGO.CUSTOMER_ID": "{{lagoCustomerId}}",
+  "ZSEGMENT.LAGO.BASEURL": "<<lagoUrl>>/api/v1",
+  "ZSEGMENT.LAGO.KEY": "<<lagoKey>>",
+  "ZSEGMENT.LAGO.CUSTOMER_ID": "<<lagoCustomerId>>",
 
   "LOGGING.LEVEL.ROOT": "INFO",
   "LOGGING.LEVEL.API": "DEBUG",
@@ -31,32 +31,32 @@
   "LOGGING.LEVEL.CAMEL": "WARN",
   "LOGGING.LEVEL.SPRING.WEB": "INFO",
 
-  "LOKI.PUSH.URL": "{{lokiPushUrl}}",
+  "LOKI.PUSH.URL": "<<lokiPushUrl>>",
 
-  "VICTORIA.METRICS.URL": "{{victoriaMetricsUrl}}",
+  "VICTORIA.METRICS.URL": "<<victoriaMetricsUrl>>",
 
-  "DB.URL": "{{postgresUrl}}",
-  "DB.PASSWORD": "{{postgresSecret}}",
+  "DB.URL": "<<postgresUrl>>",
+  "DB.PASSWORD": "<<postgresSecret>>",
 
-  "ZSEGMENT.ENGINE.NAME": "zsegment-engine-{{environment}}",
-  "ZSEGMENT.API.NAME": "zsegment-api-{{environment}}",
+  "ZSEGMENT.ENGINE.NAME": "zsegment-engine-<<environment>>",
+  "ZSEGMENT.API.NAME": "zsegment-api-<<environment>>",
 
   "JGIT.LFS.URL": "",
-  "JGIT.TENANT": "{{tenantName}}",
+  "JGIT.TENANT": "<<tenantName>>",
   "JGIT.GIT.DIR.PARENT": "/data",
-  "JGIT.GIT.BRANCH": "{{environment}}",
-  "JGIT.GIT.URL": "http://zsegment-git-server.{{tenantName}}.svc.cluster.local:8084/{{giteaUserName}}/{{tenantName}}",
+  "JGIT.GIT.BRANCH": "<<environment>>",
+  "JGIT.GIT.URL": "http://zsegment-git-server.<<tenantName>>.svc.cluster.local:8084/<<giteaUserName>>/<<tenantName>>",
 
-  "GITEA.API.BASE.URL": "{{gitea_api_base_url}}",
-  "GITEA.API.REPO.URL": "{{gitea_api_repo_url}}",
-  "GITEA.ADMIN.USERNAME": "{{gitea_admin_username}}",
-  "GITEA.ADMIN.PASSWORD": "{{gitea_admin_password}}",
+  "GITEA.API.BASE.URL": "<<gitea_api_base_url>>",
+  "GITEA.API.REPO.URL": "<<gitea_api_repo_url>>",
+  "GITEA.ADMIN.USERNAME": "<<gitea_admin_username>>",
+  "GITEA.ADMIN.PASSWORD": "<<gitea_admin_password>>",
 
-  "REDIS.HOST": "cache-new.{{tenantName}}.svc.cluster.local",
+  "REDIS.HOST": "cache-new.<<tenantName>>.svc.cluster.local",
   "REDIS.PORT": "6379",
-  "REDIS.PASSWORD": "{{redisPassword}}",
+  "REDIS.PASSWORD": "<<redisPassword>>",
 
-  "MATOMO.AUTH.TOKEN": "{{matomoAuthToken}}",
+  "MATOMO.AUTH.TOKEN": "<<matomoAuthToken>>",
   "MATOMO.BASE.URL": "https://analytics.314ecorp.tech/index.php",
   "MATOMO.SITE.ID": 15
 }

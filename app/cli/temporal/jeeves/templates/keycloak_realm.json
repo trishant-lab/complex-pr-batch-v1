@@ -1,7 +1,7 @@
 {
-  "id": "{{tenant}}",
- "realm": "{{tenant}}",
-  "displayName": "{{tenant}}",
+  "id": "<<tenant>>",
+ "realm": "<<tenant>>",
+  "displayName": "<<tenant>>",
   "displayNameHtml": "",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
@@ -52,7 +52,7 @@
         "name": "uma_authorization",
         "composite": false,
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       },
       {
@@ -60,11 +60,11 @@
         "description": "${role_offline-access}",
         "composite": false,
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       },
       {
-        "name": "default-roles-{{tenant}}",
+        "name": "default-roles-<<tenant>>",
         "description": "${role_default-roles}",
         "composite": true,
         "composites": {
@@ -83,7 +83,7 @@
           }
         },
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       }
     ],
@@ -390,11 +390,11 @@
   },
   "groups": [],
   "defaultRole": {
-    "name": "default-roles-{{tenant}}",
+    "name": "default-roles-<<tenant>>",
     "description": "${role_default-roles}",
     "composite": true,
     "clientRole": false,
-    "containerId": "{{tenant}}"
+    "containerId": "<<tenant>>"
   },
   "requiredCredentials": [
     "password"
@@ -449,7 +449,7 @@
       "disableableCredentialTypes": [],
       "requiredActions": [],
       "realmRoles": [
-        "default-roles-{{tenant}}"
+        "default-roles-<<tenant>>"
       ],
       "clientRoles": {
         "realm-management": [
@@ -484,14 +484,14 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/{{tenant}}/account/",
+      "baseUrl": "/realms/<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "**********",
       "redirectUris": [
-        "/realms/{{tenant}}/account/*"
+        "/realms/<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -583,14 +583,14 @@
       "clientId": "account-console",
       "name": "${client_account-console}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/{{tenant}}/account/",
+      "baseUrl": "/realms/<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "**********",
       "redirectUris": [
-        "/realms/{{tenant}}/account/*"
+        "/realms/<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -801,14 +801,14 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/{{tenant}}/console/",
+      "baseUrl": "/admin/<<tenant>>/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "**********",
       "redirectUris": [
-        "/admin/{{tenant}}/console/*"
+        "/admin/<<tenant>>/console/*"
       ],
       "webOrigins": [
         "+"
@@ -1413,7 +1413,7 @@
     "auth": "true",
     "ssl": "false",
     "envelopeFrom": "",
-    "password": "{{sendgrid_api_key}}",
+    "password": "<<sendgrid_api_key>>",
     "port": "587",
     "host": "smtp.sendgrid.net",
     "replyTo": "",
@@ -1455,7 +1455,7 @@
         "hideOnLoginPage": "true",
         "validateSignature": "false",
         "acceptsPromptNoneForwardFromClient": "true",
-        "tokenUrl": "http://jeeves.{{tenant}}.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
+        "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
         "clientId": "a0ed701d-bdd8-4854-b08c-63eb637187a1",
         "uiLocales": "false",
         "isAccessTokenJWT": "false",
@@ -1467,7 +1467,7 @@
         "sendClientIdOnLogout": "false",
         "pkceEnabled": "false",
         "clientAuthMethod": "client_secret_basic",
-        "authorizationUrl": "https://{{tenant}}.api.{{domain}}/public/api/v1/ehrIntegration/ehrToken",
+        "authorizationUrl": "https://<<tenant>>.api.<<domain>>/public/api/v1/ehrIntegration/ehrToken",
         "disableUserInfo": "true",
         "sendIdTokenOnLogout": "true",
         "syncMode": "FORCE",
@@ -1492,7 +1492,7 @@
       "config": {
         "validateSignature": "false",
         "hideOnLoginPage": "true",
-        "tokenUrl": "http://jeeves.{{tenant}}.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
+        "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
         "acceptsPromptNoneForwardFromClient": "false",
         "clientId": "17e5c49f-df9d-4386-9fcc-c7ceda42f4c9",
         "uiLocales": "false",
@@ -1504,7 +1504,7 @@
         "sendClientIdOnLogout": "false",
         "pkceEnabled": "false",
         "clientAuthMethod": "client_secret_basic",
-        "authorizationUrl": "https://{{tenant}}.api.{{domain}}/public/api/v1/ehrIntegration/ehrToken",
+        "authorizationUrl": "https://<<tenant>>.api.<<domain>>/public/api/v1/ehrIntegration/ehrToken",
         "disableUserInfo": "false",
         "sendIdTokenOnLogout": "true",
         "syncMode": "IMPORT",
@@ -1528,7 +1528,7 @@
       "config": {
         "validateSignature": "false",
         "hideOnLoginPage": "true",
-        "tokenUrl": "http://jeeves.{{tenant}}.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
+        "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
         "acceptsPromptNoneForwardFromClient": "false",
         "clientId": "08772cce-42ef-4a79-98b7-ae82686a0a5d",
         "uiLocales": "false",
@@ -1540,7 +1540,7 @@
         "sendClientIdOnLogout": "false",
         "pkceEnabled": "false",
         "clientAuthMethod": "client_secret_basic",
-        "authorizationUrl": "https://{{tenant}}.api.{{domain}}/public/api/v1/ehrIntegration/ehrToken",
+        "authorizationUrl": "https://<<tenant>>.api.<<domain>>/public/api/v1/ehrIntegration/ehrToken",
         "disableUserInfo": "false",
         "sendIdTokenOnLogout": "true",
         "syncMode": "IMPORT",
@@ -1565,7 +1565,7 @@
         "hideOnLoginPage": "true",
         "validateSignature": "false",
         "acceptsPromptNoneForwardFromClient": "true",
-        "tokenUrl": "http://jeeves.{{tenant}}.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
+        "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
         "clientId": "simulator",
         "uiLocales": "false",
         "isAccessTokenJWT": "false",
@@ -1577,7 +1577,7 @@
         "sendClientIdOnLogout": "false",
         "pkceEnabled": "false",
         "clientAuthMethod": "client_secret_basic",
-        "authorizationUrl": "https://{{tenant}}.api.{{domain}}/public/api/v1/ehrIntegration/ehrToken",
+        "authorizationUrl": "https://<<tenant>>.api.<<domain>>/public/api/v1/ehrIntegration/ehrToken",
         "disableUserInfo": "false",
         "sendIdTokenOnLogout": "true",
         "syncMode": "IMPORT",
@@ -1766,7 +1766,7 @@
         "subComponents": {},
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{>>,\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255>>,\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{>>,\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{>>,\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
           ]
         }
       }

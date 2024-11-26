@@ -1,7 +1,7 @@
 {
-  "id": "{{tenant}}",
-  "realm": "{{tenant}}",
-  "displayName": "{{tenant}}",
+  "id": "<<tenant>>",
+  "realm": "<<tenant>>",
+  "displayName": "<<tenant>>",
   "notBefore": 0,
   "revokeRefreshToken": false,
   "refreshTokenMaxReuse": 0,
@@ -49,12 +49,12 @@
         "name": "uma_authorization",
         "composite": false,
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       },
       {
-        "name": "default-roles-{{tenant}}",
-        "description": "${role_default-roles-{{tenant}}}",
+        "name": "default-roles-<<tenant>>",
+        "description": "${role_default-roles-<<tenant>>}",
         "composite": true,
         "composites": {
           "realm": [
@@ -72,7 +72,7 @@
           }
         },
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       },
       {
@@ -80,7 +80,7 @@
         "description": "${role_offline-access}",
         "composite": false,
         "clientRole": false,
-        "containerId": "{{tenant}}",
+        "containerId": "<<tenant>>",
         "attributes": {}
       }
     ],
@@ -405,11 +405,11 @@
   },
   "groups": [],
   "defaultRole": {
-    "name": "default-roles-{{tenant}}",
-    "description": "${role_default-roles-{{tenant}}}",
+    "name": "default-roles-<<tenant>>",
+    "description": "${role_default-roles-<<tenant>>}",
     "composite": true,
     "clientRole": false,
-    "containerId": "{{tenant}}"
+    "containerId": "<<tenant>>"
   },
   "requiredCredentials": [
     "password"
@@ -471,13 +471,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/{{tenant}}/account/",
+      "baseUrl": "/realms/<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/{{tenant}}/account/*"
+        "/realms/<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -501,13 +501,13 @@
       "clientId": "account-console",
       "name": "${client_account-console}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/{{tenant}}/account/",
+      "baseUrl": "/realms/<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/{{tenant}}/account/*"
+        "/realms/<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -577,23 +577,23 @@
     {
       "clientId": "app",
       "name": "dexit application client",
-      "rootUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
-      "adminUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
+      "rootUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>",
+      "adminUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://{{tenant}}.dexit.314ecorp.{{domain}}/*",
-        "https://{{tenant}}.dexitadmin.314ecorp.{{domain}}/*",
-        "http://{{tenant}}.dexit.314ecorp.{{domain}}/*",
-        "http://{{tenant}}.dexitadmin.314ecorp.{{domain}}/*"
+        "https://<<tenant>>.dexit.314ecorp.<<domain>>/*",
+        "https://<<tenant>>.dexitadmin.314ecorp.<<domain>>/*",
+        "http://<<tenant>>.dexit.314ecorp.<<domain>>/*",
+        "http://<<tenant>>.dexitadmin.314ecorp.<<domain>>/*"
       ],
       "webOrigins": [
-        "http://{{tenant}}.dexit.314ecorp.{{domain}}",
-        "https://{{tenant}}.dexitadmin.314ecorp.{{domain}}",
-        "http://{{tenant}}.dexitadmin.314ecorp.{{domain}}",
-        "https://{{tenant}}.dexit.314ecorp.{{domain}}"
+        "http://<<tenant>>.dexit.314ecorp.<<domain>>",
+        "https://<<tenant>>.dexitadmin.314ecorp.<<domain>>",
+        "http://<<tenant>>.dexitadmin.314ecorp.<<domain>>",
+        "https://<<tenant>>.dexit.314ecorp.<<domain>>"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -791,19 +791,19 @@
       "clientId": "dexit",
       "name": "dexit",
       "description": "dexit application client",
-      "rootUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
-      "adminUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
+      "rootUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>",
+      "adminUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://{{tenant}}.dexit.314ecorp.{{domain}}/*",
-        "http://{{tenant}}.dexit.314ecorp.{{domain}}/*"
+        "https://<<tenant>>.dexit.314ecorp.<<domain>>/*",
+        "http://<<tenant>>.dexit.314ecorp.<<domain>>/*"
       ],
       "webOrigins": [
-        "http://{{tenant}}.dexit.314ecorp.{{domain}}",
-        "https://{{tenant}}.dexit.314ecorp.{{domain}}"
+        "http://<<tenant>>.dexit.314ecorp.<<domain>>",
+        "https://<<tenant>>.dexit.314ecorp.<<domain>>"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -893,20 +893,20 @@
       "clientId": "formauth",
       "name": "formauth",
       "description": "",
-      "rootUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
-      "adminUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}",
+      "rootUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>",
+      "adminUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>",
       "baseUrl": "",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://{{tenant}}.dexit.314ecorp.{{domain}}/*",
-        "http://{{tenant}}.dexit.314ecorp.{{domain}}/*"
+        "https://<<tenant>>.dexit.314ecorp.<<domain>>/*",
+        "http://<<tenant>>.dexit.314ecorp.<<domain>>/*"
       ],
       "webOrigins": [
-        "http://{{tenant}}.dexit.314ecorp.{{domain}}",
-        "https://{{tenant}}.dexit.314ecorp.{{domain}}"
+        "http://<<tenant>>.dexit.314ecorp.<<domain>>",
+        "https://<<tenant>>.dexit.314ecorp.<<domain>>"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -979,13 +979,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/{{tenant}}/console/",
+      "baseUrl": "/admin/<<tenant>>/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/{{tenant}}/console/*"
+        "/admin/<<tenant>>/console/*"
       ],
       "webOrigins": [
         "+"
@@ -1528,7 +1528,7 @@
     "auth": "true",
     "ssl": "false",
     "envelopeFrom": "",
-    "password": "{{sendgrid_api_key}}",
+    "password": "<<sendgrid_api_key>>",
     "port": "587",
     "host": "smtp.sendgrid.net",
     "replyTo": "developer@314ecorp.com",
@@ -1558,13 +1558,13 @@
       "config": {
         "hideOnLoginPage": "true",
         "acceptsPromptNoneForwardFromClient": "true",
-        "clientId": "{{dexittestappsmartonfhirclientid}}",
-        "tokenUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}/api/v1/epicintegration/epicToken",
-        "authorizationUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}/api/v1/epicintegration/epicToken",
+        "clientId": "<<dexittestappsmartonfhirclientid>>",
+        "tokenUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>/api/v1/epicintegration/epicToken",
+        "authorizationUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>/api/v1/epicintegration/epicToken",
         "clientAuthMethod": "client_secret_basic",
         "disableUserInfo": "true",
         "syncMode": "IMPORT",
-        "clientSecret": "{{dexittestappsmartonfhirsecret}}",
+        "clientSecret": "<<dexittestappsmartonfhirsecret>>",
         "prompt": "none",
         "useJwksUrl": "true"
       }
@@ -1583,13 +1583,13 @@
       "config": {
         "hideOnLoginPage": "true",
         "acceptsPromptNoneForwardFromClient": "true",
-        "clientId": "{{ehrsimulatorappclientid}}",
-        "tokenUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}/api/v1/epicintegration/epicToken",
-        "authorizationUrl": "https://{{tenant}}.dexit.314ecorp.{{domain}}/api/v1/epicintegration/epicToken",
+        "clientId": "<<ehrsimulatorappclientid>>",
+        "tokenUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>/api/v1/epicintegration/epicToken",
+        "authorizationUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>/api/v1/epicintegration/epicToken",
         "clientAuthMethod": "client_secret_basic",
         "disableUserInfo": "true",
         "syncMode": "IMPORT",
-        "clientSecret": "{{ehrsimulatorappsecret}}",
+        "clientSecret": "<<ehrsimulatorappsecret>>",
         "prompt": "none",
         "useJwksUrl": "true"
       }
@@ -1610,14 +1610,14 @@
         "validateSignature": "true",
         "userInfoUrl": "https://openidconnect.googleapis.com/v1/userinfo",
         "tokenUrl": "https://oauth2.googleapis.com/token",
-        "clientId": "{{googleclientid}}",
+        "clientId": "<<googleclientid>>",
         "jwksUrl": "https://www.googleapis.com/oauth2/v3/certs",
         "issuer": "https://accounts.google.com",
         "useJwksUrl": "true",
         "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline",
         "clientAuthMethod": "client_secret_basic",
         "syncMode": "IMPORT",
-        "clientSecret": "{{googlesecret}}",
+        "clientSecret": "<<googlesecret>>",
         "prompt": "consent",
         "defaultScope": "openid profile email"
       }

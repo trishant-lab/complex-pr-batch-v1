@@ -1,1 +1,1 @@
-"Assignments are created in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"
+"Assignments are created in Jeeves.\n<<#each step.events>>\nAssignment title : <<assignment.name>>.\nClick here: <<assignment.link>>\n\n<<#each>>"

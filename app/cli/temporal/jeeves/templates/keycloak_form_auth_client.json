@@ -2,18 +2,18 @@
     "clientId": "formauth",
     "name": "formauth",
     "description": "Jeeves application client for username-password form based login",
-    "rootUrl": "https://{{tenant}}.jeeves.314ecorp.{{domain}}",
-    "adminUrl": "https://{{tenant}}.jeeves.314ecorp.{{domain}}",
-    "baseUrl": "https://{{tenant}}.jeeves.314ecorp.{{domain}}/login.html",
+    "rootUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>",
+    "adminUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>",
+    "baseUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>/login.html",
     "surrogateAuthRequired": false,
     "enabled": true,
     "alwaysDisplayInConsole": false,
     "clientAuthenticatorType": "client-secret",
     "redirectUris": [
-      "https://{{tenant}}.jeeves.314ecorp.{{domain}}/*"
+      "https://<<tenant>>.jeeves.314ecorp.<<domain>>/*"
     ],
     "webOrigins": [
-      "https://{{tenant}}.jeeves.314ecorp.{{domain}}"
+      "https://<<tenant>>.jeeves.314ecorp.<<domain>>"
     ],
     "notBefore": 0,
     "bearerOnly": false,
