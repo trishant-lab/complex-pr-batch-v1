@@ -5,7 +5,7 @@
   "SERVER.DEPLOYMENT": "<<environment>>",
   "SERVER.ENVIRONMENT": "<<server_environment>>",
 
-  "GRPC.SERVER.PORT": "6565",
+  "GRPC.SERVER.URL": "https://<<tenantName>>.api.zsegment.tech:443",
 
   "APPLICATION.NAME": "zsegment-api",
 
