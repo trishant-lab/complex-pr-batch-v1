@@ -176,16 +176,14 @@ class CloudflareSettings(BaseModel):
 class VeritableSettings(BaseModel):
     """
     Veritable Settings
-
     """
 
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "int.veritable.app"
-    grafana: GrafanaSettings = GrafanaSettings()
-
+    zone_id: str = ""
+    domain_name: str = "veritable.tech"
+    sender_name: str = ""
+    sender_email: str = ""
     temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
     temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
-    temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
 
 
 class JeevesSettings(BaseModel):
@@ -434,19 +432,6 @@ class PractiflySettings(BaseModel):
     sender_email: str = ""
     temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
     temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
-
-
-class VeritableSettings(BaseModel):
-    """
-    Veritable Settings
-    """
-
-    zone_id: str = ""
-    domain_name: str = "veritable.tech"
-    sender_name: str = ""
-    sender_email: str = ""
-    temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
-    temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
 
 
 class AppSettings(BaseSettings):

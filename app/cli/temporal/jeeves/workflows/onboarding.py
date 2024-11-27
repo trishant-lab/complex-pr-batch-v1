@@ -430,7 +430,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         name=config_map["name"],
                         template_file_name=config_map["template_file_name"],
                         destination_file_name=config_map["key"],
-                        bucket_name="jeeves-config",
+                        cloudflare_r2_folder_path="jeeves-config",
                         template_payload={"tenant": tenant},
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
