@@ -18,7 +18,7 @@ class KubernetesServiceActivityModel(LaunchpadCLIBaseModel):
     namespace: str
     service_name: str
     selector: str | None = None
-    port: int
+    ports: dict[str, int]
 
 
 class KubernetesServiceActivity(Activity):
@@ -62,9 +62,10 @@ class KubernetesServiceActivity(Activity):
                 type="ClusterIP",
                 ports=[
                     V1ServicePort(
-                        name="http",
-                        port=activity_model.port,
+                        name=port_name,
+                        port=port_value,
                     )
+                    for port_name, port_value in activity_model.ports.items()
                 ],
             ),
         )

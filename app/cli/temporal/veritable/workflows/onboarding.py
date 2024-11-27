@@ -74,7 +74,6 @@ from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
-    from loguru import logger
     from app.core.settings import AppSettings, VeritableSettings, get_settings
     from app.template_env import get_env
 
@@ -137,7 +136,6 @@ class VeritableOnboardingWorkflow(Workflow):
         """
         Entry point for workflow
         """
-
         config: AppSettings = get_settings()
         veritable_config: VeritableSettings = config.veritable
         first_name = pydash.get(veritable, "first_name")
@@ -205,9 +203,9 @@ class VeritableOnboardingWorkflow(Workflow):
             postgres_database_name = f"{ProductName}-{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
-            docker_image = f"registry.314ecorp.tech/veritable-server:{image_tag}"
             redis_tenant_password = generate_password(length=20)
             image_tag = "production" if config.env == "production" else "sprint"
+            docker_image = f"registry.314ecorp.tech/veritable-server:{image_tag}"
             template_env = get_env(template_path=TemplatePath)
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag)
@@ -440,7 +438,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
-            
+
             repo_name = "veritable-ui"
             image_tag = "production" if config.env == "production" else "sprint"
 
@@ -498,7 +496,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
-            
+
             # provisioning job
             await workflow.execute_activity(
                 activity=DatabaseMigrationJobActivity.defn,
@@ -544,7 +542,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="veritable",
-                    port=8000,
+                    ports={"http": 8000},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -562,7 +560,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
-            
+
             # statefulset pod creation for server
             await workflow.execute_activity(
                 activity=KubernetesStatefulSetActivity.defn,
@@ -737,7 +735,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
-            
+
             # temporal namespace creation
             await workflow.execute_activity(
                 activity=TemporalNamespaceActivity.defn,

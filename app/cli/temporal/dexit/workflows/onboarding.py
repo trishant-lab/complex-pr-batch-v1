@@ -589,7 +589,7 @@ class DexitOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="dexit",
-                    port=8000,
+                    ports={"http": 8000},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -794,7 +794,7 @@ class DexitOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="dexit-dicom",
-                    port=8042,
+                    ports={"http": 8042},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),

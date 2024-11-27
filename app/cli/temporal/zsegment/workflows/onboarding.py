@@ -1009,7 +1009,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-api-dev",
-                    port=8090,
+                    ports={"http": 8090, "grpc": 6565},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -1020,7 +1020,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-engine-dev",
-                    port=8089,
+                    ports={"http": 8089},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -1032,7 +1032,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     namespace=tenant,
                     service_name="zsegment-api-dev-grpc-nodeport",
                     selector="zsegment-api-dev",
-                    port=6565,
+                    ports={"grpc": 6565},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -1044,7 +1044,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-api-prod",
-                    port=8090,
+                    ports={"http": 8090, "grpc": 6565},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -1055,7 +1055,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-engine-prod",
-                    port=8089,
+                    ports={"http": 8089},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -1067,7 +1067,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     namespace=tenant,
                     service_name="zsegment-api-prod-grpc-nodeport",
                     selector="zsegment-api-prod",
-                    port=6565,
+                    ports={"grpc": 6565},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),

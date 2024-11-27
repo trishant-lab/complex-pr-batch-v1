@@ -727,7 +727,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="penknife",
-                    port=8000,
+                    ports={"http": 8000},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
