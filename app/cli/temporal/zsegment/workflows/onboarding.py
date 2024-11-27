@@ -609,7 +609,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     template_payload={
                         "tenantName": tenant,
                         "environment": "prod",
-                        "server-environment": config.env.upper(),
+                        "server_environment": config.env.upper(),
                         "keycloakRealm": realm_name,
                         "KeycloakAuthServerUrl": zsegment_config.keycloak_auth_server_url,
                         "keycloakSecret": installer_secret,
