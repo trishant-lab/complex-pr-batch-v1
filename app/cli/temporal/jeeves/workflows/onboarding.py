@@ -715,7 +715,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(jeeves, "serverSpec.limit_cpu"),
                         "memory": pydash.get(jeeves, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -781,7 +781,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(jeeves, "cliSpec.limit_cpu"),
                         "memory": pydash.get(jeeves, "cliSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",

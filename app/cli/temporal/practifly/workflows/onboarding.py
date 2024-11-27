@@ -666,7 +666,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(practifly, "serverSpec.limit_cpu"),
                         "memory": pydash.get(practifly, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "common-volume",
@@ -741,7 +741,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(practifly, "cliSpec.limit_cpu"),
                         "memory": pydash.get(practifly, "cliSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "common-volume",

@@ -638,7 +638,7 @@ class DexitOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(dexit, "serverSpec.limit_cpu"),
                         "memory": pydash.get(dexit, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "env-volume",
@@ -696,7 +696,7 @@ class DexitOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(dexit, "cliSpec.limit_cpu"),
                         "memory": pydash.get(dexit, "cliSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "env-volume",
@@ -760,7 +760,7 @@ class DexitOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(dexit, "serverSpec.limit_cpu"),
                         "memory": pydash.get(dexit, "serverSpec.limit_memory"),
                     },
-                    container_ports=[],
+                    container_ports={},
                     volume_mounts=[
                         {
                             "name": "dicom-volume",

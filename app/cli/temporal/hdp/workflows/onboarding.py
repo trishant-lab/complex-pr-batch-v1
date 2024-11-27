@@ -582,7 +582,7 @@ class HDPOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(hdp, "serverSpec.limit_cpu"),
                         "memory": pydash.get(hdp, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -669,7 +669,7 @@ class HDPOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(hdp, "kestraSpec.limit_cpu"),
                         "memory": pydash.get(hdp, "kestraSpec.limit_memory"),
                     },
-                    container_ports=[8080, 8081],
+                    container_ports={"http": 8080, "https": 8081},
                     container_command=["/bin/bash", "-c"],
                     container_args=[
                         "JAVA_OPTS=-Dmicronaut.server.context-path=/etl"

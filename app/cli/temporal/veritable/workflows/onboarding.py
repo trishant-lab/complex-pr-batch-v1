@@ -576,7 +576,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(veritable, "serverSpec.limit_cpu"),
                         "memory": pydash.get(veritable, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "custom-volume",
@@ -658,7 +658,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(veritable, "cliSpec.limit_cpu"),
                         "memory": pydash.get(veritable, "cliSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "custom-volume",

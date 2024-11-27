@@ -40,7 +40,7 @@ class KubernetesStatefulSetActivityModel(LaunchpadCLIBaseModel):
     docker_image: str
     request_resource: dict
     limit_resource: dict
-    container_ports: list[int]
+    container_ports: dict[str, int]
     volume_mounts: list  # list of dicts with name, mount_path, sub_path
     volumes: list  # list of dicts with name, config_map_name, key, path or name, persistent_volume_claim
     container_envs: list  # list of dicts with name, value
@@ -80,7 +80,7 @@ class KubernetesStatefulSetActivity(Activity):
             dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
         )
 
-        container_port_name = "http" if len(activity_model.container_ports) <= 1 else ""
+        # container_port_name = "http" if len(activity_model.container_ports) <= 1 else ""
 
         body = V1StatefulSet(
             api_version="apps/v1",
@@ -117,11 +117,11 @@ class KubernetesStatefulSetActivity(Activity):
                                 security_context=V1SecurityContext(privileged=True),
                                 ports=[
                                     V1ContainerPort(
-                                        name=container_port_name if container_port_name else f"http-{container_port}",
+                                        name=port_name,
                                         protocol="TCP",
-                                        container_port=container_port,
+                                        container_port=port_value,
                                     )
-                                    for container_port in activity_model.container_ports
+                                    for port_name, port_value in activity_model.container_ports.items()
                                 ],
                                 command=activity_model.container_command,
                                 args=activity_model.container_args,

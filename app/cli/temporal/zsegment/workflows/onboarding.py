@@ -751,7 +751,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
                         "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8090],
+                    container_ports={"http": 8090},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -804,7 +804,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
                         "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8090],
+                    container_ports={"http": 8090},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -857,7 +857,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
                         "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8089],
+                    container_ports={"http": 8089},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -910,7 +910,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
                         "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8089],
+                    container_ports={"http": 8089},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",

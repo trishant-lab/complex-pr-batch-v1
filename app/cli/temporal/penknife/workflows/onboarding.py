@@ -794,7 +794,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(penknife, "serverSpec.limit_cpu"),
                         "memory": pydash.get(penknife, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -850,7 +850,7 @@ class PenknifeOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(penknife, "cliSpec.limit_cpu"),
                         "memory": pydash.get(penknife, "cliSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
