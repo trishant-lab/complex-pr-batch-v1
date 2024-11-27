@@ -55,6 +55,5 @@ class DeploymentDeletionActivity(Activity):
                 f"DeploymentDeletion failed to delete deployment {activity_model.name} "
                 f"in namespace {activity_model.namespace}: {e}"
             )
-            raise e
 
         log_info(f"DeploymentDeletion deleted in namespace {activity_model.namespace}")
