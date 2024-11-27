@@ -411,7 +411,11 @@ class JeevesOnboardingWorkflow(Workflow):
                     "key": "tenant-config.json",
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
-                {"name": "jeeves-rclone-config", "key": "rclone.conf", "template_file_name": "rclone.tmpl.conf"},
+                {
+                    "name": "jeeves-rclone-config",
+                    "key": "rclone.conf",
+                    "template_file_name": f"{config.env}-rclone.tmpl.conf",
+                },
                 {
                     "name": "jeeves-cli-vector-config",
                     "key": "vector-config.toml",
