@@ -3,9 +3,10 @@ from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
+    from kubernetes.dynamic.exceptions import NotFoundError
     from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
     from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.log import log_info
+    from app.cli.temporal.core.log import log_info, log_error
 
 
 class DeploymentDeletionActivityModel(LaunchpadCLIBaseModel):
@@ -47,6 +48,13 @@ class DeploymentDeletionActivity(Activity):
             dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Deployment, api_version="apps/v1"
         )
 
-        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        try:
+            k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        except NotFoundError as e:
+            log_error(
+                f"DeploymentDeletion failed to delete deployment {activity_model.name} "
+                f"in namespace {activity_model.namespace}: {e}"
+            )
+            raise e
 
         log_info(f"DeploymentDeletion deleted in namespace {activity_model.namespace}")

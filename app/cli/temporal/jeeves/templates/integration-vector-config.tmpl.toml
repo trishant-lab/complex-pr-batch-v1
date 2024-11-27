@@ -19,7 +19,7 @@ endpoint = "http://loki.monitoring-system.svc.cluster.local:3100"
 codec = "json"
 
 [sinks.vector_sink.labels]
-name = "jeeves_custom_logs_{{tenant}}"
+name = "jeeves_custom_logs_<<tenant>>"
 
 [transforms.jeeves_kubernetes_logs_filter]
 type = "filter"
@@ -40,7 +40,7 @@ if !exists(.time) || !exists(.level) {
   "{",
   "\"type\": \"", "Worker","\"",
   "\"message\": \"", .message, "\", ",
-  "\"tenant\": \"", "{{tenant}}","\"",
+  "\"tenant\": \"", <<tenant>>,"\"",
   "}"
 ])
 '''
