@@ -2,22 +2,22 @@
   "clientId": "penknife",
   "name": "penknife",
   "description": "PENKNIFE application client",
-  "rootUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
-  "adminUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
+  "rootUrl": "https://<<tenant>>.<<domain>>",
+  "adminUrl": "https://<<tenant>>.<<domain>>",
   "baseUrl": "",
   "surrogateAuthRequired": false,
   "enabled": true,
   "alwaysDisplayInConsole": false,
   "clientAuthenticatorType": "client-secret",
   "redirectUris": [
-    "https://{{tenant}}.penknife.314ecorp.{{domain}}/*",
-    "http://{{tenant}}.penknife.314ecorp.{{domain}}/*",
-    "https://{{tenant}}-careers.penknife.314ecorp.{{domain}}/*"
+    "https://<<tenant>>.<<domain>>/*",
+    "http://<<tenant>>.<<domain>>/*",
+    "https://<<tenant>>-careers.<<domain>>/*"
   ],
   "webOrigins": [
-    "http://{{tenant}}.penknife.314ecorp.{{domain}}",
-    "https://{{tenant}}.penknife.314ecorp.{{domain}}",
-    "https://{{tenant}}-careers.penknife.314ecorp.{{domain}}"
+    "http://<<tenant>>.<<domain>>",
+    "https://<<tenant>>.<<domain>>",
+    "https://<<tenant>>-careers.<<domain>>"
   ],
   "notBefore": 0,
   "bearerOnly": false,
@@ -47,6 +47,7 @@
     "id.token.as.detached.signature": "false",
     "saml.assertion.signature": "false",
     "saml.encrypt": "false",
+    "login_theme": "314e-login-theme",
     "saml.server.signature": "false",
     "exclude.session.state.from.auth.response": "false",
     "saml.artifact.binding": "false",

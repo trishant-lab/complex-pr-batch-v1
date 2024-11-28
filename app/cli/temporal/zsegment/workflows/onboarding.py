@@ -21,7 +21,12 @@ from app.cli.temporal.activities.cloudflareSetup import (
 # from app.cli.temporal.activities.gitea_service import GiteaProperties
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.lago_service import LagoSetupActivity, LagoProperties
-from app.cli.temporal.activities.onePassword import OnePasswordActivity, OnePasswordActivityModel
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordGetActivity,
+    OnePasswordGetActivityModel,
+)
 from app.cli.temporal.activities.redpanda_service import RedpandaProperties
 from app.cli.temporal.activities.sendMail import (
     SendAfterProvisioningMailActivity,
@@ -72,14 +77,13 @@ from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMP
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.core.base import Workflow
 
-from app.cli.temporal.activities.gitea_service import GiteaSetupActivity
+from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties, GiteaService
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
     from app.core.settings import AppSettings, ZSegmentSettings, get_settings
-    from app.onepasswordutil import OnePasswordUtil
     from app.template_env import get_env
 
 
@@ -104,7 +108,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
         """
         return [
             GiteaSetupActivity.defn,
-            OnePasswordActivity.defn,
+            OnePasswordCreateOrUpdateActivity.defn,
             RedpandaSetupActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             SendBeforeProvisioningMailActivity.defn,
@@ -131,6 +135,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             K8sNamespaceCreationActivity.defn,
             LagoSetupActivity.defn,
             CopyArtifactsToBucketActivity.defn,
+            OnePasswordGetActivity.defn,
         ]
 
     @classmethod
@@ -152,7 +157,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
         last_name = pydash.get(zsegment, "lastName")
         email = pydash.get(zsegment, "email")
         tenant = pydash.get(zsegment, "tenant")
-        realm_name = tenant
+        realm_name = f"zsegment-{tenant}"
 
         try:
             if not pydash.get(zsegment, "emailSent"):
@@ -189,8 +194,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
-            # Todo Add Activties
-
             # postgres setup
             postgres_dev_schema_name = f"{tenant}_dev"
             postgres_prod_schema_name = f"{tenant}_prod"
@@ -202,16 +205,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
             engine_docker_image = f"registry.314ecorp.tech/zsegment-engine:{image_tag}"
 
             await workflow.execute_activity(
-                activity=OnePasswordActivity.defn,
-                arg=OnePasswordActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordActivity.get_timeout(),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -269,13 +272,38 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            installer_secret = generate_password(length=20)
+            installer_secret = await workflow.execute_activity(
+                activity=OnePasswordGetActivity.defn,
+                arg=OnePasswordGetActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="installer_secret",
+                ),
+                retry_policy=OnePasswordGetActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
+            )
+
+            installer_secret = generate_password(length=20) if not installer_secret else installer_secret
+
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="installer_secret",
+                    secret_value=installer_secret,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
 
             # keycloak realm setup
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=zsegment_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
@@ -387,11 +415,19 @@ class ZSegmentOnboardingWorkflow(Workflow):
 
             # setup redis
             redis_tenant_password = generate_password(length=20)
-            OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).create_or_replace("redis_password", redis_tenant_password)
+
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="redis_password",
+                    secret_value=redis_tenant_password,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
 
             await workflow.execute_activity(
                 activity=RedisSetupActivity.defn,
@@ -404,13 +440,21 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
-            # # setup redpanda
+            ## setup redpanda
             redpanda_tenant_password = generate_password(length=20)
-            OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).create_or_replace("redpanda_password", redpanda_tenant_password)
+
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="redpanda_password",
+                    secret_value=redpanda_tenant_password,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
 
             await workflow.execute_activity(
                 activity=RedpandaSetupActivity.defn,
@@ -433,20 +477,20 @@ class ZSegmentOnboardingWorkflow(Workflow):
             gitea_admin_password = zsegment_config.gitea_admin_password
             gitea_template_owner = zsegment_config.gitea_template_owner
 
-            # await workflow.execute_activity(
-            #     activity=GiteaSetupActivity.defn,
-            #     arg=GiteaProperties(
-            #         tenant=tenant,
-            #         email=email,
-            #         base_url=gitea_base_url,
-            #         admin_username=gitea_admin_username,
-            #         admin_password=gitea_admin_password,
-            #         template_repo="ZSegmentTemplate",
-            #         template_owner=gitea_template_owner,
-            #     ),
-            #     retry_policy=GiteaSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=GiteaSetupActivity.get_timeout(),
-            # )
+            await workflow.execute_activity(
+                activity=GiteaSetupActivity.defn,
+                arg=GiteaProperties(
+                    tenant=tenant,
+                    email=email,
+                    base_url=gitea_base_url,
+                    admin_username=gitea_admin_username,
+                    admin_password=gitea_admin_password,
+                    template_repo="ZSegmentTemplate",
+                    template_owner=gitea_template_owner,
+                ),
+                retry_policy=GiteaSetupActivity.get_retry_policy(),
+                start_to_close_timeout=GiteaSetupActivity.get_timeout(),
+            )
 
             # setup lago
             lago_customer_id = uuid4()
@@ -455,11 +499,18 @@ class ZSegmentOnboardingWorkflow(Workflow):
             lago_api_key = zsegment_config.lago_api_key
             lago_api_url = zsegment_config.lago_api_url
 
-            OnePasswordUtil(
-                tenant=f"{ProductName}_{tenant}",
-                server_item="application-config",
-                vault=OnePasswordVaultName,
-            ).create_or_replace("lago_customer_id", str(lago_customer_id))
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item="application-config",
+                    vault=OnePasswordVaultName,
+                    secret_name="lago_customer_id",
+                    secret_value=str(lago_customer_id),
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
 
             await workflow.execute_activity(
                 activity=LagoSetupActivity.defn,
@@ -477,13 +528,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LagoSetupActivity.get_timeout(),
             )
 
+            gitea_username = GiteaService.extract_username(email)
+            gitea_repo_url = f"/repos/{gitea_username}/{tenant}/"
             # setup api-dev-config
             await workflow.execute_activity(
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="api-dev-config",
-                    template_file_name="api-config.json",
+                    template_file_name=f"{config.env}-api-config.tmpl.json",
+                    destination_file_name="api-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
@@ -502,11 +556,12 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
                         "gitea_api_base_url": zsegment_config.gitea_base_url,
-                        "gitea_api_repo_url": zsegment_config.gitea_api_repo_url,
+                        "gitea_api_repo_url": gitea_repo_url,
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
+                        "giteaUserName": gitea_username,
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -519,7 +574,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="engine-dev-config",
-                    template_file_name="engine-config.json",
+                    template_file_name=f"{config.env}-engine-config.tmpl.json",
+                    destination_file_name="engine-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
@@ -534,6 +590,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
+                        "giteaUserName": gitea_username,
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -546,12 +603,13 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="api-prod-config",
-                    template_file_name="api-config.json",
+                    template_file_name=f"{config.env}-api-config.tmpl.json",
+                    destination_file_name="api-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
                         "environment": "prod",
-                        "server-environment": config.env.upper(),
+                        "server_environment": config.env.upper(),
                         "keycloakRealm": realm_name,
                         "KeycloakAuthServerUrl": zsegment_config.keycloak_auth_server_url,
                         "keycloakSecret": installer_secret,
@@ -565,11 +623,12 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
                         "gitea_api_base_url": zsegment_config.gitea_base_url,
-                        "gitea_api_repo_url": zsegment_config.gitea_api_repo_url,
+                        "gitea_api_repo_url": gitea_repo_url,
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
+                        "giteaUserName": gitea_username,
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -582,7 +641,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="engine-prod-config",
-                    template_file_name="engine-config.json",
+                    template_file_name=f"{config.env}-engine-config.tmpl.json",
+                    destination_file_name="engine-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
@@ -597,6 +657,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
+                        "giteaUserName": gitea_username,
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -690,7 +751,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
                         "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8090],
+                    container_ports={"http": 8090},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -710,7 +771,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/api-config.json"},
+                        {
+                            "name": "SPRING_APPLICATION_JSON",
+                            "value_from": {
+                                "config_map_key_ref": {
+                                    "name": "api-dev-config",
+                                    "key": "api-config.json",
+                                }
+                            },
+                        },
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -735,7 +804,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
                         "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8090],
+                    container_ports={"http": 8090},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -755,7 +824,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/api-config.json"},
+                        {
+                            "name": "SPRING_APPLICATION_JSON",
+                            "value_from": {
+                                "config_map_key_ref": {
+                                    "name": "api-prod-config",
+                                    "key": "api-config.json",
+                                }
+                            },
+                        },
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -780,7 +857,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
                         "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8089],
+                    container_ports={"http": 8089},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -800,7 +877,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/api-config.json"},
+                        {
+                            "name": "SPRING_APPLICATION_JSON",
+                            "value_from": {
+                                "config_map_key_ref": {
+                                    "name": "engine-dev-config",
+                                    "key": "engine-config.json",
+                                }
+                            },
+                        },
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -825,7 +910,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
                         "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8089],
+                    container_ports={"http": 8089},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -845,7 +930,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/api-config.json"},
+                        {
+                            "name": "SPRING_APPLICATION_JSON",
+                            "value_from": {
+                                "config_map_key_ref": {
+                                    "name": "engine-prod-config",
+                                    "key": "engine-config.json",
+                                }
+                            },
+                        },
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -916,7 +1009,30 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-api-dev",
-                    port=8090,
+                    ports={"http": 8090, "grpc": 6565},
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="zsegment-engine-dev",
+                    ports={"http": 8089},
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="zsegment-api-dev-grpc-nodeport",
+                    selector="zsegment-api-dev",
+                    ports={"grpc": 6565},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -928,7 +1044,30 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-api-prod",
-                    port=8090,
+                    ports={"http": 8090, "grpc": 6565},
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="zsegment-engine-prod",
+                    ports={"http": 8089},
+                ),
+                retry_policy=KubernetesServiceActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=KubernetesServiceActivity.defn,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="zsegment-api-prod-grpc-nodeport",
+                    selector="zsegment-api-prod",
+                    ports={"grpc": 6565},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -953,7 +1092,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=KubernetesIstioVirtualServiceActivity.defn,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
-                    host=f"{tenant}.{zsegment_config.domain_name}",
+                    host=f"{tenant}.api.{zsegment_config.domain_name}",
                     service_name="zsegment-api-dev-vs",
                     payload=http_list,
                 ),
@@ -979,7 +1118,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=KubernetesIstioVirtualServiceActivity.defn,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
-                    host=f"{tenant}.{zsegment_config.domain_name}",
+                    host=f"{tenant}.api.{zsegment_config.domain_name}",
                     service_name="zsegment-api-prod-vs",
                     payload=http_list,
                 ),

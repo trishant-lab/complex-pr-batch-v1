@@ -40,7 +40,7 @@ class KubernetesStatefulSetActivityModel(LaunchpadCLIBaseModel):
     docker_image: str
     request_resource: dict
     limit_resource: dict
-    container_ports: list[int]
+    container_ports: dict[str, int]
     volume_mounts: list  # list of dicts with name, mount_path, sub_path
     volumes: list  # list of dicts with name, config_map_name, key, path or name, persistent_volume_claim
     container_envs: list  # list of dicts with name, value
@@ -80,6 +80,8 @@ class KubernetesStatefulSetActivity(Activity):
             dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
         )
 
+        # container_port_name = "http" if len(activity_model.container_ports) <= 1 else ""
+
         body = V1StatefulSet(
             api_version="apps/v1",
             kind=ResourceKindEnum.StatefulSet.value,
@@ -115,9 +117,11 @@ class KubernetesStatefulSetActivity(Activity):
                                 security_context=V1SecurityContext(privileged=True),
                                 ports=[
                                     V1ContainerPort(
-                                        name=f"http-{container_port}", protocol="TCP", container_port=container_port
+                                        name=port_name,
+                                        protocol="TCP",
+                                        container_port=port_value,
                                     )
-                                    for container_port in activity_model.container_ports
+                                    for port_name, port_value in activity_model.container_ports.items()
                                 ],
                                 command=activity_model.container_command,
                                 args=activity_model.container_args,
@@ -179,3 +183,47 @@ class KubernetesStatefulSetActivity(Activity):
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
         resource.server_side_apply(body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True)
         log_info(f"StatefulSetPodCreation created in namespace {activity_model.namespace}")
+
+
+class StatefulSetPodDeletionActivityModel(LaunchpadCLIBaseModel):
+    """
+    StatefulSetPodDeletionActivityModel
+    """
+
+    namespace: str
+    name: str
+
+
+class StatefulSetPodDeletionActivity(Activity):
+    """
+    StatefulSetPodDeletionActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="StatefulSetPodDeletionActivity")
+    async def defn(activity_model: StatefulSetPodDeletionActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        k8s_dynamic_client = get_dynamic_client()
+        resource = get_resource(
+            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
+        )
+
+        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+
+        log_info(f"StatefulSetPodDeletion deleted in namespace {activity_model.namespace}")

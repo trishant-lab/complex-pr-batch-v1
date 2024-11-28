@@ -136,7 +136,7 @@ def delete_file_from_storage(object_name: str, bucket_name: str, config: AppSett
     logger.info(f"deleted object from s3: {object_name}")
 
 
-def copy_files_to_cloudflare(
+def mirror_files_to_cloudflare(
     tenant: str, input_path: str, output_path: str, endpoint: str, access_key: str, secret_key: str, session_token: str
 ) -> None:
     """
@@ -147,5 +147,57 @@ def copy_files_to_cloudflare(
     command = (
         f"MC_HOST_launchpad_{tenant}=https://{access_key}:{secret_key}:{session_token}@{url} "
         f"mc mirror --remove --overwrite {input_path} launchpad_{tenant}/{output_path}"
+    )
+    os.system(command)  # nosec
+
+
+def copy_files_to_cloudflare(
+    tenant: str, input_path: str, output_path: str, endpoint: str, access_key: str, secret_key: str, session_token: str
+) -> None:
+    """
+    Copy objects from local to cloudflare
+    """
+    session_token = base64.b64decode(session_token).decode("utf-8")
+    url = endpoint.split("://")[1]
+    command = (
+        f"MC_HOST_launchpad_{tenant}=https://{access_key}:{secret_key}:{session_token}@{url} "
+        f"mc cp -r {input_path} launchpad_{tenant}/{output_path}"
+    )
+    os.system(command)  # nosec
+
+
+def delete_files_from_cloudflare(
+    tenant: str, input_path: str, endpoint: str, access_key: str, secret_key: str, session_token: str
+) -> None:
+    """
+    Delete objects from cloudflare
+    """
+    session_token = base64.b64decode(session_token).decode("utf-8")
+    url = endpoint.split("://")[1]
+    command = (
+        f"MC_HOST_launchpad_{tenant}=https://{access_key}:{secret_key}:{session_token}@{url} "
+        f"mc rm --recursive launchpad_{tenant}/{input_path}"
+    )
+    os.system(command)  # nosec
+
+
+def copy_files_to_cloudflare_with_exclude(
+    tenant: str,
+    input_path: str,
+    output_path: str,
+    exclude_pattern: str,
+    endpoint: str,
+    access_key: str,
+    secret_key: str,
+    session_token: str,
+) -> None:
+    """
+    Copy objects from local to cloudflare
+    """
+    session_token = base64.b64decode(session_token).decode("utf-8")
+    url = endpoint.split("://")[1]
+    command = (
+        f"MC_HOST_launchpad_{tenant}=https://{access_key}:{secret_key}:{session_token}@{url} "
+        f'mc mirror --remove --overwrite --exclude "{exclude_pattern}" {input_path} launchpad_{tenant}/{output_path}'
     )
     os.system(command)  # nosec

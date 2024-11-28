@@ -1,166 +1,4 @@
 {
-    "authenticationFlows": [
-        {
-            "alias": "314e first broker login",
-            "description": "Actions taken after first broker login with identity provider account, which is not yet linked to any Keycloak account",
-            "providerId": "basic-flow",
-            "topLevel": true,
-            "builtIn": false,
-            "authenticationExecutions": [
-                {
-                    "authenticatorConfig": "review profile config",
-                    "authenticator": "idp-review-profile",
-                    "authenticatorFlow": false,
-                    "requirement": "REQUIRED",
-                    "priority": 10,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                },
-                {
-                    "authenticatorFlow": true,
-                    "requirement": "REQUIRED",
-                    "priority": 20,
-                    "autheticatorFlow": true,
-                    "flowAlias": "314e first broker login User creation or linking",
-                    "userSetupAllowed": false
-                }
-            ]
-        },
-        {
-            "alias": "314e first broker login Account verification options",
-            "description": "Method with which to verity the existing account",
-            "providerId": "basic-flow",
-            "topLevel": false,
-            "builtIn": false,
-            "authenticationExecutions": [
-                {
-                    "authenticator": "idp-email-verification",
-                    "authenticatorFlow": false,
-                    "requirement": "DISABLED",
-                    "priority": 10,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                },
-                {
-                    "authenticatorFlow": true,
-                    "requirement": "DISABLED",
-                    "priority": 20,
-                    "autheticatorFlow": true,
-                    "flowAlias": "314e first broker login Verify Existing Account by Re-authentication",
-                    "userSetupAllowed": false
-                }
-            ]
-        },
-        {
-            "alias": "314e first broker login First broker login - Conditional OTP",
-            "description": "Flow to determine if the OTP is required for the authentication",
-            "providerId": "basic-flow",
-            "topLevel": false,
-            "builtIn": false,
-            "authenticationExecutions": [
-                {
-                    "authenticator": "conditional-user-configured",
-                    "authenticatorFlow": false,
-                    "requirement": "REQUIRED",
-                    "priority": 10,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                },
-                {
-                    "authenticator": "auth-otp-form",
-                    "authenticatorFlow": false,
-                    "requirement": "REQUIRED",
-                    "priority": 20,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                }
-            ]
-        },
-        {
-            "alias": "314e first broker login User creation or linking",
-            "description": "Flow for the existing/non-existing user alternatives",
-            "providerId": "basic-flow",
-            "topLevel": false,
-            "builtIn": false,
-            "authenticationExecutions": [
-                {
-                    "authenticator": "idp-detect-existing-broker-user",
-                    "authenticatorFlow": false,
-                    "requirement": "REQUIRED",
-                    "priority": 10,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                },
-                {
-                    "authenticator": "idp-auto-link",
-                    "authenticatorFlow": false,
-                    "requirement": "REQUIRED",
-                    "priority": 20,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                },
-                {
-                    "authenticatorConfig": "create unique user config",
-                    "authenticator": "idp-create-user-if-unique",
-                    "authenticatorFlow": false,
-                    "requirement": "DISABLED",
-                    "priority": 21,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                }
-            ]
-        },
-        {
-            "alias": "314e first broker login Verify Existing Account by Re-authentication",
-            "description": "Reauthentication of existing account",
-            "providerId": "basic-flow",
-            "topLevel": false,
-            "builtIn": false,
-            "authenticationExecutions": [
-                {
-                    "authenticator": "idp-username-password-form",
-                    "authenticatorFlow": false,
-                    "requirement": "REQUIRED",
-                    "priority": 10,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                },
-                {
-                    "authenticatorFlow": true,
-                    "requirement": "CONDITIONAL",
-                    "priority": 20,
-                    "autheticatorFlow": true,
-                    "flowAlias": "314e first broker login First broker login - Conditional OTP",
-                    "userSetupAllowed": false
-                }
-            ]
-        },
-        {
-            "alias": "career portal first broker login",
-            "description": "",
-            "providerId": "basic-flow",
-            "topLevel": true,
-            "builtIn": false,
-            "authenticationExecutions": [
-                {
-                    "authenticator": "idp-review-profile",
-                    "authenticatorFlow": false,
-                    "requirement": "REQUIRED",
-                    "priority": 0,
-                    "autheticatorFlow": false,
-                    "userSetupAllowed": false
-                },
-                {
-                    "authenticatorFlow": true,
-                    "requirement": "REQUIRED",
-                    "priority": 1,
-                    "autheticatorFlow": true,
-                    "flowAlias": "user creation or linking",
-                    "userSetupAllowed": false
-                }
-            ]
-        }
-    ],
     "identityProviders": [
         {
             "alias": "penknife-basic",
@@ -178,7 +16,7 @@
                 "validateSignature": "true",
                 "userInfoUrl": "https://openidconnect.googleapis.com/v1/userinfo",
                 "tokenUrl": "https://oauth2.googleapis.com/token",
-                "clientId": "{{googleclientid}}",
+                "clientId": "<<googleclientid>>",
                 "jwksUrl": "https://www.googleapis.com/oauth2/v3/certs",
                 "issuer": "https://accounts.google.com",
                 "useJwksUrl": "true",
@@ -186,7 +24,7 @@
                 "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline",
                 "clientAuthMethod": "client_secret_basic",
                 "syncMode": "IMPORT",
-                "clientSecret": "{{googlesecret}}",
+                "clientSecret": "<<googlesecret>>",
                 "prompt": "consent",
                 "defaultScope": "openid profile email https://www.googleapis.com/auth/calendar"
             }
@@ -215,13 +53,13 @@
                 "loginHint": "false",
                 "clientAuthMethod": "client_secret_basic",
                 "syncMode": "IMPORT",
-                "clientSecret": "{{googlesecret}}",
+                "clientSecret": "<<googlesecret>>",
                 "allowedClockSkew": "0",
                 "defaultScope": "openid profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
                 "validateSignature": "true",
                 "userInfoUrl": "https://openidconnect.googleapis.com/v1/userinfo",
                 "hideOnLoginPage": "true",
-                "clientId": "{{googleclientid}}",
+                "clientId": "<<googleclientid>>",
                 "uiLocales": "false",
                 "disableNonce": "false",
                 "useJwksUrl": "true",
@@ -257,13 +95,13 @@
                 "loginHint": "false",
                 "clientAuthMethod": "client_secret_post",
                 "syncMode": "IMPORT",
-                "clientSecret": "{{googlesecret}}",
+                "clientSecret": "<<googlesecret>>",
                 "allowedClockSkew": "0",
                 "defaultScope": "openid profile email",
                 "userInfoUrl": "https://openidconnect.googleapis.com/v1/userinfo",
                 "validateSignature": "true",
                 "hideOnLoginPage": "true",
-                "clientId": "{{googleclientid}}",
+                "clientId": "<<googleclientid>>",
                 "uiLocales": "false",
                 "disableNonce": "false",
                 "useJwksUrl": "true",

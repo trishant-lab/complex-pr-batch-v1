@@ -1,77 +1,126 @@
 from datetime import timedelta
-from typing import Optional
 from temporalio import activity
-from temporalio.common import  RetryPolicy
+from temporalio.common import RetryPolicy
 from concurrent.futures import wait, ALL_COMPLETED
 
 import httpx
-from confluent_kafka.admin import AdminClient, AclBinding, AclOperation, AclPermissionType, ResourceType, ResourcePatternType
+from confluent_kafka.admin import (
+    AdminClient,
+    AclBinding,
+    AclOperation,
+    AclPermissionType,
+    ResourceType,
+    ResourcePatternType,
+)
 from confluent_kafka import KafkaError
-import logging
 
 from confluent_kafka.cimpl import NewTopic
 
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Activity
-logger = logging.getLogger(__name__)
+from app.cli.temporal.core.log import log_error, log_info
+
 
 class RedpandaProperties(LaunchpadCLIBaseModel):
     tenant: str
-    environment: Optional[str] = None
+    environment: None | str = None
     broker: str = "localhost:9092"
     security_protocol: str = "SASL_PLAINTEXT"
-    admin_username: Optional[str] = None
-    admin_password: Optional[str] = None
+    admin_username: None | str = None
+    admin_password: None | str = None
     admin_sasl_mechanism: str = "SCRAM-SHA-256"
     replica: int = 1
     partition: int = 4
-    tenant_password: Optional[str] = None
+    tenant_password: None | str = None
     tenant_sasl_mechanism: str = "SCRAM-SHA-256"
     admin_api_base_url: str = "http://localhost:9644"
 
 
-
-def kafka_client(properties: RedpandaProperties):
+def kafka_client(properties: RedpandaProperties) -> AdminClient:
+    """
+    Create a Kafka AdminClient
+    """
     # Kafka client configuration
     conf = {
-        'bootstrap.servers': properties.broker,
-        'security.protocol': properties.security_protocol,
-        'sasl.mechanism': properties.admin_sasl_mechanism,
-        'sasl.username': properties.admin_username,
-        'sasl.password': properties.admin_password
+        "bootstrap.servers": properties.broker,
+        "security.protocol": properties.security_protocol,
+        "sasl.mechanism": properties.admin_sasl_mechanism,
+        "sasl.username": properties.admin_username,
+        "sasl.password": properties.admin_password,
+        "receive.message.max.bytes": 1213486160,
     }
     return AdminClient(conf)
 
+
 def create_topics(properties: RedpandaProperties) -> bool:
+    """
+    Create topics for the given tenant and environment
+    """
     try:
         client = kafka_client(properties)
         topics = [
-            NewTopic(f"zsegment-{properties.tenant}-{properties.environment}-inbound",
-                     num_partitions=properties.partition, replication_factor=properties.replica),
-            NewTopic(f"zsegment-{properties.tenant}-{properties.environment}-outbound",
-                     num_partitions=properties.partition, replication_factor=properties.replica),
-            NewTopic(f"zsegment-{properties.tenant}-{properties.environment}-event",
-                     num_partitions=properties.partition, replication_factor=properties.replica)
+            NewTopic(
+                f"zsegment-{properties.tenant}-{properties.environment}-inbound",
+                num_partitions=properties.partition,
+                replication_factor=properties.replica,
+            ),
+            NewTopic(
+                f"zsegment-{properties.tenant}-{properties.environment}-outbound",
+                num_partitions=properties.partition,
+                replication_factor=properties.replica,
+            ),
+            NewTopic(
+                f"zsegment-{properties.tenant}-{properties.environment}-event",
+                num_partitions=properties.partition,
+                replication_factor=properties.replica,
+            ),
+            NewTopic(
+                f"zsegment-{properties.tenant}-{properties.environment}-event-response",
+                 num_partitions=1,
+                replication_factor=properties.replica,
+            )
         ]
-        client.create_topics(topics)
-        logger.info(f"Created topics for tenant {properties.tenant}")
+
+        response = client.create_topics(topics)
+
+        # Check if each topic was successfully created or had an exception
+        all_successful = True
+        for topic, future in response.items():
+            try:
+                future.result()
+                log_info(f"Topic '{topic}' created successfully.")
+            except Exception as e:
+                if(e.args[0] == KafkaError.TOPIC_ALREADY_EXISTS):
+                    log_info(f"Topic '{topic}' already exists; continuing.")
+                else:
+                    all_successful = False
+                    log_info(f"Unexpected error creating topic '{topic}': {e}")
+
+        if not all_successful:
+            log_error(f"Some topics failed to create for tenant '{properties.tenant}'.")
+            return False
         return True
+
     except KafkaError as e:
-        logger.error(f"Failed to create topics: {e}")
+        log_error(f"Error creating topics: {e}")
         return False
 
+
 def delete_topics(properties: RedpandaProperties) -> bool:
+    """
+    Delete topics for the given tenant and environment
+    """
     try:
         client = kafka_client(properties)
         topics = [
             f"zsegment-{properties.tenant}-{properties.environment}-inbound",
             f"zsegment-{properties.tenant}-{properties.environment}-outbound",
-            f"zsegment-{properties.tenant}-{properties.environment}-event"
+            f"zsegment-{properties.tenant}-{properties.environment}-event",
         ]
         client.delete_topics(topics)
-        logger.info(f"Deleted topics for tenant {properties.tenant}")
+        log_info(f"Deleted topics for tenant {properties.tenant}")
         return True
     except KafkaError as e:
-        logger.error(f"Failed to delete topics: {e}")
+        log_error(f"Failed to delete topics: {e}")
         return False
 
 
@@ -93,7 +142,7 @@ def create_acls(properties: RedpandaProperties) -> bool:
                 principal=f"User:zsegment_{properties.tenant}",
                 host="*",
                 operation=AclOperation.ALL,
-                permission_type=AclPermissionType.ALLOW
+                permission_type=AclPermissionType.ALLOW,
             ),
             # ACL for consumer groups with tenant prefix
             AclBinding(
@@ -103,8 +152,8 @@ def create_acls(properties: RedpandaProperties) -> bool:
                 principal=f"User:zsegment_{properties.tenant}",
                 host="*",
                 operation=AclOperation.ALL,
-                permission_type=AclPermissionType.ALLOW
-            )
+                permission_type=AclPermissionType.ALLOW,
+            ),
         ]
 
         # Create the ACLs
@@ -115,47 +164,81 @@ def create_acls(properties: RedpandaProperties) -> bool:
         # Check if any task encountered an exception
         for future in done:
             if future.exception() is not None:
-                logger.error(f"Failed to create ACL: {future.exception()}")
+                log_error(f"Failed to create ACL: {future.exception()}")
                 return False
 
-        logger.info(f"All ACLs successfully created for tenant {properties.tenant}")
+        log_info(f"All ACLs successfully created for tenant {properties.tenant}")
         return True
     except Exception as e:
-        logger.error(f"Failed to create ACLs: {str(e)}")
+        log_error(f"Failed to create ACLs: {e}")
         return False
 
+
 def create_user(properties: RedpandaProperties) -> bool:
+    """
+    Create a user for the given tenant
+    """
     try:
         client = httpx.Client()
+        username = f"zsegment_{properties.tenant}"
+
+        list_user = client.get(f"{properties.admin_api_base_url}/v1/security/users")
+        if list_user.status_code == 200:
+            existing_users = list_user.json()
+            if username in existing_users:
+                # change the user password
+                user_payload = {
+                    "algorithm": properties.tenant_sasl_mechanism,
+                    "password": properties.tenant_password,
+                }
+                response = client.put(f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload)
+                if response.status_code == 200:
+                    log_info(f"User '{username}' already exists for tenant '{properties.tenant}'. Password updated successfully.")
+                    return True
+                else:
+                    log_error(f"User '{username}' exists for tenant '{properties.tenant}', but failed to update password. Status code: {response.status_code}")
+                    return False
+        else:
+            log_error(f"Failed to retrieve user list for tenant '{properties.tenant}'. Status code: {list_user.status_code}")
+
+        # User does not exist; create the user
         user_payload = {
             "username": f"zsegment_{properties.tenant}",
             "algorithm": properties.tenant_sasl_mechanism,
-            "password": properties.tenant_password
+            "password": properties.tenant_password,
         }
         response = client.post(f"{properties.admin_api_base_url}/v1/security/users", json=user_payload)
         if response.status_code == 200:
-            logger.info(f"Created user for tenant {properties.tenant}")
+            log_info(f"Created user for tenant {properties.tenant}")
             return True
-        else:
-            logger.error(f"Failed to create user: {response.status_code}")
-            return False
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Failed to create user: {e}")
+
+    except httpx.RequestError as req_err:
+        log_error(f"Network error occurred while creating user for tenant {properties.tenant}: {req_err}")
+        return False
+    except httpx.HTTPStatusError as http_err:
+        log_error(f"HTTP error occurred while creating user for tenant {properties.tenant}: {http_err}")
+        return False
+    except Exception as e:
+        log_error(f"Unexpected error occurred while creating user for tenant {properties.tenant}: {e}")
         return False
 
 def delete_user(properties: RedpandaProperties) -> bool:
+    """
+    Delete a user for the given tenant
+    """
     try:
         client = httpx.Client()
         response = client.delete(f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}")
         if response.status_code == 200:
-            logger.info(f"Deleted user for tenant {properties.tenant}")
+            log_info(f"Deleted user for tenant {properties.tenant}")
             return True
         else:
-            logger.error(f"Failed to delete user: {response.status_code}")
+            log_error(f"Failed to delete user: {response.status_code}")
             return False
     except httpx.HTTPStatusError as e:
-        logger.error(f"Failed to delete user: {e}")
+        log_error(f"Failed to delete user: {e}")
         return False
+
 
 class RedpandaSetupActivity(Activity):
     @staticmethod
@@ -182,31 +265,24 @@ class RedpandaSetupActivity(Activity):
         """
         Complete Redpanda setup by creating a user, ACLs, and topics for the tenant.
         """
-        logger.info(f"Starting Redpanda setup for tenant {properties.tenant}")
+        log_info(f"Starting Redpanda setup for tenant {properties.__dict__}")
 
         # Step 1: Create user
         user_created = create_user(properties)
         if not user_created:
-            logger.error(f"Failed to create user for tenant {properties.tenant}")
-            return
-        logger.info(f"User created successfully for tenant {properties.tenant}")
+            log_error(f"Failed to create user for tenant {properties.tenant}")
 
         # Step 2: Set up ACLs
         acls_created = create_acls(properties)
         if not acls_created:
-            logger.error(f"Failed to create ACLs for tenant {properties.tenant}")
-            return
-        logger.info(f"ACLs created successfully for tenant {properties.tenant}")
+            log_error(f"Failed to create ACLs for tenant {properties.tenant}")
 
         # Step 3: Create topics for each environment stage if provided
         if properties.environment:
             topics_created = create_topics(properties)
             if not topics_created:
-                logger.error(
-                    f"Failed to create topics for tenant {properties.tenant} in environment {properties.environment}")
-                return
-            logger.info(
-                f"Topics created successfully for tenant {properties.tenant} in environment {properties.environment}")
+                log_error(
+                    f"Failed to create topics for tenant {properties.tenant} in environment {properties.environment}"
+                )
 
-        logger.info(f"Redpanda setup completed for tenant {properties.tenant}")
-
+        log_info(f"Redpanda setup completed for tenant {properties.tenant}")

@@ -7,7 +7,7 @@ class TenantType(str, Enum):
     internalhiring = "InternalHiring"
 
     @classmethod
-    def get_tenant_type(cls: "TenantType", enum_value: "TenantType") -> str:
+    def get_tenant_type(cls: "TenantType", enum_value: str) -> str:
         """
         Get the tenant type for the given enum value
         @param enum_value:
@@ -16,9 +16,9 @@ class TenantType(str, Enum):
         @rtype:
         """
         match enum_value:
-            case cls.staffing:
+            case "Staffing":
                 return "staffing"
-            case cls.internalhiring:
+            case "InternalHiring":
                 return "internal_hiring"
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
@@ -36,8 +36,8 @@ class ResourceSpec(LaunchpadCLIBaseModel):
 
     request_memory: str = "500Mi"
     request_cpu: str = "500m"
-    limit_memory: str = "3000Mi"
-    limit_cpu: str = "3000m"
+    limit_memory: str = "8000Mi"
+    limit_cpu: str = "5000m"
 
 
 class CustomerDetails(LaunchpadCLIBaseModel):
@@ -56,7 +56,7 @@ class PenknifeSpec(LaunchpadCLIBaseModel):
     lastName: str
     email: str
     organization: str
-    contactNumber: str
+    phoneNumber: str
     companyDomain: str
     tenantType: TenantType = TenantType.staffing
     # TODO: add emailprovider related changes to config

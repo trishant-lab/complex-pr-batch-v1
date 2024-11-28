@@ -1,0 +1,27 @@
+{
+  "username": "<<customerEmail>>",
+  "enabled": true,
+  "totp": false,
+  "emailVerified": true,
+  "firstName": "<<customerUserName>>",
+  "lastName": "",
+  "email": "<<customerEmail>>",
+  "disableableCredentialTypes": [],
+  "requiredActions": [],
+  "notBefore": 0,
+  "access": {
+    "manageGroupMembership": true,
+    "view": true,
+    "mapRoles": true,
+    "impersonate": true,
+    "manage": true
+  },
+  "credentials": [
+    {
+      "type": "password",
+      "temporary": true,
+      "value": "<<customerPassword>>"
+    }
+  ],
+  "groups": ["vt-customer-admin"]
+}

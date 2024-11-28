@@ -2,20 +2,20 @@
     "clientId": "auth",
     "name": "",
     "description": "",
-    "rootUrl": "https://{{tenant}}.penknife.314ecorp.{{domain}}",
-    "adminUrl": "https://dashboard.314ecorp.{{domain}}/",
+    "rootUrl": "https://<<tenant>>.<<domain>>",
+    "adminUrl": "https://dashboard.314ecorp.<<domain>>/",
     "baseUrl": "",
     "surrogateAuthRequired": false,
     "enabled": true,
     "alwaysDisplayInConsole": false,
     "clientAuthenticatorType": "client-secret",
-    "secret": "{{auth_credential}}",
+    "secret": "<<auth_credential>>",
     "redirectUris": [
-        "https://dashboard.314ecorp.{{domain}}/*"
+        "https://dashboard.314ecorp.<<domain>>/*"
     ],
     "webOrigins": [
-        "http://{{tenant}}.penknife.314ecorp.{{domain}}/*",
-        "https://dashboard.314ecorp.{{domain}}/*"
+        "http://<<tenant>>.<<domain>>/*",
+        "https://dashboard.314ecorp.<<domain>>/*"
     ],
     "notBefore": 0,
     "bearerOnly": false,

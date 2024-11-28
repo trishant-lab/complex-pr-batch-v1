@@ -2,22 +2,22 @@
     "clientId": "hdp",
     "name": "hdp",
     "description": "hdp application client",
-    "rootUrl": "https://{{tenant}}.hdp.314ecorp.{{domain}}",
-    "adminUrl": "https://{{tenant}}.hdp.314ecorp.{{domain}}",
-    "baseUrl": "https://{{tenant}}.hdp.314ecorp.{{domain}}",
+    "rootUrl": "https://<<tenant>>.hdp.314ecorp.<<domain>>",
+    "adminUrl": "https://<<tenant>>.hdp.314ecorp.<<domain>>",
+    "baseUrl": "https://<<tenant>>.hdp.314ecorp.<<domain>>",
     "surrogateAuthRequired": false,
     "enabled": true,
     "alwaysDisplayInConsole": false,
     "clientAuthenticatorType": "client-secret",
     "redirectUris": [
-      "https://{{tenant}}.hdp.314ecorp.{{domain}}/*",
-      "https://hdp-agent.314ecorp.{{domain}}/*",
-      "https://okhdp.{{domain}}/*"
+      "https://<<tenant>>.hdp.314ecorp.<<domain>>/*",
+      "https://hdp-agent.314ecorp.<<domain>>/*",
+      "https://okhdp.<<domain>>/*"
     ],
     "webOrigins": [
-      "https://hdp-agent.314ecorp.{{domain}}",
-      "https://{{tenant}}.hdp.314ecorp.{{domain}}",
-      "https://okhdp.{{domain}}"
+      "https://hdp-agent.314ecorp.<<domain>>",
+      "https://<<tenant>>.hdp.314ecorp.<<domain>>",
+      "https://okhdp.<<domain>>"
     ],
     "notBefore": 0,
     "bearerOnly": false,

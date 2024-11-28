@@ -13,7 +13,7 @@
     "route": [
       {
         "destination": {
-          "host": "zsegment-api-prod-grpc.{{tenant}}.svc.cluster.local",
+          "host": "zsegment-api-prod.<<tenant>>.svc.cluster.local",
           "port": {
             "number": 6565
           }
@@ -33,7 +33,7 @@
     "route": [
       {
         "destination": {
-          "host": "zsegment-api-prod.{{tenant}}.svc.cluster.local",
+          "host": "zsegment-api-prod.<<tenant>>.svc.cluster.local",
           "port": {
             "number": 8090
           }
@@ -53,25 +53,5 @@
     "redirect": {
       "uri": "/sprint/"
     }
-  },
-  {
-    "match": [
-      {
-        "uri": {
-          "prefix": "/"
-        }
-      }
-    ],
-    "name": "zsegment-ui",
-    "route": [
-      {
-        "destination": {
-          "host": "varnish-svc.varnish.svc.cluster.local",
-          "port": {
-            "number": 80
-          }
-        }
-      }
-    ]
   }
 ]
