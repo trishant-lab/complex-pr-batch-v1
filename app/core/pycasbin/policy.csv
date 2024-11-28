@@ -96,6 +96,7 @@ p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetTipSheet, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/listTenants, GET
 
 p, ADMINS, /api/v1/deployment/deploy, POST
+p, ADMINS, /api/v1/reports, GET
 
 g, ADMINS, Admin
 g, JEEVES_VIEW_GROUP, JeevesView
