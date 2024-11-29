@@ -142,8 +142,8 @@ class OnePasswordInsertIfNotExistsActivity(Activity):
         )
 
         # Try to get existing key
-        existing_key = op_util.get_key(f"{activity_input.tenant}.{activity_input.key}")
+        existing_key = op_util.get_key(activity_input.key)
 
         if existing_key is None:
             # Create or update the key
-            op_util.create_or_replace(f"{activity_input.tenant}.{activity_input.key}", activity_input.key_value)
+            op_util.create_or_replace(activity_input.key, activity_input.key_value)

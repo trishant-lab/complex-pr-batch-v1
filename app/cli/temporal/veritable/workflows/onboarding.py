@@ -127,6 +127,7 @@ class VeritableOnboardingWorkflow(Workflow):
             VMPodScrapperActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             TenantCrdCreationActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
         ]
 
     @classmethod
@@ -448,9 +449,9 @@ class VeritableOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{image_tag}/{bucket_name}"
+                dest_dir = bucket_name
             else:
-                dest_dir = f"/{image_tag}"
+                dest_dir = f"{bucket_name}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -476,10 +477,14 @@ class VeritableOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=veritable_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
+                    template_payload={
+                        "customerRealmRoles": orjson.dumps(["VT_CUSTOMER_ADMIN"]),
+                        "domain_org": veritable_config.domain_name,
+                    },
                 ),
                 retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
