@@ -12,6 +12,8 @@ from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
 from app.cli.temporal.practifly.practifly import PractiflyWorkflow
 from app.cli.temporal.zsegment.zsegment import ZSegmentWorkflow
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
+from app.cli.temporal.veritable.veritable import VeritableWorkflow
+from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 
 
 class ProductEnum(str, Enum):
@@ -32,7 +34,7 @@ class ProductEnum(str, Enum):
             case cls.jeeves:
                 return JeevesWorkflow
             case cls.veritable:
-                raise NotImplementedError("Veritable is not implemented")
+                return VeritableWorkflow
             case cls.dexit:
                 return DexitWorkflow
             case cls.penknife:
@@ -55,7 +57,7 @@ class ProductEnum(str, Enum):
             case cls.jeeves:
                 return JeevesSpec
             case cls.veritable:
-                raise NotImplementedError("Veritable is not implemented")
+                return VeritableSpec
             case cls.dexit:
                 return DexitSpec
             case cls.penknife:

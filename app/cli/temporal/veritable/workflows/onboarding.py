@@ -82,7 +82,7 @@ ProductName = "veritable"
 OnePasswordVaultName = "veritable"
 
 
-@workflow.defn
+@workflow.defn(name="VeritableOnboardingWorkflow", sandboxed=False)
 class VeritableOnboardingWorkflow(Workflow):
     """
     Veritable Onboarding Workflow
@@ -138,8 +138,8 @@ class VeritableOnboardingWorkflow(Workflow):
         """
         config: AppSettings = get_settings()
         veritable_config: VeritableSettings = config.veritable
-        first_name = pydash.get(veritable, "first_name")
-        last_name = pydash.get(veritable, "last_name")
+        first_name = pydash.get(veritable, "firstName")
+        last_name = pydash.get(veritable, "lastName")
         email = pydash.get(veritable, "email")
 
         tenant = pydash.get(veritable, "tenant")
@@ -180,23 +180,6 @@ class VeritableOnboardingWorkflow(Workflow):
                     ),
                     retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
                     start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
-                )
-
-            # Wait for approval or denial
-            await workflow.wait_condition(lambda: self.approved or self.deny)
-
-            # Update tenant status if request is declined
-            if self.deny:
-                await workflow.execute_activity(
-                    activity=UpdateTenantStatusActivity.defn,
-                    arg=TenantStatus(
-                        tenant_name=tenant,
-                        status="Declined",
-                        error_msg="Request Declined",
-                        product=ProductName,
-                    ),
-                    start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
-                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
             postgres_schema_name = tenant
@@ -353,7 +336,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 {
                     "name": "veritable-custom-config",
                     "key": "custom-config.json",
-                    "template_file_name": "custom-config.tmpl.json",
+                    "data": "{}",
                 },
                 {
                     "name": "veritable-env-config",
@@ -381,12 +364,13 @@ class VeritableOnboardingWorkflow(Workflow):
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
+                        template_file_name=config_map.get("template_file_name", None),
+                        data=config_map.get("data", None),
                         cloudflare_r2_folder_path="veritable-config",
                         template_payload={
                             "tenant": tenant,
-                            "customerId": pydash.get(veritable, "customer_id"),
-                            "orgName": pydash.get(veritable, "org_name"),
+                            "customerId": pydash.get(veritable, "customerId"),
+                            "orgName": pydash.get(veritable, "orgName"),
                         },
                         destination_file_name=config_map["key"],
                     ),
@@ -635,7 +619,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "FALSE"},
-                        {"name": "ORG_NAME", "value": pydash.get(veritable, "org_name")},
+                        {"name": "ORG_NAME", "value": pydash.get(veritable, "orgName")},
                         {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
                     ],
                 ),
@@ -728,7 +712,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "TRUE"},
-                        {"name": "ORG_NAME", "value": pydash.get(veritable, "org_name")},
+                        {"name": "ORG_NAME", "value": pydash.get(veritable, "orgName")},
                         {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
                     ],
                 ),
@@ -833,17 +817,3 @@ class VeritableOnboardingWorkflow(Workflow):
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
-
-    @workflow.signal
-    async def approve(self: "Workflow") -> None:
-        """
-        Approve the workflow
-        """
-        self.approved = True
-
-    @workflow.signal
-    async def deny(self: "Workflow") -> None:
-        """
-        Deny the workflow
-        """
-        self.deny = True
