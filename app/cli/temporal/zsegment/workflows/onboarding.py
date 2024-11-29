@@ -535,7 +535,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="api-dev-config",
+                    name="zsegment-api-dev-config",
                     template_file_name=f"{config.env}-api-config.tmpl.json",
                     destination_file_name="api-config.json",
                     bucket_name="zsegment-config",
@@ -573,7 +573,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="engine-dev-config",
+                    name="zsegment-engine-dev-config",
                     template_file_name=f"{config.env}-engine-config.tmpl.json",
                     destination_file_name="engine-config.json",
                     bucket_name="zsegment-config",
@@ -602,7 +602,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="api-prod-config",
+                    name="zsegment-api-prod-config",
                     template_file_name=f"{config.env}-api-config.tmpl.json",
                     destination_file_name="api-config.json",
                     bucket_name="zsegment-config",
@@ -640,7 +640,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="engine-prod-config",
+                    name="zsegment-engine-prod-config",
                     template_file_name=f"{config.env}-engine-config.tmpl.json",
                     destination_file_name="engine-config.json",
                     bucket_name="zsegment-config",
