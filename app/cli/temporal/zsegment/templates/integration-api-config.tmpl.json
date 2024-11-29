@@ -54,6 +54,7 @@
 
   "REDIS.HOST": "cache-new.<<tenantName>>.svc.cluster.local",
   "REDIS.PORT": "6379",
+  "REDIS.USERNAME": "zsegment",
   "REDIS.PASSWORD": "<<redisPassword>>",
 
   "MATOMO.AUTH.TOKEN": "<<matomoAuthToken>>",
