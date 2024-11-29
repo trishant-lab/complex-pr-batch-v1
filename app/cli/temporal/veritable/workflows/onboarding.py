@@ -3,6 +3,8 @@ from app.cli.temporal.veritable import TemplatePath
 import pydash
 import orjson
 from temporalio import workflow
+from cryptography.fernet import Fernet
+
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
@@ -336,12 +338,15 @@ class VeritableOnboardingWorkflow(Workflow):
             )
 
             # insert fernet key into 1Password if it doesn't exist
+            fernet_key = Fernet.generate_key().decode()
             await workflow.execute_activity(
                 activity=OnePasswordInsertIfNotExistsActivity.defn,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=tenant,
                     vault=OnePasswordVaultName,
                     server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                    key="fernet_key",
+                    key_value=fernet_key,
                 ),
                 retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),

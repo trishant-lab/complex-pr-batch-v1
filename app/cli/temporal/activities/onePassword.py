@@ -2,7 +2,6 @@ from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
-from cryptography.fernet import Fernet
 
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
@@ -105,11 +104,13 @@ class OnePasswordInsertIfNotExistsActivityModel(LaunchpadCLIBaseModel):
     tenant: str
     vault: str
     server_item: str
+    key: str
+    key_value: str
 
 
 class OnePasswordInsertIfNotExistsActivity(Activity):
     """
-    Activity to insert a fernet key into 1Password if it doesn't exist
+    Activity to insert key into 1Password if it doesn't exist
     """
 
     @staticmethod
@@ -130,7 +131,7 @@ class OnePasswordInsertIfNotExistsActivity(Activity):
     @activity.defn(name="OnePasswordInsertIfNotExistsActivity")
     async def defn(activity_input: OnePasswordInsertIfNotExistsActivityModel) -> None:
         """
-        Callable for the activity that checks if a fernet key exists for a tenant,
+        Callable for the activity that checks if a key exists for a tenant,
         and if not, generates and inserts a new one
         """
         server_item = activity_input.server_item
@@ -141,10 +142,8 @@ class OnePasswordInsertIfNotExistsActivity(Activity):
         )
 
         # Try to get existing key
-        existing_key = op_util.get_key(f"{activity_input.tenant}.fernet_key")
+        existing_key = op_util.get_key(f"{activity_input.tenant}.{activity_input.key}")
 
         if existing_key is None:
-            # Generate new fernet key
-            new_key = Fernet.generate_key().decode()
             # Create or update the key
-            op_util.create_or_replace(f"{activity_input.tenant}.fernet_key", new_key)
+            op_util.create_or_replace(f"{activity_input.tenant}.{activity_input.key}", activity_input.key_value)
