@@ -70,6 +70,10 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
+)
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
@@ -79,7 +83,7 @@ with workflow.unsafe.imports_passed_through():
 
 
 ProductName = "veritable"
-OnePasswordVaultName = "veritable"
+OnePasswordVaultName = "practifly"
 
 
 @workflow.defn(name="VeritableOnboardingWorkflow", sandboxed=False)
@@ -329,6 +333,18 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=RedisSetupActivity.get_retry_policy(),
                 start_to_close_timeout=RedisSetupActivity.get_timeout(),
+            )
+
+            # insert fernet key into 1Password if it doesn't exist
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # kubernetes config map creation
