@@ -762,7 +762,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "api-dev-config",
+                            "config_map_name": "zsegment-api-dev-config",
                             "key": "api-config.json",
                             "path": "api-config.json",
                         }
@@ -815,7 +815,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "api-prod-config",
+                            "config_map_name": "zsegment-api-prod-config",
                             "key": "api-config.json",
                             "path": "api-config.json",
                         }
@@ -868,7 +868,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "engine-dev-config",
+                            "config_map_name": "zsegment-engine-dev-config",
                             "key": "engine-config.json",
                             "path": "engine-config.json",
                         }
@@ -921,7 +921,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "engine-prod-config",
+                            "config_map_name": "zsegment-engine-prod-config",
                             "key": "engine-config.json",
                             "path": "engine-config.json",
                         }
