@@ -775,7 +775,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "api-dev-config",
+                                    "name": "zsegment-api-dev-config",
                                     "key": "api-config.json",
                                 }
                             },
@@ -828,7 +828,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "api-prod-config",
+                                    "name": "zsegment-api-prod-config",
                                     "key": "api-config.json",
                                 }
                             },
@@ -881,7 +881,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "engine-dev-config",
+                                    "name": "zsegment-engine-dev-config",
                                     "key": "engine-config.json",
                                 }
                             },
@@ -934,7 +934,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "engine-prod-config",
+                                    "name": "zsegment-engine-prod-config",
                                     "key": "engine-config.json",
                                 }
                             },
