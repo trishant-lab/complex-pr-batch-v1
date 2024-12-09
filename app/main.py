@@ -19,8 +19,10 @@ from .routes.tenant import tenant_router
 from .routes.provisioning import provisioning_router
 from .routes.deprovisioning import de_provisioning_router
 from .routes.users import user_router
+from .routes.deployment import deployment_router
+from .routes.reports import reports_router
 
-api_prefix = "/api/v1"
+API_PREFIX = "/api/v1"
 TITLE = "Launchpad APP"
 
 config: AppSettings = get_settings()
@@ -61,7 +63,7 @@ fastapi_app = FastAPI(
     default_response_class=ORJSONResponse,
     docs_url=None,
     redoc_url=None,
-    openapi_url=f"{api_prefix}/openapi.json",
+    openapi_url=f"{API_PREFIX}/openapi.json",
     swagger_ui_init_oauth=ui_init_oauth,
     lifespan=lifespan,
 )
@@ -112,10 +114,12 @@ async def redoc_html() -> HTMLResponse:
 
 
 # Adding application routes to FastAPI instance
-fastapi_app.include_router(product_router, prefix=f"{api_prefix}/product", tags=["Product"])
-fastapi_app.include_router(tenant_router, prefix=f"{api_prefix}/tenant", tags=["Tenant"])
-fastapi_app.include_router(provisioning_router, prefix=f"{api_prefix}/provisioning", tags=["Provisioning"])
-fastapi_app.include_router(de_provisioning_router, prefix=f"{api_prefix}/deprovisioning", tags=["Deprovisioning"])
-fastapi_app.include_router(user_router, prefix=f"{api_prefix}/User", tags=["User"])
-fastapi_app.include_router(email_template_router, prefix=f"{api_prefix}/EmailTemplate", tags=["EmailTemplate"])
-fastapi_app.include_router(jeeves_report_router, prefix=f"{api_prefix}/jeevesReports", tags=["JeevesReports"])
+fastapi_app.include_router(product_router, prefix=f"{API_PREFIX}/product", tags=["Product"])
+fastapi_app.include_router(tenant_router, prefix=f"{API_PREFIX}/tenant", tags=["Tenant"])
+fastapi_app.include_router(provisioning_router, prefix=f"{API_PREFIX}/provisioning", tags=["Provisioning"])
+fastapi_app.include_router(de_provisioning_router, prefix=f"{API_PREFIX}/deprovisioning", tags=["Deprovisioning"])
+fastapi_app.include_router(user_router, prefix=f"{API_PREFIX}/User", tags=["User"])
+fastapi_app.include_router(email_template_router, prefix=f"{API_PREFIX}/EmailTemplate", tags=["EmailTemplate"])
+fastapi_app.include_router(jeeves_report_router, prefix=f"{API_PREFIX}/jeevesReports", tags=["JeevesReports"])
+fastapi_app.include_router(deployment_router, prefix=f"{API_PREFIX}/deployment", tags=["Deployment"])
+fastapi_app.include_router(reports_router, prefix=f"{API_PREFIX}/reports", tags=["Reports"])

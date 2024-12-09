@@ -1,0 +1,43 @@
+{
+    "keycloak.auth_url": "https://auth-int.veritable.app",
+    "keycloak.client_id": "installer",
+    "keycloak.client_secret": "{{ op://Veritable/veritable-config/INTEGRATION-CONFIG/keycloak_client_secret }}",
+
+    "postgres.port": "5432",
+    "postgres.host": "db-cluster-ha.postgresql.svc.cluster.local",
+    "postgres.db": "veritable_integration",
+
+    "postgres_.port": "6543",
+    "postgres_.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
+    "postgres_.db": "veritable_integration",
+
+    "ezapi.request_url": "http://ezapi.test1.svc.cluster.local:8000",
+    "ezapi.auth_url": "https://auth-int.veritable.app",
+    "ezapi.client_id": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/ezapi_client_id }}",
+    "ezapi.client_secret": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/ezapi_client_secret }}",
+    "ezapi.realm": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/ezapi_realm }}",
+    "ezapi.grant_type": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/ezapi_grant_type }}",
+
+    "sendgrid.api_key": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/sendgrid_api_key }}",
+
+    "stripe.api_key": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/stripe_api_key }}",
+    "stripe.secret_key": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/stripe_secret_key }}",
+
+    "accounts.api_url": "http://veritable-accounts-svc.lago.svc.cluster.local:8000/accounts/",
+    "accounts.auth_url": "https://auth-int.veritable.app",
+    "accounts.client_id": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/accounts_client_id }}",
+    "accounts.client_secret": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/accounts_client_secret }}",
+    "accounts.realm": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/accounts_realm }}",
+    "accounts.grant_type": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/accounts_grant_type }}",
+
+    "ehr_test_settings.client_id": "{{ op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_client_id }}",
+    "ehr_test_settings.client_secret": "{{ op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_client_secret }}",
+    "ehr_test_settings.practice_id": "{{ op://Practifly/application-config/INTEGRATION-CONFIG/ehr_test_settings_practice_id }}",
+
+    "payment_test_setting.stripe_api_key": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/payment_test_setting_stripe_api_key }}",
+    "payment_test_setting.anet_api_login_id": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/payment_test_setting_anet_api_login_id }}",
+    "payment_test_setting.anet_transaction_key": "{{ op://Practifly/veritable-config/INTEGRATION-CONFIG/payment_test_setting_anet_transaction_key }}",
+
+    "temporal.host": "temporal-frontend.temporal.svc.cluster.local",
+    "temporal.port": "7233"
+}

@@ -1,0 +1,41 @@
+{
+    "cf_form_bucket_url": "https://pub-765ae2b62a284547a691ff66866a1573.r2.dev/",
+
+    "keycloak.auth_url": "https://auth.practifly.com",
+    "keycloak.client_id": "installer",
+    "keycloak.client_secret": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/keycloak_client_secret }}",
+
+    "minio.access_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/minio_access_key }}",
+    "minio.secret_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/minio_secret_key }}",
+    "minio.url": "http://ostore-hl.ostore.svc.cluster.local:9000",
+
+    "postgres.host": "db-cluster-ha.postgres16.svc.cluster.local",
+    "postgres.port": "5432",
+
+    "postgres_.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
+    "postgres_.port": "6543",
+
+    "sendgrid.api_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/sendgrid_api_key }}",
+
+    "rabbitmq.uri": "amqp://admin:{{ op://Practifly/application-config/PRODUCTION-CONFIG/rabbitmq_queue_password }}@rabbitmq.queue-system.svc.cluster.local:5672",
+
+    "static_r2.url": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/tenant_r2_url }}",
+    "static_r2.bucket": "practifly-static",
+    "static_r2.access_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/tenant_r2_access_key }}",
+    "static_r2.secret_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/tenant_r2_secret_key }}",
+
+    "signalwire.project_id": "{{ op://Practifly/application-config/COMMON-CONFIG/signalwire_project_id }}",
+    "signalwire.api_token": "{{ op://Practifly/application-config/COMMON-CONFIG/signalwire_api_token }}",
+    "signalwire.space_url": "{{ op://Practifly/application-config/COMMON-CONFIG/signalwire_space_url }}",
+    "signalwire.from_number": "{{ op://Practifly/application-config/COMMON-CONFIG/signalwire_from_number }}",
+
+    "tenant_r2.url": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/tenant_r2_url }}",
+    "tenant_r2.bucket": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/tenant_r2_bucket }}",
+    "tenant_r2.access_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/tenant_r2_access_key }}",
+    "tenant_r2.secret_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/tenant_r2_secret_key }}",
+
+    "r2.url": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/r2_url }}",
+    "r2.bucket": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/r2_bucket }}",
+    "r2.access_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/r2_access_key }}",
+    "r2.secret_key": "{{ op://Practifly/application-config/PRODUCTION-CONFIG/r2_secret_key }}"
+}

@@ -1,0 +1,110 @@
+{
+    "clientId": "hdp",
+    "name": "hdp",
+    "description": "hdp application client",
+    "rootUrl": "https://<<tenant>>.hdp.314ecorp.<<domain>>",
+    "adminUrl": "https://<<tenant>>.hdp.314ecorp.<<domain>>",
+    "baseUrl": "https://<<tenant>>.hdp.314ecorp.<<domain>>",
+    "surrogateAuthRequired": false,
+    "enabled": true,
+    "alwaysDisplayInConsole": false,
+    "clientAuthenticatorType": "client-secret",
+    "redirectUris": [
+      "https://<<tenant>>.hdp.314ecorp.<<domain>>/*",
+      "https://hdp-agent.314ecorp.<<domain>>/*",
+      "https://okhdp.<<domain>>/*"
+    ],
+    "webOrigins": [
+      "https://hdp-agent.314ecorp.<<domain>>",
+      "https://<<tenant>>.hdp.314ecorp.<<domain>>",
+      "https://okhdp.<<domain>>"
+    ],
+    "notBefore": 0,
+    "bearerOnly": false,
+    "consentRequired": false,
+    "standardFlowEnabled": true,
+    "implicitFlowEnabled": true,
+    "directAccessGrantsEnabled": true,
+    "serviceAccountsEnabled": false,
+    "publicClient": true,
+    "frontchannelLogout": false,
+    "protocol": "openid-connect",
+    "attributes": {
+      "saml.multivalued.roles": "false",
+      "saml.force.post.binding": "false",
+      "post.logout.redirect.uris": "+",
+      "frontchannel.logout.session.required": "false",
+      "oauth2.device.authorization.grant.enabled": "false",
+      "backchannel.logout.revoke.offline.tokens": "false",
+      "saml.server.signature.keyinfo.ext": "false",
+      "use.refresh.tokens": "true",
+      "oidc.ciba.grant.enabled": "false",
+      "backchannel.logout.session.required": "false",
+      "client_credentials.use_refresh_token": "false",
+      "saml.client.signature": "false",
+      "require.pushed.authorization.requests": "false",
+      "saml.allow.ecp.flow": "false",
+      "saml.assertion.signature": "false",
+      "id.token.as.detached.signature": "false",
+      "saml.encrypt": "false",
+      "login_theme": "hdp-login-theme",
+      "saml.server.signature": "false",
+      "exclude.session.state.from.auth.response": "false",
+      "saml.artifact.binding": "false",
+      "saml_force_name_id_format": "false",
+      "acr.loa.map": "{}",
+      "tls.client.certificate.bound.access.tokens": "false",
+      "saml.authnstatement": "false",
+      "display.on.consent.screen": "false",
+      "token.response.type.bearer.lower-case": "false",
+      "saml.onetimeuse.condition": "false"
+    },
+    "authenticationFlowBindingOverrides": {},
+    "fullScopeAllowed": true,
+    "nodeReRegistrationTimeout": -1,
+    "protocolMappers": [
+      {
+        "name": "ehr_app_name",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usersessionmodel-note-mapper",
+        "consentRequired": false,
+        "config": {
+          "user.session.note": "ehr_app_name",
+          "userinfo.token.claim": "true",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "claim.name": "ehr_app_name",
+          "jsonType.label": "String",
+          "access.tokenResponse.claim": "false"
+        }
+      },
+      {
+        "name": "idp_name",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usersessionmodel-note-mapper",
+        "consentRequired": false,
+        "config": {
+          "user.session.note": "identity_provider",
+          "userinfo.token.claim": "true",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "claim.name": "idp_name",
+          "jsonType.label": "String",
+          "access.tokenResponse.claim": "false"
+        }
+      }
+    ],
+    "defaultClientScopes": [
+      "web-origins",
+      "openid",
+      "profile",
+      "roles",
+      "email"
+    ],
+    "optionalClientScopes": [
+      "address",
+      "phone",
+      "offline_access",
+      "microprofile-jwt"
+    ]
+}

@@ -1,0 +1,51 @@
+{
+    "name": "dexit-roi-complete",
+    "description": "",
+    "tags": [],
+    "steps": [
+      {
+        "template": {
+          "content": "ROI is ready for download.",
+          "type": "in_app",
+          "cta": {
+              "type": "redirect",
+              "data": {
+                "url": "/roilogs"
+              }
+            }
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "ROI is ready for download.",
+          "type": "email",
+          "senderName":"DexIt",
+          "subject":"Roi Completed",
+          "contentType":"customHtml"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "ROI is ready for download.",
+          "type": "chat"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      }
+    ],
+    "active": true,
+    "notification_group_id": "<<notification.notification_grp_id>>",
+    "critical": false,
+    "draft": false,
+    "preference_settings": {
+      "email": true,
+      "sms": true,
+      "in_app": true,
+      "chat": true,
+      "push": true
+    }
+}

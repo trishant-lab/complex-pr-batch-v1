@@ -1,0 +1,34 @@
+[
+    {
+        "name": "penknife-api",
+        "route": [
+            {
+                "destination": {
+                    "host": "penknife.<<tenant>>.svc.cluster.local",
+                    "port": {
+                        "number": 8000
+                    }
+                },
+                "headers": {
+                    "response": {
+                        "add": {
+                            "Strict-Transport-Security": "max-age=31536000;includeSubDomains;preload"
+                        }
+                    }
+                }
+            }
+        ],
+        "match": [
+            {
+                "uri": {
+                    "regex": "^/careerportal/api/v1/.*"
+                }
+            },
+            {
+                "uri": {
+                    "regex": "^/public/api/v1/.*"
+                }
+            }
+        ]
+    }
+]

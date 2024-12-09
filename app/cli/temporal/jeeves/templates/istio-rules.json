@@ -1,0 +1,99 @@
+[
+    {
+        "name": "jeeves-api",
+        "route": [
+            {
+                "destination": {
+                    "host": "jeeves.<<tenant>>.svc.cluster.local",
+                    "port": {"number": 8000}
+                },
+                "headers": {
+                    "response": {
+                        "add": {
+                            "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+                        }
+                    }
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"regex": "^/api/v1/.*"}},
+            {"uri": {"regex": "^/public/api/v1/.*"}},
+            {"uri": {"prefix": "/docs"}},
+            {"uri": {"prefix": "/redoc"}}
+        ]
+    },
+    {
+        "name": "jeeves-log-collect",
+        "route": [
+            {
+                "destination": {
+                    "host": "grafana-agent.monitoring-system.svc.cluster.local",
+                    "port": {"number": 12347}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/logcollect"}}
+        ],
+        "rewrite": {"uri": "/collect"}
+    },
+    {
+        "name": "jeeves-analytics",
+        "route": [
+            {
+                "destination": {
+                    "host": "matomo-server.matomo.svc.cluster.local",
+                    "port": {"number": 80}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/insights/"}}
+        ],
+        "rewrite": {"uri": "/"}
+    },
+    {
+        "name": "jeeves-alerting",
+        "route": [
+            {
+                "destination": {
+                    "host": "api.novu.svc.cluster.local",
+                    "port": {"number": 4000}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/alerting/"}}
+        ],
+        "rewrite": {"uri": "/"}
+    },
+    {
+        "name": "novu-socket",
+        "route": [
+            {
+                "destination": {
+                    "host": "ws.novu.svc.cluster.local",
+                    "port": {"number": 3002}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/socket.io/"}}
+        ]
+    },
+    {
+        "name": "jeeves-ui",
+        "route": [
+            {
+                "destination": {
+                    "host": "varnish-svc.varnish.svc.cluster.local",
+                    "port": {"number": 80}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/"}}
+        ]
+    }
+]

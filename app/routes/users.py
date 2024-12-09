@@ -12,7 +12,7 @@ from starlette.requests import Request
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
 from authlib.integrations.httpx_client import AsyncAssertionClient
 
-from app.cli.common.keycloakUtils import KeycloakAdminClient
+from app.cli.keycloakUtils import KeycloakAdminClient
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
 from app.models.users import (

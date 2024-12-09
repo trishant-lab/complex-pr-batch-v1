@@ -10,13 +10,13 @@ from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvi
 
 async def veritable_deprovisioning_worker() -> None:
     """
-    Workflow worker for veritable onboarding
+    Workflow worker for veritable deprovisioning
     """
     config: AppSettings = get_settings()
 
     client = await get_temporal_client()
 
-    logger.info("Starting veritable onboarding worker...")
+    logger.info("Starting veritable deprovisioning worker...")
 
     worker: Worker = Worker(
         client,

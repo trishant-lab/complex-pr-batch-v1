@@ -1,0 +1,65 @@
+{
+  "client_code": "<<tenant>>",
+  "keycloak": {
+      "realm": "<<tenant>>",
+      "client_id": "penknife",
+      "auth_url": "https://auth.314ecorp.tech",
+      "auth_credential": "{{ op://Penknife/application-config/PENKNIFE_<<tenant>>/auth_credential }}"
+  },
+  "gsuite": {
+      "project_id": "penknife",
+      "provider_client_id": "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/provider_client_id }}",
+      "provider_client_secret": "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/provider_client_secret }}"
+  },
+  "redis_dsn": "redis://redis:@cache-new.<<tenant>>.svc.cluster.local",
+  "redis_password": "{{ op://Penknife/application-config/PENKNIFE_<<tenant>>/redis_password }}",
+  "pg_dsn": "postgresql://penknife_<<tenant>>.penknife_<<tenant>>:{{ op://Penknife/application-config/PENKNIFE_<<tenant>>/pg_password }}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/penknife",
+  "keycloak_dsn": "postgresql://keycloak:{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/postgres_keycloak_user_password }}@db-cluster-ha.postgresql.svc.cluster.local:5432/keycloak",
+  "atlas_pg_dsn": "postgresql://penknife_<<tenant>>:{{ op://Penknife/application-config/PENKNIFE_<<tenant>>/pg_password }}@db-cluster-ha.postgresql.svc.cluster.local:5432/penknife",
+  "atlas_token":  "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/atlas_token }}",
+  "tenant_career_url":  "<<tenant>>-careers.penknife.314ecorp.tech",     
+  "tenant_type": "<<tenant_type>>",
+  "minio": {
+      "host": "ostore.314ecorp.tech",
+      "secret_key": "{{ op://314e DevOps/integration/ostore/static }}",
+      "access_key": "static",
+      "bucket_name": "static",
+      "region_name": "us-east-1"
+  },
+  "cloudflare_r2": {
+      "host": "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/r2_endpoint }}",
+      "access_key": "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/r2_access_key_id }}",
+      "secret_key": "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/r2_secret_access_key }}",
+      "bucket_name": "penknife-integration",
+      "region_name": "us-east-1"
+  },
+  "sendgrid": {
+      "smtp_host": "smtp.sendgrid.net",
+      "smtp_port": 587,
+      "smtp_user": "apikey",
+      "smtp_pass": "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/sendgrid_smtp_pass }}"
+  },
+  "google_pub_sub": {
+      "project_id": "penknife-354607",
+      "topic_id": "penknife-integration",
+      "subscription_id": "test-pub-sub-subscription",
+      "request_size": 25
+  },
+  "APP_SERVER_URL": "https://<<tenant>>.api.<<domain>>",
+  "APP_UI_URL": "https://<<tenant>>.<<domain>>",
+  "novu": {
+      "api_key": "{{ op://Penknife/application-config/PENKNIFE_<<tenant>>/novu_api_key }}",
+      "url": "http://api.novu.svc.cluster.local:4000"
+  },
+  "openai": {
+      "openai_organisation_id": "org-P18F3UKsDDOJ5OweqiXSfj6b",
+      "openai_api_key": "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/openai_api_key }}",
+      "resume_parser_model": "{{ op://Penknife/application-config/PENKNIFE_CLI_TEST2/resume_parser_model_test2 }}",
+      "resume_parser_api_key": "{{ op://Penknife/application-config/PENKNIFE_CLI_TEST2/resume_parser_api_key_test2 }}",
+      "resume_parser_max_length": 16000
+  },
+  "temporal": {
+      "dsn": "temporal-frontend.temporal.svc.cluster.local:7233"
+  },
+  "candidate_profile_password": "{{ op://Penknife/application-config/INTEGRATION_COMMON_CONFIG/candidate_profile_password }}"
+}

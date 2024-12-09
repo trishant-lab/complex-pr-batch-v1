@@ -15,8 +15,20 @@ from app.core.log import setup_logging
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
     "jeeves.json",
+    "dexit.json",
+    "penknife.json",
+    "zsegment.json",
+    "practifly.json",
+    "veritable.json",
 ]
-PRODUCT_FILE_NAMES: Final[list[str]] = ["jeeves.json"]
+PRODUCT_FILE_NAMES: Final[list[str]] = [
+    "veritable.json",
+    "jeeves.json",
+    "dexit.json",
+    "penknife.json",
+    "zsegment.json",
+    "practifly.json",
+]
 
 
 class KeycloakSettings(BaseModel):
@@ -33,8 +45,10 @@ class KeycloakSettings(BaseModel):
 
     client_id: str = "app"
     auth_url: str = "https://auth.314ecorp.tech"
+    internal_auth_url: str = "http://keycloak-service.keycloak.svc.cluster.local:8080"
     auth_user: str = "installer"
     auth_secret: str = ""
+    keycloak_db_password: str = ""
 
     realm_path: str = "/auth/admin/realms/"
 
@@ -99,6 +113,7 @@ class S3Settings(BaseModel):
     region: str = "us-east-1"
     use_ssl: bool = True
     rclone_remote: str = "s3_rclone_remote"
+    s3_alias: str = "launchpad"
     bucket: str = ""
 
 
@@ -143,19 +158,32 @@ class GSuiteModel(BaseSettings):
     model_config = ConfigDict(extra="ignore")
 
 
+class CloudflareSettings(BaseModel):
+    """
+    Cloudflare Settings
+    """
+
+    account_id: str = ""
+    api_token: str = ""
+    access_key: str = ""
+    s3_alias: str = "launchpad"
+    r2_endpoint: str = "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com"
+    r2_secret_key: str = ""
+    r2_access_key: str = ""
+    api_url: str = "https://api.cloudflare.com/client/v4"
+
+
 class VeritableSettings(BaseModel):
     """
     Veritable Settings
-
     """
 
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "int.veritable.app"
-    grafana: GrafanaSettings = GrafanaSettings()
-
+    zone_id: str = ""
+    domain_name: str = "veritable.tech"
+    sender_name: str = ""
+    sender_email: str = ""
     temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
     temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
-    temporal_veritable_postgres_setup_task_queue: str = "temporal_veritable_postgres_setup_task_queue"
 
 
 class JeevesSettings(BaseModel):
@@ -164,9 +192,13 @@ class JeevesSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "jeeves.314ecorp.tech"
-    zone_name: str = "e314ecorptech"
+    domain_name: str = "okjeeves.tech"
+    # zone_name: str = "e314ecorptech"
+    zone_id: str = ""
     # grafana: GrafanaSettings = GrafanaSettings()
+
+    sender_email: str = "support@okjeeves.com"
+    sender_name: str = "Jeeves Support"
 
     temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
     temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
@@ -194,6 +226,58 @@ class JeevesSettings(BaseModel):
     reporting_site_id: str = "1"
 
 
+class HDPSettings(BaseModel):
+    """
+    Jeeves Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "hdp.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
+
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
+
+    # grafana: GrafanaSettings = GrafanaSettings()
+
+    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue1"
+    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue1"
+
+    kestra_username: str = "kestra.user@314ecorp.com"
+
+    reporting_site_id: str = "1"
+
+
+class PenknifeSettings(BaseModel):
+    """
+    Penknife Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "penknife.tech"
+    zone_id: str = ""
+    zone_name: str = "e314ecorptech"
+
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
+
+    temporal_penknife_onboarding_task_queue: str = "temporal_penknife_onboarding_task_queue"
+    temporal_penknife_deboarding_task_queue: str = "temporal_penknife_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_admin_user: str = ""
+    novu_admin_password: str = ""
+
+    keycloak_db_password: str = ""
+
+    # r2_url: str = ""
+    # r2_access_key: str = ""
+    # r2_secret: str = ""
+    # r2_bucket: str = ""
+
+    # reporting_site_id: str = "1"
+
+
 class DexitAIOcrEngines(str, Enum):
     """OCR Engine"""
 
@@ -207,6 +291,10 @@ class DexitAIEntityExtractionModels(str, Enum):
 
     LLAMA2_7B = "llama2:7b"
     LLAMA2_13B = "llama2:13b"
+    LLAMA3_8B = "llama3:8b"
+    LLAMA3_1_8B = "llama3.1:8b"
+    GEMMA_7B = "gemma:7b"
+    GEMMA2_9B = "gemma2:9b"
 
 
 class DexitAIComputeEngineSettings(BaseModel):
@@ -214,13 +302,13 @@ class DexitAIComputeEngineSettings(BaseModel):
     Dexit AI Compute Engine Settings
     """
 
-    accelerator: str = ""
-    instance_size: str = ""
-    instance_type: str = ""
+    accelerator: str = "cpu"
+    instance_size: str = "x8"
+    instance_type: str = "intel-spr"
     min_replica: int = 0
     max_replica: int = 1
     scale_to_zero_timeout: int = 15  # minutes
-    vendor: str = ""
+    vendor: str = "aws"
     region: str = "us-east-1"
 
 
@@ -230,7 +318,8 @@ class DexitAIEndpointSettings(BaseModel):
     """
 
     enable_ocr: bool = True
-    enable_entity: bool = False
+    enable_entity_llm: bool = False
+    enable_entity_layoutlm: bool = False
     enable_classification: bool = False
     compute_engine: DexitAIComputeEngineSettings = DexitAIComputeEngineSettings()
 
@@ -246,15 +335,18 @@ class DexitAISettings(BaseModel):
     hf_endpoint_repo_name: str = "314e/Dexit-AI"
     hf_endpoint_repo_revision: str = "production"
 
-    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.TESSERACT
+    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.DOCTR
 
-    classification_modelid: str = "314e/Dexit-Document-Classification-Muspell-Model1"
-    classification_modelrevision: str = "production"
+    classification_modelid: str = "314e/Dexit-LayoutLMv3-Classification-test1"
+    classification_modelrevision: str = "v0.1.3-manual-upload"
 
-    entity_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA2_13B
-    entity_model_temperature: float = 0
-    entity_model_numctx: int = 4096
-    entity_model_numpredict: int = 300
+    entity_layoutlm_modelid: str = "314e/Dexit-LayoutLMv3-Entity-test1"
+    entity_layoutlm_modelrevision: str = "v0.1.6-test"
+
+    entity_llm_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA3_8B
+    entity_llm_model_temperature: float = 0
+    entity_llm_model_numctx: int = 4096
+    entity_llm_model_numpredict: int = 300
 
     inference_endpoints: list[DexitAIEndpointSettings] = [DexitAIEndpointSettings()]
 
@@ -266,7 +358,11 @@ class DexitSettings(BaseModel):
 
     postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "dexit.314ecorp.tech"
+    zone_name: str = "e314ecorptech"
     # grafana: GrafanaSettings = GrafanaSettings()
+
+    sender_email: str = "developer@314ecorp.com"
+    sender_name: str = "314e Support"
 
     temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"
     temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
@@ -290,6 +386,54 @@ class DexitSettings(BaseModel):
     ai_config: DexitAISettings = DexitAISettings()
 
 
+class ZSegmentSettings(BaseModel):
+    """
+    ZSegment Settings
+    """
+
+    postgres: PostgresSettings = PostgresSettings()
+    domain_name: str = "zsegment.tech"
+    zone_name: str = "e314ecorptech"
+    zone_id: str = ""
+    redpanda_broker: str = "redpanda-0.redpanda.redpanda-system.svc.cluster.local:9092"
+    redpanda_admin_username: str = "superuser"
+    redpanda_admin_password: str = ""
+    redpanda_admin_api_base_url: str = "http://redpanda-0.redpanda.redpanda-system.svc.cluster.local:9644"
+
+    keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
+
+    gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1/"
+    gitea_admin_username: str = ""
+    gitea_admin_password: str = ""
+    gitea_template_owner: str = ""
+
+    lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000"
+    lago_plan_code: str = "Free"
+    lago_api_key: str = ""
+
+    postgres_url: str = "db-cluster-ha.postgresql.svc.cluster.local"
+
+    matomo_auth_token: str = "e9c5ba18c4d7af04c4fdb1443d604e88&force_api_session=1"
+
+    sender_name: str = ""
+    sender_email: str = ""
+
+    temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
+
+
+class PractiflySettings(BaseModel):
+    """
+    Practifly Settings
+    """
+
+    zone_id: str = ""
+    domain_name: str = "practifly.tech"
+    sender_name: str = ""
+    sender_email: str = ""
+    temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
+    temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
+
+
 class AppSettings(BaseSettings):
     """
     Application Settings
@@ -303,18 +447,26 @@ class AppSettings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
+    cloudflare: CloudflareSettings = CloudflareSettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
     dexit: DexitSettings = DexitSettings()
+    penknife: PenknifeSettings = PenknifeSettings()
+    hdp: HDPSettings = HDPSettings()
+    zsegment: ZSegmentSettings = ZSegmentSettings()
+    practifly: PractiflySettings = PractiflySettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
     s3: S3Settings = S3Settings()
     r2: S3Settings = S3Settings()
 
+    matomo_db_password: str = ""
+
     docker_image_pull_secret: str = ""
-    google_dns_cname: str = "k8s.314ecorp.tech"
+    google_dns_cname: str = "k8s.314ecorp.tech."
+    k8s_cname: str = "k8s.314ecorp.tech."
 
     grafana_url: str = "https://monitor.314ecorp.tech"
     grafana_datasource_uid: str = "e4hhV8CGk"

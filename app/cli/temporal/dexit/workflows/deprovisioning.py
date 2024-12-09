@@ -10,12 +10,11 @@ from app.cli.temporal.dexit.activities.deprovisioning import (
     DeleteProvisioningJobActivity,
     DeleteDeploymentActivity,
     DeleteConfigMapActivity,
-    DeletePVCActivity,
     DropUIBundlesActivity,
     DeleteDNSActivity,
     DeleteVMScraperActivity,
 )
-from app.cli.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 
 with workflow.unsafe.imports_passed_through():
     pass
@@ -38,7 +37,6 @@ class DexitDeProvisioningWorkflow(Workflow):
             DeleteProvisioningJobActivity.defn,
             DeleteDeploymentActivity.defn,
             DeleteConfigMapActivity.defn,
-            DeletePVCActivity.defn,
             DropUIBundlesActivity.defn,
             DeleteDNSActivity.defn,
             DeleteVMScraperActivity.defn,
@@ -95,14 +93,6 @@ class DexitDeProvisioningWorkflow(Workflow):
             arg=workflow_input,
             start_to_close_timeout=timedelta(seconds=120),
             retry_policy=DeleteConfigMapActivity.get_retry_policy(),
-        )
-
-        # delete pvc
-        await workflow.execute_activity(
-            DeletePVCActivity.defn,
-            arg=workflow_input,
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeletePVCActivity.get_retry_policy(),
         )
 
         # drop ui bundles

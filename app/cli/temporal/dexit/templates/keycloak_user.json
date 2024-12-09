@@ -1,0 +1,20 @@
+{
+  "username": "<<username>>",
+  "enabled": true,
+  "totp": false,
+  "emailVerified": true,
+  "firstName": "<<username>>",
+  "lastName": "",
+  "email": "<<email>>",
+  "disableableCredentialTypes": [],
+  "requiredActions": [],
+  "notBefore": 0,
+  "access": {
+    "manageGroupMembership": true,
+    "view": true,
+    "mapRoles": true,
+    "impersonate": true,
+    "manage": true
+  },
+  "groups": []
+}

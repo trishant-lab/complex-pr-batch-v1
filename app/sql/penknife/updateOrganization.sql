@@ -1,0 +1,1 @@
+UPDATE {{schema | sqlsafe}}.organization SET companydomain = {{companydomain}};

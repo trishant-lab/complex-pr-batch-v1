@@ -1,0 +1,51 @@
+{
+    "name": "dexit-batch-create",
+    "description": "",
+    "tags": [],
+    "steps": [
+      {
+        "template": {
+          "content": "A batch << '<<batch.name>>' >> created in Queue << '<<batch.queue_name>>' >>.",
+          "type": "in_app",
+          "cta": {
+              "type": "redirect",
+              "data": {
+                  "url": "/queues/?queueId=<< '<<batch.queue>>' >>"
+              }
+            }
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+            "content": "A batch << '<<batch.name>>' >> created in Queue << '<<batch.queue_name>>' >>.",
+          "type": "email",
+          "senderName":"DexIt",
+          "subject":"Batch Is Created",
+          "contentType":"customHtml"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "A batch << '<<batch.name>>' >> created in Queue << '<<batch.queue_name>>' >>.",
+          "type": "chat"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      }
+    ],
+    "active": true,
+    "notification_group_id": "<<notification.notification_grp_id",
+    "critical": false,
+    "draft": false,
+    "preference_settings": {
+      "email": true,
+      "sms": true,
+      "in_app": true,
+      "chat": true,
+      "push": true
+    }
+}

@@ -1,0 +1,7 @@
+{
+  "fernet_key": "{{ op://Practifly/practifly-tenant-config-integration/<< tenant >>/fernet_key }}",
+  
+  "postgres.db": "practifly-integration",
+
+  "tenant_name": "<< tenant >>"
+}

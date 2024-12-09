@@ -1,0 +1,73 @@
+[
+    {
+        "name": "dexit-api",
+        "route": [
+            {
+                "destination": {
+                    "host": "dexit.<<tenant>>.svc.cluster.local",
+                    "port": {"number": 8000}
+                },
+                "headers": {
+                    "response": {
+                        "add": {
+                            "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+                        }
+                    }
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"regex": "^/api/v1/.*"}},
+            {"uri": {"regex": "^/public/api/v1/.*"}},
+            {"uri": {"prefix": "/docs"}},
+            {"uri": {"prefix": "/redoc"}}
+        ]
+    },
+    {
+        "name": "dexit-log-collect",
+        "route": [
+            {
+                "destination": {
+                    "host": "grafana-agent.monitoring-system.svc.cluster.local",
+                    "port": {"number": 12347}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/logcollect"}}
+        ],
+        "rewrite": {"uri": "/collect"}
+    },
+    {
+        "name": "dexit-ui",
+        "route": [
+            {
+                "destination": {
+                    "host": "varnish-svc.varnish.svc.cluster.local",
+                    "port": {"number": 80}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/"}}
+        ]
+    },
+    {
+        "name": "dexit-dicom",
+        "route": [
+            {
+                "destination": {
+                    "host": "dexit-dicom.<<tenant>>.svc.cluster.local",
+                    "port": {"number": 8042}
+                }
+            }
+        ],
+        "match": [
+            {
+                "uri": {
+                    "regex": "(/dicom-web/.*|/instances/.*|/studies/.*|/series/.*|/patients/.*|/wadu/.*)"
+                }
+            }
+        ]
+    }
+]

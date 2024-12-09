@@ -1,0 +1,14 @@
+{
+  "keycloak": {
+    "keycloak_realm": "<<tenant>>",
+    "keycloak_auth_url": "https://auth.314ecorp.tech/auth/",
+    "keycloak_client_id": "hdp",
+    "keycloak_redirect_uri": "https://<<tenant>>.hdp.314ecorp.tech/"
+  },
+  "superset": {
+    "superset_url":"https://<<tenant>>.hdp.314ecorp.com/hdpsuperset",
+    "role_prefix":"_hdpdashboard_"
+  },
+  "client_code":"<<tenant>>",
+  "log_level":"DEBUG"
+}
