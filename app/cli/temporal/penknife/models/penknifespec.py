@@ -35,7 +35,7 @@ class ResourceSpec(LaunchpadCLIBaseModel):
     """
 
     request_memory: str = "500Mi"
-    request_cpu: str = "500m"
+    request_cpu: str = "100m"
     limit_memory: str = "8000Mi"
     limit_cpu: str = "5000m"
 
