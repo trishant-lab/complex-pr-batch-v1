@@ -736,6 +736,25 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
+            #docs
+            docs_dest_dir = f"{bucket_name}/docs"
+            docs_src_object_name = f"{repo_name}/docs/dist.zip"
+
+            docs_bundle_path = "docs/dist"
+            await workflow.execute_activity(
+                activity=CopyArtifactsToBucketActivity.defn,
+                arg=CopyArtifactsToBucketActivityModel(
+                    bucket_name=bucket_name,
+                    src_object_name=docs_src_object_name,
+                    dest_dir=docs_dest_dir,
+                    bundle_path=docs_bundle_path,
+                    bundle_name="dist.zip",
+                    tenant=tenant,
+                ),
+                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
+            )
+
             # statefulset pod creation for server
             await workflow.execute_activity(
                 activity=KubernetesStatefulSetActivity.defn,
