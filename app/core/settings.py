@@ -19,6 +19,7 @@ CONFIG_FILE_NAMES: Final[list[str]] = [
     "penknife.json",
     "zsegment.json",
     "practifly.json",
+    "veritable.json",
 ]
 PRODUCT_FILE_NAMES: Final[list[str]] = [
     "veritable.json",
