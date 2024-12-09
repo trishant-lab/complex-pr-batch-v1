@@ -299,83 +299,83 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            # # keycloak realm setup
-            # await workflow.execute_activity(
-            #     activity=KeycloakRealmSetupActivity.defn,
-            #     arg=KeycloakRealmSetupActivityModel(
-            #         realm_name=realm_name,
-            #         domain=zsegment_config.domain_name,
-            #         template_path=TemplatePath,
-            #         template_name="keycloak_realm.json",
-            #         installer_secret=installer_secret,
-            #     ),
-            #     retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
-            # )
+            # keycloak realm setup
+            await workflow.execute_activity(
+                activity=KeycloakRealmSetupActivity.defn,
+                arg=KeycloakRealmSetupActivityModel(
+                    realm_name=realm_name,
+                    domain=zsegment_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_realm.json",
+                    installer_secret=installer_secret,
+                ),
+                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
+            )
 
-            # # keycloak client setup
-            # await workflow.execute_activity(
-            #     activity=KeycloakClientSetupActivity.defn,
-            #     arg=KeycloakClientSetupActivityModel(
-            #         tenant=tenant,
-            #         realm_name=realm_name,
-            #         domain=zsegment_config.domain_name,
-            #         template_path=TemplatePath,
-            #         template_name="keycloak_client.json",
-            #     ),
-            #     retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
-            #     start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
-            # )
+            # keycloak client setup
+            await workflow.execute_activity(
+                activity=KeycloakClientSetupActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=zsegment_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_client.json",
+                ),
+                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
+            )
 
-            # roles = [
-            #     "_admin",
-            #     "_dev_default-users",
-            #     "_dev_manage-connector",
-            #     "_dev_manage-credentials",
-            #     "_dev_manage-default-users",
-            #     "_dev_manage-interface-migrations",
-            #     "_dev_manage-libraries",
-            #     "_dev_manage-messages",
-            #     "_dev_manage-metric-dashboard",
-            #     "_dev_manage-tasks",
-            #     "_prod_default-users",
-            #     "_prod_manage-connector",
-            #     "_prod_manage-credentials",
-            #     "_prod_manage-default-users",
-            #     "_prod_manage-interface-migrations",
-            #     "_prod_manage-libraries",
-            #     "_prod_manage-messages",
-            #     "_prod_manage-metric-dashboard",
-            #     "_prod_manage-tasks",
-            # ]
-            # # keycloak client roles setup
-            # await workflow.execute_activity(
-            #     activity=KeycloakCreateClientRolesActivity.defn,
-            #     arg=KeycloakCreateClientRolesActivityModel(
-            #         client_name="zsegment",
-            #         realm_name=realm_name,
-            #         roles=roles,
-            #     ),
-            #     retry_policy=KeycloakCreateClientRolesActivity.get_retry_policy(),
-            #     start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
-            # )
+            roles = [
+                "_admin",
+                "_dev_default-users",
+                "_dev_manage-connector",
+                "_dev_manage-credentials",
+                "_dev_manage-default-users",
+                "_dev_manage-interface-migrations",
+                "_dev_manage-libraries",
+                "_dev_manage-messages",
+                "_dev_manage-metric-dashboard",
+                "_dev_manage-tasks",
+                "_prod_default-users",
+                "_prod_manage-connector",
+                "_prod_manage-credentials",
+                "_prod_manage-default-users",
+                "_prod_manage-interface-migrations",
+                "_prod_manage-libraries",
+                "_prod_manage-messages",
+                "_prod_manage-metric-dashboard",
+                "_prod_manage-tasks",
+            ]
+            # keycloak client roles setup
+            await workflow.execute_activity(
+                activity=KeycloakCreateClientRolesActivity.defn,
+                arg=KeycloakCreateClientRolesActivityModel(
+                    client_name="zsegment",
+                    realm_name=realm_name,
+                    roles=roles,
+                ),
+                retry_policy=KeycloakCreateClientRolesActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
+            )
 
-            # # keycloak tenant customer admin user setup
-            # await workflow.execute_activity(
-            #     activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
-            #     arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-            #         realm_name=realm_name,
-            #         client_name="zsegment",
-            #         username=email,
-            #         email=email,
-            #         firstname=first_name,
-            #         lastname=last_name,
-            #         template_path=TemplatePath,
-            #         template_name="keycloak_tenant_customer_admin.json",
-            #     ),
-            #     retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
-            #     start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
-            # )
+            # keycloak tenant customer admin user setup
+            await workflow.execute_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
+                arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
+                    realm_name=realm_name,
+                    client_name="zsegment",
+                    username=email,
+                    email=email,
+                    firstname=first_name,
+                    lastname=last_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_customer_admin.json",
+                ),
+                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
+            )
 
             await workflow.execute_activity(
                 activity=K8sNamespaceCreationActivity.defn,
@@ -730,6 +730,25 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
                     bundle_name="bundle.zip",
+                    tenant=tenant,
+                ),
+                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
+            )
+
+            #docs
+            docs_dest_dir = f"{bucket_name}/docs"
+            docs_src_object_name = f"{repo_name}/docs/dist.zip"
+
+            docs_bundle_path = "docs/dist"
+            await workflow.execute_activity(
+                activity=CopyArtifactsToBucketActivity.defn,
+                arg=CopyArtifactsToBucketActivityModel(
+                    bucket_name=bucket_name,
+                    src_object_name=docs_src_object_name,
+                    dest_dir=docs_dest_dir,
+                    bundle_path=docs_bundle_path,
+                    bundle_name="dist.zip",
                     tenant=tenant,
                 ),
                 retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
