@@ -479,6 +479,9 @@ class PostgresSupavisorPollUserActivity(Activity):
         )
 
         if response.status_code < 200 or response.status_code >= 299:
-            log_error(f"Supavisor user creation failed with status code: {response.status_code}")
+            log_error(
+                f"Supavisor user creation failed with status code: "
+                f"{response.status_code} and response: {response.json()}"
+            )
             raise Exception(f"Supavisor user creation failed with status code: {response.status_code}")
         log_info(f"Supervisor poll user created: {activity_model.username}")

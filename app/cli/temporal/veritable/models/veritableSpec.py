@@ -1,5 +1,4 @@
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
-import uuid
 
 
 class ResourceSpec(LaunchpadCLIBaseModel):
@@ -19,12 +18,11 @@ class VeritableSpec(LaunchpadCLIBaseModel):
     """
 
     tenant: str
-    customer_id: str
-    first_name: str
-    last_name: str
+    customerId: str
+    firstName: str
+    lastName: str
     email: str
-    org_name: str
-    reconcile: bool = False
+    orgName: str
     emailSent: bool = False
-    server_spec: None | ResourceSpec = ResourceSpec()
-    cli_spec: None | ResourceSpec = ResourceSpec()
+    serverSpec: None | ResourceSpec = ResourceSpec()
+    cliSpec: None | ResourceSpec = ResourceSpec()

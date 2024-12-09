@@ -3,6 +3,8 @@ from app.cli.temporal.veritable import TemplatePath
 import pydash
 import orjson
 from temporalio import workflow
+from cryptography.fernet import Fernet
+
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
@@ -70,6 +72,10 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
+)
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
@@ -79,10 +85,10 @@ with workflow.unsafe.imports_passed_through():
 
 
 ProductName = "veritable"
-OnePasswordVaultName = "veritable"
+OnePasswordVaultName = "practifly"
 
 
-@workflow.defn
+@workflow.defn(name="VeritableOnboardingWorkflow", sandboxed=False)
 class VeritableOnboardingWorkflow(Workflow):
     """
     Veritable Onboarding Workflow
@@ -121,6 +127,7 @@ class VeritableOnboardingWorkflow(Workflow):
             VMPodScrapperActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             TenantCrdCreationActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
         ]
 
     @classmethod
@@ -138,8 +145,8 @@ class VeritableOnboardingWorkflow(Workflow):
         """
         config: AppSettings = get_settings()
         veritable_config: VeritableSettings = config.veritable
-        first_name = pydash.get(veritable, "first_name")
-        last_name = pydash.get(veritable, "last_name")
+        first_name = pydash.get(veritable, "firstName")
+        last_name = pydash.get(veritable, "lastName")
         email = pydash.get(veritable, "email")
 
         tenant = pydash.get(veritable, "tenant")
@@ -180,23 +187,6 @@ class VeritableOnboardingWorkflow(Workflow):
                     ),
                     retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
                     start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
-                )
-
-            # Wait for approval or denial
-            await workflow.wait_condition(lambda: self.approved or self.deny)
-
-            # Update tenant status if request is declined
-            if self.deny:
-                await workflow.execute_activity(
-                    activity=UpdateTenantStatusActivity.defn,
-                    arg=TenantStatus(
-                        tenant_name=tenant,
-                        status="Declined",
-                        error_msg="Request Declined",
-                        product=ProductName,
-                    ),
-                    start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
-                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
             postgres_schema_name = tenant
@@ -348,12 +338,27 @@ class VeritableOnboardingWorkflow(Workflow):
                 start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
+            # insert fernet key into 1Password if it doesn't exist
+            fernet_key = Fernet.generate_key().decode()
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                    key="fernet_key",
+                    key_value=fernet_key,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
             # kubernetes config map creation
             for config_map in [
                 {
                     "name": "veritable-custom-config",
                     "key": "custom-config.json",
-                    "template_file_name": "custom-config.tmpl.json",
+                    "data": "{}",
                 },
                 {
                     "name": "veritable-env-config",
@@ -381,12 +386,13 @@ class VeritableOnboardingWorkflow(Workflow):
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
+                        template_file_name=config_map.get("template_file_name", None),
+                        data=config_map.get("data", None),
                         cloudflare_r2_folder_path="veritable-config",
                         template_payload={
                             "tenant": tenant,
-                            "customerId": pydash.get(veritable, "customer_id"),
-                            "orgName": pydash.get(veritable, "org_name"),
+                            "customerId": pydash.get(veritable, "customerId"),
+                            "orgName": pydash.get(veritable, "orgName"),
                         },
                         destination_file_name=config_map["key"],
                     ),
@@ -443,9 +449,9 @@ class VeritableOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{image_tag}/{bucket_name}"
+                dest_dir = bucket_name
             else:
-                dest_dir = f"/{image_tag}"
+                dest_dir = f"{bucket_name}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -471,10 +477,14 @@ class VeritableOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KeycloakRealmSetupActivity.defn,
                 arg=KeycloakRealmSetupActivityModel(
-                    tenant=tenant,
+                    realm_name=realm_name,
                     domain=veritable_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
+                    template_payload={
+                        "customerRealmRoles": orjson.dumps(["VT_CUSTOMER_ADMIN"]),
+                        "domain_org": veritable_config.domain_name,
+                    },
                 ),
                 retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
@@ -635,7 +645,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "FALSE"},
-                        {"name": "ORG_NAME", "value": pydash.get(veritable, "org_name")},
+                        {"name": "ORG_NAME", "value": pydash.get(veritable, "orgName")},
                         {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
                     ],
                 ),
@@ -728,7 +738,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "TRUE"},
-                        {"name": "ORG_NAME", "value": pydash.get(veritable, "org_name")},
+                        {"name": "ORG_NAME", "value": pydash.get(veritable, "orgName")},
                         {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
                     ],
                 ),
@@ -833,17 +843,3 @@ class VeritableOnboardingWorkflow(Workflow):
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
-
-    @workflow.signal
-    async def approve(self: "Workflow") -> None:
-        """
-        Approve the workflow
-        """
-        self.approved = True
-
-    @workflow.signal
-    async def deny(self: "Workflow") -> None:
-        """
-        Deny the workflow
-        """
-        self.deny = True
