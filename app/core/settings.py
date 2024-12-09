@@ -14,12 +14,12 @@ from app.core.log import setup_logging
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
-    "veritable.json",
     "jeeves.json",
     "dexit.json",
     "penknife.json",
     "zsegment.json",
     "practifly.json",
+    "veritable.json",
 ]
 PRODUCT_FILE_NAMES: Final[list[str]] = [
     "veritable.json",
