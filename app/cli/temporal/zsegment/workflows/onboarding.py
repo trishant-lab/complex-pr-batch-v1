@@ -740,7 +740,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             docs_dest_dir = f"{bucket_name}/docs"
             docs_src_object_name = f"{repo_name}/docs/dist.zip"
 
-            docs_bundle_path = "docs/dist"
+            docs_bundle_path = "bundle/dist"
             await workflow.execute_activity(
                 activity=CopyArtifactsToBucketActivity.defn,
                 arg=CopyArtifactsToBucketActivityModel(
