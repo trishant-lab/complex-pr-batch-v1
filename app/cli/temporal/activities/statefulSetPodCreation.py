@@ -1,33 +1,35 @@
+import datetime
+
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 from kubernetes.dynamic.exceptions import NotFoundError
 from app.cli.temporal.core.log import log_error
 
-
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
+
     from kubernetes.client import (
-        V1StatefulSet,
-        V1ObjectMeta,
-        V1StatefulSetSpec,
-        V1PodTemplateSpec,
-        V1PodSpec,
+        V1ConfigMapKeySelector,
+        V1ConfigMapVolumeSource,
         V1Container,
         V1ContainerPort,
-        V1Volume,
-        V1VolumeMount,
+        V1EnvVar,
+        V1EnvVarSource,
+        V1KeyToPath,
+        V1LocalObjectReference,
+        V1ObjectMeta,
+        V1PersistentVolumeClaimVolumeSource,
+        V1PodSpec,
+        V1PodTemplateSpec,
         V1ResourceRequirements,
         V1SecurityContext,
-        V1ConfigMapVolumeSource,
-        V1KeyToPath,
-        V1PersistentVolumeClaimVolumeSource,
-        V1EnvVar,
-        V1LocalObjectReference,
-        V1ConfigMapKeySelector,
-        V1EnvVarSource,
+        V1StatefulSet,
+        V1StatefulSetSpec,
+        V1Volume,
+        V1VolumeMount,
     )
 
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+    from app.cli.k8s_util import ResourceKindEnum, api_client, get_dynamic_client, get_resource
     from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
     from app.cli.temporal.core.log import log_info
 
@@ -231,3 +233,33 @@ class StatefulSetPodDeletionActivity(Activity):
             log_error(f"StatefulSet {activity_model.name} not found in namespace {activity_model.namespace}")
 
         log_info(f"StatefulSetPodDeletion deleted in namespace {activity_model.namespace}")
+
+
+class StatefulSetRestartActivity(Activity):
+    """
+    StatefulSetRestartActivity
+    """
+
+    @staticmethod
+    @activity.defn(name="StatefulSetRestartActivity")
+    async def defn(activity_model: KubernetesStatefulSetActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        _now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat() + "Z"
+        body = {
+            'spec': {
+                'template':{
+                    'metadata': {
+                        'annotations': {
+                            'kubectl.kubernetes.io/restartedAt': _now
+                        }
+                    }
+                }
+            }
+        }
+        api_client.AppsV1Api().patch_namespaced_stateful_set(
+            name=activity_model.name,
+            namespace=activity_model.namespace,
+            body=body,
+        )
