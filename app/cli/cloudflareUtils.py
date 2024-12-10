@@ -51,7 +51,7 @@ async def delete_bucket(config: AppSettings, bucket_name: str) -> dict:
     Delete a bucket
     """
     client: AsyncCloudflare = await get_cloudflare_client(config=config)
-    return await client.r2.buckets.delete(account_id=config.cloudflare.account_id, name=bucket_name)
+    return await client.r2.buckets.delete(account_id=config.cloudflare.account_id, bucket_name=bucket_name)
 
 
 async def get_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> list:
@@ -88,7 +88,17 @@ async def delete_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> Non
     Delete a DNS record
     """
     client: AsyncCloudflare = await get_cloudflare_client(config=config)
-    return await client.dns.records.delete(zone_id=zone_id, id=fqdn)
+    records = await client.dns.records.list(zone_id=zone_id, type="CNAME", name=fqdn)
+
+    records = records.model_dump()
+    dns_record_id = None
+    if records["result"]:
+        for record in records["result"]:
+            if record["name"] == fqdn:
+                dns_record_id = record["id"]
+                break
+    if dns_record_id:
+        await client.dns.records.delete(zone_id=zone_id, dns_record_id=dns_record_id)
 
 
 async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, custom_domain: str, zone_id: str) -> dict:

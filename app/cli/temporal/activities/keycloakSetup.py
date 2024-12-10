@@ -2,6 +2,7 @@ from pydash import py_
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
+from app.cli.temporal.core.log import log_error
 from app.onepasswordutil import OnePasswordUtil
 
 with workflow.unsafe.imports_passed_through():
@@ -420,8 +421,12 @@ class DeleteKeycloakClientActivity(Activity):
         client_id = keycloak_client.get_client_id(
             client=activity_model.client_name, realm_name=activity_model.realm_name
         )
-
-        keycloak_client.delete_client(client_id=client_id, realm_name=activity_model.realm_name)
+        try:
+            keycloak_client.delete_client(client_id=client_id, realm_name=activity_model.realm_name)
+        except Exception as e:
+            log_error(
+                f"Keycloak client {activity_model.client_name} not found in realm {activity_model.realm_name} {e}"
+            )
 
         log_info(f"Keycloak client {activity_model.client_name} deleted successfully")
 

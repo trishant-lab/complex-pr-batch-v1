@@ -1,5 +1,7 @@
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
+from kubernetes.dynamic.exceptions import NotFoundError
+from app.cli.temporal.core.log import log_error
 
 
 with workflow.unsafe.imports_passed_through():
@@ -223,7 +225,9 @@ class StatefulSetPodDeletionActivity(Activity):
         resource = get_resource(
             dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
         )
-
-        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        try:
+            k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        except NotFoundError:
+            log_error(f"StatefulSet {activity_model.name} not found in namespace {activity_model.namespace}")
 
         log_info(f"StatefulSetPodDeletion deleted in namespace {activity_model.namespace}")

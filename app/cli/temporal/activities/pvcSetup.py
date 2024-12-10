@@ -1,6 +1,9 @@
 from kubernetes.client import V1ObjectMeta, V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec, V1ResourceRequirements
+from kubernetes.dynamic.exceptions import NotFoundError
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
+
+from app.cli.temporal.core.log import log_error
 
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
@@ -114,5 +117,9 @@ class PVCDeletionActivity(Activity):
         pvc_resource = get_resource(
             dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.PersistentVolumeClaim, api_version="v1"
         )
-
-        k8s_dynamic_client.delete(resource=pvc_resource, name=activity_model.pvc_name, namespace=activity_model.tenant)
+        try:
+            k8s_dynamic_client.delete(
+                resource=pvc_resource, name=activity_model.pvc_name, namespace=activity_model.tenant
+            )
+        except NotFoundError:
+            log_error(f"PVC {activity_model.pvc_name} not found in namespace {activity_model.tenant}")

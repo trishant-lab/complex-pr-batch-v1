@@ -196,7 +196,10 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
 
         # await asyncio.sleep(300)
         if not await check_execution_status(self.jeeves, self.job_name):
-            self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.jeeves.tenant)
+            try:
+                self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.jeeves.tenant)
+            except NotFoundError:
+                logger.error(f"Provisioning job not found for {self.jeeves.tenant}")
             raise Exception(f"Provisioning Job execution failed for {self.jeeves.tenant}")
 
     def delete(self: "PreLoadAssetsJob") -> None:
