@@ -29,6 +29,8 @@ async def provisioning_success_mail(name: str, email: str, link: str, password: 
             f.write(email_template)
 
         template_env = get_env(template_path=temp_dir)
+        template_env.variable_start_string = "{{"
+        template_env.variable_end_string = "}}"
         template = template_env.get_template("provisioning_success_mail.html")
         return template.render(
             user_name=name,
@@ -143,6 +145,8 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
             f.write(response["template"])
 
         template_env = get_env(template_path=temp_dir)
+        template_env.variable_start_string = "{{"
+        template_env.variable_end_string = "}}"
         template = template_env.get_template("before_provisioning_mail.html")
         content = template.render(
             user_name=f"{user_details.get('firstName')} {user_details.get('lastName')}",
