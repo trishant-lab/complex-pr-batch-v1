@@ -176,7 +176,7 @@ def delete_files_from_cloudflare(
     url = endpoint.split("://")[1]
     command = (
         f"MC_HOST_launchpad_{tenant}=https://{access_key}:{secret_key}:{session_token}@{url} "
-        f"mc rm --recursive launchpad_{tenant}/{input_path}"
+        f"mc rm --force --recursive launchpad_{tenant}/{input_path}"
     )
     os.system(command)  # nosec
 

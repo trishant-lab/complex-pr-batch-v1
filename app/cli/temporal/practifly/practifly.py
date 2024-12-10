@@ -32,7 +32,16 @@ class PractiflyWorkflow(ProductWorkflow):
         """
         deprovision method
         """
-        raise NotImplementedError
+        from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
+        from app.cli.temporal.starter import trigger_workflow
+        from app.core.settings import PractiflySettings, get_settings
+
+        product_config: PractiflySettings = get_settings().practifly
+        await trigger_workflow(
+            workflow_input=PractiflySpec(**schema),
+            workflow=PractiflyDeProvisioningWorkflow,
+            queue=product_config.temporal_practifly_deboarding_task_queue,
+        )
 
     @staticmethod
     async def approve(schema: dict) -> None:
@@ -45,6 +54,20 @@ class PractiflyWorkflow(ProductWorkflow):
         handle = await get_workflow_handle(workflow_input=PractiflySpec(**schema), workflow=PractiflyOnboardingWorkflow)
 
         await handle.signal(PractiflyOnboardingWorkflow.approve)
+
+    @staticmethod
+    async def approve_deprovisioning(schema: dict) -> None:
+        """
+        approve_deprovisioning method
+        """
+        from app.cli.temporal.starter import get_workflow_handle
+        from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
+
+        handle = await get_workflow_handle(
+            workflow_input=PractiflySpec(**schema), workflow=PractiflyDeProvisioningWorkflow
+        )
+
+        await handle.signal(PractiflyDeProvisioningWorkflow.approve)
 
     @staticmethod
     async def decline(schema: dict) -> None:

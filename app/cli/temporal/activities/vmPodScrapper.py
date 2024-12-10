@@ -1,6 +1,9 @@
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
+from app.cli.temporal.core.log import log_error
+from kubernetes.dynamic.exceptions import NotFoundError
+
 
 with workflow.unsafe.imports_passed_through():
     from datetime import timedelta
@@ -126,7 +129,9 @@ class VMPodScrapperDeletionActivity(Activity):
             kind=ResourceKindEnum.VMPodScrape,
             api_version="operator.victoriametrics.com/v1beta1",
         )
-
-        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        try:
+            k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        except NotFoundError:
+            log_error(f"VMPodScrapper {activity_model.name} not found in namespace {activity_model.namespace}")
 
         log_info(f"VMPodScrapperDeletion deleted in namespace {activity_model.namespace}")

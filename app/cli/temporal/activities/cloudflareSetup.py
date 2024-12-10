@@ -369,7 +369,10 @@ class DeleteCloudflareBucketActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        await delete_bucket(config=config, bucket_name=activity_input.bucket_name)
+        try:
+            await delete_bucket(config=config, bucket_name=activity_input.bucket_name)
+        except Exception as e:
+            log_error(f"Error deleting bucket {activity_input.bucket_name}: {e}")
 
 
 class DeleteFilesFromCloudflareActivityModel(LaunchpadCLIBaseModel):
@@ -379,8 +382,6 @@ class DeleteFilesFromCloudflareActivityModel(LaunchpadCLIBaseModel):
 
     tenant: str
     bucket_name: str
-    bundle_name: str
-    dest_dir: str
 
 
 class DeleteFilesFromCloudflareActivity(Activity):
@@ -412,14 +413,18 @@ class DeleteFilesFromCloudflareActivity(Activity):
         bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
         bucket_access_key = bucket_temporary_credentials.access_key_id
         bucket_secret_key = bucket_temporary_credentials.secret_access_key
-        delete_files_from_cloudflare(
-            tenant=activity_input.tenant,
-            input_path=f"{activity_input.dest_dir}/{activity_input.bundle_name}",
-            endpoint=config.cloudflare.r2_endpoint,
-            access_key=bucket_access_key,
-            secret_key=bucket_secret_key,
-            session_token=bucket_temporary_credentials.session_token,
-        )
+
+        try:
+            delete_files_from_cloudflare(
+                tenant=activity_input.tenant,
+                input_path=f"{activity_input.bucket_name}/",
+                endpoint=config.cloudflare.r2_endpoint,
+                access_key=bucket_access_key,
+                secret_key=bucket_secret_key,
+                session_token=bucket_temporary_credentials.session_token,
+            )
+        except Exception as e:
+            log_error(f"Error deleting files from Cloudflare: {e}")
 
 
 class DeleteCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
@@ -458,7 +463,10 @@ class DeleteCloudflareDNSRecordActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        await delete_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
+        try:
+            await delete_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
+        except Exception as e:
+            log_error(f"Error deleting DNS record {activity_input.domain_name}: {e}")
 
 
 class PropagateDNSRecordActivityModel(LaunchpadCLIBaseModel):
