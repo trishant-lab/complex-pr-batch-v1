@@ -1,15 +1,19 @@
+FROM ghcr.io/astral-sh/uv as uv
 FROM registry.314ecorp.tech/launchpad-app-base as requirements-stage
 
 ENV DEBIAN_FRONTEND noninteractive
 
 WORKDIR /tmp
 
+# COPY UV script
+COPY --from=uv /uv /bin/uv
 COPY pyproject.toml poetry.lock /tmp/
 
-RUN pip install --upgrade pip
-RUN pip install -U poetry==1.8.2 setuptools poetry-plugin-export
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev
-RUN poetry export -f requirements.txt --output dev_requirements.txt --without-hashes --with dev
+# Install Python dependencies
+RUN uv pip install --upgrade pip --system && \
+    uv pip install -U poetry==1.8.2 setuptools poetry-plugin-export --system && \
+    poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev && \
+    poetry export -f requirements.txt --output dev_requirements.txt --without-hashes --only dev
 
 FROM registry.314ecorp.tech/launchpad-app-base
 
@@ -20,12 +24,17 @@ WORKDIR /app
 COPY . .
 COPY --from=requirements-stage /tmp/requirements.txt /tmp/dev_requirements.txt /app/
 
-# poetry
-RUN pip install --upgrade pip && \
-  pip install -U setuptools && \
-  pip install -r requirements.txt && \
-  pip install -e .
+COPY --from=uv /uv /bin/uv
 
+# Install dependencies
+RUN uv pip install --upgrade pip --system && \
+    uv pip install -r requirements.txt --system && \
+    uv pip install -e . --system
+
+
+RUN rm /bin/uv
+
+# Expose port and set entrypoint
 EXPOSE 8000
 
 WORKDIR /app/formrender
