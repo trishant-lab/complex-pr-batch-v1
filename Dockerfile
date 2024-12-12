@@ -24,6 +24,8 @@ WORKDIR /app
 COPY . .
 COPY --from=requirements-stage /tmp/requirements.txt /tmp/dev_requirements.txt /app/
 
+COPY --from=uv /uv /bin/uv
+
 # Install dependencies
 RUN uv pip install --upgrade pip --system && \
     uv pip install -r requirements.txt --system && \
