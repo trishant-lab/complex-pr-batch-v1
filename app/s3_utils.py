@@ -6,8 +6,6 @@ import boto3
 from botocore.client import BaseClient
 from botocore.exceptions import ClientError
 from loguru import logger
-from rclone_python import rclone
-from rclone_python.remote_types import RemoteTypes
 
 from app.core.settings import AppSettings
 
@@ -79,61 +77,12 @@ def download_file_from_storage(
         return None
 
 
-def create_rclone_remote(config: AppSettings) -> None:
-    """
-    Create rclone remote for s3
-    """
-    try:
-        rclone.create_remote(
-            remote_name=config.s3.rclone_remote,
-            remote_type=RemoteTypes.s3,
-            client_id=config.s3.access_key,
-            client_secret=config.s3.secret_key,
-            provider="Minio",
-            endpoint=config.s3.endpoint,
-            region=config.s3.region,
-            env_auth="false",
-        )
-    except Exception as e:
-        logger.error(e)
-
-
 def copy_files_to_s3(input_path: str, output_path: str, config: AppSettings) -> None:
     """
     Copy objects from local to s3
     """
-    os.system(
-        f"mc alias set {config.s3.rclone_remote} {config.s3.endpoint} {config.s3.access_key} {config.s3.secret_key}"
-    )  # nosec
+    os.system(f"mc alias set {config.s3.s3_alias} {config.s3.endpoint} {config.s3.access_key} {config.s3.secret_key}")  # nosec
     os.system(f"mc mirror --remove --overwrite {input_path} {output_path}")  # nosec
-    # create_rclone_remote(config)
-    # rclone.copy(
-    #     in_path=input_path,
-    #     out_path=output_path,
-    # )
-    # logger.info(f"uploaded objects to s3  path:{output_path}")
-
-
-def copy_files_from_s3(folder_path: str, s3_path: str, bucket_name: str, config: AppSettings) -> None:
-    """
-    Copy objects from s3 to local
-    """
-    logger.info(f"downloading objects from s3  path:{s3_path}")
-    create_rclone_remote(config)
-    rclone.copy(
-        in_path=f"{config.s3.rclone_remote}:{bucket_name}/{s3_path}",
-        out_path=folder_path,
-    )
-    logger.info(f"downloaded objects from s3  path:{s3_path}")
-
-
-def delete_file_from_storage(object_name: str, bucket_name: str, config: AppSettings) -> None:
-    """
-    Delete object from s3
-    """
-    create_rclone_remote(config)
-    rclone.delete(f"{config.s3.rclone_remote}:{bucket_name}/{object_name}/")
-    logger.info(f"deleted object from s3: {object_name}")
 
 
 def mirror_files_to_cloudflare(

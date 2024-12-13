@@ -112,7 +112,6 @@ class S3Settings(BaseModel):
     secret_key: str = ""
     region: str = "us-east-1"
     use_ssl: bool = True
-    rclone_remote: str = "s3_rclone_remote"
     s3_alias: str = "launchpad"
     bucket: str = ""
 
