@@ -1,7 +1,7 @@
 import os
 import tempfile
 from enum import Enum
-from functools import partial, lru_cache
+from functools import lru_cache, partial
 from typing import Final
 
 import loguru
@@ -515,6 +515,7 @@ class ProductionSettings(AppSettings):
     model_config = ConfigDict(extra="ignore")
 
 
+@lru_cache
 def get_settings() -> AppSettings:
     """
     This function initializes the settings object based on environment DEPLOYMENT. The order in which
