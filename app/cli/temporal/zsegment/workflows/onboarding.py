@@ -736,7 +736,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            #docs
+            # docs
             docs_dest_dir = f"{bucket_name}/docs"
             docs_src_object_name = f"{repo_name}/docs/dist.zip"
 

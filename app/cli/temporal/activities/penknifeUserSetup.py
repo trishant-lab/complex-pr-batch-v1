@@ -1,6 +1,7 @@
 from datetime import timedelta
 from uuid import uuid4
-from temporalio import activity, workflow
+
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
@@ -12,6 +13,7 @@ class PenknifeUserSetupActivity(Activity):
     """
     PenknifeUserSetupActivity
     """
+
     @staticmethod
     def get_timeout() -> timedelta:
         """
@@ -26,20 +28,21 @@ class PenknifeUserSetupActivity(Activity):
         """
         return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
 
-
     @staticmethod
     @activity.defn(name="PenknifeUserSetupActivity")
     async def defn(penknife: PenknifeSpec) -> None:
         """
         Callable for the activity
         """
+        from datetime import datetime
+
         import orjson
+        from loguru import logger
+
         from app.cli.temporal.activities.penknifeNovuSetup import NovuSetup
+        from app.cli.temporal.core.log import log_info
         from app.core.db import DBManager, get_db_manager
         from app.core.settings import PenknifeSettings, get_settings
-        from loguru import logger
-        from datetime import datetime
-        from app.cli.temporal.core.log import log_info
 
         subscriber_id = str(uuid4())
 

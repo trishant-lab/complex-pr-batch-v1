@@ -247,17 +247,7 @@ class StatefulSetRestartActivity(Activity):
         Callable for the activity
         """
         _now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat() + "Z"
-        body = {
-            'spec': {
-                'template':{
-                    'metadata': {
-                        'annotations': {
-                            'kubectl.kubernetes.io/restartedAt': _now
-                        }
-                    }
-                }
-            }
-        }
+        body = {"spec": {"template": {"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": _now}}}}}
         api_client.AppsV1Api().patch_namespaced_stateful_set(
             name=activity_model.name,
             namespace=activity_model.namespace,
