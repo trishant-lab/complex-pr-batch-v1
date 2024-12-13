@@ -76,7 +76,7 @@ class UiSetupActivity(Activity):
                 # copy the files to the destination directory
                 copy_files_to_s3(
                     input_path=f"{tmp_dir}/{activity_model.bundle_path}",
-                    output_path=f"{config.s3.rclone_remote}/static/{activity_model.dest_dir}",
+                    output_path=f"{config.s3.s3_alias}/static/{activity_model.dest_dir}",
                     config=config,
                 )
 
@@ -84,7 +84,7 @@ class UiSetupActivity(Activity):
                 if environment == "production":
                     copy_files_to_s3(
                         input_path=f"{tmp_dir}/{activity_model.bundle_path}/index.html",
-                        output_path=f"{config.s3.rclone_remote}/static/{activity_model.dest_dir}/custom/index.html",
+                        output_path=f"{config.s3.s3_alias}/static/{activity_model.dest_dir}/custom/index.html",
                         config=config,
                     )
 
