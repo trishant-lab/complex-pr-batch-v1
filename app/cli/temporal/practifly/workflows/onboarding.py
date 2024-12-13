@@ -1,21 +1,14 @@
 from collections.abc import Callable
-from temporalio import workflow
-import pydash
+
 import orjson
-from app.cli.temporal.practifly import TemplatePath
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
-from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
-from app.cli.temporal.activities.tenantCrd import (
-    TenantCrdCreationActivity,
-    TenantCrdCreationActivityModel,
-    GetTenantCrdActivity,
-    GetTenantCrdActivityModel,
-)
+import pydash
+from temporalio import workflow
+
 from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
+    CopyWebCoreToBucketActivity,
+    CopyWebCoreToBucketActivityModel,
     CreateCloudflareBucketActivity,
     CreateCloudflareBucketActivityModel,
     CreateCloudflareDNSRecordActivity,
@@ -24,21 +17,19 @@ from app.cli.temporal.activities.cloudflareSetup import (
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
-    CopyWebCoreToBucketActivity,
-    CopyWebCoreToBucketActivityModel,
 )
-from app.cli.temporal.activities.postgresSetup import (
-    PostgresDatabaseCreationActivity,
-    PostgresUserCreationActivity,
-    PostgresDatabaseCreationActivityModel,
-    PostgresUserCreationActivityModel,
-    PostgresGrantAccessToUserActivity,
-    PostgresGrantAccessToUserActivityModel,
-    PostgresSupavisorPollUserActivity,
-    PostgresSupavisorPollUserActivityModel,
-    PostgresSchemaCreationActivity,
-    PostgresSchemaCreationActivityModel,
+from app.cli.temporal.activities.databaseMigrationJob import (
+    DatabaseMigrationJobActivity,
+    DatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.k8sIstioVirtualService import (
+    KubernetesIstioVirtualServiceActivity,
+    KubernetesIstioVirtualServiceActivityModel,
+)
+from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
+from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
 from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateInternalUsersActivity,
     KeycloakCreateInternalUsersActivityModel,
@@ -47,31 +38,42 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
-from app.cli.temporal.activities.statefulSetPodCreation import (
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
+from app.cli.temporal.activities.postgresSetup import (
+    PostgresDatabaseCreationActivity,
+    PostgresDatabaseCreationActivityModel,
+    PostgresGrantAccessToUserActivity,
+    PostgresGrantAccessToUserActivityModel,
+    PostgresSchemaCreationActivity,
+    PostgresSchemaCreationActivityModel,
+    PostgresSupavisorPollUserActivity,
+    PostgresSupavisorPollUserActivityModel,
+    PostgresUserCreationFromSecretActivity,
+    PostgresUserCreationFromSecretActivityModel,
 )
+from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
+from app.cli.temporal.activities.redis import RedisSetupFromSecretActivity, RedisSetupFromSecretActivityModel
 from app.cli.temporal.activities.sendMail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
 )
-from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.statefulSetPodCreation import (
+    KubernetesStatefulSetActivity,
+    KubernetesStatefulSetActivityModel,
+)
+from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
+from app.cli.temporal.activities.tenantCrd import (
+    GetTenantCrdActivity,
+    GetTenantCrdActivityModel,
+    TenantCrdCreationActivity,
+    TenantCrdCreationActivityModel,
+)
+from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
-from app.cli.temporal.activities.k8sIstioVirtualService import (
-    KubernetesIstioVirtualServiceActivity,
-    KubernetesIstioVirtualServiceActivityModel,
-)
-from app.cli.temporal.activities.databaseMigrationJob import (
-    DatabaseMigrationJobActivity,
-    DatabaseMigrationJobActivityModel,
-)
+from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.practifly import TemplatePath
+from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
 
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
@@ -102,12 +104,12 @@ class PractiflyOnboardingWorkflow(Workflow):
             SendBeforeProvisioningMailActivity.defn,
             K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
-            PostgresUserCreationActivity.defn,
+            PostgresUserCreationFromSecretActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
             K8sSecretCreationActivity.defn,
-            RedisSetupActivity.defn,
+            RedisSetupFromSecretActivity.defn,
             PVCSetupActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
@@ -209,6 +211,11 @@ class PractiflyOnboardingWorkflow(Workflow):
             postgres_database_name = f"{ProductName}-{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
+            postgres_secret_name = f"{ProductName}-postgres"
+
+            redis_tenant_password = generate_password(length=20)
+            redis_secret_name = f"{ProductName}-redis"
+
             template_env = get_env(template_path=TemplatePath)
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/practifly-server:{image_tag}"
@@ -235,6 +242,30 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
             )
 
+            # secret setup for redis password
+            await workflow.execute_activity(
+                activity=K8sSecretCreationActivity.defn,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name=redis_secret_name,
+                    string_data={"password": redis_tenant_password},
+                ),
+                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+            )
+
+            # secret setup for postgres password
+            await workflow.execute_activity(
+                activity=K8sSecretCreationActivity.defn,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name=postgres_secret_name,
+                    string_data={"password": postgres_password},
+                ),
+                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+            )
+
             # create postgres database
             await workflow.execute_activity(
                 activity=PostgresDatabaseCreationActivity.defn,
@@ -247,14 +278,14 @@ class PractiflyOnboardingWorkflow(Workflow):
 
             # create postgres user for practifly
             await workflow.execute_activity(
-                activity=PostgresUserCreationActivity.defn,
-                arg=PostgresUserCreationActivityModel(
+                activity=PostgresUserCreationFromSecretActivity.defn,
+                arg=PostgresUserCreationFromSecretActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
-                    password=postgres_password,
+                    secret_name=postgres_secret_name,
                 ),
-                retry_policy=PostgresUserCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
+                retry_policy=PostgresUserCreationFromSecretActivity.get_retry_policy(),
+                start_to_close_timeout=PostgresUserCreationFromSecretActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
@@ -291,8 +322,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            redis_tenant_password = generate_password(length=20)
-
             # secret setup for docker registry
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
@@ -308,7 +337,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
-            # secret setup for redis password
+            # secret setup for redis master password
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
                 arg=K8sSecretCreationActivityModel(
@@ -320,40 +349,16 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
-            # secret setup for redis password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="tenant-cache-secret",
-                    string_data={"REDIS_PASSWORD": redis_tenant_password},
-                ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
-            )
-
-            # secret setup for postgres password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="postgres-secret",
-                    string_data={"POSTGRES_PASSWORD": postgres_password},
-                ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
-            )
-
             # setup redis
             await workflow.execute_activity(
-                activity=RedisSetupActivity.defn,
-                arg=RedisSetupActivityModel(
+                activity=RedisSetupFromSecretActivity.defn,
+                arg=RedisSetupFromSecretActivityModel(
                     namespace=tenant,
                     product=ProductName,
-                    redis_tenant_password=redis_tenant_password,
+                    secret_name=redis_secret_name,
                 ),
-                retry_policy=RedisSetupActivity.get_retry_policy(),
-                start_to_close_timeout=RedisSetupActivity.get_timeout(),
+                retry_policy=RedisSetupFromSecretActivity.get_retry_policy(),
+                start_to_close_timeout=RedisSetupFromSecretActivity.get_timeout(),
             )
 
             # pvc setup
@@ -590,7 +595,12 @@ class PractiflyOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {
+                            "name": "POSTGRES__PASSWORD",
+                            "value_from": {
+                                "secret_name": {"name": postgres_secret_name, "key": "password"},
+                            },
+                        },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
@@ -713,10 +723,20 @@ class PractiflyOnboardingWorkflow(Workflow):
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {
+                            "name": "POSTGRES__PASSWORD",
+                            "value_from": {
+                                "secret_name": {"name": postgres_secret_name, "key": "password"},
+                            },
+                        },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
-                        {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
+                        {
+                            "name": "REDIS__PASSWORD",
+                            "value_from": {
+                                "secret_name": {"name": redis_secret_name, "key": "password"},
+                            },
+                        },
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "FALSE"},
@@ -802,10 +822,20 @@ class PractiflyOnboardingWorkflow(Workflow):
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {
+                            "name": "POSTGRES__PASSWORD",
+                            "value_from": {
+                                "secret_name": {"name": postgres_secret_name, "key": "password"},
+                            },
+                        },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
-                        {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
+                        {
+                            "name": "REDIS__PASSWORD",
+                            "value_from": {
+                                "secret_name": {"name": redis_secret_name, "key": "password"},
+                            },
+                        },
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "TRUE"},
