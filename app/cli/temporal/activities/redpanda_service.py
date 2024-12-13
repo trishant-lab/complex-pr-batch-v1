@@ -75,9 +75,9 @@ def create_topics(properties: RedpandaProperties) -> bool:
             ),
             NewTopic(
                 f"zsegment-{properties.tenant}-{properties.environment}-event-response",
-                 num_partitions=1,
+                num_partitions=1,
                 replication_factor=properties.replica,
-            )
+            ),
         ]
 
         response = client.create_topics(topics)
@@ -89,7 +89,7 @@ def create_topics(properties: RedpandaProperties) -> bool:
                 future.result()
                 log_info(f"Topic '{topic}' created successfully.")
             except Exception as e:
-                if(e.args[0] == KafkaError.TOPIC_ALREADY_EXISTS):
+                if e.args[0] == KafkaError.TOPIC_ALREADY_EXISTS:
                     log_info(f"Topic '{topic}' already exists; continuing.")
                 else:
                     all_successful = False
@@ -191,15 +191,25 @@ def create_user(properties: RedpandaProperties) -> bool:
                     "algorithm": properties.tenant_sasl_mechanism,
                     "password": properties.tenant_password,
                 }
-                response = client.put(f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload)
+                response = client.put(
+                    f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload
+                )
                 if response.status_code == 200:
-                    log_info(f"User '{username}' already exists for tenant '{properties.tenant}'. Password updated successfully.")
+                    log_info(
+                        f"User '{username}' already exists for tenant '{properties.tenant}'."
+                        " Password updated successfully."
+                    )
                     return True
                 else:
-                    log_error(f"User '{username}' exists for tenant '{properties.tenant}', but failed to update password. Status code: {response.status_code}")
+                    log_error(
+                        f"User '{username}' exists for tenant '{properties.tenant}', but failed to update password."
+                        "Status code: {response.status_code}"
+                    )
                     return False
         else:
-            log_error(f"Failed to retrieve user list for tenant '{properties.tenant}'. Status code: {list_user.status_code}")
+            log_error(
+                f"Failed to retrieve user list for tenant '{properties.tenant}'. Status code: {list_user.status_code}"
+            )
 
         # User does not exist; create the user
         user_payload = {
@@ -221,6 +231,7 @@ def create_user(properties: RedpandaProperties) -> bool:
     except Exception as e:
         log_error(f"Unexpected error occurred while creating user for tenant {properties.tenant}: {e}")
         return False
+
 
 def delete_user(properties: RedpandaProperties) -> bool:
     """

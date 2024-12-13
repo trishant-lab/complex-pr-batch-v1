@@ -1,10 +1,10 @@
-
 import asyncio
 from app.cli.temporal.penknife.workflows.deprovisioning import PenknifeDeProvisioningWorkflow
 from app.core.settings import AppSettings, get_settings
 from loguru import logger
 from temporalio.worker import Worker
 from temporalio.client import Client
+
 
 async def penknife_deprovisioning_worker() -> None:
     """
