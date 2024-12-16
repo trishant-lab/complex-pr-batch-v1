@@ -78,7 +78,7 @@ class GiteaService:
                 "must_change_password": False,
                 "restricted": False,
             }
-            response = httpx.post(url, json=payload, auth=self.auth)
+            response = httpx.post(url, json=payload, auth=self.auth, timeout=30)
             response.raise_for_status()
 
             log_info(f"User created successfully: {response.json()}")
@@ -109,7 +109,7 @@ class GiteaService:
         """
         try:
             url = f"{self.base_url}/admin/users/{username}"
-            response = httpx.delete(url, auth=self.auth)
+            response = httpx.delete(url, auth=self.auth, timeout=30)
             response.raise_for_status()
             log_info("User deleted successfully.")
         except httpx.HTTPStatusError as e:
@@ -123,7 +123,7 @@ class GiteaService:
         try:
             url = f"{self.base_url}/repos/gitea_admin/{self.template_repo}/generate"
             payload = {"name": repo_name, "owner": username, "git_content": True}
-            response = httpx.post(url, json=payload, auth=self.auth)
+            response = httpx.post(url, json=payload, auth=self.auth, timeout=30)
             response.raise_for_status()
             log_info(f"Repository created successfully: {response.json()}")
         except httpx.HTTPStatusError as e:
@@ -140,7 +140,7 @@ class GiteaService:
         try:
             url = f"{self.base_url}/repos/{owner}/{repo}/branches"
             payload = {"new_branch_name": new_branch, "old_ref_name": "dev"}
-            response = httpx.post(url, json=payload, auth=self.auth)
+            response = httpx.post(url, json=payload, auth=self.auth, timeout=30)
             response.raise_for_status()
             log_info(f"Branch '{new_branch}' created successfully.")
         except httpx.HTTPStatusError as e:

@@ -179,10 +179,9 @@ def create_user(properties: RedpandaProperties) -> bool:
     Create a user for the given tenant
     """
     try:
-        client = httpx.Client()
         username = f"zsegment_{properties.tenant}"
 
-        list_user = client.get(f"{properties.admin_api_base_url}/v1/security/users")
+        list_user = httpx.get(f"{properties.admin_api_base_url}/v1/security/users", timeout=30)
         if list_user.status_code == 200:
             existing_users = list_user.json()
             if username in existing_users:
@@ -191,8 +190,8 @@ def create_user(properties: RedpandaProperties) -> bool:
                     "algorithm": properties.tenant_sasl_mechanism,
                     "password": properties.tenant_password,
                 }
-                response = client.put(
-                    f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload
+                response = httpx.put(
+                    f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload, timeout=30
                 )
                 if response.status_code == 200:
                     log_info(
@@ -217,7 +216,7 @@ def create_user(properties: RedpandaProperties) -> bool:
             "algorithm": properties.tenant_sasl_mechanism,
             "password": properties.tenant_password,
         }
-        response = client.post(f"{properties.admin_api_base_url}/v1/security/users", json=user_payload)
+        response = httpx.post(f"{properties.admin_api_base_url}/v1/security/users", json=user_payload, timeout=30)
         if response.status_code == 200:
             log_info(f"Created user for tenant {properties.tenant}")
             return True
@@ -238,8 +237,7 @@ def delete_user(properties: RedpandaProperties) -> bool:
     Delete a user for the given tenant
     """
     try:
-        client = httpx.Client()
-        response = client.delete(f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}")
+        response = httpx.delete(f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}", timeout=30)
         if response.status_code == 200:
             log_info(f"Deleted user for tenant {properties.tenant}")
             return True

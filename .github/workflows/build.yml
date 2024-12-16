@@ -16,6 +16,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: ruff check .
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit
+        run: bandit -c pyproject.toml -r -ll .
+
       - name: OSV Scanner
         run: osv-scanner --lockfile=poetry.lock --config=osv-scanner.config.toml
 
