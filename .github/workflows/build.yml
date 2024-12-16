@@ -15,6 +15,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: ruff check .
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit
+        run: bandit -c pyproject.toml -r -ll
 
       - name: OSV Scanner
         run: osv-scanner --lockfile=poetry.lock --config=osv-scanner.config.toml
