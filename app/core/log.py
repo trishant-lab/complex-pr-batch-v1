@@ -1,9 +1,15 @@
+from __future__ import annotations
 import os
 import sys
+import typing
 from collections.abc import Callable
 from typing import Any
 
-from loguru import Logger, logger
+from loguru import logger
+
+
+if typing.TYPE_CHECKING:
+    from loguru import Logger
 
 
 def patch(logger_method: Callable) -> Callable:
