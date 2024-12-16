@@ -23,7 +23,7 @@ jobs:
         run: ruff check .
 
       - name: Install Bandit
-        run: pip install bandit
+        run: pip install bandit[toml]
 
       - name: Run Bandit
         run: bandit -c pyproject.toml -r -ll
