@@ -22,6 +22,7 @@ with workflow.unsafe.imports_passed_through():
         V1StatefulSet,
         V1StatefulSetSpec,
     )
+    from kubernetes.dynamic.exceptions import NotFoundError
     from redis import Redis
 
     from app.cli.k8s_util import (
@@ -208,6 +209,13 @@ class RedisSetupActivity(Activity):
         log_info(f"Redis {name} created successfully")
 
         await asyncio.sleep(30)
+
+        # delete the cache-new statefulset
+        # Temporary (cleanup the old statefulset(cache-new) after the new one(cache) is created)
+        try:
+            k8s_dynamic_client.delete(redis_resource, namespace=activity_model.namespace, name="cache-new")
+        except NotFoundError:
+            log_info(f"cache-new statefulset not found in namespace {activity_model.namespace}")
 
         create_product_namespace(
             tenant=activity_model.namespace,
