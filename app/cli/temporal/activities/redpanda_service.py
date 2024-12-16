@@ -182,7 +182,7 @@ def create_user(properties: RedpandaProperties) -> bool:
         client = httpx.Client()
         username = f"zsegment_{properties.tenant}"
 
-        list_user = client.get(f"{properties.admin_api_base_url}/v1/security/users")
+        list_user = client.get(f"{properties.admin_api_base_url}/v1/security/users", timeout=30)
         if list_user.status_code == 200:
             existing_users = list_user.json()
             if username in existing_users:
