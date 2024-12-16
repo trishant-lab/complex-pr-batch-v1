@@ -2,6 +2,7 @@ from temporalio.client import WorkflowHandle
 
 from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
 from app.cli.workflowbase import ProductWorkflow
+from app.core.cli_settings import WorkerQueues
 
 ProductName = "practifly"
 
@@ -24,7 +25,7 @@ class PractiflyWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=PractiflySpec(**schema),
             workflow=PractiflyOnboardingWorkflow,
-            queue=product_config.temporal_practifly_onboarding_task_queue,
+            queue=WorkerQueues.practifly_onboarding,
         )
 
     @staticmethod
@@ -40,7 +41,7 @@ class PractiflyWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=PractiflySpec(**schema),
             workflow=PractiflyDeProvisioningWorkflow,
-            queue=product_config.temporal_practifly_deboarding_task_queue,
+            queue=WorkerQueues.practifly_deboarding,
         )
 
     @staticmethod

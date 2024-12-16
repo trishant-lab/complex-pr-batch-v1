@@ -2,6 +2,7 @@ from temporalio.client import WorkflowHandle
 
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 from app.cli.workflowbase import ProductWorkflow
+from app.core.cli_settings import WorkerQueues
 
 ProductName = "zsegment"
 
@@ -24,7 +25,7 @@ class ZSegmentWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=ZSegmentSpec(**schema),
             workflow=ZSegmentOnboardingWorkflow,
-            queue=product_config.temporal_zsegment_onboarding_task_queue,
+            queue=WorkerQueues.zsegment_onboarding,
         )
 
     @staticmethod

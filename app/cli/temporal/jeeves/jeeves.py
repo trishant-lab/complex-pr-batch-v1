@@ -2,6 +2,7 @@ from temporalio.client import WorkflowHandle
 
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.workflowbase import ProductWorkflow
+from app.core.cli_settings import WorkerQueues
 
 ProductName = "jeeves"
 
@@ -24,7 +25,7 @@ class JeevesWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=JeevesSpec(**schema),
             workflow=JeevesOnboardingWorkflow,
-            queue=product_config.temporal_jeeves_onboarding_task_queue,
+            queue=WorkerQueues.jeeves_onboarding,
         )
 
     @staticmethod
@@ -40,7 +41,7 @@ class JeevesWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=JeevesSpec(**schema),
             workflow=JeevesDeProvisioningWorkflow,
-            queue=product_config.temporal_jeeves_deboarding_task_queue,
+            queue=WorkerQueues.jeeves_deboarding,
         )
 
     @staticmethod
