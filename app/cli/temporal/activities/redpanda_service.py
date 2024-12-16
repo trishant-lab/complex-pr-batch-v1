@@ -192,7 +192,7 @@ def create_user(properties: RedpandaProperties) -> bool:
                     "password": properties.tenant_password,
                 }
                 response = client.put(
-                    f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload
+                    f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload, timeout=30
                 )
                 if response.status_code == 200:
                     log_info(
@@ -217,7 +217,7 @@ def create_user(properties: RedpandaProperties) -> bool:
             "algorithm": properties.tenant_sasl_mechanism,
             "password": properties.tenant_password,
         }
-        response = client.post(f"{properties.admin_api_base_url}/v1/security/users", json=user_payload)
+        response = client.post(f"{properties.admin_api_base_url}/v1/security/users", json=user_payload, timeout=30)
         if response.status_code == 200:
             log_info(f"Created user for tenant {properties.tenant}")
             return True
@@ -239,7 +239,7 @@ def delete_user(properties: RedpandaProperties) -> bool:
     """
     try:
         client = httpx.Client()
-        response = client.delete(f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}")
+        response = client.delete(f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}", timeout=30)
         if response.status_code == 200:
             log_info(f"Deleted user for tenant {properties.tenant}")
             return True
