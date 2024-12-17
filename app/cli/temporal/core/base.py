@@ -4,9 +4,8 @@ from collections.abc import Callable
 from datetime import timedelta
 
 from pydantic import BaseModel, Extra
-from temporalio.common import RetryPolicy
 from temporalio.client import ScheduleSpec
-from loguru import logger
+from temporalio.common import RetryPolicy
 
 
 @dataclasses.dataclass
@@ -72,8 +71,6 @@ class Workflow(abc.ABC):
 
 
 class ScheduleWorkflow(abc.ABC):
-    logger = logger
-
     @staticmethod
     @abc.abstractmethod
     def get_schedule_spec() -> ScheduleSpec:
