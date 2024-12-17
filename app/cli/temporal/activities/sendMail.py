@@ -1,18 +1,16 @@
 from tempfile import TemporaryDirectory
 from datetime import timedelta
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 
-
-with workflow.unsafe.imports_passed_through():
-    from app.sendgrid_utils import send_mail
-    from app.template_env import get_env
-    from app.cli.keycloakUtils import KeycloakAdminClient
-    from app.cli.temporal.core.log import log_error, log_info
-    from app.common import generate_password
-    from app.core.db import DBManager, get_db_manager
-    from app.core.settings import AppSettings, get_settings
+from app.sendgrid_utils import send_mail
+from app.template_env import get_env
+from app.cli.keycloakUtils import KeycloakAdminClient
+from app.cli.temporal.core.log import log_error, log_info
+from app.common import generate_password
+from app.core.db import DBManager, get_db_manager
+from app.core.settings import AppSettings, get_settings
 
 
 async def provisioning_success_mail(name: str, email: str, link: str, password: str, email_template: str) -> str:

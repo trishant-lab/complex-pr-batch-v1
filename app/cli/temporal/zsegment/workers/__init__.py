@@ -1,3 +1,0 @@
-"""
-ZSegment Temporal Workers
-"""

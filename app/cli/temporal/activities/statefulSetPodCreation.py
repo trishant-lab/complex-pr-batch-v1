@@ -1,37 +1,36 @@
 import datetime
 
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 from kubernetes.dynamic.exceptions import NotFoundError
 from app.cli.temporal.core.log import log_error
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
+from datetime import timedelta
 
-    from kubernetes.client import (
-        V1ConfigMapKeySelector,
-        V1ConfigMapVolumeSource,
-        V1Container,
-        V1ContainerPort,
-        V1EnvVar,
-        V1EnvVarSource,
-        V1KeyToPath,
-        V1LocalObjectReference,
-        V1ObjectMeta,
-        V1PersistentVolumeClaimVolumeSource,
-        V1PodSpec,
-        V1PodTemplateSpec,
-        V1ResourceRequirements,
-        V1SecurityContext,
-        V1StatefulSet,
-        V1StatefulSetSpec,
-        V1Volume,
-        V1VolumeMount,
-    )
+from kubernetes.client import (
+    V1ConfigMapKeySelector,
+    V1ConfigMapVolumeSource,
+    V1Container,
+    V1ContainerPort,
+    V1EnvVar,
+    V1EnvVarSource,
+    V1KeyToPath,
+    V1LocalObjectReference,
+    V1ObjectMeta,
+    V1PersistentVolumeClaimVolumeSource,
+    V1PodSpec,
+    V1PodTemplateSpec,
+    V1ResourceRequirements,
+    V1SecurityContext,
+    V1StatefulSet,
+    V1StatefulSetSpec,
+    V1Volume,
+    V1VolumeMount,
+)
 
-    from app.cli.k8s_util import ResourceKindEnum, api_client, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
+from app.cli.k8s_util import ResourceKindEnum, api_client, get_dynamic_client, get_resource
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
 
 
 class KubernetesStatefulSetActivityModel(LaunchpadCLIBaseModel):

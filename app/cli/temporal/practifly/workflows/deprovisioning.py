@@ -38,11 +38,11 @@ from app.cli.temporal.activities.temporalNamespace import (
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
 
-with workflow.unsafe.imports_passed_through():
-    from app.core.settings import get_settings, PractiflySettings, AppSettings
+
+from app.core.settings import get_settings, PractiflySettings, AppSettings
 
 
-@workflow.defn(name="PractiflyDeProvisioningWorkflow", sandboxed=False)
+@workflow.defn(name="PractiflyDeProvisioningWorkflow")
 class PractiflyDeProvisioningWorkflow(Workflow):
     """
     Practifly DeProvisioning Workflow

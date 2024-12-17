@@ -1,14 +1,14 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.log import log_error
 from kubernetes.dynamic.exceptions import NotFoundError
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
+
+from datetime import timedelta
+from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
 
 
 class KubernetesIstioVirtualServiceActivityModel(LaunchpadCLIBaseModel):

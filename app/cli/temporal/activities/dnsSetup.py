@@ -1,14 +1,14 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
-with workflow.unsafe.imports_passed_through():
-    import asyncio
-    from datetime import timedelta
-    import socket
-    from google.cloud import dns
-    from google.api_core.exceptions import Conflict
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
+
+import asyncio
+from datetime import timedelta
+import socket
+from google.cloud import dns
+from google.api_core.exceptions import Conflict
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
 
 
 class DnsSetupActivityModel(LaunchpadCLIBaseModel):

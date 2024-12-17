@@ -1,40 +1,40 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
-with workflow.unsafe.imports_passed_through():
-    import asyncio
-    import base64
-    from datetime import timedelta
 
-    from kubernetes.client import (
-        V1Container,
-        V1ContainerPort,
-        V1EnvVar,
-        V1EnvVarSource,
-        V1LocalObjectReference,
-        V1ObjectMeta,
-        V1PodSpec,
-        V1PodTemplateSpec,
-        V1SecretKeySelector,
-        V1Service,
-        V1ServicePort,
-        V1ServiceSpec,
-        V1StatefulSet,
-        V1StatefulSetSpec,
-    )
-    from kubernetes.dynamic.exceptions import NotFoundError
-    from redis import Redis
+import asyncio
+import base64
+from datetime import timedelta
 
-    from app.cli.k8s_util import (
-        DynamicClient,
-        ResourceKindEnum,
-        get_dynamic_client,
-        get_k8s_core_v1_api_client,
-        get_resource,
-    )
-    from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
+from kubernetes.client import (
+    V1Container,
+    V1ContainerPort,
+    V1EnvVar,
+    V1EnvVarSource,
+    V1LocalObjectReference,
+    V1ObjectMeta,
+    V1PodSpec,
+    V1PodTemplateSpec,
+    V1SecretKeySelector,
+    V1Service,
+    V1ServicePort,
+    V1ServiceSpec,
+    V1StatefulSet,
+    V1StatefulSetSpec,
+)
+from kubernetes.dynamic.exceptions import NotFoundError
+from redis import Redis
+
+from app.cli.k8s_util import (
+    DynamicClient,
+    ResourceKindEnum,
+    get_dynamic_client,
+    get_k8s_core_v1_api_client,
+    get_resource,
+)
+from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
 
 CACHE_HOST = "cache-new.{tenant}.svc.cluster.local"
 

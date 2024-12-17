@@ -1,3 +1,0 @@
-"""
-Jevees Workers
-"""

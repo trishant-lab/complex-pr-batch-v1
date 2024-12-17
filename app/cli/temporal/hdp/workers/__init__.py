@@ -1,3 +1,0 @@
-"""
-HDP workers
-"""

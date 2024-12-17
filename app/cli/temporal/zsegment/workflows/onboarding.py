@@ -81,17 +81,16 @@ from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaP
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, ZSegmentSettings, get_settings
-    from app.template_env import get_env
+from app.common import generate_password
+from app.core.settings import AppSettings, ZSegmentSettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "zsegment"
 OnePasswordVaultName = "zsegment"
 
 
-@workflow.defn(name="ZSegmentOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="ZSegmentOnboardingWorkflow")
 class ZSegmentOnboardingWorkflow(Workflow):
     """
     ZSegment Onboarding Workflow

@@ -1,33 +1,32 @@
 import asyncio
 import socket
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
 
-with workflow.unsafe.imports_passed_through():
-    import zipfile
-    import tempfile
-    from datetime import timedelta
-    from app.cli.temporal.core.base import Activity
-    from app.cli.temporal.core.base import LaunchpadCLIBaseModel
-    from app.cli.cloudflareUtils import (
-        get_temporary_credentials,
-        create_bucket,
-        create_dns_record,
-        link_bucket_to_custom_domain,
-        delete_bucket,
-        delete_dns_record,
-    )
-    from app.cli.temporal.core.log import log_error, log_info
-    from app.core.settings import AppSettings, get_settings
-    from app.s3_utils import (
-        download_file_from_storage,
-        mirror_files_to_cloudflare,
-        get_storage_client,
-        delete_files_from_cloudflare,
-        copy_files_to_cloudflare,
-        copy_files_to_cloudflare_with_exclude,
-    )
+import zipfile
+import tempfile
+from datetime import timedelta
+from app.cli.temporal.core.base import Activity
+from app.cli.temporal.core.base import LaunchpadCLIBaseModel
+from app.cli.cloudflareUtils import (
+    get_temporary_credentials,
+    create_bucket,
+    create_dns_record,
+    link_bucket_to_custom_domain,
+    delete_bucket,
+    delete_dns_record,
+)
+from app.cli.temporal.core.log import log_error, log_info
+from app.core.settings import AppSettings, get_settings
+from app.s3_utils import (
+    download_file_from_storage,
+    mirror_files_to_cloudflare,
+    get_storage_client,
+    delete_files_from_cloudflare,
+    copy_files_to_cloudflare,
+    copy_files_to_cloudflare_with_exclude,
+)
 
 
 class CreateCloudflareBucketActivityModel(LaunchpadCLIBaseModel):

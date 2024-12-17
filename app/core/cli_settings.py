@@ -64,7 +64,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
     from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
     from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
-    return {
+    workers_config = {
         "WORKER_1_PROCESS": {
             "workers": {
                 WorkerQueues.dexit_onboarding: {DexitOnboardingWorkflow},
@@ -87,3 +87,5 @@ def get_workers_config() -> dict[str, WorkerConfig]:
         },
         # todo scheduler worker for k8s config check
     }
+
+    return {k: WorkerConfig.model_validate(v) for k, v in workers_config.items()}

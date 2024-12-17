@@ -78,17 +78,17 @@ from app.cli.temporal.activities.onePassword import (
 )
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, VeritableSettings, get_settings
-    from app.template_env import get_env
+
+from app.common import generate_password
+from app.core.settings import AppSettings, VeritableSettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "veritable"
 OnePasswordVaultName = "practifly"
 
 
-@workflow.defn(name="VeritableOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="VeritableOnboardingWorkflow")
 class VeritableOnboardingWorkflow(Workflow):
     """
     Veritable Onboarding Workflow

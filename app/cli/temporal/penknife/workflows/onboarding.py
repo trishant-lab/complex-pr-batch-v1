@@ -80,17 +80,17 @@ from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec, TenantType
 from app.cli.temporal.penknife import TemplatePath
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, PenknifeSettings, get_settings
-    from app.template_env import get_env
+
+from app.common import generate_password
+from app.core.settings import AppSettings, PenknifeSettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "penknife"
 OnePasswordVaultName = "Penknife"
 
 
-@workflow.defn(name="PenknifeOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="PenknifeOnboardingWorkflow")
 class PenknifeOnboardingWorkflow(Workflow):
     """
     Penknife Onboarding Workflow

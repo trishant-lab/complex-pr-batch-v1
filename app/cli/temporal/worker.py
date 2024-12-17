@@ -6,7 +6,7 @@ from temporalio.worker.workflow_sandbox import SandboxedWorkflowRunner, SandboxR
 
 from app.cli.temporal.core.connection import get_temporal_client
 from app.cli.temporal.main import WORKFLOW_MAPPER
-from app.core.cli_settings import get_workers_config
+from app.core.cli_settings import WorkerConfig, get_workers_config
 
 
 async def run_workers(worker_process: str) -> None:
@@ -19,7 +19,7 @@ async def run_workers(worker_process: str) -> None:
         msg = f"Invalid worker process {worker_process}"
         raise ValueError(msg)
 
-    worker_config = get_workers_config()[worker_process]
+    worker_config: WorkerConfig = get_workers_config()[worker_process]
     for queue, workflows in worker_config.workers.items():
         workflow_objs = []
         activities = set()
