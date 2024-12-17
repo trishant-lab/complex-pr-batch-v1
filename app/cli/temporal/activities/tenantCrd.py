@@ -167,3 +167,52 @@ class GetTenantCrdActivity(Activity):
             namespace="default",
             plural=f"{activity_model.product.lower()}tenants",
         )
+
+
+class TenantCrdExistsActivityModel(LaunchpadCLIBaseModel):
+    """
+    TenantCrdExistsActivityModel
+    """
+
+    kind: str
+    product: str
+    tenant: str
+
+
+class TenantCrdExistsActivity(Activity):
+    """
+    TenantCrdExistsActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="TenantCrdExistsActivity")
+    async def defn(activity_model: TenantCrdExistsActivityModel) -> bool:
+        """
+        Callable for the activity
+        """
+        k8s_custom_objects_api = get_custom_objects_api()
+        try:
+            _obj = k8s_custom_objects_api.get_namespaced_custom_object(
+                group="com.softwareartistry",
+                version="v1",
+                namespace="default",
+                plural=f"{activity_model.product.lower()}tenants",
+                name=f"{activity_model.product}-{activity_model.tenant}",
+            )
+            return True
+        except NotFoundError:
+            return False

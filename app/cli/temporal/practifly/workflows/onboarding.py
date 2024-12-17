@@ -64,8 +64,8 @@ from app.cli.temporal.activities.statefulSetPodCreation import (
 )
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.tenantCrd import (
-    GetTenantCrdActivity,
-    GetTenantCrdActivityModel,
+    TenantCrdExistsActivity,
+    TenantCrdExistsActivityModel,
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
 )
@@ -128,7 +128,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             KubernetesStatefulSetActivity.defn,
             UpdateTenantStatusActivity.defn,
             SendAfterProvisioningMailActivity.defn,
-            GetTenantCrdActivity.defn,
+            TenantCrdExistsActivity.defn,
             TenantCrdCreationActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
         ]
@@ -155,22 +155,18 @@ class PractiflyOnboardingWorkflow(Workflow):
 
         try:
             # get tenant crd
-            response = await workflow.execute_activity(
-                activity=GetTenantCrdActivity.defn,
-                arg=GetTenantCrdActivityModel(
+            tenant_crd_exists: bool = await workflow.execute_activity(
+                activity=TenantCrdExistsActivity.defn,
+                arg=TenantCrdExistsActivityModel(
                     tenant=tenant,
                     kind="PractiflyTenant",
                     product=ProductName,
                 ),
-                retry_policy=GetTenantCrdActivity.get_retry_policy(),
-                start_to_close_timeout=GetTenantCrdActivity.get_timeout(),
+                retry_policy=TenantCrdExistsActivity.get_retry_policy(),
+                start_to_close_timeout=TenantCrdExistsActivity.get_timeout(),
             )
 
-            if [
-                item
-                for item in response.get("items", [])
-                if response and item.get("metadata", {}).get("name") == tenant
-            ]:
+            if tenant_crd_exists:
                 raise Exception(f"Tenant {tenant} already exists")  # noqa: TRY301
 
             if not pydash.get(practifly, "emailSent"):
@@ -288,6 +284,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresUserCreationFromSecretActivity.get_timeout(),
             )
 
+            # create postgres user in supavisor for practifly
             await workflow.execute_activity(
                 activity=PostgresSupavisorPollUserActivity.defn,
                 arg=PostgresSupavisorPollUserActivityModel(
@@ -300,6 +297,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresSupavisorPollUserActivity.get_timeout(),
             )
 
+            # create postgres schema
             await workflow.execute_activity(
                 activity=PostgresSchemaCreationActivity.defn,
                 arg=PostgresSchemaCreationActivityModel(
@@ -311,6 +309,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 start_to_close_timeout=PostgresSchemaCreationActivity.get_timeout(),
             )
 
+            # grant access to postgres user
             await workflow.execute_activity(
                 activity=PostgresGrantAccessToUserActivity.defn,
                 arg=PostgresGrantAccessToUserActivityModel(

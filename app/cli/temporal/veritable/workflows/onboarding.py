@@ -1,59 +1,10 @@
 from collections.abc import Callable
-from app.cli.temporal.veritable import TemplatePath
-import pydash
+
 import orjson
-from temporalio import workflow
+import pydash
 from cryptography.fernet import Fernet
+from temporalio import workflow
 
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
-from app.cli.temporal.activities.temporalNamespace import (
-    TemporalNamespaceActivity,
-    TemporalNamespaceActivityModel,
-)
-
-from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.activities.postgresSetup import (
-    PostgresDatabaseCreationActivity,
-    PostgresUserCreationActivity,
-    PostgresDatabaseCreationActivityModel,
-    PostgresUserCreationActivityModel,
-    PostgresGrantAccessToUserActivity,
-    PostgresGrantAccessToUserActivityModel,
-    PostgresSupavisorPollUserActivity,
-    PostgresSupavisorPollUserActivityModel,
-    PostgresSchemaCreationActivity,
-    PostgresSchemaCreationActivityModel,
-)
-from app.cli.temporal.activities.k8sIstioVirtualService import (
-    KubernetesIstioVirtualServiceActivity,
-    KubernetesIstioVirtualServiceActivityModel,
-)
-from app.cli.temporal.activities.statefulSetPodCreation import (
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
-)
-from app.cli.temporal.activities.tenantCrd import (
-    TenantCrdCreationActivity,
-    TenantCrdCreationActivityModel,
-    GetTenantCrdActivity,
-    GetTenantCrdActivityModel,
-)
-from app.cli.temporal.activities.sendMail import (
-    SendAfterProvisioningMailActivity,
-    SendAfterProvisioningMailActivityModel,
-    SendBeforeProvisioningMailActivity,
-    SendBeforeProvisioningMailActivityModel,
-)
-from app.cli.temporal.activities.databaseMigrationJob import (
-    DatabaseMigrationJobActivity,
-    DatabaseMigrationJobActivityModel,
-)
 from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
@@ -66,6 +17,18 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
 )
+from app.cli.temporal.activities.databaseMigrationJob import (
+    DatabaseMigrationJobActivity,
+    DatabaseMigrationJobActivityModel,
+)
+from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.k8sIstioVirtualService import (
+    KubernetesIstioVirtualServiceActivity,
+    KubernetesIstioVirtualServiceActivityModel,
+)
+from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
+from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
 from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
@@ -76,6 +39,43 @@ from app.cli.temporal.activities.onePassword import (
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
 )
+from app.cli.temporal.activities.postgresSetup import (
+    PostgresDatabaseCreationActivity,
+    PostgresDatabaseCreationActivityModel,
+    PostgresGrantAccessToUserActivity,
+    PostgresGrantAccessToUserActivityModel,
+    PostgresSchemaCreationActivity,
+    PostgresSchemaCreationActivityModel,
+    PostgresSupavisorPollUserActivity,
+    PostgresSupavisorPollUserActivityModel,
+    PostgresUserCreationActivity,
+    PostgresUserCreationActivityModel,
+)
+from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.sendMail import (
+    SendAfterProvisioningMailActivity,
+    SendAfterProvisioningMailActivityModel,
+    SendBeforeProvisioningMailActivity,
+    SendBeforeProvisioningMailActivityModel,
+)
+from app.cli.temporal.activities.statefulSetPodCreation import (
+    KubernetesStatefulSetActivity,
+    KubernetesStatefulSetActivityModel,
+)
+from app.cli.temporal.activities.temporalNamespace import (
+    TemporalNamespaceActivity,
+    TemporalNamespaceActivityModel,
+)
+from app.cli.temporal.activities.tenantCrd import (
+    TenantCrdExistsActivity,
+    TenantCrdExistsActivityModel,
+    TenantCrdCreationActivity,
+    TenantCrdCreationActivityModel,
+)
+from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.veritable import TemplatePath
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 
 with workflow.unsafe.imports_passed_through():
@@ -100,7 +100,7 @@ class VeritableOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            GetTenantCrdActivity.defn,
+            TenantCrdExistsActivity.defn,
             SendBeforeProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
             K8sNamespaceCreationActivity.defn,
@@ -154,22 +154,18 @@ class VeritableOnboardingWorkflow(Workflow):
 
         try:
             # get tenant crd
-            response = await workflow.execute_activity(
-                activity=GetTenantCrdActivity.defn,
-                arg=GetTenantCrdActivityModel(
+            tenant_crd_exists: bool = await workflow.execute_activity(
+                activity=TenantCrdExistsActivity.defn,
+                arg=TenantCrdExistsActivityModel(
                     tenant=tenant,
                     kind="VeritableTenant",
                     product=ProductName,
                 ),
-                retry_policy=GetTenantCrdActivity.get_retry_policy(),
-                start_to_close_timeout=GetTenantCrdActivity.get_timeout(),
+                retry_policy=TenantCrdExistsActivity.get_retry_policy(),
+                start_to_close_timeout=TenantCrdExistsActivity.get_timeout(),
             )
 
-            if [
-                item
-                for item in response.get("items", [])
-                if response and item.get("metadata", {}).get("name") == tenant
-            ]:
+            if tenant_crd_exists:
                 raise Exception(f"Tenant {tenant} already exists")  # noqa: TRY301
 
             if not pydash.get(veritable, "emailSent"):
