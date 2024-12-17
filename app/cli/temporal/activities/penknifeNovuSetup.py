@@ -1,22 +1,20 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
+from datetime import timedelta
+import os
+import orjson
+import requests
+from loguru import logger
+from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi, SubscriberApi
+from novu.dto import IntegrationDto, SubscriberDto
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    import os
-    import orjson
-    import requests
-    from loguru import logger
-    from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi, SubscriberApi
-    from novu.dto import IntegrationDto, SubscriberDto
-
-    from app.cli.temporal.core.base import Activity
-    from app.cli.temporal.penknife import TemplatePath
-    from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
-    from app.cli.temporal.core.log import log_info
-    from app.core.settings import AppSettings, get_settings
-    from app.onepasswordutil import OnePasswordUtil
+from app.cli.temporal.core.base import Activity
+from app.cli.temporal.penknife import TemplatePath
+from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
+from app.cli.temporal.core.log import log_info
+from app.core.settings import AppSettings, get_settings
+from app.onepasswordutil import OnePasswordUtil
 
 
 def get_default_notification_group_id(config: AppSettings, novu_api_key: str) -> str | None:

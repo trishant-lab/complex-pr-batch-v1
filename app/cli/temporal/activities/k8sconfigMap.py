@@ -1,23 +1,23 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 from kubernetes.dynamic.exceptions import NotFoundError
 
 from app.cli.temporal.core.log import log_error
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from tempfile import TemporaryDirectory
 
-    import boto3
+from datetime import timedelta
+from tempfile import TemporaryDirectory
 
-    from kubernetes.client import V1ConfigMap, V1ObjectMeta
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
-    from app.core.settings import AppSettings, get_settings
-    from app.onepasswordutil import secret_inject
-    from app.s3_utils import download_file_from_storage, get_storage_client
-    from app.template_env import get_env
+import boto3
+
+from kubernetes.client import V1ConfigMap, V1ObjectMeta
+from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
+from app.core.settings import AppSettings, get_settings
+from app.onepasswordutil import secret_inject
+from app.s3_utils import download_file_from_storage, get_storage_client
+from app.template_env import get_env
 
 
 class K8sConfigMapCreationActivityModel(LaunchpadCLIBaseModel):

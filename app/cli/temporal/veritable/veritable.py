@@ -2,6 +2,7 @@ from temporalio.client import WorkflowHandle
 
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 from app.cli.workflowbase import ProductWorkflow
+from app.core.cli_settings import WorkerQueues
 
 ProductName = "veritable"
 
@@ -24,7 +25,7 @@ class VeritableWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=VeritableSpec(**schema),
             workflow=VeritableOnboardingWorkflow,
-            queue=product_config.temporal_veritable_onboarding_task_queue,
+            queue=WorkerQueues.veritable_onboarding,
         )
 
     @staticmethod

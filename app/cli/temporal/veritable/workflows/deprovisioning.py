@@ -34,13 +34,13 @@ from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActiv
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 
-with workflow.unsafe.imports_passed_through():
-    from app.core.settings import VeritableSettings, get_settings
+
+from app.core.settings import VeritableSettings, get_settings
 
 ProductName = "veritable"
 
 
-@workflow.defn(name="VeritableDeProvisioningWorkflow", sandboxed=False)
+@workflow.defn(name="VeritableDeProvisioningWorkflow")
 class VeritableDeProvisioningWorkflow(Workflow):
     """
     Veritable DeProvisioning Workflow

@@ -1,19 +1,18 @@
 import base64
 
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
+from datetime import timedelta
 
-    import requests
+import requests
 
-    from app.cli.k8s_util import get_k8s_core_v1_api_client
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_error, log_info
-    from app.core.db import DBManager, get_db_manager
-    from app.core.settings import AppSettings, get_settings
-    from app.template_env import get_env
+from app.cli.k8s_util import get_k8s_core_v1_api_client
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_error, log_info
+from app.core.db import DBManager, get_db_manager
+from app.core.settings import AppSettings, get_settings
+from app.template_env import get_env
 
 
 class PostgresSchemaCreationActivityModel(LaunchpadCLIBaseModel):

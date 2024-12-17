@@ -557,3 +557,6 @@ def get_security_config() -> dict:
     """
     settings: AppSettings = get_settings()
     return requests.get(settings.keycloak.wellknown_url, timeout=60).json()
+
+
+APP_CONFIG: AppSettings = get_settings()

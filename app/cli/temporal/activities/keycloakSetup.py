@@ -1,19 +1,19 @@
 from pydash import py_
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.log import log_error
 from app.onepasswordutil import OnePasswordUtil
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    import jinja2
-    import orjson
-    from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
-    from app.core.settings import AppSettings, get_settings
-    from app.template_env import get_env
+
+from datetime import timedelta
+import jinja2
+import orjson
+from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
+from app.core.settings import AppSettings, get_settings
+from app.template_env import get_env
 
 
 class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):

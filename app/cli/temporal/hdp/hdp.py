@@ -2,6 +2,7 @@ from temporalio.client import WorkflowHandle
 
 from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
 from app.cli.workflowbase import ProductWorkflow
+from app.core.cli_settings import WorkerQueues
 
 
 ProductName = "hdp"
@@ -25,7 +26,7 @@ class HdpWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=HDPSpec(**schema),
             workflow=HDPOnboardingWorkflow,
-            queue=product_config.temporal_hdp_onboarding_task_queue,
+            queue=WorkerQueues.hdp_onboarding,
         )
 
     @staticmethod

@@ -30,11 +30,11 @@ from app.cli.temporal.core.base import Workflow
 
 from app.cli.temporal.jeeves.jeeves import JeevesSpec
 
-with workflow.unsafe.imports_passed_through():
-    from app.core.settings import get_settings, JeevesSettings
+
+from app.core.settings import get_settings, JeevesSettings
 
 
-@workflow.defn(name="JeevesDeProvisioningWorkflow", sandboxed=False)
+@workflow.defn(name="JeevesDeProvisioningWorkflow")
 class JeevesDeProvisioningWorkflow(Workflow):
     """
     Jeeves DeBoarding Workflow

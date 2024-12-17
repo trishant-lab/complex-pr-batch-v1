@@ -2,6 +2,7 @@ from temporalio.client import WorkflowHandle
 
 from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 from app.cli.workflowbase import ProductWorkflow
+from app.core.cli_settings import WorkerQueues
 
 ProductName = "dexit"
 
@@ -24,7 +25,7 @@ class DexitWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=DexitSpec(**schema),
             workflow=DexitOnboardingWorkflow,
-            queue=product_config.temporal_dexit_onboarding_task_queue,
+            queue=WorkerQueues.dexit_onboarding,
         )
 
     @staticmethod
@@ -40,7 +41,7 @@ class DexitWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=DexitSpec(**schema),
             workflow=DexitDeProvisioningWorkflow,
-            queue=product_config.temporal_dexit_deboarding_task_queue,
+            queue=WorkerQueues.dexit_deboarding,
         )
 
     @staticmethod

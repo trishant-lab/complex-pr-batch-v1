@@ -1,30 +1,28 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 from kubernetes.dynamic.exceptions import NotFoundError
 
+from datetime import timedelta
+from kubernetes.client import (
+    V1Job,
+    V1ObjectMeta,
+    V1JobSpec,
+    V1JobTemplateSpec,
+    V1PodSpec,
+    V1LocalObjectReference,
+    V1Container,
+    V1VolumeMount,
+    V1Volume,
+    V1ConfigMapVolumeSource,
+    V1KeyToPath,
+    V1PersistentVolumeClaimVolumeSource,
+    V1EnvVar,
+)
+from kubernetes.dynamic import DynamicClient, Resource
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from kubernetes.client import (
-        V1Job,
-        V1ObjectMeta,
-        V1JobSpec,
-        V1JobTemplateSpec,
-        V1PodSpec,
-        V1LocalObjectReference,
-        V1Container,
-        V1VolumeMount,
-        V1Volume,
-        V1ConfigMapVolumeSource,
-        V1KeyToPath,
-        V1PersistentVolumeClaimVolumeSource,
-        V1EnvVar,
-    )
-    from kubernetes.dynamic import DynamicClient, Resource
-
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info, log_error
+from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info, log_error
 
 
 class JobActivityModel(LaunchpadCLIBaseModel):

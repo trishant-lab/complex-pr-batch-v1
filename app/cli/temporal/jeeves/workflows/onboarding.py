@@ -88,17 +88,16 @@ from app.cli.temporal.jeeves import TemplatePath
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, JeevesSettings, get_settings
-    from app.template_env import get_env
+from app.common import generate_password
+from app.core.settings import AppSettings, JeevesSettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
 
 
-@workflow.defn(name="JeevesOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="JeevesOnboardingWorkflow")
 class JeevesOnboardingWorkflow(Workflow):
     """
     Jeeves Onboarding Workflow

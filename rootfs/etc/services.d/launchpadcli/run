@@ -2,6 +2,7 @@
 set -e
 if [[ "$IS_CLI" == "TRUE" ]]; then
     mkdir -p /var/log/supervisord/
+    python3 /etc/services.d/launchpadcli/workersd_conf.py
     echo "Presets complete. Starting celery supervisord in $DEPLOYMENT"
     supervisord -c /etc/services.d/launchpadcli/supervisord.conf
 fi

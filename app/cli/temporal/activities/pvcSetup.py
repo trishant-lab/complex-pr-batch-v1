@@ -1,16 +1,15 @@
 from kubernetes.client import V1ObjectMeta, V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec, V1ResourceRequirements
 from kubernetes.dynamic.exceptions import NotFoundError
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.log import log_error
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
-    from app.core.settings import AppSettings, get_settings
+from datetime import timedelta
+from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
+from app.core.settings import AppSettings, get_settings
 
 
 class PVCSetupActivityModel(LaunchpadCLIBaseModel):
