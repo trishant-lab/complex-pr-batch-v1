@@ -6,17 +6,44 @@ Create Date: 2024-12-17 16:01:11.843191
 
 """
 
+import json
 from collections.abc import Callable
 
 import sqlalchemy as sa
+from sqlalchemy import text
 from alembic import op
 from sqlalchemy.dialects.postgresql import UUID
+
+from app.models.enums import Feature, FeatureStatus, MarketingType, PlanStatus
 
 # revision identifiers, used by Alembic.
 revision: str = "26471c957a7c"
 down_revision = "b7144993b2b1"
 branch_labels = None
 depends_on = None
+
+plan_details = [
+    "Verify real-time eligibility and track claim status for professional and institutional claims from 1500+ payers",
+    "Obtain detailed benefits and coverage information",
+    "Perform batch verification of eligibility and benefits",
+    "Easily access/manage previous inquiries for eligibility and claims status",
+]
+
+payment_feature_description = (
+    "Easily collect payments from your patients directly within your Veritable portal. "
+    "Create a payment request or collect generic payments. "
+    "The monthly subscription fee for this add-on is $30 and this will be charged with your next periodic plan renewal."
+    "\nOur current payment gateway integrations: Stripe, Authorize.net"
+)
+
+payment_feature_details = [
+    "Easily collect payments from patients using a secure payment link.",
+    "Generate and send payment requests directly to patients for faster payment processing.",
+    "Track the real-time status of payments, including completed, pending, and failed transactions.",
+    "Access a comprehensive view of all past payment submissions and transactions.",
+    "Receive monthly reports with insights into total payments collected, number of transactions, and more.",
+    "Seamlessly integrate with your preferred payment gateway for secure transactions.",
+]
 
 
 def upgrade(**kwargs: str | Callable) -> None:
@@ -28,7 +55,7 @@ def upgrade(**kwargs: str | Callable) -> None:
     op.create_unique_constraint("tenant_product_email_unique_idx", "tenant", ["name", "product", "email"])
 
     # plans
-    op.create_table(
+    plans = op.create_table(
         "plans",
         sa.Column(
             "plancode",
@@ -80,11 +107,18 @@ def upgrade(**kwargs: str | Callable) -> None:
             nullable=False,
             comment="Description of plan",
         ),
+        sa.Column(
+            "product",
+            sa.ForeignKey("product.id"),
+            type_=UUID,
+            nullable=False,
+            comment="product id reference",
+        ),
         sa.UniqueConstraint("plancode", name="plans_pkey"),
     )
 
     # features
-    op.create_table(
+    features = op.create_table(
         "features",
         sa.Column(
             "featurecode",
@@ -136,11 +170,18 @@ def upgrade(**kwargs: str | Callable) -> None:
             server_default=sa.text("now()"),
             comment="last updated time of feature",
         ),
+        sa.Column(
+            "product",
+            sa.ForeignKey("product.id"),
+            type_=UUID,
+            nullable=False,
+            comment="product id reference",
+        ),
         sa.UniqueConstraint("featurecode", name="features_pkey"),
     )
 
     # planfeatures
-    op.create_table(
+    planfeatures = op.create_table(
         "planfeatures",
         sa.Column(
             "plancode",
@@ -329,6 +370,264 @@ def upgrade(**kwargs: str | Callable) -> None:
         sa.PrimaryKeyConstraint("invoiceid", name="failedinvoices_pkey"),
     )
 
+    conn = op.get_bind()
+    product_id = conn.execute(text("SELECT id FROM product WHERE name = 'veritable'")).fetchone()[0]
+    plans_data = [
+        {
+            "plancode": "ee_m_v1",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.enterprise.value,
+            "marketingtype": MarketingType.normal.value,
+            "sortorder": 3,
+            "description": "Enterprise plan",
+            "product": product_id,
+        },
+        {
+            "plancode": "lp_m_v1",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.legacy.value,
+            "marketingtype": MarketingType.normal.value,
+            "sortorder": 2,
+            "description": "Upto 250 transactions\n$10 for every additional 75 transactions",
+            "product": product_id,
+        },
+        {
+            "plancode": "lp_m_v2",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.active.value,
+            "marketingtype": MarketingType.popular.value,
+            "sortorder": 2,
+            "description": "Upto 250 transactions\n$8 for every additional 50 transactions",
+            "product": product_id,
+        },
+        {
+            "plancode": "lp_y_v1",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.legacy.value,
+            "marketingtype": MarketingType.normal.value,
+            "sortorder": 2,
+            "description": "Upto 3000 transactions\n$10 for every additional 75 transactions",
+            "product": product_id,
+        },
+        {
+            "plancode": "lp_y_v2",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.active.value,
+            "marketingtype": MarketingType.popular.value,
+            "sortorder": 2,
+            "description": "Upto 3000 transactions\n$8 for every additional 50 transactions",
+            "product": product_id,
+        },
+        {
+            "plancode": "lp_y_v3",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.active.value,
+            "marketingtype": MarketingType.popular.value,
+            "sortorder": 2,
+            "description": "Upto 3000 transactions\n$8 for every additional 50 transactions",
+            "product": product_id,
+        },
+        {
+            "plancode": "sp_m_v1",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.active.value,
+            "marketingtype": MarketingType.normal.value,
+            "sortorder": 1,
+            "description": "Upto 100 transactions\n$10 for every additional 50 transactions",
+            "product": product_id,
+        },
+        {
+            "plancode": "sp_y_v1",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.legacy.value,
+            "marketingtype": MarketingType.normal.value,
+            "sortorder": 1,
+            "description": "Upto 1200 transactions\n$10 for every additional 50 transactions",
+            "product": product_id,
+        },
+        {
+            "plancode": "sp_y_v3",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.active.value,
+            "marketingtype": MarketingType.normal.value,
+            "sortorder": 1,
+            "description": "Upto 1200 transactions\n$10 for every additional 50 transactions",
+            "product": product_id,
+        },
+        {
+            "plancode": "sp_y_v2",
+            "details": json.dumps(plan_details),
+            "status": PlanStatus.legacy.value,
+            "marketingtype": MarketingType.normal.value,
+            "sortorder": 1,
+            "description": "Upto 1200 transactions\n$10 for every additional 50 transactions",
+            "product": product_id,
+        },
+    ]
+
+    op.bulk_insert(table=plans, rows=plans_data)
+
+    features_data = [
+        {
+            "featurecode": Feature.default.value,
+            "description": "",
+            "details": "[]",
+            "status": FeatureStatus.active.value,
+            "sortorder": 1,
+            "marketingtype": MarketingType.normal.value,
+            "product": product_id,
+        },
+        {
+            "featurecode": Feature.payments.value,
+            "description": payment_feature_description,
+            "details": json.dumps(payment_feature_details),
+            "status": FeatureStatus.active.value,
+            "sortorder": 2,
+            "marketingtype": MarketingType.normal.value,
+            "product": product_id,
+        },
+    ]
+
+    op.bulk_insert(table=features, rows=features_data)
+
+    planfeatures_data = [
+        {
+            "plancode": "sp_m_v1",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 100}),
+        },
+        {
+            "plancode": "lp_m_v1",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 250}),
+        },
+        {
+            "plancode": "lp_y_v1",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 3000}),
+        },
+        {
+            "plancode": "lp_y_v3",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 3000}),
+        },
+        {
+            "plancode": "sp_y_v2",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 1200}),
+        },
+        {
+            "plancode": "ee_m_v1",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "sp_y_v1",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 1200}),
+        },
+        {
+            "plancode": "lp_m_v2",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 250}),
+        },
+        {
+            "plancode": "lp_y_v2",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 3000}),
+        },
+        {
+            "plancode": "sp_m_v1",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "lp_y_v3",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "sp_y_v2",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "lp_m_v2",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "lp_m_v1",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "lp_y_v1",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "lp_y_v2",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "sp_y_v1",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "sp_y_v3",
+            "featurecode": Feature.payments.value,
+            "cansubscribe": True,
+            "isincluded": False,
+            "softlimits": json.dumps({}),
+        },
+        {
+            "plancode": "sp_y_v3",
+            "featurecode": Feature.default.value,
+            "cansubscribe": False,
+            "isincluded": True,
+            "softlimits": json.dumps({"count": 1200}),
+        },
+    ]
+
+    op.bulk_insert(table=planfeatures, rows=planfeatures_data)
+
 
 def downgrade(**kwargs: str | Callable) -> None:
     """
@@ -342,4 +641,3 @@ def downgrade(**kwargs: str | Callable) -> None:
     op.drop_table("plans")
     op.drop_column("tenant", "email")
     op.drop_column("tenant", "setupintent")
-    op.drop_constraint("tenant_product_email_unique_idx", "tenant", type_="unique")
