@@ -70,7 +70,6 @@ class JobActivity(Activity):
         Callable for the activity
         """
         k8s_dynamic_client = get_dynamic_client()
-        k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="v1")
 
         body = V1Job(
