@@ -14,6 +14,7 @@ from app.cli.temporal.zsegment.zsegment import ZSegmentWorkflow
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 from app.cli.temporal.veritable.veritable import VeritableWorkflow
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
+from app.models.addOns.veritable import VeritableAddOn, VeritableFeature
 
 
 class ProductEnum(str, Enum):
@@ -92,5 +93,27 @@ class ProductEnum(str, Enum):
                 return config.zsegment.domain_name
             case cls.practifly:
                 return config.practifly.domain_name
+            case _:
+                raise ValueError(f"Unknown enum value: {enum_value}")
+
+    @classmethod
+    def get_feature_enum(cls: "ProductEnum", enum_value: "ProductEnum") -> type:
+        """
+        Get the feature enum for the given enum value
+        """
+        match enum_value:
+            case cls.veritable:
+                return VeritableFeature
+            case _:
+                raise ValueError(f"Unknown enum value: {enum_value}")
+
+    @classmethod
+    def get_add_on_enum(cls: "ProductEnum", enum_value: "ProductEnum") -> type:
+        """
+        Get the add on enum for the given enum value
+        """
+        match enum_value:
+            case cls.veritable:
+                return VeritableAddOn
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
