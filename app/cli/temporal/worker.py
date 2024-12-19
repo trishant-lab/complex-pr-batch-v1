@@ -1,5 +1,6 @@
 import asyncio
 
+from loguru import logger
 import typer
 from temporalio.worker import Worker
 from temporalio.worker.workflow_sandbox import SandboxedWorkflowRunner, SandboxRestrictions
@@ -43,6 +44,7 @@ async def run_workers(worker_process: str) -> None:
                 debug_mode=True,
             ),
         )
+    logger.info(f"Running workers for {worker_process}")
     await asyncio.gather(*[worker.run() for worker in workers])
 
 

@@ -73,7 +73,7 @@ from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateT
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.practifly import TemplatePath
-from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
+from app.cli.temporal.practifly.models.practiflySpec import PractiflyJobEnum, PractiflySpec
 
 
 from app.common import generate_password
@@ -575,13 +575,8 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=PractiflyJobActivity.defn,
                 arg=PractiflyJobActivityModel(
                     tenant=tenant,
-                    job_name="practifly-tenant-provisioning-job",
-                    job_type="provisioning",
-                    docker_image=docker_image,
-                    argument=(
-                        "cd /app && python3 /app/provisioning/provisioning_.py "
-                        "--config /provisioningConfig/provisioning-config.json"
-                    ),
+                    image_tag=image_tag,
+                    job_type=PractiflyJobEnum.PROVISIONING,
                 ),
                 retry_policy=PractiflyJobActivity.get_retry_policy(),
                 start_to_close_timeout=PractiflyJobActivity.get_timeout(),

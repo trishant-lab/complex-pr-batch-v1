@@ -19,7 +19,6 @@ from kubernetes.client import (
     V1EnvVar,
     V1EnvVarSource,
     V1SecretKeySelector,
-    CoreV1Api,
     V1Pod,
     V1PodList,
     V1JobStatus,
@@ -27,32 +26,21 @@ from kubernetes.client import (
     BatchV1Api,
 )
 from kubernetes.dynamic import Resource
-
-from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_k8s_core_v1_api_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info, log_error
+from app.cli.temporal.practifly.models.practiflySpec import PractiflyJobEnum
 from app.core.settings import AppSettings, get_settings
 
 
-async def check_logs(namespace: str, job_name: str, job_type: str) -> bool:
+async def check_logs(namespace: str, job_name: str, expected_log_message: str) -> bool:
     """
     Check logs
     """
-    expected_msg = (
-        f"{namespace.strip().lower()} Alembic run succeeded!"
-        if job_type.lower() == "alembic"
-        else f"{namespace.strip().lower()} Provisioning succeeded!"
-    )
-
     try:
-        pod_resource = get_resource(dynamic_client=get_dynamic_client(), kind=ResourceKindEnum.Pod, api_version="v1")
+        core_v1_api = get_k8s_core_v1_api_client()
 
-        pods: V1PodList = pod_resource.get(
-            namespace=namespace,
-            kind=ResourceKindEnum.Pod.value,
-            label_selector=f"job-name={job_name}",
-            field_selector="status.phase=Succeeded",
-        )
+        pods: V1PodList = core_v1_api.list_namespaced_pod(namespace=namespace, label_selector=f"job-name={job_name}")
 
         if not pods.items:
             log_info(f"Pod not found for job {job_name} in namespace {namespace}")
@@ -62,10 +50,9 @@ async def check_logs(namespace: str, job_name: str, job_type: str) -> bool:
         pod: V1Pod = sorted(pods.items, key=lambda x: x.metadata.creation_timestamp, reverse=True)[0]
         log_info(f"Selected pod: {pod.metadata.name}")
 
-        core_v1_api = CoreV1Api()
         logs = core_v1_api.read_namespaced_pod_log(name=pod.metadata.name, namespace=namespace)
 
-        if expected_msg not in logs.lower():
+        if expected_log_message not in logs.lower():
             log_error(f"{namespace}: {logs}")
             return False
         return True
@@ -75,7 +62,7 @@ async def check_logs(namespace: str, job_name: str, job_type: str) -> bool:
         return False
 
 
-async def wait_for_job_to_complete(namespace: str, job_name: str, job_type: str) -> bool:
+async def check_execution_status(resource: Resource, namespace: str, job_name: str, expected_log_message: str) -> bool:
     """
     Wait for job to complete
     """
@@ -83,17 +70,19 @@ async def wait_for_job_to_complete(namespace: str, job_name: str, job_type: str)
     max_iterations = 60  # 60 iterations * 10 seconds = 600 seconds (10 minutes)
     iteration = 0
 
-    job_resource = get_resource(dynamic_client=get_dynamic_client(), kind=ResourceKindEnum.Job, api_version="v1")
-
     try:
         while True:
             log_info(f"Checking Job status periodically for {namespace}")
-            job: V1Job = job_resource.get(namespace=namespace, name=job_name)
+            job: V1Job = resource.get(namespace=namespace, name=job_name)
             job_status: V1JobStatus = job.status
 
             if job_status and job_status.completion_time:
                 log_info(f"Job {job_name} completed for {namespace}")
-                return check_logs(namespace=namespace, job_name=job_name, job_type=job_type)
+                return check_logs(
+                    namespace=namespace,
+                    job_name=job_name,
+                    expected_log_message=expected_log_message,
+                )
 
             elif iteration == max_iterations:
                 log_error(f"Number of retry exited job {job_name} for {namespace}: 10 minutes")
@@ -114,10 +103,8 @@ class PractiflyJobActivityModel(LaunchpadCLIBaseModel):
     """
 
     tenant: str
-    job_name: str
-    job_type: str
     image_tag: str
-    argument: str
+    job_type: PractiflyJobEnum
 
 
 class PractiflyJobActivity(Activity):
@@ -148,99 +135,111 @@ class PractiflyJobActivity(Activity):
         k8s_dynamic_client = get_dynamic_client()
         config: AppSettings = get_settings()
 
+        job_name = PractiflyJobEnum.get_job_name(activity_model.job_type)
+        argument = PractiflyJobEnum.get_argument(activity_model.job_type)
+        expected_log_message = PractiflyJobEnum.get_expected_log_message(activity_model.job_type)
+
         resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="v1")
 
-        body = V1Job(
-            api_version="batch/v1",
-            kind=ResourceKindEnum.Job.value,
-            metadata=V1ObjectMeta(
-                namespace=activity_model.tenant,
-                name=activity_model.job_name,
-                labels={"app": "practifly", "jobKind": activity_model.job_type},
-                annotations={"app": "practifly", "jobKind": activity_model.job_type},
-            ),
-            spec=V1JobSpec(
-                template=V1JobTemplateSpec(
-                    spec=V1PodSpec(
-                        node_selector={"app": "314e"},
-                        image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-                        containers=[
-                            V1Container(
-                                name=activity_model.job_name,
-                                image=f"registry.314ecorp.tech/practifly-server:{activity_model.image_tag}",
-                                image_pull_policy="Always",
-                                env=[
-                                    V1EnvVar(name="DEPLOYMENT", value=config.env),
-                                    V1EnvVar(
-                                        name="POSTGRES__PASSWORD",
-                                        value_from=V1EnvVarSource(
-                                            secret_key_ref=V1SecretKeySelector(
-                                                name="practifly-postgres", key="password"
-                                            )
-                                        ),
-                                    ),
-                                    V1EnvVar(
-                                        name="POSTGRES__USER",
-                                        value=f"practifly_{activity_model.tenant}",
-                                    ),
-                                    V1EnvVar(
-                                        name="RELEASE_VERSION",
-                                        value=activity_model.image_tag,
-                                    ),
-                                    V1EnvVar(
-                                        name="PROVISIONING_CONFIG",
-                                        value="/provisioningConfig/provisioning-config.json",
-                                    ),
-                                ],
-                                volume_mounts=[
-                                    V1VolumeMount(
-                                        name="practifly-provisioning-config",
-                                        mount_path="/provisioningConfig",
-                                        read_only=True,
-                                    )
-                                ],
-                                command=["/bin/sh", "-c"],
-                                args=[activity_model.argument],
-                            )
-                        ],
-                        volumes=[
-                            V1Volume(
-                                name="practifly-provisioning-config",
-                                config_map=V1ConfigMapVolumeSource(
-                                    name="practifly-provisioning-config",
-                                    items=[
-                                        V1KeyToPath(key="provisioning-config.json", path="provisioning-config.json"),
-                                    ],
-                                ),
-                            )
-                        ],
-                        restart_policy="Never",
-                    )
+        # Get the job
+        job: V1Job = resource.get(namespace=activity_model.tenant, name=job_name)
+
+        if activity_model.job_type == PractiflyJobEnum.PROVISIONING and job is not None:
+            log_info(f"Job {job_name} already exists for {activity_model.tenant}")
+        else:
+            delete(k8s_dynamic_client, resource, job_name, activity_model.tenant)
+            body = V1Job(
+                api_version="batch/v1",
+                kind=ResourceKindEnum.Job.value,
+                metadata=V1ObjectMeta(
+                    namespace=activity_model.tenant,
+                    name=job_name,
+                    labels={"app": "practifly", "jobKind": activity_model.job_type.value},
+                    annotations={"app": "practifly", "jobKind": activity_model.job_type.value},
                 ),
-            ),
-        )
+                spec=V1JobSpec(
+                    template=V1JobTemplateSpec(
+                        spec=V1PodSpec(
+                            node_selector={"app": "314e"},
+                            image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                            containers=[
+                                V1Container(
+                                    name=job_name,
+                                    image=f"registry.314ecorp.tech/practifly-server:{activity_model.image_tag}",
+                                    image_pull_policy="Always",
+                                    env=[
+                                        V1EnvVar(name="DEPLOYMENT", value=config.env),
+                                        V1EnvVar(
+                                            name="POSTGRES__PASSWORD",
+                                            value_from=V1EnvVarSource(
+                                                secret_key_ref=V1SecretKeySelector(
+                                                    name="practifly-postgres", key="password"
+                                                )
+                                            ),
+                                        ),
+                                        V1EnvVar(
+                                            name="POSTGRES__USER",
+                                            value=f"practifly_{activity_model.tenant}",
+                                        ),
+                                        V1EnvVar(
+                                            name="RELEASE_VERSION",
+                                            value=activity_model.image_tag,
+                                        ),
+                                        V1EnvVar(
+                                            name="PROVISIONING_CONFIG",
+                                            value="/provisioningConfig/provisioning-config.json",
+                                        ),
+                                    ],
+                                    volume_mounts=[
+                                        V1VolumeMount(
+                                            name="practifly-provisioning-config",
+                                            mount_path="/provisioningConfig",
+                                            read_only=True,
+                                        )
+                                    ],
+                                    command=["/bin/sh", "-c"],
+                                    args=[argument],
+                                )
+                            ],
+                            volumes=[
+                                V1Volume(
+                                    name="practifly-provisioning-config",
+                                    config_map=V1ConfigMapVolumeSource(
+                                        name="practifly-provisioning-config",
+                                        items=[
+                                            V1KeyToPath(
+                                                key="provisioning-config.json", path="provisioning-config.json"
+                                            ),
+                                        ],
+                                    ),
+                                )
+                            ],
+                            restart_policy="Never",
+                        )
+                    ),
+                ),
+            )
 
-        payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
+            payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-        delete(k8s_dynamic_client, resource, activity_model.job_name, activity_model.tenant)
+            k8s_dynamic_client.server_side_apply(
+                resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+            )
 
-        k8s_dynamic_client.server_side_apply(
-            resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
-        )
+            log_info(f"Job {job_name} created successfully for {activity_model.tenant}")
 
-        status = await wait_for_job_to_complete(
+        status = await check_execution_status(
+            resource=resource,
             namespace=activity_model.tenant,
-            job_name=activity_model.job_name,
-            job_type=activity_model.job_type,
+            job_name=job_name,
+            expected_log_message=expected_log_message,
         )
-
-        log_info(f"Job {activity_model.job_name} created successfully")
 
         if not status:
-            log_error(f"Job {activity_model.job_name} failed for {activity_model.tenant}")
-            raise Exception(f"Job {activity_model.job_name} failed for {activity_model.tenant}")
+            log_error(f"Job {job_name} failed for {activity_model.tenant}")
+            raise Exception(f"Job {job_name} failed for {activity_model.tenant}")
 
-        log_info(f"Job {activity_model.job_name} completed successfully for {activity_model.tenant}")
+        log_info(f"Job {job_name} completed successfully for {activity_model.tenant}")
 
 
 def delete(resource: Resource, job_name: str, namespace: str) -> None:
