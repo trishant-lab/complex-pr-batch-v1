@@ -18,9 +18,9 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
 )
-from app.cli.temporal.activities.databaseMigrationJob import (
-    DatabaseMigrationJobActivity,
-    DatabaseMigrationJobActivityModel,
+from app.cli.temporal.activities.practiflyJob import (
+    PractiflyJobActivity,
+    PractiflyJobActivityModel,
 )
 from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8sIstioVirtualService import (
@@ -73,19 +73,19 @@ from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateT
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.practifly import TemplatePath
-from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
+from app.cli.temporal.practifly.models.practiflySpec import PractiflyJobEnum, PractiflySpec
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, PractiflySettings, get_settings
-    from app.template_env import get_env
+
+from app.common import generate_password
+from app.core.settings import AppSettings, PractiflySettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "practifly"
 OnePasswordVaultName = "practifly"
 
 
-@workflow.defn(name="PractiflyOnboardingWorkflow")
+@workflow.defn
 class PractiflyOnboardingWorkflow(Workflow):
     """
     Practifly Onboarding Workflow
@@ -122,7 +122,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
             TemporalNamespaceActivity.defn,
             VMPodScrapperActivity.defn,
-            DatabaseMigrationJobActivity.defn,
+            PractiflyJobActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             CopyWebCoreToBucketActivity.defn,
             KubernetesStatefulSetActivity.defn,
@@ -572,47 +572,14 @@ class PractiflyOnboardingWorkflow(Workflow):
 
             # alembic job
             await workflow.execute_activity(
-                activity=DatabaseMigrationJobActivity.defn,
-                arg=DatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="practifly-tenant-alembic-job",
-                    docker_image=docker_image,
-                    volume_mounts=[
-                        {
-                            "name": "practifly-provisioning-config",
-                            "mount_path": "/provisioningConfig",
-                            "read_only": True,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "practifly-provisioning-config",
-                            "config_map_name": "practifly-provisioning-config",
-                            "key": "provisioning-config.json",
-                            "path": "provisioning-config.json",
-                        },
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {
-                            "name": "POSTGRES__PASSWORD",
-                            "value_from": {
-                                "secret_name": {"name": postgres_secret_name, "key": "password"},
-                            },
-                        },
-                        {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
-                    ],
-                    argument=(
-                        "cd /app && python3 /app/provisioning/alembic_.py "
-                        "--config /provisioningConfig/provisioning-config.json"
-                    ),
-                    job_type="alembic",
-                    product=ProductName,
+                activity=PractiflyJobActivity.defn,
+                arg=PractiflyJobActivityModel(
+                    tenant=tenant,
+                    image_tag=image_tag,
+                    job_type=PractiflyJobEnum.PROVISIONING,
                 ),
-                retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
-                start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
+                retry_policy=PractiflyJobActivity.get_retry_policy(),
+                start_to_close_timeout=PractiflyJobActivity.get_timeout(),
             )
 
             repo_name = "practifly-ui"

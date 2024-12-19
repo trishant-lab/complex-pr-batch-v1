@@ -44,6 +44,8 @@ cloudflare = "^3.1.1"
 confluent-kafka = "^2.6.0"
 lago-python-client = "^1.16.1"
 loguru = "^0.7.3"
+alembic = "^1.14.0"
+psycopg2-binary = "^2.9.10"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
