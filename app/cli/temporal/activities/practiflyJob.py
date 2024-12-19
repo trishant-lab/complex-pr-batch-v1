@@ -23,8 +23,10 @@ from kubernetes.client import (
     V1Pod,
     V1PodList,
     V1JobStatus,
+    V1DeleteOptions,
+    BatchV1Api,
 )
-from kubernetes.dynamic import DynamicClient, Resource
+from kubernetes.dynamic import Resource
 
 from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
@@ -241,14 +243,26 @@ class PractiflyJobActivity(Activity):
         log_info(f"Job {activity_model.job_name} completed successfully for {activity_model.tenant}")
 
 
-def delete(k8s_dynamic_client: DynamicClient, resource: Resource, job_name: str, namespace: str) -> None:
+def delete(resource: Resource, job_name: str, namespace: str) -> None:
     """
     Delete method
     """
+    # First check if the job exists
     try:
-        k8s_dynamic_client.delete(resource=resource, name=job_name, namespace=namespace)
+        resource.get(name=job_name, namespace=namespace)
+        log_info(f"Found existing job {job_name} in namespace {namespace}")
     except NotFoundError:
-        log_error(f"{job_name} job not found for {namespace}")
+        log_info(f"No existing job {job_name} found in namespace {namespace}")
+        return
+
+    try:
+        # Delete the job with propagation policy to clean up dependent objects
+        delete_options = V1DeleteOptions(propagation_policy="Foreground")
+        batch_v1 = BatchV1Api()
+        batch_v1.delete_namespaced_job(name=job_name, namespace=namespace, body=delete_options)
+        log_info(f"Successfully deleted job {job_name} in namespace {namespace}")
+    except Exception as e:
+        log_error(f"Error during deletion of job {job_name}: {e}")
 
 
 class DeleteJobActivityModel(LaunchpadCLIBaseModel):
@@ -288,4 +302,4 @@ class DeleteJobActivity(Activity):
         k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="v1")
 
-        delete(k8s_dynamic_client, resource, activity_model.job_name, activity_model.namespace)
+        delete(resource=resource, job_name=activity_model.job_name, namespace=activity_model.namespace)
