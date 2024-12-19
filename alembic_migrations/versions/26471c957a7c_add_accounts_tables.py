@@ -14,7 +14,8 @@ from sqlalchemy import text
 from alembic import op
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.models.enums import Feature, FeatureStatus, MarketingType, PlanStatus
+from app.models.enums import FeatureStatus, MarketingType, PlanStatus
+from app.models.addOns.veritable import VeritableFeature
 
 # revision identifiers, used by Alembic.
 revision: str = "26471c957a7c"
@@ -469,7 +470,7 @@ def upgrade(**kwargs: str | Callable) -> None:
 
     features_data = [
         {
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "description": "",
             "details": "[]",
             "status": FeatureStatus.active.value,
@@ -478,7 +479,7 @@ def upgrade(**kwargs: str | Callable) -> None:
             "product": product_id,
         },
         {
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "description": payment_feature_description,
             "details": json.dumps(payment_feature_details),
             "status": FeatureStatus.active.value,
@@ -493,133 +494,133 @@ def upgrade(**kwargs: str | Callable) -> None:
     planfeatures_data = [
         {
             "plancode": "sp_m_v1",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 100}),
         },
         {
             "plancode": "lp_m_v1",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 250}),
         },
         {
             "plancode": "lp_y_v1",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 3000}),
         },
         {
             "plancode": "lp_y_v3",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 3000}),
         },
         {
             "plancode": "sp_y_v2",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 1200}),
         },
         {
             "plancode": "ee_m_v1",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "sp_y_v1",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 1200}),
         },
         {
             "plancode": "lp_m_v2",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 250}),
         },
         {
             "plancode": "lp_y_v2",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 3000}),
         },
         {
             "plancode": "sp_m_v1",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "lp_y_v3",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "sp_y_v2",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "lp_m_v2",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "lp_m_v1",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "lp_y_v1",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "lp_y_v2",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "sp_y_v1",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "sp_y_v3",
-            "featurecode": Feature.payments.value,
+            "featurecode": VeritableFeature.payments.value,
             "cansubscribe": True,
             "isincluded": False,
             "softlimits": json.dumps({}),
         },
         {
             "plancode": "sp_y_v3",
-            "featurecode": Feature.default.value,
+            "featurecode": VeritableFeature.default.value,
             "cansubscribe": False,
             "isincluded": True,
             "softlimits": json.dumps({"count": 1200}),

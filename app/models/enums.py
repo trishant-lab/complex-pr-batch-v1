@@ -1,4 +1,4 @@
-from enum import Enum, IntEnum
+from enum import IntEnum
 
 
 class PlanStatus(IntEnum):
@@ -12,15 +12,6 @@ class MarketingType(IntEnum):
     normal = 0
     popular = 1
     recommended = 2
-
-
-class Feature(str, Enum):
-    default = "default"
-    payments = "a_payments"
-
-
-class AddOn(str, Enum):
-    payments = "a_payments"
 
 
 class FeatureStatus(IntEnum):
