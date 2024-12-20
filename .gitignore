@@ -779,4 +779,4 @@ openapi.json
 *.env.config
 # End of https://www.toptal.com/developers/gitignore/api/linux,osx,macos,windows,vim,visualstudiocode,intellij+all,java,maven,python,rust,node,git,yarn,reactnative
 
-rootfs/etc/services.d/cli/workersd.conf
+rootfs/etc/services.d/launchpadcli/workersd.conf

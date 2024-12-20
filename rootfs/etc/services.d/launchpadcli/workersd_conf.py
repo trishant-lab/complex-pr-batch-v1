@@ -60,9 +60,9 @@ def write_supervisor_workers_conf() -> None:
     # }
     with open(file_path, "w") as configfile:
         worker_config.write(configfile)
-    from app.cli.temporal.main import main
+    # from app.cli.temporal.main import main
 
-    main()
+    # main()
 
 
 if __name__ == "__main__":
