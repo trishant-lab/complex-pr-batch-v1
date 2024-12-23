@@ -3,8 +3,7 @@ from temporalio.common import RetryPolicy
 
 from app.cli.k8s_util import get_resource
 from app.cli.temporal.core.log import log_error
-from kubernetes.dynamic.exceptions import NotFoundError
-
+from kubernetes.dynamic.exceptions import NotFoundError, ApiException
 
 from datetime import timedelta
 from app.cli.k8s_util import get_custom_objects_api, get_dynamic_client
@@ -214,5 +213,5 @@ class TenantCrdExistsActivity(Activity):
                 name=f"{activity_model.product}-{activity_model.tenant}",
             )
             return True
-        except NotFoundError:
+        except ApiException:
             return False
