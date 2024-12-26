@@ -304,7 +304,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
-            roles = [  
+            roles = [
                 "_admin",
                 "_default-users",
                 "_manage-connector",
@@ -503,7 +503,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="zsegment-api-config",   
+                    name="zsegment-api-config",
                     template_file_name=f"{config.env}-api-config.tmpl.json",
                     destination_file_name="api-config.json",
                     bucket_name="zsegment-config",
