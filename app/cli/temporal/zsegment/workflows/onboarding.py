@@ -304,7 +304,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
-            roles = [   /htao _dev/prod
+            roles = [  
                 "_admin",
                 "_default-users",
                 "_manage-connector",
