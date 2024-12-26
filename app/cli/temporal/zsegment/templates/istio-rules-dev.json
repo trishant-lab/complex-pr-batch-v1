@@ -4,16 +4,16 @@
       {
         "headers": {
           "stage": {
-            "exact": "dev-grpc"
+            "exact": "grpc"
           }
         }
       }
     ],
-    "name": "zsegment-grpc-dev",
+    "name": "zsegment-grpc",
     "route": [
       {
         "destination": {
-          "host": "zsegment-api-dev.<<tenant>>.svc.cluster.local",
+          "host": "zsegment-api.<<tenant>>.svc.cluster.local",
           "port": {
             "number": 6565
           }
@@ -25,15 +25,15 @@
     "match": [
       {
         "uri": {
-          "regex": "^/api/v1/dev/.*"
+          "regex": "^/api/v1/.*"
         }
       }
     ],
-    "name": "zsegment-api-dev",
+    "name": "zsegment-api",
     "route": [
       {
         "destination": {
-          "host": "zsegment-api-dev.<<tenant>>.svc.cluster.local",
+          "host": "zsegment-api.<<tenant>>.svc.cluster.local",
           "port": {
             "number": 8090
           }
@@ -49,7 +49,7 @@
         }
       }
     ],
-    "name": "zsegment-api-dev",
+    "name": "prometheus-api",
     "route": [
       {
         "destination": {
@@ -69,7 +69,7 @@
         }
       }
     ],
-    "name": "zsegment-api-dev-lsp",
+    "name": "zsegment-api-lsp",
     "rewrite": {
       "uri": "/"
     },
