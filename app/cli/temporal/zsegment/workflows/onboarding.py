@@ -577,15 +577,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
 
 
             #dns setup for code server
-            await workflow.execute_activity(
-                activity=CreateCloudflareDNSRecordActivity.defn,
-                arg=CreateCloudflareDNSRecordActivityModel(
-                    domain_name=f"{tenant}.cs.{zsegment_config.domain_name}",
-                    zone_id=zsegment_config.zone_id,
-                ),
-                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=CreateCloudflareDNSRecordActivity.defn,
+            #     arg=CreateCloudflareDNSRecordActivityModel(
+            #         domain_name=f"{tenant}.cs.{zsegment_config.domain_name}",
+            #         zone_id=zsegment_config.zone_id,
+            #     ),
+            #     retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
+            #     start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
+            # )
 
             # create bucket
             bucket_name = f"{tenant}-{zsegment_config.domain_name.replace('.', '-')}"
