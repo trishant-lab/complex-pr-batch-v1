@@ -780,7 +780,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-engine-dev-config",
+                            "config_map_name": "zsegment-engine-config",
                             "key": "engine-config.json",
                             "path": "engine-config.json",
                         }
@@ -793,7 +793,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "zsegment-engine-dev-config",
+                                    "name": "zsegment-engine-config",
                                     "key": "engine-config.json",
                                 }
                             },
