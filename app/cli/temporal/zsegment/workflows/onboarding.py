@@ -570,7 +570,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{zsegment_config.domain_name}",
                     zone_id=zsegment_config.zone_id,
-                    is_custom_product=config.is_custom_product,
                 ),
                 retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),

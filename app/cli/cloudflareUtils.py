@@ -15,13 +15,6 @@ def get_cloudflare_sdk_client(config: AppSettings) -> AsyncCloudflare:
     """
     return AsyncCloudflare(api_token=config.cloudflare.api_token)
 
-@lru_cache
-def get_cloudflare_sdk_client_for_custom_client(config: AppSettings) -> AsyncCloudflare:
-    """
-    Get a Cloudflare client
-    """
-    return AsyncCloudflare(api_token=config.cloudflare.api_token)
-
 
 @lru_cache
 def get_async_cloudflare_client() -> httpx.AsyncClient:
@@ -84,26 +77,6 @@ async def get_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> list:
 
 
 async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dict:
-    """
-    Create a DNS record
-    """
-    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
-
-    # check if the record already exists
-    if await get_dns_record(config=config, fqdn=fqdn, zone_id=zone_id):
-        logger.info(f"DNS record {fqdn} already exists")
-        return None
-
-    return await client.dns.records.create(
-        zone_id=zone_id,
-        content=config.k8s_cname,
-        type="CNAME",
-        name=fqdn,
-        ttl=5 * 60,  # 5 minutes
-    )
-
-
-async def create_dns_record_for_custom_product(config: AppSettings, fqdn: str, zone_id: str) -> dict:
     """
     Create a DNS record
     """
