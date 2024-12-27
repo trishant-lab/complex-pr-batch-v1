@@ -9,7 +9,6 @@ from loguru import logger
 from app.core.settings import AppSettings, get_settings
 
 
-@lru_cache
 def get_cloudflare_sdk_client(config: AppSettings) -> AsyncCloudflare:
     """
     Get a Cloudflare client
