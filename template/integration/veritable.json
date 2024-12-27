@@ -1,0 +1,6 @@
+{
+  "zone_id": "{{op://launchpad/VERITABLE/INTEGRATION/dns_zone_id}}",
+  "domain_name": "veritable.work",
+  "sender_name": "veritable",
+  "sender_email": "veritable-engg@veritable.app"
+}
