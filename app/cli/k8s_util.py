@@ -24,6 +24,9 @@ class ResourceKindEnum(Enum):
     StatefulSet = "StatefulSet"
     VeritableTenant = "VeritableTenant"
     PractiflyTenant = "PractiflyTenant"
+    ServiceAccount = "ServiceAccount"
+    Role = "Role"
+    RoleBinding = "RoleBinding"
 
 
 @lru_cache

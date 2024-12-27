@@ -1,7 +1,7 @@
 from temporalio import activity
 from temporalio.common import RetryPolicy
 from datetime import timedelta
-from app.cli.k8s_util import get_dynamic_client, get_resource
+from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 
@@ -53,14 +53,12 @@ class CreateKubernetesResourcesActivity(Activity):
         }
         service_account_resource = get_resource(
             dynamic_client=k8s_dynamic_client,
-            kind="ServiceAccount",
+            kind=ResourceKindEnum.ServiceAccount,
             api_version="v1",
         )
         k8s_dynamic_client.server_side_apply(
             resource=service_account_resource,
-            body=k8s_dynamic_client.client.sanitize_for_serialization(
-                service_account_body
-            ),
+            body=k8s_dynamic_client.client.sanitize_for_serialization(service_account_body),
             field_manager="kubectl-client-side-apply",
         )
         log_info(f"ServiceAccount 'zsegment-api-sa' created in namespace {namespace}")
@@ -103,7 +101,7 @@ class CreateKubernetesResourcesActivity(Activity):
         }
         role_resource = get_resource(
             dynamic_client=k8s_dynamic_client,
-            kind="Role",
+            kind=ResourceKindEnum.Role,
             api_version="rbac.authorization.k8s.io/v1",
         )
         k8s_dynamic_client.server_side_apply(
@@ -136,16 +134,12 @@ class CreateKubernetesResourcesActivity(Activity):
         }
         role_binding_resource = get_resource(
             dynamic_client=k8s_dynamic_client,
-            kind="RoleBinding",
+            kind=ResourceKindEnum.RoleBinding,
             api_version="rbac.authorization.k8s.io/v1",
         )
         k8s_dynamic_client.server_side_apply(
             resource=role_binding_resource,
-            body=k8s_dynamic_client.client.sanitize_for_serialization(
-                role_binding_body
-            ),
+            body=k8s_dynamic_client.client.sanitize_for_serialization(role_binding_body),
             field_manager="kubectl-client-side-apply",
         )
-        log_info(
-            f"RoleBinding 'zsegment-api-role-binding' created in namespace {namespace}"
-        )
+        log_info(f"RoleBinding 'zsegment-api-role-binding' created in namespace {namespace}")
