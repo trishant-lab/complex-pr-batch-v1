@@ -32,19 +32,21 @@ class KeycloakAdminClient:
         """
         Returns keycloak realms
         """
+        self._refresh_token(self.kc_client, self.realm)
         return self.kc_client.get_realms()
 
     def get_realm(self: "KeycloakAdminClient", realm_name: str) -> dict:
         """
         Returns keycloak realm
         """
+        self._refresh_token(self.kc_client, self.realm)
         return self.kc_client.get_realm(realm_name)
 
     def create_realm(self: "KeycloakAdminClient", realm_config: dict, skip_exists: bool = True) -> None:
         """
         Create keycloak realm
         """
-        self.kc_client.connection.refresh_token()
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.create_realm(payload=realm_config, skip_exists=skip_exists)
 
     def delete_realm(self: "KeycloakAdminClient", realm_name: str) -> None:
@@ -55,6 +57,7 @@ class KeycloakAdminClient:
         :return:
         :rtype:
         """
+        self._refresh_token(self.kc_client, self.realm)
         # check if realm exists
         realms = [row["realm"] for row in self.get_all_realms()]
         if realm_name in realms:
@@ -65,6 +68,7 @@ class KeycloakAdminClient:
         """
         Create keycloak user
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.create_user(payload=user_config, exist_ok=True)
 
@@ -72,6 +76,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak user id
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_user_id(username=username)
 
@@ -83,6 +88,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak users
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_users(query=query)
 
@@ -90,6 +96,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak user
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_user(user_id=user_id)
 
@@ -97,6 +104,7 @@ class KeycloakAdminClient:
         """
         Set keycloak user password
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.set_user_password(user_id=user_id, password=password)
 
@@ -104,6 +112,7 @@ class KeycloakAdminClient:
         """
         Create keycloak client
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.create_client(payload=client_config, skip_exists=True)
 
@@ -111,6 +120,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak client
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_client_id(client_id=client)
 
@@ -118,6 +128,7 @@ class KeycloakAdminClient:
         """
         Create keycloak client role
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.create_client_role(payload=role_config, client_role_id=client_id, skip_exists=True)
 
@@ -125,6 +136,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak client roles
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_client_roles(client_id=client_id)
 
@@ -132,6 +144,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak realm roles
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_realm_roles()
 
@@ -141,6 +154,7 @@ class KeycloakAdminClient:
         """
         Assign client roles
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.assign_client_role(user_id=user_id, client_id=client_id, roles=roles)
 
@@ -148,6 +162,7 @@ class KeycloakAdminClient:
         """
         Create keycloak authentication flow
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.create_authentication_flow(payload=flow_config, skip_exists=True)
 
@@ -155,6 +170,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak authentication flows
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_authentication_flows()
 
@@ -162,6 +178,7 @@ class KeycloakAdminClient:
         """
         Create keycloak identity provider
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.create_idp(payload=idp_config)
 
@@ -169,6 +186,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak identity providers
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_idps()
 
@@ -176,6 +194,7 @@ class KeycloakAdminClient:
         """
         Add mapper to identity provider
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.add_mapper_to_idp(idp_alias=idp_alias, payload=mapper_config)
 
@@ -183,6 +202,7 @@ class KeycloakAdminClient:
         """
         Returns keycloak mappers
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_idp_mappers(idp_alias=idp_alias)
 
@@ -190,6 +210,7 @@ class KeycloakAdminClient:
         """
         Returns list of all clients present in a given realm
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_clients()
 
@@ -202,6 +223,7 @@ class KeycloakAdminClient:
         :return:
         :rtype:
         """
+        self._refresh_token(self.kc_client, self.realm)
         # check if client exists
         clients = [row["clientId"] for row in self.get_all_clients(realm_name=realm_name)]
         if client_name in clients:
@@ -212,6 +234,7 @@ class KeycloakAdminClient:
         """
         Creates groups with the given payload
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.create_group(payload=payload, skip_exists=True)
 
@@ -219,6 +242,7 @@ class KeycloakAdminClient:
         """
         Fetch group id by path
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         res = self.kc_client.get_group_by_path(path=path)
         return res["id"]
@@ -229,6 +253,7 @@ class KeycloakAdminClient:
         """
         Assing roel to group
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.assign_group_client_roles(group_id=group_id, client_id=client_id, roles=roles)
         return
@@ -237,6 +262,7 @@ class KeycloakAdminClient:
         """
         Assing group to the user
         """
+        self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.group_user_add(user_id=user_id, group_id=group_id)
         return
@@ -245,6 +271,7 @@ class KeycloakAdminClient:
         """
         Get service account user id
         """
+        self._refresh_token(self.kc_client, self.realm)
         res = self.kc_client.get_client_service_account_user(client_id=client_id)
         return res["id"]
 
