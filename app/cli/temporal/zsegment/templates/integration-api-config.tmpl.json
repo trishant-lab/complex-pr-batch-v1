@@ -57,6 +57,13 @@
   "REDIS.USERNAME": "zsegment",
   "REDIS.PASSWORD": "<<redisPassword>>",
 
+  "DOCKER.SECRET.NAME": "<<dockerSecret>>",
+  "CODE-SERVER.HOST": "<<codeServerHost>>",
+  "CODE-SERVER.ALLOWED-ORIGIN": "<<codeServerAlllowedOrigin>>",
+
+  "JGIT.WEBHOOK.SECRET": "<<webhookSecret>>",
+  "JGIT.API.SERVICE_URL": "<<jgitApiServiceUrl>>",
+
   "MATOMO.AUTH.TOKEN": "<<matomoAuthToken>>",
   "MATOMO.BASE.URL": "https://analytics.314ecorp.tech/index.php",
   "MATOMO.SITE.ID": 15
