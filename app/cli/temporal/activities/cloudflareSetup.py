@@ -1,5 +1,6 @@
 import asyncio
 import socket
+from typing import Optional
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
@@ -13,12 +14,13 @@ from app.cli.cloudflareUtils import (
     get_temporary_credentials,
     create_bucket,
     create_dns_record,
+    create_dns_record_for_custom_product,
     link_bucket_to_custom_domain,
     delete_bucket,
     delete_dns_record,
 )
 from app.cli.temporal.core.log import log_error, log_info
-from app.core.settings import AppSettings, get_settings
+from app.core.settings import AppSettings, get_settings, get_settings_zsegment
 from app.s3_utils import (
     download_file_from_storage,
     mirror_files_to_cloudflare,
@@ -76,6 +78,7 @@ class CreateCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
 
     domain_name: str
     zone_id: str
+    is_custom_product: Optional[bool] = False
 
 
 class CreateCloudflareDNSRecordActivity(Activity):
@@ -104,8 +107,15 @@ class CreateCloudflareDNSRecordActivity(Activity):
         Create a Cloudflare DNS record
         """
         config: AppSettings = get_settings()
-
-        await create_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
+        config1: AppSettings = get_settings_zsegment()
+        if activity_input.is_custom_product:
+            await create_dns_record_for_custom_product(
+            config=config1,
+            fqdn=activity_input.domain_name,
+            zone_id=activity_input.zone_id,
+        )
+        else:
+            await create_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
 
 
 class LinkBucketToDomainActivityModel(LaunchpadCLIBaseModel):
