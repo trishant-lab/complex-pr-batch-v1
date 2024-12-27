@@ -73,6 +73,7 @@ async def get_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> list:
     """
     client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
     response = await client.dns.records.list(zone_id=zone_id, name=fqdn, type="CNAME")
+    logger.info(f"result reponse is: ${response.result}")
     return response.result
 
 
