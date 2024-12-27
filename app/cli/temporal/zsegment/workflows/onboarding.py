@@ -166,6 +166,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             LagoSetupActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             OnePasswordGetActivity.defn,
+            CreateKubernetesResourcesActivity.defn,
         ]
 
     @classmethod
@@ -291,7 +292,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
             )
 
-            installer_secret = generate_password(length=20) if not installer_secret else installer_secret
+            installer_secret = (
+                generate_password(length=20)
+                if not installer_secret
+                else installer_secret
+            )
 
             await workflow.execute_activity(
                 activity=OnePasswordCreateOrUpdateActivity.defn,
@@ -726,7 +731,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-api-dev-config",
+                            "config_map_name": "zsegment-api-config",
                             "key": "api-config.json",
                             "path": "api-config.json",
                         }
@@ -739,7 +744,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "zsegment-api-dev-config",
+                                    "name": "zsegment-api-config",
                                     "key": "api-config.json",
                                 }
                             },
@@ -942,7 +947,9 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
+                arg=TenantStatus(
+                    tenant_name=tenant, status="Completed", product=ProductName
+                ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
