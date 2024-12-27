@@ -114,7 +114,7 @@ class CacheConfigMap:
         """
         data = self.get_configmap()
 
-        if data and f"namespace.{product}" not in data:
+        if data:
             data[f"namespace.{product}"] = redis_tenant_password
             self.core_v1_api.replace_namespaced_config_map(
                 namespace=self.namespace,
@@ -126,7 +126,7 @@ class CacheConfigMap:
                     data={"cache.conf": "\n".join(f"{k} {v}" for k, v in data.items())},
                 ),
             )
-        elif not data:
+        else:
             data = {"port": CACHE_PORT, f"namespace.{product}": redis_tenant_password}
             self.core_v1_api.create_namespaced_config_map(
                 namespace=self.namespace,
