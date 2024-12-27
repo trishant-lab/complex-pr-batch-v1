@@ -2,7 +2,7 @@
   "TENANT.NAME": "<<tenantName>>",
 
   "SERVER.PORT": "8089",
-  "SERVER.DEPLOYMENT": "<<environment>>",
+  "SERVER.ENVIRONMENT": "<<server_environment>>",
 
   "APPLICATION.NAME": "zsegment-engine",
 
@@ -13,11 +13,10 @@
   "JGIT.LFS.URL": "",
   "JGIT.TENANT": "<<tenantName>>",
   "JGIT.GIT.DIR.PARENT": "/data",
-  "JGIT.GIT.BRANCH": "<<environment>>",
   "JGIT.GIT.URL": "https://gitea.314ecorp.tech/<<giteaUserName>>/<<tenantName>>",
 
   "CAMEL.ERROR-HANDLER.BACKOFF-MULTIPLIER": "0.75",
-  "CAMEL.ERROR-HANDLER.MAXIMUM-REDELIVERIES": "2",
+  "CAMEL.ERROR-HANDLER.MAXIMUM-REDELIVERIES": "2",s
   "CAMEL.ERROR-HANDLER.REDELIVERY-DELAY": "1000",
 
   "LOGGING.LEVEL.ROOT": "INFO",
