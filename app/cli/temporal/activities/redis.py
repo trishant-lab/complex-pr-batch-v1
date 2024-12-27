@@ -42,7 +42,7 @@ CACHE_HOST = "cache.{tenant}.svc.cluster.local"
 CACHE_PORT = 6379
 CACHE_SERVICE_NAME = "cache"
 CACHE_SECRET_NAME = "cache-secret"
-CONFIGMAP_NAME = "cache-config"
+CONFIGMAP_NAME = "cache-conf"
 CONFIGMAP_KEY = "cache.conf"
 CONFIG_VOLUME_NAME = "cache-config-volume"
 CONFIG_VOLUME_MOUNT_PATH = "/config/cache.conf"
@@ -182,12 +182,12 @@ class RedisService(K8sResourceBaseClass):
             api_version="v1",
             kind=ResourceKindEnum.Service.value,
             metadata=V1ObjectMeta(
-                name="cache-new",
+                name=CACHE_SERVICE_NAME,
                 namespace=self.tenant,
-                labels={"app": "cache", "kind": "redis"},
+                labels={"app": CACHE_SERVICE_NAME, "kind": "redis"},
             ),
             spec=V1ServiceSpec(
-                selector={"app": "cache", "kind": "redis"},
+                selector={"app": CACHE_SERVICE_NAME, "kind": "redis"},
                 type="ClusterIP",
                 ports=[
                     V1ServicePort(
@@ -208,7 +208,7 @@ class RedisService(K8sResourceBaseClass):
         self.k8s_dynamic_client.server_side_apply(
             resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
         )
-        log_info("Service cache-new-service created successfully")
+        log_info(f"Service {CACHE_SERVICE_NAME}-service created successfully")
 
     def delete(self: "RedisService") -> None:
         """
