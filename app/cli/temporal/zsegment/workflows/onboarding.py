@@ -1,6 +1,11 @@
 from collections.abc import Callable
 from uuid import uuid4
+import uuid
 
+from cli.temporal.activities.serviceAccountSetup import (
+    CreateKubernetesResourcesActivity,
+    CreateKubernetesResourcesActivityModel,
+)
 from temporalio import workflow
 import pydash
 import orjson
@@ -19,7 +24,10 @@ from app.cli.temporal.activities.cloudflareSetup import (
 )
 
 # from app.cli.temporal.activities.gitea_service import GiteaProperties
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.k8snamespace import (
+    K8sNamespaceCreationActivity,
+    K8sNamespaceCreationActivityModel,
+)
 from app.cli.temporal.activities.lago_service import LagoSetupActivity, LagoProperties
 from app.cli.temporal.activities.onePassword import (
     OnePasswordCreateOrUpdateActivity,
@@ -67,17 +75,39 @@ from app.cli.temporal.activities.statefulSetPodCreation import (
 )
 
 from app.cli.temporal.zsegment import TemplatePath
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.k8sconfigMap import (
+    K8sConfigMapCreationActivity,
+    K8sConfigMapCreationActivityModel,
+)
+from app.cli.temporal.activities.k8sSecret import (
+    K8sSecretCreationActivity,
+    K8sSecretCreationActivityModel,
+)
+from app.cli.temporal.activities.redis import (
+    RedisSetupActivity,
+    RedisSetupActivityModel,
+)
 from app.cli.temporal.activities.redpanda_service import RedpandaSetupActivity
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.activities.k8sService import (
+    KubernetesServiceActivity,
+    KubernetesServiceActivityModel,
+)
+from app.cli.temporal.activities.vmPodScrapper import (
+    VMPodScrapperActivity,
+    VMPodScrapperActivityModel,
+)
 
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.updateTenantStatus import (
+    TenantStatus,
+    UpdateTenantStatusActivity,
+)
 from app.cli.temporal.core.base import Workflow
 
-from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties, GiteaService
+from app.cli.temporal.activities.gitea_service import (
+    GiteaSetupActivity,
+    GiteaProperties,
+    GiteaService,
+)
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
@@ -261,7 +291,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
             )
 
-            installer_secret = generate_password(length=20) if not installer_secret else installer_secret
+            installer_secret = (
+                generate_password(length=20)
+                if not installer_secret
+                else installer_secret
+            )
 
             await workflow.execute_activity(
                 activity=OnePasswordCreateOrUpdateActivity.defn,
@@ -529,6 +563,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "redisPassword": redis_tenant_password,
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
                         "giteaUserName": gitea_username,
+                        "dockerSecret": "registrycred",
+                        "codeServerHost": f"{tenant}.cs.{zsegment_config.domain_name}",
+                        "codeServerAlllowedOrigin": f"https://{tenant}.{zsegment_config.domain_name}",
+                        "webhookSecret": str(uuid.uuid4()),
+                        "jgitApiServiceUrl": f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook",
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -563,21 +602,18 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
             )
 
-
             # dns setup for api
             await workflow.execute_activity(
                 activity=CreateCloudflareDNSRecordActivity.defn,
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{zsegment_config.domain_name}",
                     zone_id=zsegment_config.zone_id,
-                    is_custom_product=config.is_custom_product,
                 ),
                 retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
-
-            #dns setup for code server
+            # dns setup for code server
             # await workflow.execute_activity(
             #     activity=CreateCloudflareDNSRecordActivity.defn,
             #     arg=CreateCloudflareDNSRecordActivityModel(
@@ -649,7 +685,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            #docs
+            # docs
             docs_dest_dir = f"{bucket_name}/docs"
             docs_src_object_name = f"{repo_name}/docs/dist.zip"
 
@@ -669,7 +705,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             )
 
             # statefulset pod creation for server
-            await workflow.execute_activity(           #yha htao
+            await workflow.execute_activity(  # yha htao
                 activity=KubernetesStatefulSetActivity.defn,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
@@ -721,7 +757,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
-
 
             await workflow.execute_activity(
                 activity=KubernetesStatefulSetActivity.defn,
@@ -877,7 +912,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # VS for dev
             template_env = get_env(template_path=TemplatePath)
 
-            template = template_env.get_template("istio-rules-dev.json")
+            template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
             http_list = orjson.loads(output)
@@ -894,43 +929,26 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.api.{zsegment_config.domain_name}",
-                    service_name="zsegment-api-dev-vs",
+                    service_name="zsegment-api-vs",
                     payload=http_list,
                 ),
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
-            # vs for prod
-            template = template_env.get_template("istio-rules-prod.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
-
-            http_list = orjson.loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
-
             await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
-                arg=KubernetesIstioVirtualServiceActivityModel(
-                    namespace=tenant,
-                    host=f"{tenant}.api.{zsegment_config.domain_name}",
-                    service_name="zsegment-api-prod-vs",
-                    payload=http_list,
-                ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
+                activity=CreateKubernetesResourcesActivity.defn,
+                arg=CreateKubernetesResourcesActivityModel(namespace=tenant),
+                retry_policy=CreateKubernetesResourcesActivity.get_retry_policy(),
+                start_to_close_timeout=CreateKubernetesResourcesActivity.get_timeout(),
             )
 
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
+                arg=TenantStatus(
+                    tenant_name=tenant, status="Completed", product=ProductName
+                ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
