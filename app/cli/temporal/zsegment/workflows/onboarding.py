@@ -2,7 +2,10 @@ from collections.abc import Callable
 from uuid import uuid4
 import uuid
 
-from cli.temporal.activities.serviceAccountSetup import CreateKubernetesResourcesActivity, CreateKubernetesResourcesActivityModel
+from cli.temporal.activities.serviceAccountSetup import (
+    CreateKubernetesResourcesActivity,
+    CreateKubernetesResourcesActivityModel,
+)
 from temporalio import workflow
 import pydash
 import orjson
@@ -21,7 +24,10 @@ from app.cli.temporal.activities.cloudflareSetup import (
 )
 
 # from app.cli.temporal.activities.gitea_service import GiteaProperties
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.k8snamespace import (
+    K8sNamespaceCreationActivity,
+    K8sNamespaceCreationActivityModel,
+)
 from app.cli.temporal.activities.lago_service import LagoSetupActivity, LagoProperties
 from app.cli.temporal.activities.onePassword import (
     OnePasswordCreateOrUpdateActivity,
@@ -69,17 +75,39 @@ from app.cli.temporal.activities.statefulSetPodCreation import (
 )
 
 from app.cli.temporal.zsegment import TemplatePath
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.k8sconfigMap import (
+    K8sConfigMapCreationActivity,
+    K8sConfigMapCreationActivityModel,
+)
+from app.cli.temporal.activities.k8sSecret import (
+    K8sSecretCreationActivity,
+    K8sSecretCreationActivityModel,
+)
+from app.cli.temporal.activities.redis import (
+    RedisSetupActivity,
+    RedisSetupActivityModel,
+)
 from app.cli.temporal.activities.redpanda_service import RedpandaSetupActivity
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.activities.k8sService import (
+    KubernetesServiceActivity,
+    KubernetesServiceActivityModel,
+)
+from app.cli.temporal.activities.vmPodScrapper import (
+    VMPodScrapperActivity,
+    VMPodScrapperActivityModel,
+)
 
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.updateTenantStatus import (
+    TenantStatus,
+    UpdateTenantStatusActivity,
+)
 from app.cli.temporal.core.base import Workflow
 
-from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties, GiteaService
+from app.cli.temporal.activities.gitea_service import (
+    GiteaSetupActivity,
+    GiteaProperties,
+    GiteaService,
+)
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
@@ -263,7 +291,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
             )
 
-            installer_secret = generate_password(length=20) if not installer_secret else installer_secret
+            installer_secret = (
+                generate_password(length=20)
+                if not installer_secret
+                else installer_secret
+            )
 
             await workflow.execute_activity(
                 activity=OnePasswordCreateOrUpdateActivity.defn,
@@ -535,7 +567,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "codeServerHost": f"{tenant}.cs.{zsegment_config.domain_name}",
                         "codeServerAlllowedOrigin": f"https://{tenant}.{zsegment_config.domain_name}",
                         "webhookSecret": str(uuid.uuid4()),
-                        "jgitApiServiceUrl": f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook"
+                        "jgitApiServiceUrl": f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook",
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -570,7 +602,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
             )
 
-
             # dns setup for api
             await workflow.execute_activity(
                 activity=CreateCloudflareDNSRecordActivity.defn,
@@ -582,8 +613,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
-
-            #dns setup for code server
+            # dns setup for code server
             # await workflow.execute_activity(
             #     activity=CreateCloudflareDNSRecordActivity.defn,
             #     arg=CreateCloudflareDNSRecordActivityModel(
@@ -655,7 +685,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            #docs
+            # docs
             docs_dest_dir = f"{bucket_name}/docs"
             docs_src_object_name = f"{repo_name}/docs/dist.zip"
 
@@ -675,7 +705,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             )
 
             # statefulset pod creation for server
-            await workflow.execute_activity(           #yha htao
+            await workflow.execute_activity(  # yha htao
                 activity=KubernetesStatefulSetActivity.defn,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
@@ -727,7 +757,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
-
 
             await workflow.execute_activity(
                 activity=KubernetesStatefulSetActivity.defn,
@@ -917,7 +946,9 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
+                arg=TenantStatus(
+                    tenant_name=tenant, status="Completed", product=ProductName
+                ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )

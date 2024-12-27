@@ -5,6 +5,7 @@ from app.cli.k8s_util import get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 
+
 class CreateKubernetesResourcesActivityModel(LaunchpadCLIBaseModel):
     """
     Model for creating ServiceAccount, Role, and RoleBinding
@@ -57,7 +58,9 @@ class CreateKubernetesResourcesActivity(Activity):
         )
         k8s_dynamic_client.server_side_apply(
             resource=service_account_resource,
-            body=k8s_dynamic_client.client.sanitize_for_serialization(service_account_body),
+            body=k8s_dynamic_client.client.sanitize_for_serialization(
+                service_account_body
+            ),
             field_manager="kubectl-client-side-apply",
         )
         log_info(f"ServiceAccount 'zsegment-api-sa' created in namespace {namespace}")
@@ -71,11 +74,31 @@ class CreateKubernetesResourcesActivity(Activity):
                 "namespace": namespace,
             },
             "rules": [
-                {"apiGroups": [""], "resources": ["pods"], "verbs": ["create", "delete", "list"]},
-                {"apiGroups": ["batch"], "resources": ["cronjobs"], "verbs": ["create", "delete", "get", "list", "watch"]},
-                {"apiGroups": [""], "resources": ["secrets"], "verbs": ["create", "delete", "update"]},
-                {"apiGroups": [""], "resources": ["services"], "verbs": ["create", "delete"]},
-                {"apiGroups": ["networking.istio.io"], "resources": ["virtualservices"], "verbs": ["create", "delete"]},
+                {
+                    "apiGroups": [""],
+                    "resources": ["pods"],
+                    "verbs": ["create", "delete", "list"],
+                },
+                {
+                    "apiGroups": ["batch"],
+                    "resources": ["cronjobs"],
+                    "verbs": ["create", "delete", "get", "list", "watch"],
+                },
+                {
+                    "apiGroups": [""],
+                    "resources": ["secrets"],
+                    "verbs": ["create", "delete", "update"],
+                },
+                {
+                    "apiGroups": [""],
+                    "resources": ["services"],
+                    "verbs": ["create", "delete"],
+                },
+                {
+                    "apiGroups": ["networking.istio.io"],
+                    "resources": ["virtualservices"],
+                    "verbs": ["create", "delete"],
+                },
             ],
         }
         role_resource = get_resource(
@@ -118,7 +141,11 @@ class CreateKubernetesResourcesActivity(Activity):
         )
         k8s_dynamic_client.server_side_apply(
             resource=role_binding_resource,
-            body=k8s_dynamic_client.client.sanitize_for_serialization(role_binding_body),
+            body=k8s_dynamic_client.client.sanitize_for_serialization(
+                role_binding_body
+            ),
             field_manager="kubectl-client-side-apply",
         )
-        log_info(f"RoleBinding 'zsegment-api-role-binding' created in namespace {namespace}")
+        log_info(
+            f"RoleBinding 'zsegment-api-role-binding' created in namespace {namespace}"
+        )
