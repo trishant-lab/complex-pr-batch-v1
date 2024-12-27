@@ -1,6 +1,5 @@
 import asyncio
 import socket
-from typing import Optional
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
@@ -78,7 +77,7 @@ class CreateCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
 
     domain_name: str
     zone_id: str
-    is_custom_product: Optional[bool] = False
+    is_custom_product: bool | None = False
 
 
 class CreateCloudflareDNSRecordActivity(Activity):
