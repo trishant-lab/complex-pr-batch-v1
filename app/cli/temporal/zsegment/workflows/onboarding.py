@@ -2,7 +2,7 @@ from collections.abc import Callable
 from uuid import uuid4
 import uuid
 
-from cli.temporal.activities.serviceAccountSetup import (
+from app.cli.temporal.activities.serviceAccountSetup import (
     CreateKubernetesResourcesActivity,
     CreateKubernetesResourcesActivityModel,
 )
@@ -291,11 +291,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
             )
 
-            installer_secret = (
-                generate_password(length=20)
-                if not installer_secret
-                else installer_secret
-            )
+            installer_secret = generate_password(length=20) if not installer_secret else installer_secret
 
             await workflow.execute_activity(
                 activity=OnePasswordCreateOrUpdateActivity.defn,
@@ -946,9 +942,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # update tenant status
             await workflow.execute_activity(
                 activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=tenant, status="Completed", product=ProductName
-                ),
+                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
