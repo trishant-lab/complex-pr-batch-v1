@@ -318,8 +318,9 @@ class RedisSetupActivity(Activity):
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
         k8s_dynamic_client.server_side_apply(
-            resource=redis_resource, body=payload, field_manager="kubectl-client-side-apply"
+            resource=redis_resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
         )
+        await restart_cache_statefulset(activity_model.namespace)
         RedisService(activity_model.namespace).put()
         log_info(f"Redis {CACHE_SERVICE_NAME} created successfully")
 

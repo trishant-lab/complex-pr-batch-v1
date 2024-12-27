@@ -139,6 +139,92 @@ class K8sConfigMapCreationActivity(Activity):
         log_info(f"ConfigMap {activity_model.name} created successfully")
 
 
+class K8sConfigMapCreatFromTemplateActivityModel(LaunchpadCLIBaseModel):
+    """
+    K8sConfigMapCreatFromTemplateActivityModel
+    """
+
+    namespace: str
+    name: str
+    template_file_name: str | None = None
+    template_path: str | None = None
+    data: str | None = None
+    destination_file_name: str
+    template_payload: dict
+
+
+class K8sConfigMapCreatFromTemplateActivity(Activity):
+    """
+    K8sConfigMapCreatFromTemplateActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="K8sConfigMapCreatFromTemplateActivity")
+    async def defn(activity_model: K8sConfigMapCreatFromTemplateActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        app_config: AppSettings = get_settings()
+        k8s_dynamic_client = get_dynamic_client()
+        resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1")
+
+        template_file_name = activity_model.template_file_name
+
+        if activity_model.data:
+            data = {
+                activity_model.destination_file_name: activity_model.data,
+            }
+        else:
+            with TemporaryDirectory() as temp_dir:
+                template_env = get_env(template_path=activity_model.template_path)
+
+                template = template_env.get_template(template_file_name)
+                output = template.render(**activity_model.template_payload)
+
+                with open(f"{temp_dir}/{template_file_name}", "w") as f:
+                    f.write(output)
+
+                # inject secret into tenant-config.json from 1Password
+                secret_inject(
+                    source_file_path=f"{temp_dir}/{template_file_name}",
+                    destination_path=f"{temp_dir}/{activity_model.destination_file_name}",
+                )
+
+                data = {
+                    activity_model.destination_file_name: open(
+                        f"{temp_dir}/{activity_model.destination_file_name}"
+                    ).read()
+                }
+
+        body = V1ConfigMap(
+            api_version="v1",
+            kind=ResourceKindEnum.ConfigMap.value,
+            metadata=V1ObjectMeta(namespace=activity_model.namespace, name=activity_model.name),
+            data=data,
+        )
+
+        payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
+        k8s_dynamic_client.server_side_apply(
+            resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+        )
+
+        log_info(f"ConfigMap {activity_model.name} created successfully")
+
+
 class DeleteK8sConfigMapActivityModel(LaunchpadCLIBaseModel):
     """
     DeleteK8sConfigMapActivityModel
