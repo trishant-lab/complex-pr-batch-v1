@@ -52,7 +52,7 @@
   "GITEA.ADMIN.USERNAME": "<<gitea_admin_username>>",
   "GITEA.ADMIN.PASSWORD": "<<gitea_admin_password>>",
 
-  "REDIS.HOST": "cache-new.<<tenantName>>.svc.cluster.local",
+  "REDIS.HOST": "cache.<<tenantName>>.svc.cluster.local",
   "REDIS.PORT": "6379",
   "REDIS.USERNAME": "zsegment",
   "REDIS.PASSWORD": "<<redisPassword>>",
