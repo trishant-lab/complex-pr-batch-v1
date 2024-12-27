@@ -166,6 +166,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             LagoSetupActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             OnePasswordGetActivity.defn,
+            CreateKubernetesResourcesActivity.defn,
         ]
 
     @classmethod
@@ -726,7 +727,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-api-dev-config",
+                            "config_map_name": "zsegment-api-config",
                             "key": "api-config.json",
                             "path": "api-config.json",
                         }
@@ -739,7 +740,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "zsegment-api-dev-config",
+                                    "name": "zsegment-api-config",
                                     "key": "api-config.json",
                                 }
                             },
