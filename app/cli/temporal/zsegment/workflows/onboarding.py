@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from uuid import uuid4
-import uuid
 
 from app.cli.temporal.activities.serviceAccountSetup import (
     CreateKubernetesResourcesActivity,
@@ -563,7 +562,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "dockerSecret": "registrycred",
                         "codeServerHost": f"{tenant}.cs.{zsegment_config.domain_name}",
                         "codeServerAlllowedOrigin": f"https://{tenant}.{zsegment_config.domain_name}",
-                        "webhookSecret": str(uuid.uuid4()),
+                        "webhookSecret": "abcdefghijkl",
                         "jgitApiServiceUrl": f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook",
                     },
                 ),
