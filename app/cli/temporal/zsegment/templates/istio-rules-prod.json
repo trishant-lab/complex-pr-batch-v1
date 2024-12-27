@@ -4,12 +4,12 @@
       {
         "headers": {
           "stage": {
-            "exact": "prod-grpc"
+            "exact": "grpc"
           }
         }
       }
     ],
-    "name": "zsegment-grpc-prod",
+    "name": "zsegment-grpc",
     "route": [
       {
         "destination": {
@@ -29,7 +29,7 @@
         }
       }
     ],
-    "name": "zsegment-api-prod",
+    "name": "zsegment-api",
     "route": [
       {
         "destination": {
