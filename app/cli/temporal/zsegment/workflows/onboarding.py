@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from uuid import uuid4
+import uuid
 
+from cli.temporal.activities.serviceAccountSetup import CreateKubernetesResourcesActivity, CreateKubernetesResourcesActivityModel
 from temporalio import workflow
 import pydash
 import orjson
@@ -529,6 +531,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "redisPassword": redis_tenant_password,
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
                         "giteaUserName": gitea_username,
+                        "dockerSecret": "registrycred",
+                        "codeServerHost": f"{tenant}.cs.{zsegment_config.domain_name}",
+                        "codeServerAlllowedOrigin": f"https://{tenant}.{zsegment_config.domain_name}",
+                        "webhookSecret": str(uuid.uuid4()),
+                        "jgitApiServiceUrl": f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook"
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -876,7 +883,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # VS for dev
             template_env = get_env(template_path=TemplatePath)
 
-            template = template_env.get_template("istio-rules-dev.json")
+            template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
             http_list = orjson.loads(output)
@@ -893,37 +900,18 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.api.{zsegment_config.domain_name}",
-                    service_name="zsegment-api-dev-vs",
+                    service_name="zsegment-api-vs",
                     payload=http_list,
                 ),
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
-            # vs for prod
-            template = template_env.get_template("istio-rules-prod.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
-
-            http_list = orjson.loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
-
             await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
-                arg=KubernetesIstioVirtualServiceActivityModel(
-                    namespace=tenant,
-                    host=f"{tenant}.api.{zsegment_config.domain_name}",
-                    service_name="zsegment-api-prod-vs",
-                    payload=http_list,
-                ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
+                activity=CreateKubernetesResourcesActivity.defn,
+                arg=CreateKubernetesResourcesActivityModel(namespace=tenant),
+                retry_policy=CreateKubernetesResourcesActivity.get_retry_policy(),
+                start_to_close_timeout=CreateKubernetesResourcesActivity.get_timeout(),
             )
 
             # update tenant status
