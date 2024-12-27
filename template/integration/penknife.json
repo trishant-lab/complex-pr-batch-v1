@@ -1,6 +1,6 @@
 {
   "zone_id": "{{op://launchpad/PENKNIFE/INTEGRATION/zone_id}}",
-  "domain_name": "penknife.com",
+  "domain_name": "penknife.tech",
   "sender_name": "penknife",
   "sender_email": "developer@314ecorp.com",
   "novu_admin_user": "harsh.kumar@314ecorp.com",

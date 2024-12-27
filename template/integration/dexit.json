@@ -9,7 +9,7 @@
   "domain_name": "dexit.au",
   "zone_id": "{{op://launchpad/DEXIT/INTEGRATION/zone_id}}",
   "novu_admin_password": "{{op://314e DevOps/integration/launchpad/novu_admin_password}}",
-  "novu_url": "https://alerting.314ecorp.com",
+  "novu_url": "https://alerting.314ecorp.tech",
   "keycloak_db_password": "{{op://314e DevOps/integration/launchpad/keycloak_db_password}}",
   "matomo_db_password": "{{op://314e DevOps/integration/launchpad/matomo_db_password}}",
   "tika_server_endpoint": "http://tika-server.tika.svc.cluster.local:9998",
