@@ -127,7 +127,7 @@ class CacheConfigMap:
                 ),
             )
         else:
-            data = {"port": CACHE_PORT, f"namespace.{product}": redis_tenant_password}
+            data = {"port": CACHE_PORT, "bind": "0.0.0.0", f"namespace.{product}": redis_tenant_password}  # noqa: S104  #nosec
             self.core_v1_api.create_namespaced_config_map(
                 namespace=self.namespace,
                 body=V1ConfigMap(
