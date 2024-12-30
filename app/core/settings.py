@@ -420,6 +420,8 @@ class ZSegmentSettings(BaseModel):
 
     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
 
+    deb_url: str = ""
+
 
 class PractiflySettings(BaseModel):
     """
@@ -432,6 +434,18 @@ class PractiflySettings(BaseModel):
     sender_email: str = ""
     temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
     temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
+
+
+class DigitalOceanSettings(BaseModel):
+    """
+    DigitalOcean Settings
+    """
+
+    api_token: str = ""
+    region: str = "sfo3"
+    size: str = "s-1vcpu-1gb"
+    image: str = "ubuntu-24-04-x64"
+    ssh_key_name: str = "314e"
 
 
 class AppSettings(BaseSettings):
@@ -467,6 +481,8 @@ class AppSettings(BaseSettings):
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.314ecorp.tech."
     k8s_cname: str = "k8s.314ecorp.tech."
+
+    digitalocean: DigitalOceanSettings = DigitalOceanSettings()
 
     grafana_url: str = "https://monitor.314ecorp.tech"
     grafana_datasource_uid: str = "e4hhV8CGk"
@@ -585,6 +601,7 @@ def get_settings_zsegment() -> AppSettings:
 
     setup_logging(default_settings.log_path, default_settings.log_file_path)
     return default_settings.model_validate(default_settings_dict)
+
 
 @lru_cache
 def get_security_config() -> dict:
