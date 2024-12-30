@@ -58,6 +58,8 @@ from app.cli.temporal.activities.sendMail import (
     SendAfterProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -126,6 +128,7 @@ class DexitOnboardingWorkflow(Workflow):
             OnePasswordCreateOrUpdateActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             KeycloakServiceAccountSetupActivity.defn,
+            CheckPodRunningStatusActivity.defn,
         ]
 
     @classmethod
@@ -833,6 +836,18 @@ class DexitOnboardingWorkflow(Workflow):
                 retry_policy=TemporalSearchAttributesCreationActivity.get_retry_policy(),
                 start_to_close_timeout=TemporalSearchAttributesCreationActivity.get_timeout(),
             )
+
+            # check pod running status
+            for pod in ["dexit", "dexit-worker", "dexit-dicom"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(

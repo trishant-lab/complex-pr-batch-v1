@@ -70,6 +70,8 @@ from app.cli.temporal.activities.sendMail import (
     SendBeforeProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -140,6 +142,7 @@ class PenknifeOnboardingWorkflow(Workflow):
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             PenknifeUserSetupActivity.defn,
+            CheckPodRunningStatusActivity.defn,
         ]
 
     @classmethod
@@ -930,6 +933,18 @@ class PenknifeOnboardingWorkflow(Workflow):
                 retry_policy=PenknifeUserSetupActivity.get_retry_policy(),
                 start_to_close_timeout=PenknifeUserSetupActivity.get_timeout(),
             )
+
+            # check pod running status
+            for pod in ["penknife", "penknife-cli"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(
