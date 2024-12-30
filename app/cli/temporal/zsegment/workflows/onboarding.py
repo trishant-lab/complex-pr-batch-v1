@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from uuid import uuid4
-import uuid
 
 from app.cli.temporal.activities.serviceAccountSetup import (
     CreateKubernetesResourcesActivity,
@@ -566,7 +565,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "dockerSecret": "registrycred",
                         "codeServerHost": f"{tenant}.cs.{zsegment_config.domain_name}",
                         "codeServerAlllowedOrigin": f"https://{tenant}.{zsegment_config.domain_name}",
-                        "webhookSecret": str(uuid.uuid4()),
+                        "webhookSecret": "abcdefghijkl",
                         "jgitApiServiceUrl": f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook",
                     },
                 ),
@@ -614,15 +613,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
             )
 
             # dns setup for code server
-            # await workflow.execute_activity(
-            #     activity=CreateCloudflareDNSRecordActivity.defn,
-            #     arg=CreateCloudflareDNSRecordActivityModel(
-            #         domain_name=f"{tenant}.cs.{zsegment_config.domain_name}",
-            #         zone_id=zsegment_config.zone_id,
-            #     ),
-            #     retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-            #     start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
-            # )
+            await workflow.execute_activity(
+                activity=CreateCloudflareDNSRecordActivity.defn,
+                arg=CreateCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.cs.{zsegment_config.domain_name}",
+                    zone_id=zsegment_config.zone_id,
+                ),
+                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
+            )
 
             # create bucket
             bucket_name = f"{tenant}-{zsegment_config.domain_name.replace('.', '-')}"

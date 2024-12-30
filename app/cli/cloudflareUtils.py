@@ -95,6 +95,7 @@ async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dic
         ttl=5 * 60,  # 5 minutes
     )
 
+
 async def delete_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> None:
     """
     Delete a DNS record

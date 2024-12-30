@@ -97,7 +97,6 @@ class GiteaService:
         """
         try:
             self._create_repo_from_template(gitea_user.username, repo_name)
-            self._create_branch(gitea_user.username, repo_name, "prod")
             log_info("Repository created successfully.")
         except Exception as e:
             log_error(f"Could not create repository for user {gitea_user.username}")
@@ -132,23 +131,6 @@ class GiteaService:
             else:
                 log_error(f"Failed to create repository {repo_name}: {e}")
                 raise Exception("Error creating repository") from e
-
-    def _create_branch(self, owner: str, repo: str, new_branch: str) -> None:
-        """
-        Create a new branch from the dev branch
-        """
-        try:
-            url = f"{self.base_url}/repos/{owner}/{repo}/branches"
-            payload = {"new_branch_name": new_branch, "old_ref_name": "dev"}
-            response = httpx.post(url, json=payload, auth=self.auth, timeout=30)
-            response.raise_for_status()
-            log_info(f"Branch '{new_branch}' created successfully.")
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 409:
-                pass
-            else:
-                log_error(f"Failed to create branch {new_branch}: {e}")
-                raise Exception("Error creating branch") from e
 
 
 class GiteaSetupActivity(Activity):
