@@ -405,6 +405,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.{veritable_config.domain_name}",
                     zone_id=veritable_config.zone_id,
+                    content=config.k8s_cname,
                 ),
                 retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),

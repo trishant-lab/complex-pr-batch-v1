@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from uuid import uuid4
 
+from app.cli.temporal.activities.dropletSetup import CreateDropletActivity, CreateDropletActivityModel  # noqa
 from app.cli.temporal.activities.serviceAccountSetup import (
     CreateKubernetesResourcesActivity,
     CreateKubernetesResourcesActivityModel,
@@ -169,6 +170,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             OnePasswordGetActivity.defn,
             CreateKubernetesResourcesActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            CreateDropletActivity.defn,
         ]
 
     @classmethod
@@ -191,6 +193,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
         email = pydash.get(zsegment, "email")
         tenant = pydash.get(zsegment, "tenant")
         realm_name = f"zsegment-{tenant}"
+
+        template_env = get_env(template_path=TemplatePath)
 
         try:
             if not pydash.get(zsegment, "emailSent"):
@@ -607,6 +611,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{zsegment_config.domain_name}",
                     zone_id=zsegment_config.zone_id,
+                    content=config.k8s_cname,
                 ),
                 retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
@@ -618,6 +623,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.cs.{zsegment_config.domain_name}",
                     zone_id=zsegment_config.zone_id,
+                    content=config.k8s_cname,
                 ),
                 retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
@@ -810,6 +816,32 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
+            # create droplet
+            # template = template_env.get_template("dropletInitScript.sh")
+            # init_script = template.render(debUrl=zsegment_config.deb_url)
+            # ip_address: str = await workflow.execute_activity(
+            #     activity=CreateDropletActivity.defn,
+            #     arg=CreateDropletActivityModel(
+            #         name=tenant,
+            #         product=ProductName,
+            #         script=init_script,
+            #     ),
+            #     retry_policy=CreateDropletActivity.get_retry_policy(),
+            #     start_to_close_timeout=CreateDropletActivity.get_timeout(),
+            # )
+
+            # # setup dns
+            # await workflow.execute_activity(
+            #     activity=CreateCloudflareDNSRecordActivity.defn,
+            #     arg=CreateCloudflareDNSRecordActivityModel(
+            #         domain_name=f"{tenant}.droplet.{zsegment_config.domain_name}",
+            #         zone_id=zsegment_config.zone_id,
+            #         content=ip_address,
+            #     ),
+            #     retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
+            #     start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
+            # )
+
             # vm pod scraper
             await workflow.execute_activity(
                 activity=VMPodScrapperActivity.defn,
@@ -909,8 +941,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # )
 
             # VS for dev
-            template_env = get_env(template_path=TemplatePath)
-
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 

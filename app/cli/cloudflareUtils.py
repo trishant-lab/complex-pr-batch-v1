@@ -6,7 +6,7 @@ from cloudflare import AsyncCloudflare
 from cloudflare.types.r2 import TemporaryCredentialCreateResponse
 from loguru import logger
 
-from app.core.settings import AppSettings, get_settings
+from app.core.settings import AppSettings, get_settings, APP_CONFIG
 
 
 def get_cloudflare_sdk_client(config: AppSettings) -> AsyncCloudflare:
@@ -76,7 +76,7 @@ async def get_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> list:
     return response.result
 
 
-async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dict:
+async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str, content: str | None = None) -> dict:
     """
     Create a DNS record
     """
@@ -89,7 +89,7 @@ async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> dic
 
     return await client.dns.records.create(
         zone_id=zone_id,
-        content=config.k8s_cname,
+        content=content if content else APP_CONFIG.k8s_cname,
         type="CNAME",
         name=fqdn,
         ttl=5 * 60,  # 5 minutes
