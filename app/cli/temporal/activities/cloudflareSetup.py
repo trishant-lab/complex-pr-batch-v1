@@ -76,6 +76,7 @@ class CreateCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
 
     domain_name: str
     zone_id: str
+    content: str
 
 
 class CreateCloudflareDNSRecordActivity(Activity):
@@ -104,7 +105,12 @@ class CreateCloudflareDNSRecordActivity(Activity):
         Create a Cloudflare DNS record
         """
         config: AppSettings = get_settings()
-        await create_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
+        await create_dns_record(
+            config=config,
+            fqdn=activity_input.domain_name,
+            zone_id=activity_input.zone_id,
+            content=activity_input.content,
+        )
 
 
 class LinkBucketToDomainActivityModel(LaunchpadCLIBaseModel):
