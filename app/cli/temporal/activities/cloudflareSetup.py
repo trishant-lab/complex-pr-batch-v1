@@ -18,7 +18,7 @@ from app.cli.cloudflareUtils import (
     delete_dns_record,
 )
 from app.cli.temporal.core.log import log_error, log_info
-from app.core.settings import AppSettings, get_settings
+from app.core.settings import AppSettings, get_settings, APP_CONFIG
 from app.s3_utils import (
     download_file_from_storage,
     mirror_files_to_cloudflare,
@@ -76,7 +76,7 @@ class CreateCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
 
     domain_name: str
     zone_id: str
-    content: str
+    content: str = APP_CONFIG.k8s_cname
 
 
 class CreateCloudflareDNSRecordActivity(Activity):
