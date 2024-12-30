@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 
 from temporalio import activity
@@ -26,9 +27,12 @@ from kubernetes.client import (
     V1StatefulSetSpec,
     V1Volume,
     V1VolumeMount,
+    V1PodList,
+    V1Pod,
+    V1PodStatus,
 )
 
-from app.cli.k8s_util import ResourceKindEnum, api_client, get_dynamic_client, get_resource
+from app.cli.k8s_util import ResourceKindEnum, api_client, get_dynamic_client, get_resource, get_k8s_core_v1_api_client
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 
@@ -252,3 +256,57 @@ class StatefulSetRestartActivity(Activity):
             namespace=activity_model.namespace,
             body=body,
         )
+
+
+class CheckPodRunningStatusActivityModel(LaunchpadCLIBaseModel):
+    """
+    CheckPodRunningStatusActivityModel
+    """
+
+    namespace: str
+    name: str
+
+
+class CheckPodRunningStatusActivity(Activity):
+    """
+    CheckPodRunningStatusActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="CheckPodRunningStatusActivity")
+    async def defn(activity_model: CheckPodRunningStatusActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        core_v1_api_client = get_k8s_core_v1_api_client()
+        count = 0
+        while True:
+            pods: V1PodList = core_v1_api_client.list_namespaced_pod(
+                namespace=activity_model.namespace, label_selector=f"app={activity_model.name}"
+            )
+            if pods.items:
+                pod: V1Pod = pods.items[0]
+                v1_pod_status: V1PodStatus = pod.status
+                if v1_pod_status.phase == "Running":
+                    return True
+                elif v1_pod_status.phase == "Failed":
+                    raise Exception(f"Pod {activity_model.name} failed to start")
+            await asyncio.sleep(10)
+            count += 1
+
+            if count > 60:
+                raise Exception(f"Pod {activity_model.name} failed to start even after 10 minutes")

@@ -58,6 +58,8 @@ from app.cli.temporal.activities.sendMail import (
     SendBeforeProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -151,6 +153,7 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordCreateOrUpdateActivity.defn,
             OnePasswordGetActivity.defn,
             DeploymentDeletionActivity.defn,
+            CheckPodRunningStatusActivity.defn,
         ]
 
     @classmethod
@@ -900,6 +903,18 @@ class JeevesOnboardingWorkflow(Workflow):
             #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
             #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
             # )
+
+            # check pod running status
+            for pod in ["jeeves", "jeeves-worker"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(

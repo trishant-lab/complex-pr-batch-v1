@@ -59,6 +59,8 @@ from app.cli.temporal.activities.sendMail import (
     SendBeforeProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -128,6 +130,7 @@ class VeritableOnboardingWorkflow(Workflow):
             SendAfterProvisioningMailActivity.defn,
             TenantCrdCreationActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            CheckPodRunningStatusActivity.defn,
         ]
 
     @classmethod
@@ -811,6 +814,18 @@ class VeritableOnboardingWorkflow(Workflow):
                 retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
                 start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
             )
+
+            # check pod running status
+            for pod in ["veritable", "veritable-cli"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # create tenant crd
             await workflow.execute_activity(

@@ -59,6 +59,8 @@ from app.cli.temporal.activities.sendMail import (
     SendBeforeProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -131,6 +133,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             TenantCrdExistsActivity.defn,
             TenantCrdCreationActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
+            CheckPodRunningStatusActivity.defn,
         ]
 
     @classmethod
@@ -810,6 +813,18 @@ class PractiflyOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
+
+            # check pod running status
+            for pod in ["practifly", "practifly-cli"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(

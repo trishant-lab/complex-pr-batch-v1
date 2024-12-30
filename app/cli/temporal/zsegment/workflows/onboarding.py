@@ -69,6 +69,8 @@ from app.cli.temporal.activities.postgresSetup import (
 )
 
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -166,6 +168,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             CopyArtifactsToBucketActivity.defn,
             OnePasswordGetActivity.defn,
             CreateKubernetesResourcesActivity.defn,
+            CheckPodRunningStatusActivity.defn,
         ]
 
     @classmethod
@@ -938,6 +941,18 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 retry_policy=CreateKubernetesResourcesActivity.get_retry_policy(),
                 start_to_close_timeout=CreateKubernetesResourcesActivity.get_timeout(),
             )
+
+            # check pod running status
+            for pod in ["zsegment-api", "zsegment-engine"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(
