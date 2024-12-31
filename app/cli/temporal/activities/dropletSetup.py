@@ -100,7 +100,7 @@ class CreateDropletActivity(Activity):
         return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
 
     @activity.defn(name="create_droplet")
-    async def create_droplet(self, activity_input: CreateDropletActivityModel) -> str:
+    async def defn(self, activity_input: CreateDropletActivityModel) -> str:
         """
         Create droplet
         """
