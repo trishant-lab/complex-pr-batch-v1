@@ -168,14 +168,14 @@ class GiteaSetupActivity(Activity):
         config: AppSettings = get_settings()
         zsegment_config: ZSegmentSettings = config.zsegment
 
-        gitea_user = GiteaUser(username=username, email=email)
+        gitea_user = GiteaUser(username=zsegment_config.gitea_admin_username, email=email)
 
         log_info(f"Creating repository '{tenant}' for user '{username}' with branches: dev and prod")
 
         # Create repository
         try:
             gitea_service.create_gitea_user(username=username, email=email)
-            gitea_service.create_repository(gitea_user=zsegment_config.gitea_admin_username, repo_name=tenant)
+            gitea_service.create_repository(gitea_user=gitea_user, repo_name=tenant)
 
             log_info(f"Repository '{tenant}' setup successfully for user '{username}'")
 
