@@ -229,7 +229,7 @@ class NovuSetup:
         response = requests.post(url=url, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception("Failed to get access token for Novu environment")
+            raise Exception(f"Failed to get access token for Novu environment, status_code: {response.status_code}")
 
         return response.json()["data"]["token"]
 
