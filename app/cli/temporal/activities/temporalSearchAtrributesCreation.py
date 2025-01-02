@@ -59,7 +59,10 @@ class TemporalSearchAttributesCreationActivity(Activity):
                 "EventReference": IndexedValueType.INDEXED_VALUE_TYPE_TEXT,
                 "TaskStartTime": IndexedValueType.INDEXED_VALUE_TYPE_DATETIME,
                 "User": IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD_LIST,
+                "Groups": IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD_LIST,
                 "TaskNumber": IndexedValueType.INDEXED_VALUE_TYPE_INT,
+                "ActivityId": IndexedValueType.INDEXED_VALUE_TYPE_TEXT,
+                "ActivityName": IndexedValueType.INDEXED_VALUE_TYPE_TEXT,
             }
 
             # Upsert the search attributes

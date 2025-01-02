@@ -15,7 +15,7 @@
             }
         },
         "active": true,
-        "should_stop_on_fail": false
+        "shouldStopOnFail": false
       },
       {
         "template": {
@@ -26,7 +26,7 @@
           "contentType":"customHtml"
         },
         "active": true,
-        "should_stop_on_fail": false
+        "shouldStopOnFail": false
       },
       {
         "template": {
@@ -34,14 +34,14 @@
           "type": "chat"
         },
         "active": true,
-        "should_stop_on_fail": false
+        "shouldStopOnFail": false
       }
     ],
     "active": true,
-    "notification_group_id": "<<notification.notification_grp_id>>",
+    "notificationGroupId": "<<notification.notification_grp_id>>",
     "critical": false,
     "draft": false,
-    "preference_settings": {
+    "preferenceSettings": {
       "email": true,
       "sms": true,
       "in_app": true,
