@@ -4,7 +4,8 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
-from app.cli.temporal.core.log import log_info
+
+# from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings, DexitAISettings, DexitAIEndpointSettings
 from loguru import logger
 from app.cli.temporal.dexit.dexit import DexitSpec
@@ -157,27 +158,27 @@ class HFInferenceEndpointSetup:
             except Exception as e:
                 logger.exception(f"An unexpected error occurred: {e}")
 
-        endpoint_url = await get_huggingface_endpoint_url(endpoint_name, check_interval=30)
-
-        log_info(f"Endpoint {endpoint_name} is ready at {endpoint_url}")
-
-        op_util = OnePasswordUtil(
-            tenant=self.dexit.tenant,
-            server_item=self.server_item,
-            vault="Dexit",
-        )
-        if endpoint.enable_entity_llm:
-            op_util.create_or_replace(key="ai_llm_entity_endpoint_name", value=endpoint_name)
-            op_util.create_or_replace(key="ai_llm_entity_endpoint_url", value=endpoint_url)
-        if endpoint.enable_entity_layoutlm:
-            op_util.create_or_replace(key="ai_layoutlm_entity_endpoint_name", value=endpoint_name)
-            op_util.create_or_replace(key="ai_layoutlm_entity_endpoint_url", value=endpoint_url)
-        if endpoint.enable_classification:
-            op_util.create_or_replace(key="ai_classification_endpoint_name", value=endpoint_name)
-            op_util.create_or_replace(key="ai_classification_endpoint_url", value=endpoint_url)
-        if endpoint.enable_ocr:
-            op_util.create_or_replace(key="ai_ocr_endpoint_name", value=endpoint_name)
-            op_util.create_or_replace(key="ai_ocr_endpoint_url", value=endpoint_url)
+        # endpoint_url = await get_huggingface_endpoint_url(endpoint_name, check_interval=30)
+        #
+        # log_info(f"Endpoint {endpoint_name} is ready at {endpoint_url}")
+        #
+        # op_util = OnePasswordUtil(
+        #     tenant=self.dexit.tenant,
+        #     server_item=self.server_item,
+        #     vault="Dexit",
+        # )
+        # if endpoint.enable_entity_llm:
+        #     op_util.create_or_replace(key="ai_llm_entity_endpoint_name", value=endpoint_name)
+        #     op_util.create_or_replace(key="ai_llm_entity_endpoint_url", value=endpoint_url)
+        # if endpoint.enable_entity_layoutlm:
+        #     op_util.create_or_replace(key="ai_layoutlm_entity_endpoint_name", value=endpoint_name)
+        #     op_util.create_or_replace(key="ai_layoutlm_entity_endpoint_url", value=endpoint_url)
+        # if endpoint.enable_classification:
+        #     op_util.create_or_replace(key="ai_classification_endpoint_name", value=endpoint_name)
+        #     op_util.create_or_replace(key="ai_classification_endpoint_url", value=endpoint_url)
+        # if endpoint.enable_ocr:
+        #     op_util.create_or_replace(key="ai_ocr_endpoint_name", value=endpoint_name)
+        #     op_util.create_or_replace(key="ai_ocr_endpoint_url", value=endpoint_url)
 
     async def deploy(self: "HFInferenceEndpointSetup") -> None:
         """Deploy HF Inference Endpoints for tenant"""
