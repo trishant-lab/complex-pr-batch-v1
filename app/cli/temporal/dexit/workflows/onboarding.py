@@ -92,7 +92,7 @@ ProductName = "dexit"
 OnePasswordVaultName = "Dexit"
 
 
-@workflow.defn(name="DexitOnboardingWorkflow")
+@workflow.defn(name="DexitOnboardingWorkflow", sandboxed=False)
 class DexitOnboardingWorkflow(Workflow):
     """
     Dexit Onboarding Workflow
@@ -670,7 +670,7 @@ class DexitOnboardingWorkflow(Workflow):
                 activity=KubernetesIstioVirtualServiceActivity.defn,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
-                    host=f"{tenant}.{dexit_config.domain_name}",
+                    host=f"{tenant}.api.{dexit_config.domain_name}",
                     service_name="dexit-vs",
                     payload=http_list,
                 ),
