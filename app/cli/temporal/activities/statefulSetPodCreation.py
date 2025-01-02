@@ -32,7 +32,13 @@ from kubernetes.client import (
     V1PodStatus,
 )
 
-from app.cli.k8s_util import ResourceKindEnum, api_client, get_dynamic_client, get_resource, get_k8s_core_v1_api_client
+from app.cli.k8s_util import (
+    ResourceKindEnum,
+    api_client,
+    get_dynamic_client,
+    get_resource,
+    get_k8s_core_v1_api_client,
+)
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 
@@ -74,7 +80,11 @@ class KubernetesStatefulSetActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), backoff_coefficient=2, maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="KubernetesStatefulSetActivity")
@@ -84,7 +94,9 @@ class KubernetesStatefulSetActivity(Activity):
         """
         k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(
-            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
+            dynamic_client=k8s_dynamic_client,
+            kind=ResourceKindEnum.StatefulSet,
+            api_version="apps/v1",
         )
 
         # container_port_name = "http" if len(activity_model.container_ports) <= 1 else ""
@@ -102,24 +114,27 @@ class KubernetesStatefulSetActivity(Activity):
                     spec=V1PodSpec(
                         node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-                        init_containers=[
-                            V1Container(
-                                name=init_container["name"],
-                                image=init_container["image"],
-                                command=init_container["command"],
-                                args=init_container["args"],
-                            )
-                            for init_container in activity_model.init_containers
-                        ]
-                        if activity_model.init_containers
-                        else None,
+                        init_containers=(
+                            [
+                                V1Container(
+                                    name=init_container["name"],
+                                    image=init_container["image"],
+                                    command=init_container["command"],
+                                    args=init_container["args"],
+                                )
+                                for init_container in activity_model.init_containers
+                            ]
+                            if activity_model.init_containers
+                            else None
+                        ),
                         containers=[
                             V1Container(
                                 name=activity_model.name,
                                 image=activity_model.docker_image,
                                 image_pull_policy="Always",
                                 resources=V1ResourceRequirements(
-                                    requests=activity_model.request_resource, limits=activity_model.limit_resource
+                                    requests=activity_model.request_resource,
+                                    limits=activity_model.limit_resource,
                                 ),
                                 security_context=V1SecurityContext(privileged=True),
                                 ports=[
@@ -142,7 +157,10 @@ class KubernetesStatefulSetActivity(Activity):
                                     for volume_mount in activity_model.volume_mounts
                                 ],
                                 env=[
-                                    V1EnvVar(name=container_env["name"], value=container_env["value"])
+                                    V1EnvVar(
+                                        name=container_env["name"],
+                                        value=container_env["value"],
+                                    )
                                     for container_env in activity_model.container_envs
                                     if container_env.get("value")
                                 ]
@@ -188,7 +206,11 @@ class KubernetesStatefulSetActivity(Activity):
         )
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        resource.server_side_apply(body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True)
+        resource.server_side_apply(
+            body=payload,
+            field_manager="kubectl-client-side-apply",
+            force_conflicts=True,
+        )
         log_info(f"StatefulSetPodCreation created in namespace {activity_model.namespace}")
 
 
@@ -218,7 +240,11 @@ class StatefulSetPodDeletionActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            maximum_attempts=5,
+            backoff_coefficient=2,
+        )
 
     @staticmethod
     @activity.defn(name="StatefulSetPodDeletionActivity")
@@ -228,10 +254,16 @@ class StatefulSetPodDeletionActivity(Activity):
         """
         k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(
-            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
+            dynamic_client=k8s_dynamic_client,
+            kind=ResourceKindEnum.StatefulSet,
+            api_version="apps/v1",
         )
         try:
-            k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+            k8s_dynamic_client.delete(
+                resource=resource,
+                name=activity_model.name,
+                namespace=activity_model.namespace,
+            )
         except NotFoundError:
             log_error(f"StatefulSet {activity_model.name} not found in namespace {activity_model.namespace}")
 
@@ -284,7 +316,11 @@ class CheckPodRunningStatusActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            maximum_attempts=5,
+            backoff_coefficient=2,
+        )
 
     @staticmethod
     @activity.defn(name="CheckPodRunningStatusActivity")
@@ -296,13 +332,14 @@ class CheckPodRunningStatusActivity(Activity):
         count = 0
         while True:
             pods: V1PodList = core_v1_api_client.list_namespaced_pod(
-                namespace=activity_model.namespace, label_selector=f"app={activity_model.name}"
+                namespace=activity_model.namespace,
+                label_selector=f"app={activity_model.name}",
             )
             if pods.items:
                 pod: V1Pod = pods.items[0]
                 v1_pod_status: V1PodStatus = pod.status
                 if v1_pod_status.phase == "Running":
-                    return True
+                    return
                 elif v1_pod_status.phase == "Failed":
                     raise Exception(f"Pod {activity_model.name} failed to start")
             await asyncio.sleep(10)

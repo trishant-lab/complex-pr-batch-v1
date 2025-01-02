@@ -1,7 +1,9 @@
 from collections.abc import Callable
 from uuid import uuid4
 
-from app.cli.temporal.activities.dropletSetup import CreateDropletActivity, CreateDropletActivityModel  # noqa
+from app.cli.temporal.activities.dropletSetup import (
+    CreateDropletActivity,
+)
 from app.cli.temporal.activities.serviceAccountSetup import (
     CreateKubernetesResourcesActivity,
     CreateKubernetesResourcesActivityModel,
@@ -534,7 +536,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             )
 
             gitea_username = GiteaService.extract_username(email)
-            gitea_repo_url = f"/repos/{gitea_username}/{tenant}/"
+            gitea_repo_url = f"/repos/{zsegment_config.gitea_admin_username}/{tenant}/"
             # setup api-dev-config
             await workflow.execute_activity(
                 activity=K8sConfigMapCreationActivity.defn,
