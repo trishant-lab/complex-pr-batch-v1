@@ -5,18 +5,18 @@
     "steps": [
       {
         "template": {
-          "content": "<< '<<workflow.content>>' >>",
+          "content": "<< '{{workflow.content}}' >>",
           "type": "in_app"
         },
         "active": true,
-        "should_stop_on_fail": false
+        "shouldStopOnFail": false
       }
     ],
     "active": true,
-    "notification_group_id": "<<notification.notification_grp_id>>",
+    "notificationGroupId": "<<notification.notification_grp_id>>",
     "critical": false,
     "draft": false,
-    "preference_settings":  {
+    "preferenceSettings":  {
       "email": false,
       "sms":false,
       "in_app": true,

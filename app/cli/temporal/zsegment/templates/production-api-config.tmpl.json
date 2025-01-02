@@ -1,0 +1,68 @@
+{
+  "TENANT.NAME": "<<tenantName>>",
+
+  "SERVER.PORT": "8090",
+  "SERVER.ENVIRONMENT": "<<server_environment>>",
+
+  "GRPC.SERVER.URL": "https://<<tenantName>>.api.zsegment.com:443",
+
+  "APPLICATION.NAME": "zsegment-api",
+
+  "KEYCLOAK.MASTER.CLIENT": "installer",
+  "KEYCLOAK.REALM": "<<keycloakRealm>>",
+  "KEYCLOAK.AUTH.SERVER.URL": "<<KeycloakAuthServerUrl>>",
+  "KEYCLOAK.RESOURCE": "zsegment",
+  "KEYCLOAK.AUTH.CLIENT.SECRET": "<<keycloakSecret>>",
+
+  "REDPANDA.BROKER.URL": "<<redpandaBrokerUrl>>",
+  "REDPANDA.PASSWORD": "<<redpandaPassword>>",
+  "REDPANDA.USER.SASL.MECHANISM": "SCRAM-SHA-256",
+
+  "ZSEGMENT-ENGINE.URL": "http://zsegment-engine.<<tenantName>>.svc.cluster.local:8089",
+
+  "ZSEGMENT.LAGO.BASEURL": "<<lagoUrl>>/api/v1",
+  "ZSEGMENT.LAGO.KEY": "<<lagoKey>>",
+  "ZSEGMENT.LAGO.CUSTOMER_ID": "<<lagoCustomerId>>",
+
+  "LOGGING.LEVEL.ROOT": "INFO",
+  "LOGGING.LEVEL.API": "DEBUG",
+  "LOGGING.LEVEL.METRICS": "INFO",
+  "LOGGING.LEVEL.CAMEL": "WARN",
+  "LOGGING.LEVEL.SPRING.WEB": "INFO",
+
+  "LOKI.PUSH.URL": "<<lokiPushUrl>>",
+
+  "VICTORIA.METRICS.URL": "<<victoriaMetricsUrl>>",
+
+  "DB.URL": "<<postgresUrl>>",
+  "DB.PASSWORD": "<<postgresSecret>>",
+
+  "ZSEGMENT.ENGINE.NAME": "zsegment-engine",
+  "ZSEGMENT.API.NAME": "zsegment-api",
+
+  "JGIT.LFS.URL": "",
+  "JGIT.TENANT": "<<tenantName>>",
+  "JGIT.GIT.DIR.PARENT": "/data",
+  "JGIT.GIT.URL": "http://gitea-http.gitea.svc.cluster.local:3000/<<giteaUserName>>/<<tenantName>>",
+
+  "GITEA.API.BASE.URL": "<<gitea_api_base_url>>",
+  "GITEA.API.REPO.URL": "<<gitea_api_repo_url>>",
+  "GITEA.ADMIN.USERNAME": "<<gitea_admin_username>>",
+  "GITEA.ADMIN.PASSWORD": "<<gitea_admin_password>>",
+
+  "REDIS.HOST": "cache.<<tenantName>>.svc.cluster.local",
+  "REDIS.PORT": "6379",
+  "REDIS.USERNAME": "zsegment",
+  "REDIS.PASSWORD": "<<redisPassword>>",
+
+  "DOCKER.SECRET.NAME": "<<dockerSecret>>",
+  "CODE-SERVER.HOST": "<<codeServerHost>>",
+  "CODE-SERVER.ALLOWED-ORIGIN": "<<codeServerAlllowedOrigin>>",
+
+  "JGIT.WEBHOOK.SECRET": "<<webhookSecret>>",
+  "JGIT.API.SERVICE_URL": "<<jgitApiServiceUrl>>",
+
+  "MATOMO.AUTH.TOKEN": "<<matomoAuthToken>>",
+  "MATOMO.BASE.URL": "https://analytics.314ecorp.com/index.php",
+  "MATOMO.SITE.ID": 15
+}

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Activity
 from app.cli.temporal.core.log import log_info, log_error
+from app.core.settings import AppSettings, ZSegmentSettings, get_settings
 
 
 @dataclass
@@ -164,8 +165,10 @@ class GiteaSetupActivity(Activity):
         username = GiteaService.extract_username(properties.email)
         email = properties.email
         tenant = properties.tenant
+        config: AppSettings = get_settings()
+        zsegment_config: ZSegmentSettings = config.zsegment
 
-        gitea_user = GiteaUser(username=username, email=email)
+        gitea_user = GiteaUser(username=zsegment_config.gitea_admin_username, email=email)
 
         log_info(f"Creating repository '{tenant}' for user '{username}' with branches: dev and prod")
 

@@ -556,7 +556,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "lagoKey": zsegment_config.lago_api_key,
                         "lagoCustomerId": lago_customer_id,
                         "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",
-                        "victoriaMetricsUrl": "http://vmselect-vm-cluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus",
+                        "victoriaMetricsUrl": zsegment_config.victoria_metrics_url,
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
                         "gitea_api_base_url": zsegment_config.gitea_base_url,
