@@ -387,39 +387,68 @@ class DexitSettings(BaseModel):
     ai_config: DexitAISettings = DexitAISettings()
 
 
+# class ZSegmentSettings(BaseModel):
+#     """
+#     ZSegment Settings
+#     """
+
+#     postgres: PostgresSettings = PostgresSettings()
+#     domain_name: str = "zsegment.tech"
+#     zone_name: str = "e314ecorptech"
+#     zone_id: str = ""
+#     redpanda_broker: str = "redpanda-0.redpanda.redpanda-system.svc.cluster.local:9092"
+#     redpanda_admin_username: str = "superuser"
+#     redpanda_admin_password: str = ""
+#     redpanda_admin_api_base_url: str = "http://redpanda-0.redpanda.redpanda-system.svc.cluster.local:9644"
+
+#     keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
+
+#     gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1/"
+#     gitea_admin_username: str = ""
+#     gitea_admin_password: str = ""
+#     gitea_template_owner: str = ""
+
+#     lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000"
+#     lago_plan_code: str = "Free"
+#     lago_api_key: str = ""
+
+#     postgres_url: str = "db-cluster-ha.postgresql.svc.cluster.local"
+
+#     matomo_auth_token: str = "e9c5ba18c4d7af04c4fdb1443d604e88&force_api_session=1"
+
+#     sender_name: str = ""
+#     sender_email: str = ""
+
+#     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
+
+
 class ZSegmentSettings(BaseModel):
     """
-    ZSegment Settings
+    ZSegment Settings with environment-based configuration.
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "zsegment.tech"
-    zone_name: str = "e314ecorptech"
+    domain_name: str = ""
+    zone_name: str = ""
     zone_id: str = ""
-    redpanda_broker: str = "redpanda-0.redpanda.redpanda-system.svc.cluster.local:9092"
-    redpanda_admin_username: str = "superuser"
+    redpanda_broker: str = ""
+    redpanda_admin_username: str = ""
     redpanda_admin_password: str = ""
-    redpanda_admin_api_base_url: str = "http://redpanda-0.redpanda.redpanda-system.svc.cluster.local:9644"
-
-    keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
-
-    gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1/"
+    redpanda_admin_api_base_url: str = ""
+    keycloak_auth_server_url: str = ""
+    gitea_base_url: str = ""
     gitea_admin_username: str = ""
     gitea_admin_password: str = ""
     gitea_template_owner: str = ""
-
-    lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000"
-    lago_plan_code: str = "Free"
+    lago_api_url: str = ""
+    lago_plan_code: str = ""
     lago_api_key: str = ""
-
-    postgres_url: str = "db-cluster-ha.postgresql.svc.cluster.local"
-
-    matomo_auth_token: str = "e9c5ba18c4d7af04c4fdb1443d604e88&force_api_session=1"
-
+    postgres_url: str = ""
+    matomo_auth_token: str = ""
     sender_name: str = ""
     sender_email: str = ""
-
-    temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
+    victoria_metrics_url: str = ""
+    temporal_zsegment_onboarding_task_queue: str = ""
 
     deb_url: str = ""
 
