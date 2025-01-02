@@ -1,12 +1,14 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
+from app.cli.temporal.core.log import log_error
+from kubernetes.dynamic.exceptions import NotFoundError
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
+
+from datetime import timedelta
+from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
 
 
 class KubernetesIstioVirtualServiceActivityModel(LaunchpadCLIBaseModel):
@@ -112,8 +114,11 @@ class DeleteKubernetesIstioVirtualServiceActivity(Activity):
             api_version="networking.istio.io/v1beta1",
         )
 
-        k8s_dynamic_client.delete(
-            resource=resource, name=activity_model.service_name, namespace=activity_model.namespace
-        )
+        try:
+            k8s_dynamic_client.delete(
+                resource=resource, name=activity_model.service_name, namespace=activity_model.namespace
+            )
+        except NotFoundError:
+            log_error(f"VirtualService {activity_model.service_name} not found in namespace {activity_model.namespace}")
 
         log_info(f"VirtualService {activity_model.service_name} deleted in namespace {activity_model.namespace}")

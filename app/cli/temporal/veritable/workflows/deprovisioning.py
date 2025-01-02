@@ -1,4 +1,5 @@
 from collections.abc import Callable
+
 import pydash
 from temporalio import workflow
 
@@ -13,33 +14,33 @@ from app.cli.temporal.activities.databaseMigrationJob import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     DeleteKubernetesIstioVirtualServiceActivity,
     DeleteKubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.temporalNamespace import (
-    DeleteTemporalNamespaceActivity,
-    DeleteTemporalNamespaceActivityModel,
-)
-from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
-from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8sSecret import K8sSecretDeletionActivity, K8sSecretDeletionActivityModel
+from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
 from app.cli.temporal.activities.statefulSetPodCreation import (
     StatefulSetPodDeletionActivity,
     StatefulSetPodDeletionActivityModel,
+)
+from app.cli.temporal.activities.temporalNamespace import (
+    DeleteTemporalNamespaceActivity,
+    DeleteTemporalNamespaceActivityModel,
 )
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
 
-with workflow.unsafe.imports_passed_through():
-    from app.core.settings import get_settings, VeritableSettings, AppSettings
+
+from app.core.settings import VeritableSettings, get_settings
 
 ProductName = "veritable"
 
 
-@workflow.defn(name="VeritableDeProvisioningWorkflow", sandboxed=False)
+@workflow.defn(name="VeritableDeProvisioningWorkflow")
 class VeritableDeProvisioningWorkflow(Workflow):
     """
     Veritable DeProvisioning Workflow
@@ -74,7 +75,6 @@ class VeritableDeProvisioningWorkflow(Workflow):
         """
         Entry point for workflow
         """
-        config: AppSettings = get_settings()
         veritable_config: VeritableSettings = get_settings().veritable
         tenant = pydash.get(veritable, "tenant")
 
@@ -106,7 +106,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 start_to_close_timeout=DeleteKubernetesIstioVirtualServiceActivity.get_timeout(),
                 retry_policy=DeleteKubernetesIstioVirtualServiceActivity.get_retry_policy(),
             )
-            
+
             # delete provisioning job
             await workflow.execute_activity(
                 DeleteDatabaseMigrationJobActivity.defn,
@@ -207,7 +207,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
                     start_to_close_timeout=VMPodScrapperDeletionActivity.get_timeout(),
                     retry_policy=VMPodScrapperDeletionActivity.get_retry_policy(),
                 )
-                
+
             # delete temporal namespace
             await workflow.execute_activity(
                 DeleteTemporalNamespaceActivity.defn,

@@ -16,7 +16,7 @@ class PydanticJSONPayloadConverter(JSONPlainPayloadConverter):
     :py:meth:`to_payload` using the Pydantic encoder.
     """
 
-    def to_payload(self: "PydanticJSONPayloadConverter", value: Any) -> Payload | None:  # NOQA ANN401
+    def to_payload(self: "PydanticJSONPayloadConverter", value: Any) -> Payload | None:
         """Convert all values with Pydantic encoder or fail.
 
         Like the base class, we fail if we cannot convert. This payload

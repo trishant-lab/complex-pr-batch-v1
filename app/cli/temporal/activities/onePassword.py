@@ -1,12 +1,12 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from app.cli.temporal.core.base import Activity
-    from app.onepasswordutil import OnePasswordUtil
+
+from datetime import timedelta
+from app.cli.temporal.core.base import Activity
+from app.onepasswordutil import OnePasswordUtil
 
 
 class OnePasswordCreateOrUpdateActivityModel(LaunchpadCLIBaseModel):

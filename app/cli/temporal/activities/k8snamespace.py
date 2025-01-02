@@ -1,13 +1,11 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
-
-with workflow.unsafe.imports_passed_through():
-    from kubernetes.client import V1Namespace, V1ObjectMeta
-    from datetime import timedelta
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
+from kubernetes.client import V1Namespace, V1ObjectMeta
+from datetime import timedelta
+from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
 
 
 class K8sNamespaceCreationActivityModel(LaunchpadCLIBaseModel):

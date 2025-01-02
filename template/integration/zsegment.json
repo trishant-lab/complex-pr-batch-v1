@@ -1,0 +1,18 @@
+{
+    "zone_id": "{{ op://launchpad/ZSEGMENT/INTEGRATION/dns_zone_id }}",
+    "temporal_zsegment_onboarding_task_queue": "temporal_zsegment_onboarding_task_queue",
+
+    "redpanda_broker" : "redpanda-0.redpanda.redpanda-system.svc.cluster.local:9092",
+    "redpanda_admin_api_base_url": "http://redpanda-0.redpanda.redpanda-system.svc.cluster.local:9644",
+    "redpanda_admin_password": "{{ op://launchpad/ZSEGMENT/INTEGRATION/redpanda_admin_password }}",
+
+    "gitea_base_url": "https://gitea.314ecorp.tech/api/v1/",
+    "gitea_admin_username": "gitea_admin",
+    "gitea_admin_password": "{{ op://launchpad/ZSEGMENT/INTEGRATION/gitea_admin_password }}",
+    "gitea_template_owner": "gitea_admin",
+
+    "lago_api_key": "{{ op://launchpad/ZSEGMENT/INTEGRATION/lago_api_key }}",
+
+    "sender_name": "314e Support",
+    "sender_email": "developer@314ecorp.com"
+}

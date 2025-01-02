@@ -32,6 +32,13 @@ class ProductWorkflow(abc.ABC):
         raise NotImplementedError
 
     @staticmethod
+    async def approve_deprovisioning(schema: dict) -> None:
+        """
+        Approve deprovisioning a product
+        """
+        raise NotImplementedError
+
+    @staticmethod
     async def decline(schema: dict) -> None:
         """
         Decline a product

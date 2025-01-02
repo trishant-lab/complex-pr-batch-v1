@@ -9,7 +9,11 @@
   "enabled": true,
   "alwaysDisplayInConsole": false,
   "clientAuthenticatorType": "client-secret",
-  "redirectUris": ["https://<<tenant>>.<<domain>>/*", "http://localhost:4000/*"],
+  "redirectUris": [
+    "https://<<tenant>>.<<domain>>/*",
+    "http://localhost:4000/*",
+    "https://<<tenant>>.api.<<domain>>/*"
+  ],
   "webOrigins": ["https://<<tenant>>.<<domain>>", "http://localhost:4000"],
   "notBefore": 0,
   "bearerOnly": false,

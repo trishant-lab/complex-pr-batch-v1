@@ -58,6 +58,8 @@ from app.cli.temporal.activities.sendMail import (
     SendBeforeProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -88,17 +90,16 @@ from app.cli.temporal.jeeves import TemplatePath
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, JeevesSettings, get_settings
-    from app.template_env import get_env
+from app.common import generate_password
+from app.core.settings import AppSettings, JeevesSettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
 
 
-@workflow.defn(name="JeevesOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="JeevesOnboardingWorkflow")
 class JeevesOnboardingWorkflow(Workflow):
     """
     Jeeves Onboarding Workflow
@@ -152,6 +153,7 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordCreateOrUpdateActivity.defn,
             OnePasswordGetActivity.defn,
             DeploymentDeletionActivity.defn,
+            CheckPodRunningStatusActivity.defn,
         ]
 
     @classmethod
@@ -447,6 +449,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
                     zone_id=jeeves_config.zone_id,
+                    content=config.k8s_cname,
                 ),
                 retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
@@ -901,6 +904,18 @@ class JeevesOnboardingWorkflow(Workflow):
             #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
             #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
             # )
+
+            # check pod running status
+            for pod in ["jeeves", "jeeves-worker"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(

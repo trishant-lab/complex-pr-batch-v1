@@ -5,12 +5,23 @@ import orjson
 import pydash
 from temporalio import workflow
 
+from app.cli.temporal.activities.cloudflareSetup import (
+    CopyArtifactsToBucketActivity,
+    CopyArtifactsToBucketActivityModel,
+    CreateCloudflareBucketActivity,
+    CreateCloudflareBucketActivityModel,
+    CreateCloudflareDNSRecordActivity,
+    CreateCloudflareDNSRecordActivityModel,
+    LinkBucketToDomainActivity,
+    LinkBucketToDomainActivityModel,
+    PropagateDNSRecordActivity,
+    PropagateDNSRecordActivityModel,
+)
 from app.cli.temporal.activities.databaseMigrationJob import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.dexitNovuSetup import DexitNovuSetupActivity
-from app.cli.temporal.activities.dnsSetup import DnsSetupActivityModel, DnsSetupActivity
 from app.cli.temporal.activities.faxSetup import FaxSetupActivity
 from app.cli.temporal.activities.hfinferenceendpoint import HFInferenceEndpointSetupActivity
 from app.cli.temporal.activities.k8sIstioVirtualService import (
@@ -58,6 +69,8 @@ from app.cli.temporal.activities.sendMail import (
     SendAfterProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -66,7 +79,6 @@ from app.cli.temporal.activities.temporalSearchAtrributesCreation import (
     TemporalSearchAttributesCreationActivity,
     TemporalSearchAttributesCreationActivityModel,
 )
-from app.cli.temporal.activities.uiSetup import UiSetupActivity, UiSetupActivityModel
 from app.cli.temporal.activities.updateTenantStatus import UpdateTenantStatusActivity, TenantStatus
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.dexit import TemplatePath
@@ -80,7 +92,7 @@ ProductName = "dexit"
 OnePasswordVaultName = "Dexit"
 
 
-@workflow.defn(name="DexitOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="DexitOnboardingWorkflow")
 class DexitOnboardingWorkflow(Workflow):
     """
     Dexit Onboarding Workflow
@@ -108,8 +120,6 @@ class DexitOnboardingWorkflow(Workflow):
             K8sSecretCreationActivity.defn,
             DatabaseMigrationJobActivity.defn,
             DexitNovuSetupActivity.defn,
-            DnsSetupActivity.defn,
-            UiSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
             KeycloakClientSetupActivity.defn,
             KeycloakCreateClientRolesActivity.defn,
@@ -126,6 +136,12 @@ class DexitOnboardingWorkflow(Workflow):
             OnePasswordCreateOrUpdateActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             KeycloakServiceAccountSetupActivity.defn,
+            CheckPodRunningStatusActivity.defn,
+            CreateCloudflareBucketActivity.defn,
+            CreateCloudflareDNSRecordActivity.defn,
+            LinkBucketToDomainActivity.defn,
+            PropagateDNSRecordActivity.defn,
+            CopyArtifactsToBucketActivity.defn,
         ]
 
     @classmethod
@@ -386,6 +402,7 @@ class DexitOnboardingWorkflow(Workflow):
                 "_manage-users",
                 "_manage-organisation",
                 "_manage-document-type",
+                "_manage-document-type",
                 "_manage-queues",
                 "_manage-subscription",
                 "_manage-faxes",
@@ -393,7 +410,9 @@ class DexitOnboardingWorkflow(Workflow):
                 "_roi",
                 "_reports",
                 "_document-review",
+                "_manage-workflow",
             ]
+
             # keycloak client roles setup
             await workflow.execute_activity(
                 activity=KeycloakCreateClientRolesActivity.defn,
@@ -498,16 +517,49 @@ class DexitOnboardingWorkflow(Workflow):
                     start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
                 )
 
-            # dns setup
+            # dns setup for api
             await workflow.execute_activity(
-                activity=DnsSetupActivity.defn,
-                arg=DnsSetupActivityModel(
-                    cname=config.google_dns_cname,
-                    fqdn=f"{tenant}.{dexit_config.domain_name}.",
-                    zone_name=dexit_config.zone_name,
+                activity=CreateCloudflareDNSRecordActivity.defn,
+                arg=CreateCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{dexit_config.domain_name}",
+                    zone_id=dexit_config.zone_id,
+                    content=config.k8s_cname,
                 ),
-                retry_policy=DnsSetupActivity.get_retry_policy(),
-                start_to_close_timeout=DnsSetupActivity.get_timeout(),
+                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
+            )
+
+            # create bucket
+            bucket_name = f"{tenant}-{dexit_config.domain_name.replace('.', '-')}"
+            await workflow.execute_activity(
+                activity=CreateCloudflareBucketActivity.defn,
+                arg=CreateCloudflareBucketActivityModel(
+                    bucket_name=bucket_name,
+                ),
+                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
+            )
+
+            # link bucket to custom domain
+            await workflow.execute_activity(
+                activity=LinkBucketToDomainActivity.defn,
+                arg=LinkBucketToDomainActivityModel(
+                    bucket_name=bucket_name,
+                    domain_name=f"{tenant}.{dexit_config.domain_name}",
+                    zone_id=dexit_config.zone_id,
+                ),
+                retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
+                start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
+            )
+
+            # propagate the dns record
+            await workflow.execute_activity(
+                activity=PropagateDNSRecordActivity.defn,
+                arg=PropagateDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{dexit_config.domain_name}",
+                ),
+                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             # ui setup
@@ -515,24 +567,27 @@ class DexitOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = f"{tenant}.{dexit_config.domain_name}/"
+                dest_dir = f"{bucket_name}/"
             else:
-                dest_dir = f"{tenant}.{dexit_config.domain_name}/{image_tag}"
+                dest_dir = f"{bucket_name}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
             bundle_path = "bundle/dist/admin"
 
+            # copy artifacts to bucket
             await workflow.execute_activity(
-                activity=UiSetupActivity.defn,
-                arg=UiSetupActivityModel(
+                activity=CopyArtifactsToBucketActivity.defn,
+                arg=CopyArtifactsToBucketActivityModel(
+                    bucket_name=bucket_name,
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
                     bundle_name="bundle.zip",
+                    tenant=tenant,
                 ),
-                retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=UiSetupActivity.get_timeout(),
+                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
             # atlas job
@@ -833,6 +888,18 @@ class DexitOnboardingWorkflow(Workflow):
                 retry_policy=TemporalSearchAttributesCreationActivity.get_retry_policy(),
                 start_to_close_timeout=TemporalSearchAttributesCreationActivity.get_timeout(),
             )
+
+            # check pod running status
+            for pod in ["dexit", "dexit-worker", "dexit-dicom"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(

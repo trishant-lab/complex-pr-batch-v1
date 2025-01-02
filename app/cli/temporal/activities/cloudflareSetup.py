@@ -1,33 +1,32 @@
 import asyncio
 import socket
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
 
-with workflow.unsafe.imports_passed_through():
-    import zipfile
-    import tempfile
-    from datetime import timedelta
-    from app.cli.temporal.core.base import Activity
-    from app.cli.temporal.core.base import LaunchpadCLIBaseModel
-    from app.cli.cloudflareUtils import (
-        get_temporary_credentials,
-        create_bucket,
-        create_dns_record,
-        link_bucket_to_custom_domain,
-        delete_bucket,
-        delete_dns_record,
-    )
-    from app.cli.temporal.core.log import log_error, log_info
-    from app.core.settings import AppSettings, get_settings
-    from app.s3_utils import (
-        download_file_from_storage,
-        mirror_files_to_cloudflare,
-        get_storage_client,
-        delete_files_from_cloudflare,
-        copy_files_to_cloudflare,
-        copy_files_to_cloudflare_with_exclude,
-    )
+import zipfile
+import tempfile
+from datetime import timedelta
+from app.cli.temporal.core.base import Activity
+from app.cli.temporal.core.base import LaunchpadCLIBaseModel
+from app.cli.cloudflareUtils import (
+    get_temporary_credentials,
+    create_bucket,
+    create_dns_record,
+    link_bucket_to_custom_domain,
+    delete_bucket,
+    delete_dns_record,
+)
+from app.cli.temporal.core.log import log_error, log_info
+from app.core.settings import AppSettings, get_settings
+from app.s3_utils import (
+    download_file_from_storage,
+    mirror_files_to_cloudflare,
+    get_storage_client,
+    delete_files_from_cloudflare,
+    copy_files_to_cloudflare,
+    copy_files_to_cloudflare_with_exclude,
+)
 
 
 class CreateCloudflareBucketActivityModel(LaunchpadCLIBaseModel):
@@ -77,6 +76,7 @@ class CreateCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
 
     domain_name: str
     zone_id: str
+    content: str | None = None
 
 
 class CreateCloudflareDNSRecordActivity(Activity):
@@ -105,8 +105,12 @@ class CreateCloudflareDNSRecordActivity(Activity):
         Create a Cloudflare DNS record
         """
         config: AppSettings = get_settings()
-
-        await create_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
+        await create_dns_record(
+            config=config,
+            fqdn=activity_input.domain_name,
+            zone_id=activity_input.zone_id,
+            content=activity_input.content,
+        )
 
 
 class LinkBucketToDomainActivityModel(LaunchpadCLIBaseModel):
@@ -369,7 +373,10 @@ class DeleteCloudflareBucketActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        await delete_bucket(config=config, bucket_name=activity_input.bucket_name)
+        try:
+            await delete_bucket(config=config, bucket_name=activity_input.bucket_name)
+        except Exception as e:
+            log_error(f"Error deleting bucket {activity_input.bucket_name}: {e}")
 
 
 class DeleteFilesFromCloudflareActivityModel(LaunchpadCLIBaseModel):
@@ -379,8 +386,6 @@ class DeleteFilesFromCloudflareActivityModel(LaunchpadCLIBaseModel):
 
     tenant: str
     bucket_name: str
-    bundle_name: str
-    dest_dir: str
 
 
 class DeleteFilesFromCloudflareActivity(Activity):
@@ -412,14 +417,18 @@ class DeleteFilesFromCloudflareActivity(Activity):
         bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
         bucket_access_key = bucket_temporary_credentials.access_key_id
         bucket_secret_key = bucket_temporary_credentials.secret_access_key
-        delete_files_from_cloudflare(
-            tenant=activity_input.tenant,
-            input_path=f"{activity_input.dest_dir}/{activity_input.bundle_name}",
-            endpoint=config.cloudflare.r2_endpoint,
-            access_key=bucket_access_key,
-            secret_key=bucket_secret_key,
-            session_token=bucket_temporary_credentials.session_token,
-        )
+
+        try:
+            delete_files_from_cloudflare(
+                tenant=activity_input.tenant,
+                input_path=f"{activity_input.bucket_name}/",
+                endpoint=config.cloudflare.r2_endpoint,
+                access_key=bucket_access_key,
+                secret_key=bucket_secret_key,
+                session_token=bucket_temporary_credentials.session_token,
+            )
+        except Exception as e:
+            log_error(f"Error deleting files from Cloudflare: {e}")
 
 
 class DeleteCloudflareDNSRecordActivityModel(LaunchpadCLIBaseModel):
@@ -458,7 +467,10 @@ class DeleteCloudflareDNSRecordActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        await delete_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
+        try:
+            await delete_dns_record(config=config, fqdn=activity_input.domain_name, zone_id=activity_input.zone_id)
+        except Exception as e:
+            log_error(f"Error deleting DNS record {activity_input.domain_name}: {e}")
 
 
 class PropagateDNSRecordActivityModel(LaunchpadCLIBaseModel):

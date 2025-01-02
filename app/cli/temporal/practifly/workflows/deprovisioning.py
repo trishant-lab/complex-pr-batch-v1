@@ -38,11 +38,11 @@ from app.cli.temporal.activities.temporalNamespace import (
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
 
-with workflow.unsafe.imports_passed_through():
-    from app.core.settings import get_settings, PractiflySettings, AppSettings
+
+from app.core.settings import get_settings, PractiflySettings, AppSettings
 
 
-@workflow.defn(name="PractiflyDeProvisioningWorkflow", sandboxed=False)
+@workflow.defn(name="PractiflyDeProvisioningWorkflow")
 class PractiflyDeProvisioningWorkflow(Workflow):
     """
     Practifly DeProvisioning Workflow
@@ -68,7 +68,17 @@ class PractiflyDeProvisioningWorkflow(Workflow):
             DeleteKubernetesIstioVirtualServiceActivity.defn,
             DeleteDatabaseMigrationJobActivity.defn,
             PVCDeletionActivity.defn,
+            K8sSecretDeletionActivity.defn,
+            DeleteFilesFromCloudflareActivity.defn,
+            DeleteTemporalNamespaceActivity.defn,
         ]
+
+    @classmethod
+    def get_workflow_id(cls: "Workflow", practifly: PractiflySpec) -> str:
+        """
+        Return workflow id
+        """
+        return f"practifly_deprovisioning_workflow_{pydash.get(practifly, 'tenant')}"
 
     @workflow.run
     async def run(self: "Workflow", practifly: PractiflySpec) -> None:
@@ -76,7 +86,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
         Entry point for workflow
         """
         config: AppSettings = get_settings()
-        practifly_config: PractiflySettings = get_settings().practifly
+        practifly_config: PractiflySettings = config.practifly
         tenant = pydash.get(practifly, "tenant")
 
         # Wait for approval or denial
@@ -166,6 +176,30 @@ class PractiflyDeProvisioningWorkflow(Workflow):
             # delete bucket
             bucket_name = f"{tenant}.{practifly_config.domain_name}"
             bucket_name = bucket_name.replace(".", "-")
+
+            # delete dns record
+            await workflow.execute_activity(
+                DeleteCloudflareDNSRecordActivity.defn,
+                arg=DeleteCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{practifly_config.domain_name}",
+                    zone_id=practifly_config.zone_id,
+                ),
+                start_to_close_timeout=DeleteCloudflareDNSRecordActivity.get_timeout(),
+                retry_policy=DeleteCloudflareDNSRecordActivity.get_retry_policy(),
+            )
+
+            # delete files from cloudflare
+            await workflow.execute_activity(
+                DeleteFilesFromCloudflareActivity.defn,
+                arg=DeleteFilesFromCloudflareActivityModel(
+                    bucket_name=bucket_name,
+                    tenant=tenant,
+                ),
+                start_to_close_timeout=DeleteFilesFromCloudflareActivity.get_timeout(),
+                retry_policy=DeleteFilesFromCloudflareActivity.get_retry_policy(),
+            )
+
+            # delete bucket
             await workflow.execute_activity(
                 DeleteCloudflareBucketActivity.defn,
                 arg=DeleteCloudflareBucketActivityModel(
@@ -173,20 +207,6 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 ),
                 start_to_close_timeout=DeleteCloudflareBucketActivity.get_timeout(),
                 retry_policy=DeleteCloudflareBucketActivity.get_retry_policy(),
-            )
-
-            image_tag = "production" if config.env == "production" else "sprint"
-            # delete files from cloudflare
-            await workflow.execute_activity(
-                DeleteFilesFromCloudflareActivity.defn,
-                arg=DeleteFilesFromCloudflareActivityModel(
-                    bucket_name=bucket_name,
-                    dest_dir=f"{image_tag}/practifly-web-core",
-                    bundle_name="release.zip",
-                    tenant=tenant,
-                ),
-                start_to_close_timeout=DeleteFilesFromCloudflareActivity.get_timeout(),
-                retry_policy=DeleteFilesFromCloudflareActivity.get_retry_policy(),
             )
 
             # delete pvc
@@ -198,17 +218,6 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 ),
                 start_to_close_timeout=PVCDeletionActivity.get_timeout(),
                 retry_policy=PVCDeletionActivity.get_retry_policy(),
-            )
-
-            # delete dns record
-            await workflow.execute_activity(
-                DeleteCloudflareDNSRecordActivity.defn,
-                arg=DeleteCloudflareDNSRecordActivityModel(
-                    domain_name=f"{tenant}.api.{practifly_config.domain_name}",
-                    zone_id=practifly_config.zone_id,
-                ),
-                start_to_close_timeout=DeleteCloudflareDNSRecordActivity.get_timeout(),
-                retry_policy=DeleteCloudflareDNSRecordActivity.get_retry_policy(),
             )
 
             # delete vm pod scrappers

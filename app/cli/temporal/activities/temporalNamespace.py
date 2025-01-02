@@ -1,16 +1,15 @@
 from temporalio.common import RetryPolicy
-from temporalio import activity, client, workflow
+from temporalio import activity, client
 
+from datetime import timedelta
+from google.protobuf.duration_pb2 import Duration
+from temporalio.api.operatorservice.v1 import DeleteNamespaceRequest
+from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
+from temporalio.service import RPCError, RPCStatusCode
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from google.protobuf.duration_pb2 import Duration
-    from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
-    from temporalio.service import RPCError, RPCStatusCode
-
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
-    from app.core.settings import AppSettings, get_settings
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
+from app.core.settings import AppSettings, get_settings
 
 
 class TemporalNamespaceActivityModel(LaunchpadCLIBaseModel):
@@ -105,7 +104,9 @@ class DeleteTemporalNamespaceActivity(Activity):
         _client = await client.Client.connect(config.temporal.dsn)
 
         try:
-            await _client.service_client.operator_service.delete_namespace(namespace=activity_input.namespace)
+            await _client.service_client.operator_service.delete_namespace(
+                DeleteNamespaceRequest(namespace=activity_input.namespace)
+            )
             log_info(f"Temporal Namespace {activity_input.namespace} deleted successfully")
         except RPCError as rpc_err:
             if rpc_err.status == RPCStatusCode.NOT_FOUND:

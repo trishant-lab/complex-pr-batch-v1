@@ -1,14 +1,13 @@
 from temporalio.common import RetryPolicy
-from temporalio import activity, workflow
+from temporalio import activity
 
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_error, log_info
-    from app.core.db import DBManager, get_db_manager
-    from app.core.settings import AppSettings, get_settings
-    from app.models.tenant import TenantStatusEnum
+from datetime import timedelta
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_error, log_info
+from app.core.db import DBManager, get_db_manager
+from app.core.settings import AppSettings, get_settings
+from app.models.tenant import TenantStatusEnum
 
 
 class TenantStatus(LaunchpadCLIBaseModel):

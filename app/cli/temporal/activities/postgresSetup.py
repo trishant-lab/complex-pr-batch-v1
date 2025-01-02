@@ -1,16 +1,18 @@
-from temporalio import activity, workflow
+import base64
+
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
+from datetime import timedelta
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    import requests
-    from app.cli.temporal.core.base import LaunchpadCLIBaseModel
-    from app.cli.temporal.core.base import Activity
-    from app.cli.temporal.core.log import log_error, log_info
-    from app.core.db import DBManager, get_db_manager
-    from app.core.settings import AppSettings, get_settings
-    from app.template_env import get_env
+import requests
+
+from app.cli.k8s_util import get_k8s_core_v1_api_client
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_error, log_info
+from app.core.db import DBManager, get_db_manager
+from app.core.settings import AppSettings, get_settings
+from app.template_env import get_env
 
 
 class PostgresSchemaCreationActivityModel(LaunchpadCLIBaseModel):
@@ -123,6 +125,73 @@ class PostgresUserCreationActivity(Activity):
                 query=f"ALTER USER {activity_model.username} WITH PASSWORD '{activity_model.password}';",
             )
             log_info(f"Updated password for user {activity_model.username} successfully.")
+
+
+class PostgresUserCreationFromSecretActivityModel(LaunchpadCLIBaseModel):
+    """
+    PostgresUserCreationActivityModel
+    """
+
+    secret_name: str
+    database_name: str
+    username: str
+    password_key: str = "password"
+
+
+class PostgresUserCreationFromSecretActivity(Activity):
+    """
+    PostgresUserCreationFromSecretActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="PostgresUserCreationFromSecretActivity")
+    async def defn(activity_model: PostgresUserCreationFromSecretActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        # check if user exists and if not create user
+
+        config: AppSettings = get_settings()
+
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
+
+        response = await db.fetch_one(
+            sqlfile="checkIfUserExists.sql",
+            username=activity_model.username,
+        )
+        k8s_client = get_k8s_core_v1_api_client()
+        secret = k8s_client.read_namespaced_secret(
+            name=activity_model.secret_name,
+            namespace=activity_model.namespace,
+        )
+        username = activity_model.username
+        password = base64.b64decode(secret.data[activity_model.password_key]).decode()
+
+        if response is None:
+            query = f"CREATE ROLE {username} NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN PASSWORD '{password}';"
+            await db.execute_raw_sql(query=query)
+            log_info(f"Created user {username}")
+        else:
+            await db.execute_raw_sql(
+                query=f"ALTER USER {username} WITH PASSWORD '{password}';",
+            )
+            log_info(f"Updated password for user {username} successfully.")
 
 
 class PostgresDatabaseCreationActivityModel(LaunchpadCLIBaseModel):

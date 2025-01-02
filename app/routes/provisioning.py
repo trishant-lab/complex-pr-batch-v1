@@ -384,7 +384,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
         }
     ).decode()
 
-    response = requests.request("POST", url, headers=headers, data=payload)
+    response = requests.request("POST", url, headers=headers, data=payload, timeout=120)
 
     response.raise_for_status()
 

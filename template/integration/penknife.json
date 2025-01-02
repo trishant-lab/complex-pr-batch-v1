@@ -1,0 +1,15 @@
+{
+  "zone_id": "{{op://launchpad/PENKNIFE/INTEGRATION/zone_id}}",
+  "domain_name": "penknife.tech",
+  "sender_name": "penknife",
+  "sender_email": "developer@314ecorp.com",
+  "novu_admin_user": "harsh.kumar@314ecorp.com",
+  "novu_admin_password": "{{op://launchpad/PENKNIFE/INTEGRATION/novu_admin_password}}",
+  "postgres": {
+    "host": "db-cluster-ha.postgres16.svc.cluster.local",
+    "port": 5432,
+    "db": "penknife",
+    "user": "penknife",
+    "password": "{{op://launchpad/APPLICATION_CONFIG/INTEGRATION/postgres_password}}"
+  }
+}

@@ -1,7 +1,7 @@
 import os
 import tempfile
 from enum import Enum
-from functools import partial, lru_cache
+from functools import lru_cache, partial
 from typing import Final
 
 import loguru
@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
 
 from app.core.log import setup_logging
+from functools import cache
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
@@ -112,7 +113,6 @@ class S3Settings(BaseModel):
     secret_key: str = ""
     region: str = "us-east-1"
     use_ssl: bool = True
-    rclone_remote: str = "s3_rclone_remote"
     s3_alias: str = "launchpad"
     bucket: str = ""
 
@@ -357,8 +357,9 @@ class DexitSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "dexit.314ecorp.tech"
+    domain_name: str = "dexit.tech"
     zone_name: str = "e314ecorptech"
+    zone_id: str = ""
     # grafana: GrafanaSettings = GrafanaSettings()
 
     sender_email: str = "developer@314ecorp.com"
@@ -420,6 +421,8 @@ class ZSegmentSettings(BaseModel):
 
     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
 
+    deb_url: str = ""
+
 
 class PractiflySettings(BaseModel):
     """
@@ -432,6 +435,18 @@ class PractiflySettings(BaseModel):
     sender_email: str = ""
     temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
     temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
+
+
+class DigitalOceanSettings(BaseModel):
+    """
+    DigitalOcean Settings
+    """
+
+    api_token: str = ""
+    region: str = "sfo3"
+    size: str = "s-1vcpu-1gb"
+    image: str = "ubuntu-24-04-x64"
+    ssh_key_name: str = "314e"
 
 
 class AppSettings(BaseSettings):
@@ -467,6 +482,8 @@ class AppSettings(BaseSettings):
     docker_image_pull_secret: str = ""
     google_dns_cname: str = "k8s.314ecorp.tech."
     k8s_cname: str = "k8s.314ecorp.tech."
+
+    digitalocean: DigitalOceanSettings = DigitalOceanSettings()
 
     grafana_url: str = "https://monitor.314ecorp.tech"
     grafana_datasource_uid: str = "e4hhV8CGk"
@@ -515,7 +532,44 @@ class ProductionSettings(AppSettings):
     model_config = ConfigDict(extra="ignore")
 
 
+@lru_cache
 def get_settings() -> AppSettings:
+    """
+    This function initializes the settings object based on environment DEPLOYMENT. The order in which
+    the settings are applied is as follows:
+
+    DEPLOYMENT environment creates right settings object.  This is the default base object.
+    If APP_CONFIG_FILE is specified it loads all the data defined from the file
+    """
+    deployment: str = os.getenv("DEPLOYMENT", "integration").lower()
+    config_dir = os.getenv("APP_CONFIG_DIR", "/")
+    default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
+
+    combined_config = dict()
+    for file in CONFIG_FILE_NAMES:
+        if file in PRODUCT_FILE_NAMES:
+            product = file.split(".")[0]
+            try:
+                combined_config[product] = orjson.loads(open(os.path.join(config_dir, file)).read())
+            except Exception as e:
+                loguru.logger.error(f"Error while loading config for {product}: {e}")
+        else:
+            combined_config.update(orjson.loads(open(os.path.join(config_dir, file)).read()))
+
+    import pydash as py_
+
+    default_settings_dict = default_settings.dict()
+    default_settings_dict_partial = partial(py_.set_, default_settings_dict)
+
+    for key, val in combined_config.items():
+        default_settings_dict_partial(key, val)
+
+    setup_logging(default_settings.log_path, default_settings.log_file_path)
+    return default_settings.model_validate(default_settings_dict)
+
+
+@cache
+def get_settings_zsegment() -> AppSettings:
     """
     This function initializes the settings object based on environment DEPLOYMENT. The order in which
     the settings are applied is as follows:
@@ -557,3 +611,6 @@ def get_security_config() -> dict:
     """
     settings: AppSettings = get_settings()
     return requests.get(settings.keycloak.wellknown_url, timeout=60).json()
+
+
+APP_CONFIG: AppSettings = get_settings()

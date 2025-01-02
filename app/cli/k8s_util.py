@@ -24,6 +24,25 @@ class ResourceKindEnum(Enum):
     StatefulSet = "StatefulSet"
     VeritableTenant = "VeritableTenant"
     PractiflyTenant = "PractiflyTenant"
+    ServiceAccount = "ServiceAccount"
+    Role = "Role"
+    RoleBinding = "RoleBinding"
+
+
+@lru_cache
+def _get_k8s_api_client() -> api_client.ApiClient:
+    """
+    Get k8s api client
+    """
+    return api_client.ApiClient(configuration=k8s_config.load_kube_config())
+
+
+@lru_cache
+def get_k8s_core_v1_api_client() -> api_client.CoreV1Api:
+    """
+    Get k8s api client
+    """
+    return api_client.CoreV1Api(api_client=_get_k8s_api_client())
 
 
 @lru_cache
@@ -31,8 +50,7 @@ def get_dynamic_client() -> DynamicClient:
     """
     Get k8s dynamic client
     """
-    k8s_api_client = api_client.ApiClient(configuration=k8s_config.load_kube_config())
-    return DynamicClient(k8s_api_client)
+    return DynamicClient(_get_k8s_api_client())
 
 
 @lru_cache
@@ -40,8 +58,7 @@ def get_custom_objects_api() -> api_client.CustomObjectsApi:
     """
     Get k8s custom objects api
     """
-    k8s_api_client = api_client.ApiClient(configuration=k8s_config.load_kube_config())
-    return api_client.CustomObjectsApi(api_client=k8s_api_client)
+    return api_client.CustomObjectsApi(api_client=_get_k8s_api_client())
 
 
 def get_resource(dynamic_client: DynamicClient, kind: ResourceKindEnum, api_version: str) -> Resource:

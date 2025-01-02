@@ -56,17 +56,16 @@ from app.cli.temporal.hdp import TemplatePath
 from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
 
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, HDPSettings, get_settings
-    from app.template_env import get_env
+from app.common import generate_password
+from app.core.settings import AppSettings, HDPSettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "hdp"
 OnePasswordVaultName = "hdp"
 
 
-@workflow.defn(name="HDPOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="HDPOnboardingWorkflow")
 class HDPOnboardingWorkflow(Workflow):
     """
     Hdp Onboarding Workflow

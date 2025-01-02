@@ -1,0 +1,9 @@
+{
+    "zone_name": "{{ op://launchpad/PRACTIFLY/PRODUCTION/dns_zone_name }}",
+    "zone_id": "{{ op://launchpad/PRACTIFLY/PRODUCTION/dns_zone_id }}",
+    "domain_name": "{{ op://launchpad/PRACTIFLY/PRODUCTION/dns_zone_name }}",
+    "sender_name": "Practifly",
+    "sender_email": "support@practifly.com",
+    "temporal_practifly_onboarding_task_queue": "temporal_practifly_onboarding_task_queue1",
+    "temporal_practifly_deboarding_task_queue": "temporal_practifly_deboarding_task_queue1"
+}

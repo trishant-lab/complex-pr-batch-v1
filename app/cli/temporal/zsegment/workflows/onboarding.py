@@ -1,6 +1,11 @@
 from collections.abc import Callable
 from uuid import uuid4
 
+from app.cli.temporal.activities.dropletSetup import CreateDropletActivity, CreateDropletActivityModel  # noqa
+from app.cli.temporal.activities.serviceAccountSetup import (
+    CreateKubernetesResourcesActivity,
+    CreateKubernetesResourcesActivityModel,
+)
 from temporalio import workflow
 import pydash
 import orjson
@@ -19,7 +24,10 @@ from app.cli.temporal.activities.cloudflareSetup import (
 )
 
 # from app.cli.temporal.activities.gitea_service import GiteaProperties
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.k8snamespace import (
+    K8sNamespaceCreationActivity,
+    K8sNamespaceCreationActivityModel,
+)
 from app.cli.temporal.activities.lago_service import LagoSetupActivity, LagoProperties
 from app.cli.temporal.activities.onePassword import (
     OnePasswordCreateOrUpdateActivity,
@@ -62,22 +70,46 @@ from app.cli.temporal.activities.postgresSetup import (
 )
 
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
 
 from app.cli.temporal.zsegment import TemplatePath
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.k8sconfigMap import (
+    K8sConfigMapCreationActivity,
+    K8sConfigMapCreationActivityModel,
+)
+from app.cli.temporal.activities.k8sSecret import (
+    K8sSecretCreationActivity,
+    K8sSecretCreationActivityModel,
+)
+from app.cli.temporal.activities.redis import (
+    RedisSetupActivity,
+    RedisSetupActivityModel,
+)
 from app.cli.temporal.activities.redpanda_service import RedpandaSetupActivity
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.activities.k8sService import (
+    KubernetesServiceActivity,
+    KubernetesServiceActivityModel,
+)
+from app.cli.temporal.activities.vmPodScrapper import (
+    VMPodScrapperActivity,
+    VMPodScrapperActivityModel,
+)
 
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.updateTenantStatus import (
+    TenantStatus,
+    UpdateTenantStatusActivity,
+)
 from app.cli.temporal.core.base import Workflow
 
-from app.cli.temporal.activities.gitea_service import GiteaSetupActivity, GiteaProperties, GiteaService
+from app.cli.temporal.activities.gitea_service import (
+    GiteaSetupActivity,
+    GiteaProperties,
+    GiteaService,
+)
 from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 
 
@@ -136,6 +168,9 @@ class ZSegmentOnboardingWorkflow(Workflow):
             LagoSetupActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             OnePasswordGetActivity.defn,
+            CreateKubernetesResourcesActivity.defn,
+            CheckPodRunningStatusActivity.defn,
+            CreateDropletActivity.defn,
         ]
 
     @classmethod
@@ -158,6 +193,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
         email = pydash.get(zsegment, "email")
         tenant = pydash.get(zsegment, "tenant")
         realm_name = f"zsegment-{tenant}"
+
+        template_env = get_env(template_path=TemplatePath)
 
         try:
             if not pydash.get(zsegment, "emailSent"):
@@ -195,8 +232,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 )
 
             # postgres setup
-            postgres_dev_schema_name = f"{tenant}_dev"
-            postgres_prod_schema_name = f"{tenant}_prod"
+            postgres_schema_name = f"{tenant}"
             postgres_database_name = "zsegment"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
@@ -231,18 +267,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=PostgresSchemaCreationActivity.defn,
                 arg=PostgresSchemaCreationActivityModel(
-                    schema_name=postgres_dev_schema_name,
-                    username=postgres_username,
-                    database_name=postgres_database_name,
-                ),
-                retry_policy=PostgresSchemaCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSchemaCreationActivity.get_timeout(),
-            )
-
-            await workflow.execute_activity(
-                activity=PostgresSchemaCreationActivity.defn,
-                arg=PostgresSchemaCreationActivityModel(
-                    schema_name=postgres_prod_schema_name,
+                    schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
@@ -253,18 +278,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=PostgresGrantAccessToUserActivity.defn,
                 arg=PostgresGrantAccessToUserActivityModel(
-                    schema_name=postgres_dev_schema_name,
-                    username=postgres_username,
-                    database_name=postgres_database_name,
-                ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
-            )
-
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
-                arg=PostgresGrantAccessToUserActivityModel(
-                    schema_name=postgres_prod_schema_name,
+                    schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
@@ -329,24 +343,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
 
             roles = [
                 "_admin",
-                "_dev_default-users",
-                "_dev_manage-connector",
-                "_dev_manage-credentials",
-                "_dev_manage-default-users",
-                "_dev_manage-interface-migrations",
-                "_dev_manage-libraries",
-                "_dev_manage-messages",
-                "_dev_manage-metric-dashboard",
-                "_dev_manage-tasks",
-                "_prod_default-users",
-                "_prod_manage-connector",
-                "_prod_manage-credentials",
-                "_prod_manage-default-users",
-                "_prod_manage-interface-migrations",
-                "_prod_manage-libraries",
-                "_prod_manage-messages",
-                "_prod_manage-metric-dashboard",
-                "_prod_manage-tasks",
+                "_default-users",
+                "_manage-connector",
+                "_manage-credentials",
+                "_manage-default-users",
+                "_manage-interface-migrations",
+                "_manage-libraries",
+                "_manage-messages",
+                "_manage-metric-dashboard",
+                "_manage-tasks",
             ]
             # keycloak client roles setup
             await workflow.execute_activity(
@@ -535,13 +540,12 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="zsegment-api-dev-config",
+                    name="zsegment-api-config",
                     template_file_name=f"{config.env}-api-config.tmpl.json",
                     destination_file_name="api-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
-                        "environment": "dev",
                         "server_environment": config.env.upper(),
                         "keycloakRealm": realm_name,
                         "KeycloakAuthServerUrl": zsegment_config.keycloak_auth_server_url,
@@ -562,6 +566,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "redisPassword": redis_tenant_password,
                         "matomoAuthToken": zsegment_config.matomo_auth_token,
                         "giteaUserName": gitea_username,
+                        "dockerSecret": "registrycred",
+                        "codeServerHost": f"{tenant}.cs.{zsegment_config.domain_name}",
+                        "codeServerAlllowedOrigin": f"https://{tenant}.{zsegment_config.domain_name}",
+                        "webhookSecret": "abcdefghijkl",
+                        "jgitApiServiceUrl": f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook",
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -573,80 +582,12 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
-                    name="zsegment-engine-dev-config",
+                    name="zsegment-engine-config",
                     template_file_name=f"{config.env}-engine-config.tmpl.json",
                     destination_file_name="engine-config.json",
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
-                        "environment": "dev",
-                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,
-                        "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": zsegment_config.lago_api_url,
-                        "lagoKey": zsegment_config.lago_api_key,
-                        "lagoCustomerId": lago_customer_id,
-                        "postgresUrl": zsegment_config.postgres_url,
-                        "postgresSecret": postgres_password,
-                        "gitea_admin_username": zsegment_config.gitea_admin_username,
-                        "gitea_admin_password": zsegment_config.gitea_admin_password,
-                        "redisPassword": redis_tenant_password,
-                        "giteaUserName": gitea_username,
-                    },
-                ),
-                retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
-            )
-
-            # setup api-prod-config
-            await workflow.execute_activity(
-                activity=K8sConfigMapCreationActivity.defn,
-                arg=K8sConfigMapCreationActivityModel(
-                    namespace=tenant,
-                    name="zsegment-api-prod-config",
-                    template_file_name=f"{config.env}-api-config.tmpl.json",
-                    destination_file_name="api-config.json",
-                    bucket_name="zsegment-config",
-                    template_payload={
-                        "tenantName": tenant,
-                        "environment": "prod",
-                        "server_environment": config.env.upper(),
-                        "keycloakRealm": realm_name,
-                        "KeycloakAuthServerUrl": zsegment_config.keycloak_auth_server_url,
-                        "keycloakSecret": installer_secret,
-                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,
-                        "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": zsegment_config.lago_api_url,
-                        "lagoKey": zsegment_config.lago_api_key,
-                        "lagoCustomerId": lago_customer_id,
-                        "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",
-                        "victoriaMetricsUrl": "http://vmselect-vm-cluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus",
-                        "postgresUrl": zsegment_config.postgres_url,
-                        "postgresSecret": postgres_password,
-                        "gitea_api_base_url": zsegment_config.gitea_base_url,
-                        "gitea_api_repo_url": gitea_repo_url,
-                        "gitea_admin_username": zsegment_config.gitea_admin_username,
-                        "gitea_admin_password": zsegment_config.gitea_admin_password,
-                        "redisPassword": redis_tenant_password,
-                        "matomoAuthToken": zsegment_config.matomo_auth_token,
-                        "giteaUserName": gitea_username,
-                    },
-                ),
-                retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
-            )
-
-            # setup engine-prod-config
-            await workflow.execute_activity(
-                activity=K8sConfigMapCreationActivity.defn,
-                arg=K8sConfigMapCreationActivityModel(
-                    namespace=tenant,
-                    name="zsegment-engine-prod-config",
-                    template_file_name=f"{config.env}-engine-config.tmpl.json",
-                    destination_file_name="engine-config.json",
-                    bucket_name="zsegment-config",
-                    template_payload={
-                        "tenantName": tenant,
-                        "environment": "prod",
                         "redpandaBrokerUrl": zsegment_config.redpanda_broker,
                         "redpandaPassword": redpanda_tenant_password,
                         "lagoUrl": zsegment_config.lago_api_url,
@@ -670,6 +611,19 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{zsegment_config.domain_name}",
                     zone_id=zsegment_config.zone_id,
+                    content=config.k8s_cname,
+                ),
+                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
+            )
+
+            # dns setup for code server
+            await workflow.execute_activity(
+                activity=CreateCloudflareDNSRecordActivity.defn,
+                arg=CreateCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.cs.{zsegment_config.domain_name}",
+                    zone_id=zsegment_config.zone_id,
+                    content=config.k8s_cname,
                 ),
                 retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
@@ -736,12 +690,31 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
+            # docs
+            docs_dest_dir = f"{bucket_name}/docs"
+            docs_src_object_name = f"{repo_name}/docs/dist.zip"
+
+            docs_bundle_path = "bundle/dist"
+            await workflow.execute_activity(
+                activity=CopyArtifactsToBucketActivity.defn,
+                arg=CopyArtifactsToBucketActivityModel(
+                    bucket_name=bucket_name,
+                    src_object_name=docs_src_object_name,
+                    dest_dir=docs_dest_dir,
+                    bundle_path=docs_bundle_path,
+                    bundle_name="dist.zip",
+                    tenant=tenant,
+                ),
+                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
+            )
+
             # statefulset pod creation for server
-            await workflow.execute_activity(
+            await workflow.execute_activity(  # yha htao
                 activity=KubernetesStatefulSetActivity.defn,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
-                    name="zsegment-api-dev",
+                    name="zsegment-api",
                     docker_image=api_docker_image,
                     request_resource={
                         "cpu": pydash.get(zsegment, "serverSpec.request_cpu"),
@@ -762,7 +735,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-api-dev-config",
+                            "config_map_name": "zsegment-api-config",
                             "key": "api-config.json",
                             "path": "api-config.json",
                         }
@@ -775,7 +748,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "zsegment-api-dev-config",
+                                    "name": "zsegment-api-config",
                                     "key": "api-config.json",
                                 }
                             },
@@ -794,60 +767,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=KubernetesStatefulSetActivity.defn,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
-                    name="zsegment-api-prod",
-                    docker_image=api_docker_image,
-                    request_resource={
-                        "cpu": pydash.get(zsegment, "serverSpec.request_cpu"),
-                        "memory": pydash.get(zsegment, "serverSpec.request_memory"),
-                    },
-                    limit_resource={
-                        "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
-                        "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
-                    },
-                    container_ports={"http": 8090},
-                    volume_mounts=[
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": "/config/api-config.json",
-                            "sub_path": "api-config.json",
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "zsegment-api-prod-config",
-                            "key": "api-config.json",
-                            "path": "api-config.json",
-                        }
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "WEB_CONCURRENCY", "value": "5"},
-                        {"name": "CLIENT_CODE", "value": tenant},
-                        {
-                            "name": "SPRING_APPLICATION_JSON",
-                            "value_from": {
-                                "config_map_key_ref": {
-                                    "name": "zsegment-api-prod-config",
-                                    "key": "api-config.json",
-                                }
-                            },
-                        },
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
-                        {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
-                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
-                    ],
-                ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
-            )
-
-            await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
-                    namespace=tenant,
-                    name="zsegment-engine-dev",
+                    name="zsegment-engine",
                     docker_image=engine_docker_image,
                     request_resource={
                         "cpu": pydash.get(zsegment, "serverSpec.request_cpu"),
@@ -868,7 +788,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volumes=[
                         {
                             "name": "tenant-volume",
-                            "config_map_name": "zsegment-engine-dev-config",
+                            "config_map_name": "zsegment-engine-config",
                             "key": "engine-config.json",
                             "path": "engine-config.json",
                         }
@@ -881,7 +801,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                             "name": "SPRING_APPLICATION_JSON",
                             "value_from": {
                                 "config_map_key_ref": {
-                                    "name": "zsegment-engine-dev-config",
+                                    "name": "zsegment-engine-config",
                                     "key": "engine-config.json",
                                 }
                             },
@@ -896,67 +816,40 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
-                    namespace=tenant,
-                    name="zsegment-engine-prod",
-                    docker_image=engine_docker_image,
-                    request_resource={
-                        "cpu": pydash.get(zsegment, "serverSpec.request_cpu"),
-                        "memory": pydash.get(zsegment, "serverSpec.request_memory"),
-                    },
-                    limit_resource={
-                        "cpu": pydash.get(zsegment, "serverSpec.limit_cpu"),
-                        "memory": pydash.get(zsegment, "serverSpec.limit_memory"),
-                    },
-                    container_ports={"http": 8089},
-                    volume_mounts=[
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": "/config/engine-config.json",
-                            "sub_path": "engine-config.json",
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "zsegment-engine-prod-config",
-                            "key": "engine-config.json",
-                            "path": "engine-config.json",
-                        }
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "WEB_CONCURRENCY", "value": "5"},
-                        {"name": "CLIENT_CODE", "value": tenant},
-                        {
-                            "name": "SPRING_APPLICATION_JSON",
-                            "value_from": {
-                                "config_map_key_ref": {
-                                    "name": "zsegment-engine-prod-config",
-                                    "key": "engine-config.json",
-                                }
-                            },
-                        },
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
-                        {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
-                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
-                    ],
-                ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
-            )
+            # create droplet
+            # template = template_env.get_template("dropletInitScript.sh")
+            # init_script = template.render(debUrl=zsegment_config.deb_url)
+            # ip_address: str = await workflow.execute_activity(
+            #     activity=CreateDropletActivity.defn,
+            #     arg=CreateDropletActivityModel(
+            #         name=tenant,
+            #         product=ProductName,
+            #         script=init_script,
+            #     ),
+            #     retry_policy=CreateDropletActivity.get_retry_policy(),
+            #     start_to_close_timeout=CreateDropletActivity.get_timeout(),
+            # )
+
+            # # setup dns
+            # await workflow.execute_activity(
+            #     activity=CreateCloudflareDNSRecordActivity.defn,
+            #     arg=CreateCloudflareDNSRecordActivityModel(
+            #         domain_name=f"{tenant}.droplet.{zsegment_config.domain_name}",
+            #         zone_id=zsegment_config.zone_id,
+            #         content=ip_address,
+            #     ),
+            #     retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
+            #     start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
+            # )
 
             # vm pod scraper
             await workflow.execute_activity(
                 activity=VMPodScrapperActivity.defn,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
-                    name="zsegment-api-metrics-dev",
-                    app="zsegment-api-dev",
-                    path="/api/v1/dev/actuator/prometheus",
+                    name="zsegment-api-metrics",
+                    app="zsegment-api",
+                    path="/api/v1/actuator/prometheus",
                     interval="5s",
                 ),
                 retry_policy=VMPodScrapperActivity.get_retry_policy(),
@@ -967,35 +860,9 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=VMPodScrapperActivity.defn,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
-                    name="zsegment-api-metrics-prod",
-                    app="zsegment-api-prod",
-                    path="/api/v1/prod/actuator/prometheus",
-                    interval="5s",
-                ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
-            )
-
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="zsegment-engine-metrics-dev",
-                    app="zsegment-engine-dev",
-                    path="/api/v1/dev/actuator/prometheus",
-                    interval="5s",
-                ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
-            )
-
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="zsegment-engine-metrics-prod",
-                    app="zsegment-engine-prod",
-                    path="/api/v1/prod/actuator/prometheus",
+                    name="zsegment-engine-metrics",
+                    app="zsegment-engine",
+                    path="/api/v1/actuator/prometheus",
                     interval="5s",
                 ),
                 retry_policy=VMPodScrapperActivity.get_retry_policy(),
@@ -1008,7 +875,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=KubernetesServiceActivity.defn,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
-                    service_name="zsegment-api-dev",
+                    service_name="zsegment-api",
                     ports={"http": 8090, "grpc": 6565},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
@@ -1019,7 +886,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=KubernetesServiceActivity.defn,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
-                    service_name="zsegment-engine-dev",
+                    service_name="zsegment-engine",
                     ports={"http": 8089},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
@@ -1030,8 +897,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=KubernetesServiceActivity.defn,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
-                    service_name="zsegment-api-dev-grpc-nodeport",
-                    selector="zsegment-api-dev",
+                    service_name="zsegment-api-grpc-nodeport",
+                    selector="zsegment-api",
                     ports={"grpc": 6565},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
@@ -1039,44 +906,42 @@ class ZSegmentOnboardingWorkflow(Workflow):
             )
 
             # For Prod
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
-                arg=KubernetesServiceActivityModel(
-                    namespace=tenant,
-                    service_name="zsegment-api-prod",
-                    ports={"http": 8090, "grpc": 6565},
-                ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=KubernetesServiceActivity.defn,
+            #     arg=KubernetesServiceActivityModel(
+            #         namespace=tenant,
+            #         service_name="zsegment-api-prod",
+            #         ports={"http": 8090, "grpc": 6565},
+            #     ),
+            #     retry_policy=KubernetesServiceActivity.get_retry_policy(),
+            #     start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            # )
 
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
-                arg=KubernetesServiceActivityModel(
-                    namespace=tenant,
-                    service_name="zsegment-engine-prod",
-                    ports={"http": 8089},
-                ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=KubernetesServiceActivity.defn,
+            #     arg=KubernetesServiceActivityModel(
+            #         namespace=tenant,
+            #         service_name="zsegment-engine-prod",
+            #         ports={"http": 8089},
+            #     ),
+            #     retry_policy=KubernetesServiceActivity.get_retry_policy(),
+            #     start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            # )
 
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
-                arg=KubernetesServiceActivityModel(
-                    namespace=tenant,
-                    service_name="zsegment-api-prod-grpc-nodeport",
-                    selector="zsegment-api-prod",
-                    ports={"grpc": 6565},
-                ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=KubernetesServiceActivity.defn,
+            #     arg=KubernetesServiceActivityModel(
+            #         namespace=tenant,
+            #         service_name="zsegment-api-prod-grpc-nodeport",
+            #         selector="zsegment-api-prod",
+            #         ports={"grpc": 6565},
+            #     ),
+            #     retry_policy=KubernetesServiceActivity.get_retry_policy(),
+            #     start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
+            # )
 
             # VS for dev
-            template_env = get_env(template_path=TemplatePath)
-
-            template = template_env.get_template("istio-rules-dev.json")
+            template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
             http_list = orjson.loads(output)
@@ -1093,38 +958,31 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.api.{zsegment_config.domain_name}",
-                    service_name="zsegment-api-dev-vs",
+                    service_name="zsegment-api-vs",
                     payload=http_list,
                 ),
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
-
-            # vs for prod
-            template = template_env.get_template("istio-rules-prod.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
-
-            http_list = orjson.loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
 
             await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
-                arg=KubernetesIstioVirtualServiceActivityModel(
-                    namespace=tenant,
-                    host=f"{tenant}.api.{zsegment_config.domain_name}",
-                    service_name="zsegment-api-prod-vs",
-                    payload=http_list,
-                ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
+                activity=CreateKubernetesResourcesActivity.defn,
+                arg=CreateKubernetesResourcesActivityModel(namespace=tenant),
+                retry_policy=CreateKubernetesResourcesActivity.get_retry_policy(),
+                start_to_close_timeout=CreateKubernetesResourcesActivity.get_timeout(),
             )
+
+            # check pod running status
+            for pod in ["zsegment-api", "zsegment-engine"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(

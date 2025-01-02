@@ -1,33 +1,40 @@
-from temporalio import activity, workflow
+import asyncio
+import datetime
+
+from temporalio import activity
 from temporalio.common import RetryPolicy
+from kubernetes.dynamic.exceptions import NotFoundError
+from app.cli.temporal.core.log import log_error
 
+from datetime import timedelta
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from kubernetes.client import (
-        V1StatefulSet,
-        V1ObjectMeta,
-        V1StatefulSetSpec,
-        V1PodTemplateSpec,
-        V1PodSpec,
-        V1Container,
-        V1ContainerPort,
-        V1Volume,
-        V1VolumeMount,
-        V1ResourceRequirements,
-        V1SecurityContext,
-        V1ConfigMapVolumeSource,
-        V1KeyToPath,
-        V1PersistentVolumeClaimVolumeSource,
-        V1EnvVar,
-        V1LocalObjectReference,
-        V1ConfigMapKeySelector,
-        V1EnvVarSource,
-    )
+from kubernetes.client import (
+    V1ConfigMapKeySelector,
+    V1ConfigMapVolumeSource,
+    V1Container,
+    V1ContainerPort,
+    V1EnvVar,
+    V1EnvVarSource,
+    V1KeyToPath,
+    V1LocalObjectReference,
+    V1ObjectMeta,
+    V1PersistentVolumeClaimVolumeSource,
+    V1PodSpec,
+    V1PodTemplateSpec,
+    V1ResourceRequirements,
+    V1SecurityContext,
+    V1StatefulSet,
+    V1StatefulSetSpec,
+    V1Volume,
+    V1VolumeMount,
+    V1PodList,
+    V1Pod,
+    V1PodStatus,
+)
 
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
+from app.cli.k8s_util import ResourceKindEnum, api_client, get_dynamic_client, get_resource, get_k8s_core_v1_api_client
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
 
 
 class KubernetesStatefulSetActivityModel(LaunchpadCLIBaseModel):
@@ -223,7 +230,83 @@ class StatefulSetPodDeletionActivity(Activity):
         resource = get_resource(
             dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
         )
-
-        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        try:
+            k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        except NotFoundError:
+            log_error(f"StatefulSet {activity_model.name} not found in namespace {activity_model.namespace}")
 
         log_info(f"StatefulSetPodDeletion deleted in namespace {activity_model.namespace}")
+
+
+class StatefulSetRestartActivity(Activity):
+    """
+    StatefulSetRestartActivity
+    """
+
+    @staticmethod
+    @activity.defn(name="StatefulSetRestartActivity")
+    async def defn(activity_model: KubernetesStatefulSetActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        _now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat() + "Z"
+        body = {"spec": {"template": {"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": _now}}}}}
+        api_client.AppsV1Api().patch_namespaced_stateful_set(
+            name=activity_model.name,
+            namespace=activity_model.namespace,
+            body=body,
+        )
+
+
+class CheckPodRunningStatusActivityModel(LaunchpadCLIBaseModel):
+    """
+    CheckPodRunningStatusActivityModel
+    """
+
+    namespace: str
+    name: str
+
+
+class CheckPodRunningStatusActivity(Activity):
+    """
+    CheckPodRunningStatusActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="CheckPodRunningStatusActivity")
+    async def defn(activity_model: CheckPodRunningStatusActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        core_v1_api_client = get_k8s_core_v1_api_client()
+        count = 0
+        while True:
+            pods: V1PodList = core_v1_api_client.list_namespaced_pod(
+                namespace=activity_model.namespace, label_selector=f"app={activity_model.name}"
+            )
+            if pods.items:
+                pod: V1Pod = pods.items[0]
+                v1_pod_status: V1PodStatus = pod.status
+                if v1_pod_status.phase == "Running":
+                    return True
+                elif v1_pod_status.phase == "Failed":
+                    raise Exception(f"Pod {activity_model.name} failed to start")
+            await asyncio.sleep(10)
+            count += 1
+
+            if count > 60:
+                raise Exception(f"Pod {activity_model.name} failed to start even after 10 minutes")
