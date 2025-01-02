@@ -357,8 +357,9 @@ class DexitSettings(BaseModel):
     """
 
     postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "dexit.314ecorp.tech"
+    domain_name: str = "dexit.tech"
     zone_name: str = "e314ecorptech"
+    zone_id: str = ""
     # grafana: GrafanaSettings = GrafanaSettings()
 
     sender_email: str = "developer@314ecorp.com"
