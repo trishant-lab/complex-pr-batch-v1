@@ -1,6 +1,6 @@
 {
-  "realm": "{{tenant}}",
-  "displayName": "{{tenant}}",
+  "realm": "<<tenant>>",
+  "displayName": "<<tenant>>",
   "displayNameHtml": "",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
@@ -62,7 +62,7 @@
         "attributes": {}
       },
       {
-        "name": "default-roles-{{tenant}}",
+        "name": "default-roles-<<tenant>>",
         "description": "${role_default-roles}",
         "composite": true,
         "composites": {
@@ -344,7 +344,7 @@
   },
   "groups": [],
   "defaultRole": {
-    "name": "default-roles-{{tenant}}",
+    "name": "default-roles-<<tenant>>",
     "description": "${role_default-roles}",
     "composite": true,
     "clientRole": false
@@ -415,13 +415,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/{{tenant}}/account/",
+      "baseUrl": "/realms/<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/{{tenant}}/account/*"
+        "/realms/<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -468,13 +468,13 @@
       "clientId": "account-console",
       "name": "${client_account-console}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/{{tenant}}/account/",
+      "baseUrl": "/realms/<<tenant>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/{{tenant}}/account/*"
+        "/realms/<<tenant>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -677,13 +677,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/{{tenant}}/console/",
+      "baseUrl": "/admin/<<tenant>>/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/{{tenant}}/console/*"
+        "/admin/<<tenant>>/console/*"
       ],
       "webOrigins": [
         "+"
@@ -1282,7 +1282,7 @@
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
   "smtpServer": {
-    "password": "{{sendgrid_api_key}}",
+    "password": "<<sendgrid_api_key>>",
     "starttls": "true",
     "auth": "true",
     "port": "587",

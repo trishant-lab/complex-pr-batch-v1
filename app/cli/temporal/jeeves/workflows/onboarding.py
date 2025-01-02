@@ -58,6 +58,8 @@ from app.cli.temporal.activities.sendMail import (
     SendBeforeProvisioningMailActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
@@ -88,17 +90,16 @@ from app.cli.temporal.jeeves import TemplatePath
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, JeevesSettings, get_settings
-    from app.template_env import get_env
+from app.common import generate_password
+from app.core.settings import AppSettings, JeevesSettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
 
 
-@workflow.defn(name="JeevesOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="JeevesOnboardingWorkflow")
 class JeevesOnboardingWorkflow(Workflow):
     """
     Jeeves Onboarding Workflow
@@ -152,6 +153,7 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordCreateOrUpdateActivity.defn,
             OnePasswordGetActivity.defn,
             DeploymentDeletionActivity.defn,
+            CheckPodRunningStatusActivity.defn,
         ]
 
     @classmethod
@@ -406,18 +408,35 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # setup tenant configmap
             for config_map in [
-                {"name": "jeeves-tenant-config", "key": "tenant-config.json"},
-                {"name": "jeeves-rclone-config", "key": "rclone.conf"},
-                {"name": "jeeves-cli-vector-config", "key": "vector-config.toml"},
-                {"name": "jeeves-statestore-config", "key": "statestore.yaml"},
+                {
+                    "name": "jeeves-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                },
+                {
+                    "name": "jeeves-rclone-config",
+                    "key": "rclone.conf",
+                    "template_file_name": f"{config.env}-rclone.tmpl.conf",
+                },
+                {
+                    "name": "jeeves-cli-vector-config",
+                    "key": "vector-config.toml",
+                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
+                },
+                {
+                    "name": "jeeves-statestore-config",
+                    "key": "statestore.yaml",
+                    "template_file_name": f"{config.env}-statestore.tmpl.yaml",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
-                        bucket_name="jeeves-config",
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
+                        cloudflare_r2_folder_path="jeeves-config",
                         template_payload={"tenant": tenant},
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
@@ -430,6 +449,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
                     zone_id=jeeves_config.zone_id,
+                    content=config.k8s_cname,
                 ),
                 retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
@@ -637,7 +657,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="jeeves",
-                    port=8000,
+                    ports={"http": 8000},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -698,7 +718,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(jeeves, "serverSpec.limit_cpu"),
                         "memory": pydash.get(jeeves, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -764,7 +784,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(jeeves, "cliSpec.limit_cpu"),
                         "memory": pydash.get(jeeves, "cliSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -884,6 +904,18 @@ class JeevesOnboardingWorkflow(Workflow):
             #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
             #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
             # )
+
+            # check pod running status
+            for pod in ["jeeves", "jeeves-worker"]:
+                await workflow.execute_activity(
+                    activity=CheckPodRunningStatusActivity.defn,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             # update tenant status
             await workflow.execute_activity(

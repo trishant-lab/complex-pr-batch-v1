@@ -56,17 +56,16 @@ from app.cli.temporal.hdp import TemplatePath
 from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
 
 
-with workflow.unsafe.imports_passed_through():
-    from app.common import generate_password
-    from app.core.settings import AppSettings, HDPSettings, get_settings
-    from app.template_env import get_env
+from app.common import generate_password
+from app.core.settings import AppSettings, HDPSettings, get_settings
+from app.template_env import get_env
 
 
 ProductName = "hdp"
 OnePasswordVaultName = "hdp"
 
 
-@workflow.defn(name="HDPOnboardingWorkflow", sandboxed=False)
+@workflow.defn(name="HDPOnboardingWorkflow")
 class HDPOnboardingWorkflow(Workflow):
     """
     Hdp Onboarding Workflow
@@ -351,15 +350,24 @@ class HDPOnboardingWorkflow(Workflow):
 
             # setup tenant configmap
             for config_map in [
-                {"name": "hdp-tenant-config", "key": "tenant-config.json"},
-                {"name": "kestra-config", "key": "kestra-config.yml"},
+                {
+                    "name": "hdp-tenant-config",
+                    "key": "tenant-config.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                },
+                {
+                    "name": "kestra-config",
+                    "key": "kestra-config.yml",
+                    "template_file_name": f"{config.env}-kestra-config.tmpl.yml",
+                },
             ]:
                 await workflow.execute_activity(
                     activity=K8sConfigMapCreationActivity.defn,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
-                        template_file_name=config_map["key"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
                         bucket_name="hdp-config",
                         template_payload={"tenant": tenant},
                     ),
@@ -513,7 +521,7 @@ class HDPOnboardingWorkflow(Workflow):
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="hdp",
-                    port=8000,
+                    ports={"http": 8000},
                 ),
                 retry_policy=KubernetesServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
@@ -573,7 +581,7 @@ class HDPOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(hdp, "serverSpec.limit_cpu"),
                         "memory": pydash.get(hdp, "serverSpec.limit_memory"),
                     },
-                    container_ports=[8000],
+                    container_ports={"http": 8000},
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
@@ -660,7 +668,7 @@ class HDPOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(hdp, "kestraSpec.limit_cpu"),
                         "memory": pydash.get(hdp, "kestraSpec.limit_memory"),
                     },
-                    container_ports=[8080, 8081],
+                    container_ports={"http": 8080, "https": 8081},
                     container_command=["/bin/bash", "-c"],
                     container_args=[
                         "JAVA_OPTS=-Dmicronaut.server.context-path=/etl"

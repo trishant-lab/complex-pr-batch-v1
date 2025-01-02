@@ -1,20 +1,23 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
+from kubernetes.dynamic.exceptions import NotFoundError
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from tempfile import TemporaryDirectory
+from app.cli.temporal.core.log import log_error
 
-    import boto3
 
-    from kubernetes.client import V1ConfigMap, V1ObjectMeta
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
-    from app.core.settings import AppSettings, get_settings
-    from app.onepasswordutil import secret_inject
-    from app.s3_utils import download_file_from_storage, get_storage_client
-    from app.template_env import get_env
+from datetime import timedelta
+from tempfile import TemporaryDirectory
+
+import boto3
+
+from kubernetes.client import V1ConfigMap, V1ObjectMeta
+from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
+from app.core.settings import AppSettings, get_settings
+from app.onepasswordutil import secret_inject
+from app.s3_utils import download_file_from_storage, get_storage_client
+from app.template_env import get_env
 
 
 class K8sConfigMapCreationActivityModel(LaunchpadCLIBaseModel):
@@ -25,7 +28,9 @@ class K8sConfigMapCreationActivityModel(LaunchpadCLIBaseModel):
 
     namespace: str
     name: str
-    template_file_name: str
+    template_file_name: str | None = None
+    data: str | None = None
+    destination_file_name: str
     bucket_name: str | None = None
     cloudflare_r2_folder_path: str | None = None
     template_payload: dict
@@ -53,76 +58,164 @@ class K8sConfigMapCreationActivity(Activity):
         Callable for the activity
         """
         app_config: AppSettings = get_settings()
-        env = app_config.env
 
         k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1")
 
-        template_file_name = f"""{env}-{activity_model.template_file_name
-            .replace('.json', '.tmpl.json')
-            .replace('.toml', '.tmpl.toml')
-            .replace('.yaml', '.tmpl.yaml')
-            .replace('.conf', '.tmpl.conf')
-            .replace('.yml', '.tmpl.yml')
-            }"""
+        template_file_name = activity_model.template_file_name
 
-        with TemporaryDirectory() as temp_dir:
-            s3_client: boto3.client = (
-                get_storage_client(
-                    config=app_config,
-                    access_key=app_config.s3_int.access_key,
-                    secret_key=app_config.s3_int.secret_key,
-                    endpoint=app_config.s3_int.endpoint,
+        if activity_model.data:
+            data = {
+                activity_model.destination_file_name: activity_model.data,
+            }
+        else:
+            with TemporaryDirectory() as temp_dir:
+                s3_client: boto3.client = (
+                    get_storage_client(
+                        config=app_config,
+                        access_key=app_config.s3_int.access_key,
+                        secret_key=app_config.s3_int.secret_key,
+                        endpoint=app_config.s3_int.endpoint,
+                    )
+                    if activity_model.cloudflare_r2_folder_path is None
+                    else get_storage_client(
+                        config=app_config,
+                        access_key=app_config.cloudflare.r2_access_key,
+                        secret_key=app_config.cloudflare.r2_secret_key,
+                        endpoint=app_config.cloudflare.r2_endpoint,
+                    )
                 )
-                if activity_model.cloudflare_r2_folder_path is None
-                else get_storage_client(
-                    config=app_config,
-                    access_key=app_config.cloudflare.r2_access_key,
-                    secret_key=app_config.cloudflare.r2_secret_key,
-                    endpoint=app_config.cloudflare.r2_endpoint,
+
+                object_name = (
+                    f"{activity_model.cloudflare_r2_folder_path}/{template_file_name}"
+                    if activity_model.cloudflare_r2_folder_path is not None
+                    else template_file_name
                 )
-            )
+                bucket_name = (
+                    activity_model.bucket_name
+                    if activity_model.cloudflare_r2_folder_path is None
+                    else "launchpad-config-templates"
+                )
 
-            object_name = (
-                f"{activity_model.cloudflare_r2_folder_path}/{template_file_name}"
-                if activity_model.cloudflare_r2_folder_path is not None
-                else template_file_name
-            )
-            bucket_name = (
-                activity_model.bucket_name
-                if activity_model.cloudflare_r2_folder_path is None
-                else "launchpad-config-templates"
-            )
+                download_file_from_storage(
+                    object_name=object_name,
+                    file_path=f"{temp_dir}/{template_file_name}",
+                    storage_client=s3_client,
+                    bucket_name=bucket_name,
+                )
 
-            download_file_from_storage(
-                object_name=object_name,
-                file_path=f"{temp_dir}/{template_file_name}",
-                storage_client=s3_client,
-                bucket_name=bucket_name,
-            )
+                template_env = get_env(template_path=temp_dir)
 
-            template_env = get_env(template_path=temp_dir)
+                template = template_env.get_template(template_file_name)
+                output = template.render(**activity_model.template_payload)
 
-            template = template_env.get_template(template_file_name)
-            output = template.render(**activity_model.template_payload)
+                with open(f"{temp_dir}/{template_file_name}", "w") as f:
+                    f.write(output)
 
-            with open(f"{temp_dir}/{template_file_name}", "w") as f:
-                f.write(output)
+                # inject secret into tenant-config.json from 1Password
+                secret_inject(
+                    source_file_path=f"{temp_dir}/{template_file_name}",
+                    destination_path=f"{temp_dir}/{activity_model.destination_file_name}",
+                )
 
-            # inject secret into tenant-config.json from 1Password
-            secret_inject(
-                source_file_path=f"{temp_dir}/{template_file_name}",
-                destination_path=f"{temp_dir}/{activity_model.template_file_name}",
-            )
+                data = {
+                    activity_model.destination_file_name: open(
+                        f"{temp_dir}/{activity_model.destination_file_name}"
+                    ).read()
+                }
 
-            body = V1ConfigMap(
-                api_version="v1",
-                kind=ResourceKindEnum.ConfigMap.value,
-                metadata=V1ObjectMeta(namespace=activity_model.namespace, name=activity_model.name),
-                data={
-                    activity_model.template_file_name: open(f"{temp_dir}/{activity_model.template_file_name}").read()
-                },
-            )
+        body = V1ConfigMap(
+            api_version="v1",
+            kind=ResourceKindEnum.ConfigMap.value,
+            metadata=V1ObjectMeta(namespace=activity_model.namespace, name=activity_model.name),
+            data=data,
+        )
+
+        payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
+        k8s_dynamic_client.server_side_apply(
+            resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+        )
+
+        log_info(f"ConfigMap {activity_model.name} created successfully")
+
+
+class K8sConfigMapCreatFromTemplateActivityModel(LaunchpadCLIBaseModel):
+    """
+    K8sConfigMapCreatFromTemplateActivityModel
+    """
+
+    namespace: str
+    name: str
+    template_file_name: str | None = None
+    template_path: str | None = None
+    data: str | None = None
+    destination_file_name: str
+    template_payload: dict
+
+
+class K8sConfigMapCreatFromTemplateActivity(Activity):
+    """
+    K8sConfigMapCreatFromTemplateActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+
+    @staticmethod
+    @activity.defn(name="K8sConfigMapCreatFromTemplateActivity")
+    async def defn(activity_model: K8sConfigMapCreatFromTemplateActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        app_config: AppSettings = get_settings()
+        k8s_dynamic_client = get_dynamic_client()
+        resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1")
+
+        template_file_name = activity_model.template_file_name
+
+        if activity_model.data:
+            data = {
+                activity_model.destination_file_name: activity_model.data,
+            }
+        else:
+            with TemporaryDirectory() as temp_dir:
+                template_env = get_env(template_path=activity_model.template_path)
+
+                template = template_env.get_template(template_file_name)
+                output = template.render(**activity_model.template_payload)
+
+                with open(f"{temp_dir}/{template_file_name}", "w") as f:
+                    f.write(output)
+
+                # inject secret into tenant-config.json from 1Password
+                secret_inject(
+                    source_file_path=f"{temp_dir}/{template_file_name}",
+                    destination_path=f"{temp_dir}/{activity_model.destination_file_name}",
+                )
+
+                data = {
+                    activity_model.destination_file_name: open(
+                        f"{temp_dir}/{activity_model.destination_file_name}"
+                    ).read()
+                }
+
+        body = V1ConfigMap(
+            api_version="v1",
+            kind=ResourceKindEnum.ConfigMap.value,
+            metadata=V1ObjectMeta(namespace=activity_model.namespace, name=activity_model.name),
+            data=data,
+        )
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
         k8s_dynamic_client.server_side_apply(
@@ -169,6 +262,9 @@ class DeleteK8sConfigMapActivity(Activity):
         k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1")
 
-        k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        try:
+            k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)
+        except NotFoundError:
+            log_error(f"ConfigMap {activity_model.name} not found in namespace {activity_model.namespace}")
 
         log_info(f"ConfigMap {activity_model.name} deleted in namespace {activity_model.namespace}")

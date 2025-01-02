@@ -20,6 +20,7 @@ from .routes.provisioning import provisioning_router
 from .routes.deprovisioning import de_provisioning_router
 from .routes.users import user_router
 from .routes.deployment import deployment_router
+from .routes.reports import reports_router
 
 API_PREFIX = "/api/v1"
 TITLE = "Launchpad APP"
@@ -121,3 +122,4 @@ fastapi_app.include_router(user_router, prefix=f"{API_PREFIX}/User", tags=["User
 fastapi_app.include_router(email_template_router, prefix=f"{API_PREFIX}/EmailTemplate", tags=["EmailTemplate"])
 fastapi_app.include_router(jeeves_report_router, prefix=f"{API_PREFIX}/jeevesReports", tags=["JeevesReports"])
 fastapi_app.include_router(deployment_router, prefix=f"{API_PREFIX}/deployment", tags=["Deployment"])
+fastapi_app.include_router(reports_router, prefix=f"{API_PREFIX}/reports", tags=["Reports"])

@@ -1,0 +1,70 @@
+{
+    "env": "production",
+    "api_prefix": "/api/v1",
+    "client_code": "launchpad",
+    "keycloak": {
+        "realm": "launchpad",
+        "admin_realm": "master",
+        "admin_client_id": "admin-temporal",
+        "username": "k8s-operator",
+        "password": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/keycloak_password  }}",
+        "client_id": "app",
+        "auth_url": "https://auth.314ecorp.com",
+        "internal_auth_url": "http://keycloak-service.keycloak.svc.cluster.local:8080",
+        "keycloak_db_password": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/keycloak_db_password  }}", 
+        "realm_path": "/auth/admin/realms/"
+    },
+    "postgres": {
+        "db": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/postgres_db  }}",
+        "user": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/postgres_user  }}",
+        "password": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/postgres_password  }}",
+        "port": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/postgres_port  }}",
+        "host": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/postgres_host  }}"
+    },
+    "sendgrid": {
+        "api_key": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/sendgrid_api_key  }}",
+        "email_from": "developer@314ecorp.com",
+        "category": "provisioning"
+    },
+    "cloudflare": {
+        "account_id": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/cloudflare_account_id  }}",
+        "api_token": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/cloudflare_api_token  }}",
+        "access_key": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/cloudflare_access_key  }}",
+        "s3_alias": "launchpad",
+        "r2_endpoint": "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com",
+        "r2_secret_key": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/cloudflare_r2_secret_key  }}",
+        "r2_access_key": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/cloudflare_r2_access_key  }}",
+        "api_url": "https://api.cloudflare.com/client/v4"
+    },
+    "temporal": {
+        "host": "localhost",
+        "port": "7233",
+        "namespace": "launchpad"
+    },
+    "s3_int": {
+        "endpoint": "https://ostore.314ecorp.tech",
+        "access_key": "{{ op://launchpad/APPLICATION_CONFIG/INTEGRATION/s3_access_key  }}",
+        "secret_key": "{{ op://launchpad/APPLICATION_CONFIG/INTEGRATION/s3_secret_key  }}",
+        "bucket": ""
+    },
+    "s3": {
+        "endpoint": "https://ostore.314ecorp.com",
+        "access_key": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/s3_access_key  }}",
+        "secret_key": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/s3_secret_key  }}",
+        "bucket": ""
+    },
+    "r2": {
+        "endpoint": "",
+        "access_key": "",
+        "secret_key": "",
+        "bucket": ""
+    },
+    "matomo_db_password": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/matomo_db_password  }}",
+    "docker_image_pull_secret": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/docker_image_pull_secret  }}",
+    "google_dns_cname": "k8s.314ecorp.com.",
+    "k8s_cname": "k8s.314ecorp.com.",
+    "supavisor_url": "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000",
+    "supavisor_token": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/supavisor_token  }}",
+    "cache_admin_password": "{{ op://launchpad/APPLICATION_CONFIG/PRODUCTION/cache_admin_password  }}",
+    "app_url": "https://launchpad.314ecorp.com/production"
+}

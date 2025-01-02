@@ -4,7 +4,7 @@
         "route": [
             {
                 "destination": {
-                    "host": "dexit.{{tenant}}.svc.cluster.local",
+                    "host": "dexit.<<tenant>>.svc.cluster.local",
                     "port": {"number": 8000}
                 },
                 "headers": {
@@ -57,7 +57,7 @@
         "route": [
             {
                 "destination": {
-                    "host": "dexit-dicom.{{tenant}}.svc.cluster.local",
+                    "host": "dexit-dicom.<<tenant>>.svc.cluster.local",
                     "port": {"number": 8042}
                 }
             }

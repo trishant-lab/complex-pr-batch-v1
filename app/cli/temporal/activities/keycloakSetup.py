@@ -1,18 +1,19 @@
 from pydash import py_
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
+from app.cli.temporal.core.log import log_error
 from app.onepasswordutil import OnePasswordUtil
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    import jinja2
-    import orjson
-    from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
-    from app.core.settings import AppSettings, get_settings
-    from app.template_env import get_env
+
+from datetime import timedelta
+import jinja2
+import orjson
+from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
+from app.core.settings import AppSettings, get_settings
+from app.template_env import get_env
 
 
 class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
@@ -25,6 +26,7 @@ class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
     template_path: str
     template_name: str
     installer_secret: str | None = None
+    template_payload: dict | None = None
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -62,6 +64,7 @@ class KeycloakRealmSetupActivity(Activity):
             sendgrid_api_key=config.sendgrid.api_key,
             domain=activity_model.domain,
             installer_secret=activity_model.installer_secret,
+            **(activity_model.template_payload if activity_model.template_payload else {}),
         )
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
@@ -227,7 +230,7 @@ class KeycloakCreateTenantCustomerAdminUserActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
-    client_name: str
+    client_name: str | None = None
     username: str
     email: str
     firstname: str
@@ -277,21 +280,26 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
 
         log_info(f"Keycloak tenant customer admin user {activity_model.username} created successfully")
 
-        client_uuid = keycloak_client.get_client_id(
-            client=activity_model.client_name, realm_name=activity_model.realm_name
-        )
+        if activity_model.client_name:
+            client_uuid = keycloak_client.get_client_id(
+                client=activity_model.client_name, realm_name=activity_model.realm_name
+            )
 
-        if not activity_model.roles:
-            roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=activity_model.realm_name)
-        else:
-            roles = activity_model.roles
+            if not activity_model.roles:
+                roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=activity_model.realm_name)
+            else:
+                roles = activity_model.roles
 
-        keycloak_client.assign_client_role(
-            client_id=client_uuid,
-            user_id=keycloak_client.get_user_id(username=activity_model.email, realm_name=activity_model.realm_name),
-            roles=roles,
-            realm_name=activity_model.realm_name,
-        )
+            user_id = keycloak_client.get_user_id(
+                username=activity_model.username, realm_name=activity_model.realm_name
+            )
+
+            keycloak_client.assign_client_role(
+                client_id=client_uuid,
+                user_id=user_id,
+                roles=roles,
+                realm_name=activity_model.realm_name,
+            )
 
         log_info(f"Keycloak tenant customer admin user {activity_model.username} assigned to client roles successfully")
 
@@ -302,7 +310,7 @@ class KeycloakCreateInternalUsersActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
-    client_name: str
+    client_name: str | None = None
     roles: list[str] | None = None
     template_path: str
     template_name: str
@@ -339,14 +347,15 @@ class KeycloakCreateInternalUsersActivity(Activity):
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
-        client_id = keycloak_client.get_client_id(
-            client=activity_model.client_name, realm_name=activity_model.realm_name
-        )
+        if activity_model.client_name:
+            client_id = keycloak_client.get_client_id(
+                client=activity_model.client_name, realm_name=activity_model.realm_name
+            )
 
-        if not activity_model.roles:
-            roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=activity_model.realm_name)
-        else:
-            roles = activity_model.roles
+            if not activity_model.roles:
+                roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=activity_model.realm_name)
+            else:
+                roles = activity_model.roles
 
         for user in activity_model.users:
             user_config = template.render(
@@ -360,14 +369,17 @@ class KeycloakCreateInternalUsersActivity(Activity):
 
             log_info(f"Keycloak internal user {user['username']} created successfully")
 
-            keycloak_client.assign_client_role(
-                client_id=client_id,
-                user_id=keycloak_client.get_user_id(username=user["username"], realm_name=activity_model.realm_name),
-                roles=roles,
-                realm_name=activity_model.realm_name,
-            )
+            if activity_model.client_name:
+                keycloak_client.assign_client_role(
+                    client_id=client_id,
+                    user_id=keycloak_client.get_user_id(
+                        username=user["username"], realm_name=activity_model.realm_name
+                    ),
+                    roles=roles,
+                    realm_name=activity_model.realm_name,
+                )
 
-            log_info(f"Keycloak internal user {user['username']} assigned to client roles successfully")
+                log_info(f"Keycloak internal user {user['username']} assigned to client roles successfully")
 
 
 class DeleteKeycloakClientActivityModel(LaunchpadCLIBaseModel):
@@ -409,8 +421,12 @@ class DeleteKeycloakClientActivity(Activity):
         client_id = keycloak_client.get_client_id(
             client=activity_model.client_name, realm_name=activity_model.realm_name
         )
-
-        keycloak_client.delete_client(client_id=client_id, realm_name=activity_model.realm_name)
+        try:
+            keycloak_client.delete_client(client_id=client_id, realm_name=activity_model.realm_name)
+        except Exception as e:
+            log_error(
+                f"Keycloak client {activity_model.client_name} not found in realm {activity_model.realm_name} {e}"
+            )
 
         log_info(f"Keycloak client {activity_model.client_name} deleted successfully")
 

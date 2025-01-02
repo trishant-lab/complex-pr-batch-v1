@@ -2,6 +2,7 @@ from temporalio.client import WorkflowHandle
 
 from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
 from app.cli.workflowbase import ProductWorkflow
+from app.core.cli_settings import WorkerQueues
 
 
 ProductName = "penknife"
@@ -25,7 +26,7 @@ class PenknifeWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=PenknifeSpec(**schema),
             workflow=PenknifeOnboardingWorkflow,
-            queue=product_config.temporal_penknife_onboarding_task_queue,
+            queue=WorkerQueues.penknife_onboarding,
         )
 
     @staticmethod
@@ -41,7 +42,7 @@ class PenknifeWorkflow(ProductWorkflow):
         await trigger_workflow(
             workflow_input=PenknifeSpec(**schema),
             workflow=PenknifeDeProvisioningWorkflow,
-            queue=product_config.temporal_penknife_deboarding_task_queue,
+            queue=WorkerQueues.penknife_deboarding,
         )
 
     @staticmethod

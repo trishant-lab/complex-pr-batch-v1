@@ -1,16 +1,16 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    import tempfile
-    import zipfile
-    import boto3
 
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_error, log_info
-    from app.core.settings import AppSettings, get_settings
-    from app.s3_utils import copy_files_to_s3, download_file_from_storage, get_storage_client
+from datetime import timedelta
+import tempfile
+import zipfile
+import boto3
+
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_error, log_info
+from app.core.settings import AppSettings, get_settings
+from app.s3_utils import copy_files_to_s3, download_file_from_storage, get_storage_client
 
 
 class UiSetupActivityModel(LaunchpadCLIBaseModel):
@@ -76,7 +76,7 @@ class UiSetupActivity(Activity):
                 # copy the files to the destination directory
                 copy_files_to_s3(
                     input_path=f"{tmp_dir}/{activity_model.bundle_path}",
-                    output_path=f"{config.s3.rclone_remote}/static/{activity_model.dest_dir}",
+                    output_path=f"{config.s3.s3_alias}/static/{activity_model.dest_dir}",
                     config=config,
                 )
 
@@ -84,7 +84,7 @@ class UiSetupActivity(Activity):
                 if environment == "production":
                     copy_files_to_s3(
                         input_path=f"{tmp_dir}/{activity_model.bundle_path}/index.html",
-                        output_path=f"{config.s3.rclone_remote}/static/{activity_model.dest_dir}/custom/index.html",
+                        output_path=f"{config.s3.s3_alias}/static/{activity_model.dest_dir}/custom/index.html",
                         config=config,
                     )
 

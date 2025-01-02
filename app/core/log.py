@@ -1,10 +1,15 @@
+from __future__ import annotations
 import os
 import sys
+import typing
 from collections.abc import Callable
 from typing import Any
 
-import loguru
 from loguru import logger
+
+
+if typing.TYPE_CHECKING:
+    from loguru import Logger
 
 
 def patch(logger_method: Callable) -> Callable:
@@ -13,7 +18,7 @@ def patch(logger_method: Callable) -> Callable:
     kwargs   :   key word args passed at the time of logging , all parameters except message
     """
 
-    def patched(self: loguru.logger, message: str, *args: Any, **kwargs: Any) -> None:  # noqa ANN401
+    def patched(self: Logger, message: str, *args: Any, **kwargs: Any) -> None:
         self = self.opt(depth=1).bind(**kwargs)
         logger_method(self, message, *args, **kwargs)
 

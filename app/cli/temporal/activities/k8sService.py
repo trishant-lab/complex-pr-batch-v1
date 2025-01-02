@@ -1,13 +1,14 @@
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.common import RetryPolicy
+from kubernetes.dynamic.exceptions import NotFoundError
 
+from app.cli.temporal.core.log import log_error
 
-with workflow.unsafe.imports_passed_through():
-    from datetime import timedelta
-    from kubernetes.client import V1Service, V1ObjectMeta, V1ServiceSpec, V1ServicePort
-    from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
-    from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-    from app.cli.temporal.core.log import log_info
+from datetime import timedelta
+from kubernetes.client import V1Service, V1ObjectMeta, V1ServiceSpec, V1ServicePort
+from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.cli.temporal.core.log import log_info
 
 
 class KubernetesServiceActivityModel(LaunchpadCLIBaseModel):
@@ -17,7 +18,8 @@ class KubernetesServiceActivityModel(LaunchpadCLIBaseModel):
 
     namespace: str
     service_name: str
-    port: int
+    selector: str | None = None
+    ports: dict[str, int]
 
 
 class KubernetesServiceActivity(Activity):
@@ -57,13 +59,14 @@ class KubernetesServiceActivity(Activity):
                 labels={"app": activity_model.service_name},
             ),
             spec=V1ServiceSpec(
-                selector={"app": activity_model.service_name},
+                selector={"app": activity_model.selector if activity_model.selector else activity_model.service_name},
                 type="ClusterIP",
                 ports=[
                     V1ServicePort(
-                        name="http",
-                        port=activity_model.port,
+                        name=port_name,
+                        port=port_value,
                     )
+                    for port_name, port_value in activity_model.ports.items()
                 ],
             ),
         )
@@ -109,7 +112,10 @@ class DeleteKubernetesServiceActivity(Activity):
         """
         k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Service, api_version="v1")
-        k8s_dynamic_client.client.delete(
-            resource=resource, name=activity_model.service_name, namespace=activity_model.namespace
-        )
-        log_info(f"Service {activity_model.service_name} deleted in namespace {activity_model.namespace}")
+        try:
+            k8s_dynamic_client.delete(
+                resource=resource, name=activity_model.service_name, namespace=activity_model.namespace
+            )
+            log_info(f"Service {activity_model.service_name} deleted in namespace {activity_model.namespace}")
+        except NotFoundError:
+            log_error(f"Service {activity_model.service_name} not found in namespace {activity_model.namespace}")
