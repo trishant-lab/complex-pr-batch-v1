@@ -21,7 +21,7 @@ class FaxSetup:
         self.laml_url = (
             f"https://314e.signalwire.com/api/laml/2010-04-01/Accounts/{self.config.dexit.FaxAccountId}/LamlBins"
         )
-        self.endpoint = f"https://{self.dexit.tenant}.dexit.314ecorp.{self.domain_name}/public/api/v1/fax/receiveFax"
+        self.endpoint = f"https://{self.dexit.tenant}.{self.config.dexit.domain_name}/public/api/v1/fax/receiveFax"
 
     async def fax_request(self: "FaxSetup", url: str, payload: dict) -> tuple[dict, int]:
         """
