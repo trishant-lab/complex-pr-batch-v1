@@ -8,14 +8,14 @@ from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
 from app.cli.temporal.core.log import log_info
-from jinja2 import Template
 from novu.api import NotificationGroupApi, IntegrationApi, NotificationTemplateApi
-from novu.dto import IntegrationDto, NotificationTemplateFormDto
+from novu.dto import IntegrationDto
 
 from app.cli.temporal.dexit import TemplatePath
 from app.cli.temporal.dexit.dexit import DexitSpec
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
+from app.template_env import get_env
 
 
 def get_notification_group_id(group_name: str, config: AppSettings, api_key: str) -> None | str:
@@ -68,9 +68,17 @@ def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: 
     novu_client = NotificationTemplateApi(url=config.dexit.novu_url, api_key=api_key)
 
     workflow = get_novu_notification_workflow_by_name(workflow_name=data["name"], config=config, api_key=api_key)
+    headers: dict = {
+        "Authorization": f"ApiKey {api_key}",
+        "Content-Type": "application/json",
+    }
+    url: str = f"{config.dexit.novu_url}/v1/workflows"
     if not workflow:
-        notification_template = NotificationTemplateFormDto(**data)
-        novu_client.create(notification_template=notification_template)
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+        if response.status_code >= 400:
+            print(f"Failed to create novu workflow template : {response.json()}")
+        # notification_template = NotificationTemplateFormDto(**data)
+        # novu_client.create(notification_template=notification_template)
 
 
 def create_novu_workflow_templates(target_dir: str, config: AppSettings, api_key: str) -> None:
@@ -85,12 +93,15 @@ def create_novu_workflow_templates(target_dir: str, config: AppSettings, api_key
     notification = {"notification_grp_id": id_}
     for root, dirs, files in os.walk(target_dir):
         for file in files:
-            file_ = os.path.join(root, file)
+            print(file)
+            # file_ = os.path.join(root, file)
 
-            with open(file_) as f:
-                json_data = f.read()
+            # with open(file_) as f:
+            #     json_data = f.read()
 
-            jinja_template = Template(json_data)
+            template_env = get_env(template_path=target_dir)
+            jinja_template = template_env.get_template(file)
+            # jinja_template = Template(json_data)
 
             rendered_template = jinja_template.render(notification=notification)
             rendered_template = orjson.loads(rendered_template)

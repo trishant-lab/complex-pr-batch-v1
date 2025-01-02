@@ -5,7 +5,7 @@
     "steps": [
       {
         "template": {
-          "content": "A bulk-import process << '<<bulkimport.process_id>> <<bulkimport.status>>' >>.",
+          "content": "A bulk-import process << '{{bulkimport.process_id}}' >> << '{{bulkimport.status}}' >>.",
           "type": "in_app",
           "cta": {
               "type": "redirect",
@@ -15,33 +15,33 @@
             }
         },
         "active": true,
-        "should_stop_on_fail": false
+        "shouldStopOnFail": false
       },
       {
         "template": {
-          "content": "A bulk-import process << '<<bulkimport.process_id>> <<bulkimport.status>>' >>.",
+          "content": "A bulk-import process << '{{bulkimport.process_id }}' >> << '{{bulkimport.status}}' >>.",
           "type": "email",
           "senderName":"DexIt",
           "subject":"Bulk Import Status Changed",
           "contentType":"customHtml"
         },
         "active": true,
-        "should_stop_on_fail": false
+        "shouldStopOnFail": false
       },
       {
         "template": {
-          "content": "A bulk-import process << '<<bulkimport.process_id>> <<bulkimport.status>>' >>.",
+          "content": "A bulk-import process << '{{bulkimport.process_id}}' >> << '{{bulkimport.status}}' >>.",
           "type": "chat"
         },
         "active": true,
-        "should_stop_on_fail": false
+        "shouldStopOnFail": false
       }
     ],
     "active": true,
-    "notification_group_id": "<<notification.notification_grp_id>>",
+    "notificationGroupId": "<<notification.notification_grp_id>>",
     "critical": false,
     "draft": false,
-    "preference_settings": {
+    "preferenceSettings": {
       "email": true,
       "sms": true,
       "in_app": true,
