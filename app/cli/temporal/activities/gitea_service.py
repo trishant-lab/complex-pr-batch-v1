@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel, Activity
 from app.cli.temporal.core.log import log_info, log_error
+from app.core.settings import AppSettings, ZSegmentSettings, get_settings
 
 
 @dataclass
@@ -120,7 +121,9 @@ class GiteaService:
         Create a new repository from the template repository
         """
         try:
-            url = f"{self.base_url}/repos/gitea_admin/{self.template_repo}/generate"
+            config: AppSettings = get_settings()
+            zsegment_config: ZSegmentSettings = config.zsegment
+            url = f"{self.base_url}/repos/{zsegment_config.gitea_admin_username}/{self.template_repo}/generate"
             payload = {"name": repo_name, "owner": username, "git_content": True}
             response = httpx.post(url, json=payload, auth=self.auth, timeout=30)
             response.raise_for_status()
@@ -164,8 +167,10 @@ class GiteaSetupActivity(Activity):
         username = GiteaService.extract_username(properties.email)
         email = properties.email
         tenant = properties.tenant
+        config: AppSettings = get_settings()
+        zsegment_config: ZSegmentSettings = config.zsegment
 
-        gitea_user = GiteaUser(username=username, email=email)
+        gitea_user = GiteaUser(username=zsegment_config.gitea_admin_username, email=email)
 
         log_info(f"Creating repository '{tenant}' for user '{username}' with branches: dev and prod")
 
