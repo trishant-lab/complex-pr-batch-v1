@@ -43,6 +43,27 @@ def get_storage_client(config: AppSettings, access_key: str, secret_key: str, en
     )
 
 
+def get_storage_client_with_session_token(
+    config: AppSettings, access_key: str, secret_key: str, endpoint: str, session_token: str
+) -> boto3.client:
+    """
+    Get s3 client object to connect with buckets
+    :param access_key:
+    :param secret_key:
+    :param endpoint:
+    :param config:
+    :return:
+    """
+    return boto3.client(
+        "s3",
+        endpoint_url=endpoint,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        aws_session_token=session_token,
+        use_ssl=config.s3.use_ssl,
+    )
+
+
 def upload_file_to_storage(file_path: str, object_name: str, bucket_name: str, storage_client: BaseClient) -> None:
     """
     Upload file to s3
@@ -77,12 +98,52 @@ def download_file_from_storage(
         return None
 
 
-def copy_files_to_s3(input_path: str, output_path: str, config: AppSettings) -> None:
+def sync_and_verify_files(
+    storage_client: BaseClient, input_path: str, bucket_name: str, prefix: str | None = None
+) -> None:
     """
-    Copy objects from local to s3
+    Sync local files to S3/R2 and verify the file count matches
+    Args:
+        storage_client: The S3/R2 client
+        local_path: Path to local directory to sync
+        bucket_name: Destination bucket name
+    Raises:
+        RuntimeError: If file counts don't match or on upload failure
     """
-    os.system(f"mc alias set {config.s3.s3_alias} {config.s3.endpoint} {config.s3.access_key} {config.s3.secret_key}")  # nosec
-    os.system(f"mc mirror --remove --overwrite {input_path} {output_path}")  # nosec
+    try:
+        # Count and upload local files
+        local_file_count = 0
+        for file_path in Path(input_path).rglob("*"):
+            if file_path.is_file():
+                # Calculate relative path for S3 key
+                key = str(file_path.relative_to(input_path))
+                try:
+                    storage_client.upload_file(Filename=str(file_path), Bucket=bucket_name, Key=key)
+                    local_file_count += 1
+                except ClientError as e:
+                    logger.error(f"Failed to upload {key}: {e}")
+                    raise RuntimeError(f"Error uploading {key}: {e}")
+
+        # Count files in S3
+        s3_file_count = 0
+        paginator = storage_client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket_name):
+            # Only count files from the specific path we uploaded from
+            if "Contents" in page and prefix:
+                s3_file_count = sum(1 for item in page["Contents"] if item["Key"].startswith(prefix))
+            else:
+                s3_file_count += len(page.get("Contents", []))
+
+        logger.info(f"Bucket {bucket_name}: Local files: {local_file_count} S3 Files: {s3_file_count}")
+        if local_file_count != s3_file_count:
+            msg = f"File count mismatch for {bucket_name}: {local_file_count} != {s3_file_count}"
+            logger.error(msg)
+            raise Exception(msg)  # noqa: TRY301
+
+    except Exception as e:
+        msg = f"Error syncing files for {bucket_name}: {e}"
+        logger.error(msg)
+        raise Exception(msg)
 
 
 def mirror_files_to_cloudflare(

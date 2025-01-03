@@ -21,11 +21,12 @@ from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import (
     download_file_from_storage,
-    mirror_files_to_cloudflare,
     get_storage_client,
+    get_storage_client_with_session_token,
     delete_files_from_cloudflare,
     copy_files_to_cloudflare,
     copy_files_to_cloudflare_with_exclude,
+    sync_and_verify_files,
 )
 
 
@@ -231,27 +232,35 @@ class CopyArtifactsToBucketActivity(Activity):
                 with zipfile.ZipFile(f"{tmp_dir}/{activity_input.bundle_name}", "r") as zip_ref:
                     zip_ref.extractall(f"{tmp_dir}/bundle")
 
-                # copy the files to the destination directory
-                mirror_files_to_cloudflare(
+                storage_client = get_storage_client_with_session_token(
+                    config=config,
+                    access_key=bucket_access_key,
+                    secret_key=bucket_secret_key,
+                    endpoint=config.cloudflare.r2_endpoint,
+                    session_token=bucket_session_token,
+                )
+
+                delete_files_from_cloudflare(
                     tenant=activity_input.tenant,
-                    input_path=f"{tmp_dir}/{activity_input.bundle_path}",
-                    output_path=activity_input.dest_dir,
+                    input_path=f"{activity_input.bucket_name}/",
                     endpoint=config.cloudflare.r2_endpoint,
                     access_key=bucket_access_key,
                     secret_key=bucket_secret_key,
-                    session_token=bucket_temporary_credentials.session_token,
+                    session_token=bucket_session_token,
+                )
+
+                sync_and_verify_files(
+                    storage_client=storage_client,
+                    input_path=f"{tmp_dir}/{activity_input.bundle_path}",
+                    bucket_name=activity_input.bucket_name,
                 )
 
                 # todo: check if this is needed for all products
                 if environment == "production":
-                    mirror_files_to_cloudflare(
-                        tenant=activity_input.tenant,
+                    sync_and_verify_files(
+                        storage_client=storage_client,
                         input_path=f"{tmp_dir}/{activity_input.bundle_path}/index.html",
-                        output_path=f"{activity_input.dest_dir}/custom/index.html",
-                        endpoint=config.cloudflare.r2_endpoint,
-                        access_key=bucket_access_key,
-                        secret_key=bucket_secret_key,
-                        session_token=bucket_session_token,
+                        bucket_name=activity_input.bucket_name,
                     )
 
                 log_info(f"UI setup completed for {activity_input.dest_dir}")
@@ -615,29 +624,37 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                 bucket_access_key = bucket_temporary_credentials.access_key_id
                 bucket_secret_key = bucket_temporary_credentials.secret_access_key
 
+                delete_files_from_cloudflare(
+                    tenant=activity_input.tenant,
+                    input_path=f"{activity_input.careerportal_bucket_name}/",
+                    endpoint=config.cloudflare.r2_endpoint,
+                    access_key=bucket_access_key,
+                    secret_key=bucket_secret_key,
+                    session_token=bucket_temporary_credentials.session_token,
+                )
+
+                storage_client = get_storage_client_with_session_token(
+                    config=config,
+                    access_key=bucket_access_key,
+                    secret_key=bucket_secret_key,
+                    endpoint=config.cloudflare.r2_endpoint,
+                    session_token=bucket_temporary_credentials.session_token,
+                )
+
                 # copy "apply" directory
-                mirror_files_to_cloudflare(
-                    tenant=activity_input.tenant,
+                sync_and_verify_files(
+                    storage_client=storage_client,
                     input_path=f"{tmp_dir}/bundle/dist/careerpages/apply",
-                    output_path=f"{activity_input.careerportal_bucket_name}/apply",
-                    endpoint=config.cloudflare.r2_endpoint,
-                    access_key=bucket_access_key,
-                    secret_key=bucket_secret_key,
-                    session_token=bucket_temporary_credentials.session_token,
+                    bucket_name=activity_input.careerportal_bucket_name,
+                    prefix="apply",
                 )
-
                 # copy "public" directory
-                mirror_files_to_cloudflare(
-                    tenant=activity_input.tenant,
+                sync_and_verify_files(
+                    storage_client=storage_client,
                     input_path=f"{tmp_dir}/bundle/dist/careerpages/public",
-                    output_path=f"{activity_input.careerportal_bucket_name}/public",
-                    endpoint=config.cloudflare.r2_endpoint,
-                    access_key=bucket_access_key,
-                    secret_key=bucket_secret_key,
-                    session_token=bucket_temporary_credentials.session_token,
+                    bucket_name=activity_input.careerportal_bucket_name,
+                    prefix="public",
                 )
-
-                # todo: check artifact copy for production, since we are using tag based copy from artifact
 
                 log_info(f"UI setup completed for {activity_input.tenant}")
 
