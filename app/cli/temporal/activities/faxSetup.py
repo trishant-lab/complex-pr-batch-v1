@@ -51,7 +51,7 @@ class FaxSetup:
 
         payload = {
             "name": self.dexit.tenant,
-            "permissions": ["calling", "fax", "messaging"],
+            "permissions": ["fax", "numbers", "management"],
             "subproject_id": subproject_id,
         }
 
