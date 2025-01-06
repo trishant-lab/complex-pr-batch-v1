@@ -6,6 +6,9 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 
 
+ROLE_API_VERSION = "rbac.authorization.k8s.io/v1"
+
+
 class CreateKubernetesResourcesActivityModel(LaunchpadCLIBaseModel):
     """
     Model for creating ServiceAccount, Role, and RoleBinding
@@ -65,7 +68,7 @@ class CreateKubernetesResourcesActivity(Activity):
 
         # Create Role
         role_body = {
-            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "apiVersion": ROLE_API_VERSION,
             "kind": "Role",
             "metadata": {
                 "name": "zsegment-api-role",
@@ -102,7 +105,7 @@ class CreateKubernetesResourcesActivity(Activity):
         role_resource = get_resource(
             dynamic_client=k8s_dynamic_client,
             kind=ResourceKindEnum.Role,
-            api_version="rbac.authorization.k8s.io/v1",
+            api_version=ROLE_API_VERSION,
         )
         k8s_dynamic_client.server_side_apply(
             resource=role_resource,
@@ -113,7 +116,7 @@ class CreateKubernetesResourcesActivity(Activity):
 
         # Create RoleBinding
         role_binding_body = {
-            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "apiVersion": ROLE_API_VERSION,
             "kind": "RoleBinding",
             "metadata": {
                 "name": "zsegment-api-role-binding",
@@ -135,7 +138,7 @@ class CreateKubernetesResourcesActivity(Activity):
         role_binding_resource = get_resource(
             dynamic_client=k8s_dynamic_client,
             kind=ResourceKindEnum.RoleBinding,
-            api_version="rbac.authorization.k8s.io/v1",
+            api_version=ROLE_API_VERSION,
         )
         k8s_dynamic_client.server_side_apply(
             resource=role_binding_resource,

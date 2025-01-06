@@ -9,36 +9,40 @@ from app.core.settings import AppSettings, get_settings
 
 reports_router = APIRouter()
 
+RESULT_PER_USER = "int(sum(row['count_'] for row in {result}) / len({result}))"
+SUM_RESULT = "sum(row['count_'] for row in {result})"
+JEEVES_REPORTS_PER_USER_SQL = "jeevesReportsPerUser.sql"
+
 REPORT_NAMES: dict = {
     "jeeves": {
         "assetsViewedSummary": {
             "query": "assetViewedPerUser.sql",
             "response_model": {
-                "total_assets_viewed": "sum(row['views'] for row in {result})",
-                "assets_viewed_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
+                "total_assets_viewed": SUM_RESULT,
+                "assets_viewed_per_user": RESULT_PER_USER,
             },
         },
         "assetsDownloadSummary": {
-            "query": "jeevesReportsPerUser.sql",
+            "query": JEEVES_REPORTS_PER_USER_SQL,
             "input_params": {"event_category": "Assets", "event_action": "Download"},
             "response_model": {
-                "total_assets_downloaded": "sum(row['count_'] for row in {result})",
-                "assets_downloaded_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
+                "total_assets_downloaded": SUM_RESULT,
+                "assets_downloaded_per_user": RESULT_PER_USER,
             },
         },
         "assetsShared": {
-            "query": "jeevesReportsPerUser.sql",
+            "query": JEEVES_REPORTS_PER_USER_SQL,
             "input_params": {"event_category": "Assets", "event_action": "Share"},
             "response_model": {
-                "total_assets_shared": "sum(row['count_'] for row in {result})",
-                "assets_shared_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
+                "total_assets_shared": SUM_RESULT,
+                "assets_shared_per_user": RESULT_PER_USER,
             },
         },
         "queriesSearched": {
             "query": "queriesPerUser.sql",
             "response_model": {
-                "total_searches": "sum(row['count_'] for row in {result})",
-                "searches_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
+                "total_searches": SUM_RESULT,
+                "searches_per_user": RESULT_PER_USER,
             },
         },
         "users": {
@@ -59,31 +63,31 @@ REPORT_NAMES: dict = {
             "query": "jeevesReportsPerUser.sql",
             "input_params": {"event_category": "Assignments", "event_action": "Create"},
             "response_model": {
-                "total_assignments_created": "sum(row['count_'] for row in {result})",
-                "assignments_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
+                "total_assignments_created": SUM_RESULT,
+                "assignments_per_user": RESULT_PER_USER,
             },
         },
         "assetUpload": {
-            "query": "jeevesReportsPerUser.sql",
+            "query": JEEVES_REPORTS_PER_USER_SQL,
             "input_params": {"event_category": "Add Asset", "event_action": "Upload Video"},
             "response_model": {
-                "total_assets_uploaded": "sum(row['count_'] for row in {result})",
-                "assets_uploaded_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
+                "total_assets_uploaded": SUM_RESULT,
+                "assets_uploaded_per_user": RESULT_PER_USER,
             },
         },
         "assetRecord": {
-            "query": "jeevesReportsPerUser.sql",
+            "query": JEEVES_REPORTS_PER_USER_SQL,
             "input_params": {"event_category": "Add Asset", "event_action": "Record Video"},
             "response_model": {
-                "total_assets_recorded": "sum(row['count_'] for row in {result})",
-                "assets_recorded_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
+                "total_assets_recorded": SUM_RESULT,
+                "assets_recorded_per_user": RESULT_PER_USER,
             },
         },
         "assetsTipSheetCreatedPerUser": {
             "query": "jeevesTipSheetReportsPerUser.sql",
             "response_model": {
-                "total_assets_tip_sheet": "sum(row['count_'] for row in {result})",
-                "tipsheet_created_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
+                "total_assets_tip_sheet": SUM_RESULT,
+                "tipsheet_created_per_user": RESULT_PER_USER,
             },
         },
     }

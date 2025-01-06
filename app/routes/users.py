@@ -319,4 +319,3 @@ async def delete_user(
 
     kc_agent.kc_client.connection.realm_name = config.keycloak.realm
     kc_agent.kc_client.delete_user(user_id=user_id)
-    return

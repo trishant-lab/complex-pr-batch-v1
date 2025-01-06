@@ -23,7 +23,6 @@ def write_supervisor_workers_conf() -> None:
     """
     cwd: str = os.path.join(os.path.abspath(os.path.dirname(app.__file__)), "..")
     python_path: str = shutil.which("python3") or "python3"
-    uvicorn_path: str = shutil.which("uvicorn") or "uvicorn"
     file_path: str = os.path.join(os.path.abspath(os.path.dirname(__file__)), "workersd.conf")
 
     from app.cli.temporal import worker
@@ -50,19 +49,8 @@ def write_supervisor_workers_conf() -> None:
         }
         worker_config[key] = value
 
-    # todo: add monitoring
-    # worker_config["program:monitoring"] = {
-    #     "command": f"{uvicorn_path} app.cli.exporter:app --port 8000 --host 0.0.0.0",
-    #     "stopasgroup": False,
-    #     "numprocs": 1,
-    #     "process_name": f"launchpad_worker_monitoring_%(process_num)02d",
-    #     **common_config_dict,
-    # }
     with open(file_path, "w") as configfile:
         worker_config.write(configfile)
-    # from app.cli.temporal.main import main
-
-    # main()
 
 
 if __name__ == "__main__":

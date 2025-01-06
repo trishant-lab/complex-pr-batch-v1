@@ -35,7 +35,7 @@ async def get_huggingface_endpoint_url(endpoint_name: str, check_interval: int =
         while endpoint.status != "running":
             if endpoint.status not in ("pending", "initializing"):
                 logger.error(f"Failed to resume {endpoint_name} endpoint. Status: {endpoint.status}")
-                raise Exception(f"Failed to resume {endpoint_name} endpoint. Status: {endpoint.status}")
+                raise aiohttp.ClientError(f"Failed to resume {endpoint_name} endpoint. Status: {endpoint.status}")
             logger.debug(f"Waiting for {endpoint_name} to be up. Current status: {endpoint.status}")
             await asyncio.sleep(check_interval)
             endpoint = get_inference_endpoint(

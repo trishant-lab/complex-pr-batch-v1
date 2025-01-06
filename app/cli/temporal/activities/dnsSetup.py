@@ -77,6 +77,6 @@ class DnsSetupActivity(Activity):
             except socket.gaierror:
                 count += 1
                 if count == 61:
-                    raise Exception(f"DNS propagation check timed out after [10 min]: {activity_model.fqdn}")
+                    raise TimeoutError(f"DNS propagation check timed out after [10 min]: {activity_model.fqdn}")
                 log_info(f"DNS not propagated yet: {activity_model.fqdn}")
                 await asyncio.sleep(10)

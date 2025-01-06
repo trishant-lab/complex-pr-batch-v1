@@ -76,7 +76,7 @@ async def get_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> list:
     return response.result
 
 
-async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str, content: str | None = None) -> dict:
+async def create_dns_record(config: AppSettings, fqdn: str, zone_id: str, content: str | None = None) -> dict | None:
     """
     Create a DNS record
     """
@@ -139,7 +139,7 @@ async def _validate_custom_domain(config: AppSettings, bucket_name: str, custom_
             raise TimeoutError(f"DNS propagation check timed out after [10 min]: {custom_domain}")
         domains = await _list_custom_domains(config=config, bucket_name=bucket_name)
         if not domains:
-            raise Exception(f"No domains found for bucket {bucket_name}")
+            raise ValueError(f"No domains found for bucket {bucket_name}")
         domain = None
         for _domain in domains:
             if _domain["domain"] == custom_domain:
@@ -161,7 +161,7 @@ async def _validate_custom_domain(config: AppSettings, bucket_name: str, custom_
                     f"invalid ownership status '{ownership_status}'"
                 )
                 logger.error(msg)
-                raise Exception(msg)
+                raise ValueError(msg)
 
 
 async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, custom_domain: str, zone_id: str) -> dict:

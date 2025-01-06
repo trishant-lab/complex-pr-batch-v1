@@ -36,11 +36,11 @@ class FaxSetup:
             )
 
             if response.status == 404:
-                raise Exception(f"API endpoint not found. URL: {url}")
+                raise aiohttp.ClientError(f"API endpoint not found. URL: {url}")
 
             content = await response.json()
             if response.status != 201:
-                raise Exception(f"Failed to create SignalWire subaccount: {content}")
+                raise aiohttp.ClientError(f"Failed to create SignalWire subaccount: {content}")
             return content
 
     async def create_sub_account_token(self, subproject_id: str) -> dict:
@@ -61,11 +61,11 @@ class FaxSetup:
             )
 
             if response.status == 404:
-                raise Exception(f"API endpoint not found. URL: {url}")
+                raise aiohttp.ClientError(f"API endpoint not found. URL: {url}")
 
             content = await response.json()
             if response.status != 200:
-                raise Exception(f"Failed to create SignalWire subaccount token: {content}")
+                raise aiohttp.ClientError(f"Failed to create SignalWire subaccount token: {content}")
             return content
 
     async def fax_request(self: "FaxSetup", url: str, payload: dict, username: str, password: str) -> tuple[dict, int]:
@@ -115,9 +115,9 @@ class FaxSetup:
             url=self.laml_url, payload=payload, username=subaccount["sid"], password=subaccount_token["token"]
         )
         if status != 201 and status != 422:
-            raise Exception(f"API createLamlBin failed with status code : {status}")
+            raise aiohttp.ClientError(f"API createLamlBin failed with status code : {status}")
         elif status == 422:
-            raise Exception(f"API createLamlBin Error '{content['message']}'")
+            raise aiohttp.ClientError(f"API createLamlBin Error '{content['message']}'")
 
         # store in 1Password
         one_password.insert_if_not_exists(key="fax_url", value=content["request_url"])

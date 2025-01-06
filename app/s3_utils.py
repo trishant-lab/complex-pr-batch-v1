@@ -138,12 +138,12 @@ def sync_and_verify_files(
         if local_file_count != s3_file_count:
             msg = f"File count mismatch for {bucket_name}: {local_file_count} != {s3_file_count}"
             logger.error(msg)
-            raise Exception(msg)  # noqa: TRY301
+            raise RuntimeError(msg)  # noqa: TRY301
 
     except Exception as e:
         msg = f"Error syncing files for {bucket_name}: {e}"
         logger.error(msg)
-        raise Exception(msg)
+        raise RuntimeError(msg)
 
 
 def mirror_files_to_cloudflare(

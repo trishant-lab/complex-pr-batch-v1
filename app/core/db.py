@@ -89,7 +89,7 @@ class DBManager:
         :param kwargs:
         :return:
         """
-        logger.info("Executing Query: {}", sqlfile)
+        logger.info(f"Executing Query: {sqlfile}")
         template = self.jsql.env.get_template(sqlfile)
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
@@ -116,7 +116,7 @@ class DBManager:
         :param kwargs:
         :return:
         """
-        logger.info("Executing Query: {}", sqlfile)
+        logger.info(f"Executing Query: {sqlfile}")
         template = self.jsql.env.get_template(sqlfile)
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
@@ -144,7 +144,7 @@ class DBManager:
         :param kwargs:
         :return:
         """
-        logger.info("Executing Query: {}", sqlfile)
+        logger.info(f"Executing Query: {sqlfile}")
         template = self.jsql.env.get_template(sqlfile)
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)

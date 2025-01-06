@@ -56,7 +56,7 @@ async def send_customer_password_mail(
         response = dict(response)
     except Exception as e:
         log_error(f"Error fetching template: {e}")
-        raise Exception("Error fetching email template")
+        raise RuntimeError("Error fetching email template")
 
     subject = response["subject"]
     content = await provisioning_success_mail(
@@ -89,8 +89,8 @@ def reset_keycloak_user_password(realm_name: str, email: str, password: str) -> 
         if len(users) == 0:
             msg = f"OnboardingError: User {email} not found in realm {realm_name}"
         else:
-            msg = f"OnboardingError: Found {len(users)} users with email " f"{email} in realm {realm_name}"
-        raise Exception(msg)
+            msg = f"OnboardingError: Found {len(users)} users with email {email} in realm {realm_name}"
+        raise RuntimeError(msg)
 
     keycloak_admin_client.set_user_password(user_id=users[0]["id"], password=password, realm_name=realm_name)
 
@@ -116,7 +116,6 @@ async def send_provisioning_mail(
     )
 
     log_info(f"Tenant temporary credentials were sent {user_details.get('email')}")
-    return
 
 
 async def send_before_provisioning_mail(user_details: dict, product: str, from_name: str, email_from: str) -> None:
@@ -134,7 +133,7 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
         response = dict(response)
     except Exception as e:
         log_error(f"Error fetching template: {e}")
-        raise Exception("Error fetching email template")
+        raise RuntimeError("Error fetching email template")
 
     subject = response["subject"]
 

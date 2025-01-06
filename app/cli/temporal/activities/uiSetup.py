@@ -80,7 +80,6 @@ class UiSetupActivity(Activity):
                     config=config,
                 )
 
-                # todo: check if this is needed for all products
                 if environment == "production":
                     copy_files_to_s3(
                         input_path=f"{tmp_dir}/{activity_model.bundle_path}/index.html",

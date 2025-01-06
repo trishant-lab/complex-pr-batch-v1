@@ -62,7 +62,6 @@ class KeycloakAdminClient:
         realms = [row["realm"] for row in self.get_all_realms()]
         if realm_name in realms:
             self.kc_client.delete_realm(realm_name)
-        return
 
     def create_user(self: "KeycloakAdminClient", user_config: dict, realm_name: str) -> str | dict:
         """
@@ -228,7 +227,6 @@ class KeycloakAdminClient:
         clients = [row["clientId"] for row in self.get_all_clients(realm_name=realm_name)]
         if client_name in clients:
             self.kc_client.delete_client(client_name)
-        return
 
     def create_group(self: "KeycloakAdminClient", realm_name: str, payload: dict) -> None:
         """
@@ -256,7 +254,6 @@ class KeycloakAdminClient:
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.assign_group_client_roles(group_id=group_id, client_id=client_id, roles=roles)
-        return
 
     def assign_group(self: "KeycloakAdminClient", realm_name: str, user_id: str, group_id: str) -> None:
         """
@@ -265,7 +262,6 @@ class KeycloakAdminClient:
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.group_user_add(user_id=user_id, group_id=group_id)
-        return
 
     def get_client_service_account_user(self: "KeycloakAdminClient", client_id: str) -> str:
         """

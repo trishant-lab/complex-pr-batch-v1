@@ -27,6 +27,9 @@ from app.cli.temporal.core.log import log_info, log_error
 from app.core.settings import get_settings
 
 
+TENANT_CONFIG_FILE = "tenant-config.json"
+
+
 class VespaJob(K8sResourceBaseClass):
     """
     Vespa Job
@@ -68,7 +71,7 @@ class VespaJob(K8sResourceBaseClass):
                             V1Container(
                                 name=self.job_name,
                                 env=[
-                                    V1EnvVar(name="APP_CONFIG_FILE", value="/config/tenant-config.json"),
+                                    V1EnvVar(name="APP_CONFIG_FILE", value=f"/config/{TENANT_CONFIG_FILE}"),
                                     V1EnvVar(name="APP_CONFIG_DIR", value="/config"),
                                     V1EnvVar(name="DEPLOYMENT", value=self.env),
                                     V1EnvVar(name="CLIENT_CODE", value=self.jeeves.tenant),
@@ -76,8 +79,8 @@ class VespaJob(K8sResourceBaseClass):
                                 volume_mounts=[
                                     V1VolumeMount(
                                         name="jeeves-tenant-config",
-                                        mount_path="/config/tenant-config.json",
-                                        sub_path="tenant-config.json",
+                                        mount_path=f"/config/{TENANT_CONFIG_FILE}",
+                                        sub_path=TENANT_CONFIG_FILE,
                                         read_only=True,
                                     )
                                 ],
@@ -91,15 +94,9 @@ class VespaJob(K8sResourceBaseClass):
                                 name="jeeves-tenant-config",
                                 config_map=V1ConfigMapVolumeSource(
                                     name="jeeves-tenant-config",
-                                    items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+                                    items=[V1KeyToPath(key=TENANT_CONFIG_FILE, path=TENANT_CONFIG_FILE)],
                                 ),
                             ),
-                            # V1Volume(
-                            #     name="vespa-volume",
-                            #     persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                            #         claim_name="jeeves-vespa-pvc"
-                            #     ),
-                            # ),
                         ],
                         restart_policy="Never",
                     )

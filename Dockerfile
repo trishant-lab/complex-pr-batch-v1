@@ -1,5 +1,5 @@
-FROM ghcr.io/astral-sh/uv as uv
-FROM registry.314ecorp.tech/launchpad-app-base as requirements-stage
+FROM ghcr.io/astral-sh/uv:0.5.14 AS uv
+FROM registry.314ecorp.tech/launchpad-app-base AS requirements-stage
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -29,10 +29,8 @@ COPY --from=uv /uv /bin/uv
 # Install dependencies
 RUN uv pip install --upgrade pip --system && \
     uv pip install -r requirements.txt --system && \
-    uv pip install -e . --system
-
-
-RUN rm /bin/uv
+    uv pip install -e . --system && \
+    rm /bin/uv
 
 # Expose port and set entrypoint
 EXPOSE 8000

@@ -21,6 +21,8 @@ from app.models.jeevesReports import (
     AssetsTipSheetCreatedResponseModel,
 )
 
+JEEVES_REPORTS_PER_USER_SQL = "jeevesReportsPerUser.sql"
+
 jeeves_report_router = APIRouter()
 
 
@@ -120,7 +122,7 @@ async def assets_download_details(
 
     try:
         result: list = await db.fetch_all(
-            "jeevesReportsPerUser.sql",
+            JEEVES_REPORTS_PER_USER_SQL,
             tenant=tenant,
             site_id=config.jeeves.reporting_site_id,
             event_category="Assets",
@@ -164,7 +166,7 @@ async def assets_shared_details(
 
     try:
         result: list = await db.fetch_all(
-            "jeevesReportsPerUser.sql",
+            JEEVES_REPORTS_PER_USER_SQL,
             tenant=tenant,
             event_category="Assets",
             event_action="Share",
@@ -338,7 +340,7 @@ async def assignments_created_details(
     db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
     try:
         result = await db.fetch_all(
-            "jeevesReportsPerUser.sql",
+            JEEVES_REPORTS_PER_USER_SQL,
             tenant=tenant,
             site_id=config.jeeves.reporting_site_id,
             event_category="Assignments",
@@ -385,7 +387,7 @@ async def asset_upload_details(
     db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
     try:
         result = await db.fetch_all(
-            "jeevesReportsPerUser.sql",
+            JEEVES_REPORTS_PER_USER_SQL,
             tenant=tenant,
             site_id=config.jeeves.reporting_site_id,
             event_category="Add Asset",
@@ -427,7 +429,7 @@ async def asset_record_details(
     db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
     try:
         result = await db.fetch_all(
-            "jeevesReportsPerUser.sql",
+            JEEVES_REPORTS_PER_USER_SQL,
             tenant=tenant,
             site_id=config.jeeves.reporting_site_id,
             event_category="Add Asset",
