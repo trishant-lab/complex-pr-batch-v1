@@ -130,7 +130,7 @@ def sync_and_verify_files(
         for page in paginator.paginate(Bucket=bucket_name):
             # Only count files from the specific path we uploaded from
             if "Contents" in page and prefix:
-                s3_file_count = sum(1 for item in page["Contents"] if item["Key"].startswith(prefix))
+                s3_file_count += sum(1 for item in page["Contents"] if item["Key"].startswith(prefix))
             else:
                 s3_file_count += len(page.get("Contents", []))
 
