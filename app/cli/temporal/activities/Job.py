@@ -139,7 +139,7 @@ class JobActivity(Activity):
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
 
-        delete(k8s_dynamic_client, resource, activity_model.job_name, activity_model.namespace)
+        delete(resource=resource, job_name=activity_model.job_name, namespace=activity_model.namespace)
 
         k8s_dynamic_client.server_side_apply(
             resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True

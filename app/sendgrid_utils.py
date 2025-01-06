@@ -1,6 +1,6 @@
 import base64
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 from collections.abc import Callable
 from typing import ClassVar
 
@@ -194,7 +194,7 @@ class Sendgrid(metaclass=Singleton):
             "provider": MessageProvider.sendgrid.value,
             "msgto": to_email,
             "msgfrom": self.sendgrid_config.email_from,
-            "created": datetime.utcnow(),
+            "created": datetime.now(UTC),
             "responseStatus": response.status_code,
         }
 

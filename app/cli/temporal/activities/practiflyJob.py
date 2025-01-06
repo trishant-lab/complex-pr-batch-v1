@@ -147,7 +147,7 @@ class PractiflyJobActivity(Activity):
         if activity_model.job_type == PractiflyJobEnum.PROVISIONING and job is not None:
             log_info(f"Job {job_name} already exists for {activity_model.tenant}")
         else:
-            delete(k8s_dynamic_client, resource, job_name, activity_model.tenant)
+            delete(resource=resource, job_name=job_name, namespace=activity_model.tenant)
             body = V1Job(
                 api_version="batch/v1",
                 kind=ResourceKindEnum.Job.value,
