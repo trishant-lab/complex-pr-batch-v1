@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends
 from loguru import logger
-from pydantic.fields import FieldInfo, PydanticUndefined
+from pydantic.fields import PydanticUndefined
 
 from ..core.oauth2 import get_oauth_scheme
 from ..models.product import ProductEnum
@@ -25,7 +25,6 @@ async def de_provision_tenant(product: ProductEnum, tenant: str, _: dict = Depen
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
     schema = {}
     for key, value in ProductEnum.get_input_model_class(product).model_fields.items():
-        value: FieldInfo = value
         if value.default is not None and value.default != PydanticUndefined:
             schema[key] = value.default
         else:

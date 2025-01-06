@@ -33,7 +33,7 @@ class ZSegmentWorkflow(ProductWorkflow):
         """
         deprovision method
         """
-        NotImplementedError("ZSegment deprovisioning is not implemented")
+        raise NotImplementedError("ZSegment deprovisioning is not implemented")
 
     @staticmethod
     async def approve(schema: dict) -> None:
