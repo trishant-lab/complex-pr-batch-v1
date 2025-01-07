@@ -32,7 +32,8 @@ jobs:
         run: osv-scanner --lockfile=poetry.lock --config=osv-scanner.config.toml
 
       - name: Build & push the Docker image
-        run: ./docker-build.sh ${{ github.ref_name }} --push
+        run: |
+          ./docker-build.sh ${{ github.ref_name }} --push
 
       - name: Deploy to Kubernetes
         if: github.ref_name == 'sprint'
