@@ -1,40 +1,42 @@
-FROM python:3.12.4
+FROM python:3.13.1-slim
 
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get -qq update && \
-  apt-get install --no-install-recommends -y apt-transport-https ca-certificates openssh-server rsync sshfs vim \
-  supervisor curl wget build-essential
-RUN curl -1sLf 'https://repositories.timber.io/public/vector/cfg/setup/bash.deb.sh' | bash
-
-RUN wget https://downloads.rclone.org/v1.61.1/rclone-v1.61.1-linux-amd64.zip
-RUN unzip rclone-v1.61.1-linux-amd64.zip
-RUN cp /rclone-v1.61.1-linux-amd64/rclone /usr/bin/
-RUN chown root:root /usr/bin/rclone
-RUN chmod 755 /usr/bin/rclone
-
-RUN curl -1sLf 'https://setup.vector.dev' | bash
-RUN apt-get install --no-install-recommends -y vector && apt-get clean
-
-RUN curl -o op.zip https://cache.agilebits.com/dist/1P/op2/pkg/v2.29.0/op_linux_amd64_v2.29.0.zip && \
-  unzip -d op op.zip && \
-  mv op/op /usr/local/bin/ && \
-  rm -rf op.zip op
-
-RUN wget https://dl.min.io/client/mc/release/linux-amd64/mc && mv mc /bin/ && chmod +x /bin/mc
-
-# Install software
-RUN apt-get install --no-install-recommends -y nodejs npm && \
-  apt-get clean && \
-  npm install npm@9 -g && \
-  npm install n -g wrangler postcss-cli && \
-  n latest && \
+  apt-get install --no-install-recommends -y apt-transport-https build-essential ca-certificates \
+  openssh-server rsync sshfs supervisor vim && \
   rm -rf /var/lib/apt/lists/*
+  
+ADD https://repositories.timber.io/public/vector/cfg/setup/bash.deb.sh /tmp/setup/vector.deb.sh
+RUN bash /tmp/setup/vector.deb.sh
 
-RUN wget -P /tmp \
-  https://github.com/just-containers/s6-overlay/releases/download/v2.2.0.3/s6-overlay-amd64.tar.gz && \
-  mkdir /tmp/s6/ && \
-  tar xzf /tmp/s6-overlay-amd64.tar.gz -C /tmp/s6/ && \
-  rm -f /tmp/s6-overlay-amd64.tar.gz &&  \
-  rsync -aq --ignore-existing --remove-source-files /tmp/s6/ /
+ADD https://setup.vector.dev /tmp/setup/bash.deb.sh
+RUN bash /tmp/setup/bash.deb.sh
+
+
+ADD https://cache.agilebits.com/dist/1P/op2/pkg/v2.29.0/op_linux_amd64_v2.29.0.zip /tmp/op.zip
+ADD https://dl.min.io/client/mc/release/linux-amd64/mc /tmp/mc
+ADD https://github.com/just-containers/s6-overlay/releases/download/v2.2.0.3/s6-overlay-amd64.tar.gz \
+    /tmp/s6-overlay-amd64.tar.gz
+
+RUN \
+    apt-get install --no-install-recommends -y unzip && \
+    # install op
+    unzip -d op /tmp/op.zip && \
+    mv op/op /usr/local/bin/ && \
+    rm -rf /tmp/op.zip op && \
+    # install mc
+    mv /tmp/mc /bin/ && chmod +x /bin/mc && \
+    # install nodejs
+    apt-get install --no-install-recommends -y nodejs npm && \
+    apt-get clean && \
+    npm install npm@9 -g && \
+    npm install n -g wrangler postcss-cli && \
+    n latest && \
+    rm -rf /var/lib/apt/lists/* && \
+    # install s6 overlay
+    mkdir /tmp/s6/ && \
+    tar xzf /tmp/s6-overlay-amd64.tar.gz -C /tmp/s6/ && \
+    rm -f /tmp/s6-overlay-amd64.tar.gz &&  \
+    rsync -aq --ignore-existing --remove-source-files /tmp/s6/ /
 

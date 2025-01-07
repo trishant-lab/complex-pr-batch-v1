@@ -17,11 +17,9 @@ class ZSegmentWorkflow(ProductWorkflow):
         """
         onboard method
         """
-        from app.core.settings import ZSegmentSettings, get_settings
         from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
-        product_config: ZSegmentSettings = get_settings().zsegment
         await trigger_workflow(
             workflow_input=ZSegmentSpec(**schema),
             workflow=ZSegmentOnboardingWorkflow,

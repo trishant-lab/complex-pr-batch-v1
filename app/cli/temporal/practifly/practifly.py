@@ -17,11 +17,9 @@ class PractiflyWorkflow(ProductWorkflow):
         """
         onboard method
         """
-        from app.core.settings import PractiflySettings, get_settings
         from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
-        product_config: PractiflySettings = get_settings().practifly
         await trigger_workflow(
             workflow_input=PractiflySpec(**schema),
             workflow=PractiflyOnboardingWorkflow,
@@ -35,9 +33,7 @@ class PractiflyWorkflow(ProductWorkflow):
         """
         from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
         from app.cli.temporal.starter import trigger_workflow
-        from app.core.settings import PractiflySettings, get_settings
 
-        product_config: PractiflySettings = get_settings().practifly
         await trigger_workflow(
             workflow_input=PractiflySpec(**schema),
             workflow=PractiflyDeProvisioningWorkflow,

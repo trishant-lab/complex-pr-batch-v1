@@ -480,26 +480,32 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=HFInferenceEndpointSetupActivity.get_timeout(),
             )
 
+            tenant_config = "tenant-config.json"
+            env_config = "env-config.json"
+            dicom_config = "dicom-config.json"
+            vector_config = "vector-config.toml"
+            config_dir = "config"
+
             # setup tenant configmap
             for config_map in [
                 {
                     "name": "dexit-tenant-config",
-                    "key": "tenant-config.json",
+                    "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "dexit-env-config",
-                    "key": "env-config.json",
+                    "key": env_config,
                     "template_file_name": f"{config.env}-env-config.tmpl.json",
                 },
                 {
                     "name": "dexit-dicom-config",
-                    "key": "dicom-config.json",
+                    "key": dicom_config,
                     "template_file_name": f"{config.env}-dicom-config.tmpl.json",
                 },
                 {
                     "name": "dexit-cli-vector-config",
-                    "key": "vector-config.toml",
+                    "key": vector_config,
                     "template_file_name": f"{config.env}-vector-config.tmpl.toml",
                 },
             ]:
@@ -600,31 +606,31 @@ class DexitOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "dexit-env-config",
-                            "mount_path": "/config/env-config.json",
-                            "sub_path": "env-config.json",
+                            "mount_path": f"/{config_dir}/{env_config}",
+                            "sub_path": env_config,
                         },
                         {
                             "name": "dexit-tenant-config",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "dexit-env-config",
                             "config_map_name": "dexit-env-config",
-                            "key": "env-config.json",
-                            "path": "env-config.json",
+                            "key": env_config,
+                            "path": env_config,
                         },
                         {
                             "name": "dexit-tenant-config",
                             "config_map_name": "dexit-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                     ],
                     container_envs=[
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
+                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
@@ -697,34 +703,34 @@ class DexitOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "env-volume",
-                            "mount_path": "/config/env-config.json",
-                            "sub_path": "env-config.json",
+                            "mount_path": f"/{config_dir}/{env_config}",
+                            "sub_path": env_config,
                         },
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "env-volume",
                             "config_map_name": "dexit-env-config",
-                            "key": "env-config.json",
-                            "path": "env-config.json",
+                            "key": env_config,
+                            "path": env_config,
                         },
                         {
                             "name": "tenant-volume",
                             "config_map_name": "dexit-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
+                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
@@ -755,13 +761,13 @@ class DexitOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "env-volume",
-                            "mount_path": "/config/env-config.json",
-                            "sub_path": "env-config.json",
+                            "mount_path": f"/{config_dir}/{env_config}",
+                            "sub_path": env_config,
                         },
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
                     ],
@@ -769,26 +775,26 @@ class DexitOnboardingWorkflow(Workflow):
                         {
                             "name": "env-volume",
                             "config_map_name": "dexit-env-config",
-                            "key": "env-config.json",
-                            "path": "env-config.json",
+                            "key": env_config,
+                            "path": env_config,
                         },
                         {
                             "name": "tenant-volume",
                             "config_map_name": "dexit-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "vector-volume",
                             "config_map_name": "dexit-cli-vector-config",
-                            "key": "vector-config.toml",
-                            "path": "vector-config.toml",
+                            "key": vector_config,
+                            "path": vector_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
+                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
@@ -820,22 +826,22 @@ class DexitOnboardingWorkflow(Workflow):
                         {
                             "name": "dicom-volume",
                             "mount_path": "/etc/orthanc/orthanc.json",
-                            "sub_path": "dicom-config.json",
+                            "sub_path": dicom_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "dicom-volume",
                             "config_map_name": "dexit-dicom-config",
-                            "key": "dicom-config.json",
-                            "path": "dicom-config.json",
+                            "key": dicom_config,
+                            "path": dicom_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
+                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                     ],
                 ),
