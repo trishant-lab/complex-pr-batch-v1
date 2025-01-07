@@ -33,4 +33,5 @@ jobs:
 
       - name: Build & push the Docker image
         run: |
+          chmod +x docker-build.sh
           ./docker-build.sh ${{ github.ref_name }}
