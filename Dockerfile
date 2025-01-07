@@ -2,7 +2,7 @@ ARG UV_VERSION
 ARG BASE_IMAGE_TAG
 
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
-FROM registry.314ecorp.tech/veritable-accounts-base:${BASE_IMAGE_TAG}
+FROM registry.314ecorp.tech/launchpad-app-base:${BASE_IMAGE_TAG} AS requirements-stage
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -18,7 +18,7 @@ RUN uv pip install --upgrade pip --system && \
     poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev && \
     poetry export -f requirements.txt --output dev_requirements.txt --without-hashes --only dev
 
-FROM registry.314ecorp.tech/launchpad-app-base:${PYTHON_VERSION}-${VERSION}
+FROM registry.314ecorp.tech/launchpad-app-base:${BASE_IMAGE_TAG}
 
 ENV DEBIAN_FRONTEND noninteractive
 
