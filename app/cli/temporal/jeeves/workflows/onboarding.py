@@ -16,6 +16,7 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivityModel,
 )
 from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
+from app.cli.temporal.activities.slackNotificationActivity import SlackNotificationActivity, SlackNotificationActivityModel
 from app.cli.temporal.activities.vespaJob import VespaJobActivity
 from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
 from app.cli.temporal.activities.chatwootSetup import ChatwootSetupActivity, ChatwootSetupActivityModel
@@ -154,6 +155,7 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordGetActivity.defn,
             DeploymentDeletionActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            SlackNotificationActivity.defn
         ]
 
     @classmethod
@@ -964,6 +966,15 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
+            )
+            await workflow.execute_activity(
+                activity=SlackNotificationActivity.defn,
+                arg=SlackNotificationActivityModel(
+                    product=ProductName,
+                    error_message=str(e),
+                ),
+                retry_policy=SlackNotificationActivity.get_retry_policy(),
+                start_to_close_timeout=SlackNotificationActivity.get_timeout(),
             )
             raise e
 
