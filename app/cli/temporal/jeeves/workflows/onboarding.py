@@ -16,7 +16,10 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivityModel,
 )
 from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
-from app.cli.temporal.activities.slackNotificationActivity import SlackNotificationActivity, SlackNotificationActivityModel
+from app.cli.temporal.activities.slackNotificationActivity import (
+    SlackNotificationActivity,
+    SlackNotificationActivityModel,
+)
 from app.cli.temporal.activities.vespaJob import VespaJobActivity
 from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
 from app.cli.temporal.activities.chatwootSetup import ChatwootSetupActivity, ChatwootSetupActivityModel
@@ -155,7 +158,7 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordGetActivity.defn,
             DeploymentDeletionActivity.defn,
             CheckPodRunningStatusActivity.defn,
-            SlackNotificationActivity.defn
+            SlackNotificationActivity.defn,
         ]
 
     @classmethod

@@ -104,7 +104,7 @@ class ChatwootSetup:
         """
         Create a chatwoot account agent bot
         """
-        server_url = f"http://jeeves.{self.tenant}.svc.cluster.local:8000" #NOSONAR
+        server_url = f"http://jeeves.{self.tenant}.svc.cluster.local:8000"  # NOSONAR
 
         headers = {
             "api_access_token": user_api_key,
@@ -309,7 +309,7 @@ class ChatwootSetup:
 
         # create chatwoot custom attributes
         self.create_chatwoot_custom_attributes(user_api_key=api_key, account_id=account_id)
-    
+
     def create_chatwoot_custom_attributes(self: "ChatwootSetup", user_api_key: str, account_id: int) -> None:
         """
         Create chatwoot custom attributes
@@ -319,10 +319,21 @@ class ChatwootSetup:
             "api_access_token": user_api_key,
             "Content-Type": "application/json",
         }
-        if not os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)) , f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json")):
-            logger.warning(f"chatwoot_custom_attrs.json not found")
+        if not os.path.exists(
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json",
+            )
+        ):
+            logger.warning("chatwoot_custom_attrs.json not found")
             return
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)) , f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json"), "rb") as file:
+        with open(
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json",
+            ),
+            "rb",
+        ) as file:
             data = orjson.loads(file.read())
         for attr in data:
             attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
