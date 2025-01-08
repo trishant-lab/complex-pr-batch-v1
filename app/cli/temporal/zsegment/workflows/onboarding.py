@@ -193,7 +193,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
         last_name = pydash.get(zsegment, "lastName")
         email = pydash.get(zsegment, "email")
         tenant = pydash.get(zsegment, "tenant")
-        realm_name = f"zsegment-{tenant}"
+        realm_name = f"{tenant}"
 
         template_env = get_env(template_path=TemplatePath)
 
@@ -337,6 +337,20 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     domain=zsegment_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_client.json",
+                ),
+                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
+            )
+
+            # keycloak client setup
+            await workflow.execute_activity(
+                activity=KeycloakClientSetupActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=zsegment_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_installer_client.json",
                 ),
                 retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),

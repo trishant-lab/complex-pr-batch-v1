@@ -59,22 +59,22 @@ def create_topics(properties: RedpandaProperties) -> bool:
         client = kafka_client(properties)
         topics = [
             NewTopic(
-                f"zsegment-{properties.tenant}-{properties.environment}-inbound",
+                f"zsegment-{properties.tenant}-inbound",
                 num_partitions=properties.partition,
                 replication_factor=properties.replica,
             ),
             NewTopic(
-                f"zsegment-{properties.tenant}-{properties.environment}-outbound",
+                f"zsegment-{properties.tenant}-outbound",
                 num_partitions=properties.partition,
                 replication_factor=properties.replica,
             ),
             NewTopic(
-                f"zsegment-{properties.tenant}-{properties.environment}-event",
+                f"zsegment-{properties.tenant}-event",
                 num_partitions=properties.partition,
                 replication_factor=properties.replica,
             ),
             NewTopic(
-                f"zsegment-{properties.tenant}-{properties.environment}-event-response",
+                f"zsegment-{properties.tenant}-event-response",
                 num_partitions=1,
                 replication_factor=properties.replica,
             ),
@@ -191,7 +191,9 @@ def create_user(properties: RedpandaProperties) -> bool:
                     "password": properties.tenant_password,
                 }
                 response = httpx.put(
-                    f"{properties.admin_api_base_url}/v1/security/users/{username}", json=user_payload, timeout=30
+                    f"{properties.admin_api_base_url}/v1/security/users/{username}",
+                    json=user_payload,
+                    timeout=30,
                 )
                 if response.status_code == 200:
                     log_info(
@@ -216,7 +218,11 @@ def create_user(properties: RedpandaProperties) -> bool:
             "algorithm": properties.tenant_sasl_mechanism,
             "password": properties.tenant_password,
         }
-        response = httpx.post(f"{properties.admin_api_base_url}/v1/security/users", json=user_payload, timeout=30)
+        response = httpx.post(
+            f"{properties.admin_api_base_url}/v1/security/users",
+            json=user_payload,
+            timeout=30,
+        )
         if response.status_code == 200:
             log_info(f"Created user for tenant {properties.tenant}")
             return True
@@ -237,7 +243,10 @@ def delete_user(properties: RedpandaProperties) -> bool:
     Delete a user for the given tenant
     """
     try:
-        response = httpx.delete(f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}", timeout=30)
+        response = httpx.delete(
+            f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}",
+            timeout=30,
+        )
         if response.status_code == 200:
             log_info(f"Deleted user for tenant {properties.tenant}")
             return True
@@ -290,8 +299,6 @@ class RedpandaSetupActivity(Activity):
         if properties.environment:
             topics_created = create_topics(properties)
             if not topics_created:
-                log_error(
-                    f"Failed to create topics for tenant {properties.tenant} in environment {properties.environment}"
-                )
+                log_error(f"Failed to create topics for tenant {properties.tenant}")
 
         log_info(f"Redpanda setup completed for tenant {properties.tenant}")
