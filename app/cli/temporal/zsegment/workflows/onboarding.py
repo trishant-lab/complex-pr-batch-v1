@@ -337,6 +337,9 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     domain=zsegment_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_client.json",
+                    template_payload={
+                        "installer_secret": installer_secret,
+                    },
                 ),
                 retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
