@@ -1,4 +1,5 @@
 import base64
+import mimetypes
 import os
 from pathlib import Path
 
@@ -98,8 +99,38 @@ def download_file_from_storage(
         return None
 
 
+def check_file_count(
+    storage_client: BaseClient,
+    bucket_name: str,
+    local_file_count: int,
+    prefix: str | None = None,
+) -> None:
+    """
+    Check if the file count matches between local and s3
+    """
+    # Count files in S3
+    s3_file_count = 0
+    paginator = storage_client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket_name):
+        # Only count files from the specific path we uploaded from
+        if "Contents" in page and prefix:
+            s3_file_count += sum(1 for item in page["Contents"] if item["Key"].startswith(prefix))
+        else:
+            s3_file_count += len(page.get("Contents", []))
+
+    logger.info(f"Bucket {bucket_name}: Local files: {local_file_count} S3 Files: {s3_file_count}")
+    if local_file_count != s3_file_count:
+        msg = f"File count mismatch for {bucket_name}: {local_file_count} != {s3_file_count}"
+        logger.error(msg)
+        raise RuntimeError(msg)
+
+
 def sync_and_verify_files(
-    storage_client: BaseClient, input_path: str, bucket_name: str, prefix: str | None = None
+    storage_client: BaseClient,
+    input_path: str,
+    bucket_name: str,
+    dest_dir: str,
+    prefix: str | None = None,
 ) -> None:
     """
     Sync local files to S3/R2 and verify the file count matches
@@ -117,28 +148,24 @@ def sync_and_verify_files(
             if file_path.is_file():
                 # Calculate relative path for S3 key
                 key = str(file_path.relative_to(input_path))
+                key = f"{dest_dir.split('/')[-1]}/{key}" if bucket_name in dest_dir else f"{bucket_name}/{key}"
                 try:
-                    storage_client.upload_file(Filename=str(file_path), Bucket=bucket_name, Key=key)
+                    content_type = mimetypes.guess_type(str(file_path))[0] or "application/octet-stream"
+                    storage_client.upload_file(
+                        Filename=str(file_path), Bucket=bucket_name, Key=key, ExtraArgs={"ContentType": content_type}
+                    )
                     local_file_count += 1
                 except ClientError as e:
                     logger.error(f"Failed to upload {key}: {e}")
                     raise RuntimeError(f"Error uploading {key}: {e}")
 
         # Count files in S3
-        s3_file_count = 0
-        paginator = storage_client.get_paginator("list_objects_v2")
-        for page in paginator.paginate(Bucket=bucket_name):
-            # Only count files from the specific path we uploaded from
-            if "Contents" in page and prefix:
-                s3_file_count += sum(1 for item in page["Contents"] if item["Key"].startswith(prefix))
-            else:
-                s3_file_count += len(page.get("Contents", []))
-
-        logger.info(f"Bucket {bucket_name}: Local files: {local_file_count} S3 Files: {s3_file_count}")
-        if local_file_count != s3_file_count:
-            msg = f"File count mismatch for {bucket_name}: {local_file_count} != {s3_file_count}"
-            logger.error(msg)
-            raise RuntimeError(msg)  # noqa: TRY301
+        check_file_count(
+            storage_client=storage_client,
+            bucket_name=bucket_name,
+            local_file_count=local_file_count,
+            prefix=prefix,
+        )
 
     except Exception as e:
         msg = f"Error syncing files for {bucket_name}: {e}"
