@@ -239,9 +239,11 @@ class CopyArtifactsToBucketActivity(Activity):
                     session_token=bucket_session_token,
                 )
 
+                prefix = activity_input.dest_dir.split("/")[-1]
+
                 delete_files_from_cloudflare(
                     tenant=activity_input.tenant,
-                    input_path=f"{activity_input.bucket_name}/",
+                    input_path=f"{activity_input.bucket_name}/{prefix}",
                     endpoint=config.cloudflare.r2_endpoint,
                     access_key=bucket_access_key,
                     secret_key=bucket_secret_key,
@@ -253,6 +255,7 @@ class CopyArtifactsToBucketActivity(Activity):
                     input_path=f"{tmp_dir}/{activity_input.bundle_path}",
                     bucket_name=activity_input.bucket_name,
                     dest_dir=activity_input.dest_dir,
+                    prefix=prefix,
                 )
 
                 if environment == "production":
@@ -261,6 +264,7 @@ class CopyArtifactsToBucketActivity(Activity):
                         input_path=f"{tmp_dir}/{activity_input.bundle_path}/index.html",
                         bucket_name=activity_input.bucket_name,
                         dest_dir=activity_input.dest_dir,
+                        prefix=prefix,
                     )
 
                 log_info(f"UI setup completed for {activity_input.dest_dir}")
