@@ -153,7 +153,6 @@ class VeritableOnboardingWorkflow(Workflow):
         email = pydash.get(veritable, "email")
 
         tenant = pydash.get(veritable, "tenant")
-        # todo vaildate customer id
 
         try:
             # get tenant crd
@@ -169,7 +168,7 @@ class VeritableOnboardingWorkflow(Workflow):
             )
 
             if tenant_crd_exists:
-                raise Exception(f"Tenant {tenant} already exists")  # noqa: TRY301
+                raise RuntimeError(f"Tenant {tenant} already exists")  # noqa: TRY301
 
             if not pydash.get(veritable, "emailSent"):
                 await workflow.execute_activity(
@@ -352,31 +351,37 @@ class VeritableOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
+            custom_config = "custom-config.json"
+            env_config = f"{config.env}-env-config.json"
+            tenant_config = "tenant-config.json"
+            vector_config = "vector-config.toml"
+            provisioning_config = f"{config.env}-provisioning-config.json"
+            config_dir = "config"
             # kubernetes config map creation
             for config_map in [
                 {
                     "name": "veritable-custom-config",
-                    "key": "custom-config.json",
+                    "key": custom_config,
                     "data": "{}",
                 },
                 {
                     "name": "veritable-env-config",
-                    "key": "env-config.json",
+                    "key": env_config,
                     "template_file_name": f"{config.env}-env-config.tmpl.json",
                 },
                 {
                     "name": "veritable-tenant-config",
-                    "key": "tenant-config.json",
+                    "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "veritable-cli-vector-config",
-                    "key": "vector-config.toml",
+                    "key": vector_config,
                     "template_file_name": "vector-config.tmpl.toml",
                 },
                 {
                     "name": "veritable-provisioning-config",
-                    "key": "provisioning-config.json",
+                    "key": provisioning_config,
                     "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
                 },
             ]:
@@ -525,8 +530,8 @@ class VeritableOnboardingWorkflow(Workflow):
                         {
                             "name": "veritable-provisioning-config",
                             "config_map_name": "veritable-provisioning-config",
-                            "key": "provisioning-config.json",
-                            "path": "provisioning-config.json",
+                            "key": provisioning_config,
+                            "path": provisioning_config,
                         },
                     ],
                     container_envs=[
@@ -590,49 +595,49 @@ class VeritableOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "custom-volume",
-                            "mount_path": "/config/custom-config.json",
-                            "sub_path": "custom-config.json",
+                            "mount_path": f"/{config_dir}/{custom_config}",
+                            "sub_path": custom_config,
                         },
                         {
                             "name": "env-volume",
-                            "mount_path": "/config/env-config.json",
-                            "sub_path": "env-config.json",
+                            "mount_path": f"/{config_dir}/{env_config}",
+                            "sub_path": env_config,
                         },
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {
                             "name": "provisioning-volume",
-                            "mount_path": "/config/provisioning-config.json",
-                            "sub_path": "provisioning-config.json",
+                            "mount_path": f"/{config_dir}/{provisioning_config}",
+                            "sub_path": provisioning_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "veritable-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "custom-volume",
                             "config_map_name": "veritable-custom-config",
-                            "key": "custom-config.json",
-                            "path": "custom-config.json",
+                            "key": custom_config,
+                            "path": custom_config,
                         },
                         {
                             "name": "env-volume",
                             "config_map_name": "veritable-env-config",
-                            "key": "env-config.json",
-                            "path": "env-config.json",
+                            "key": env_config,
+                            "path": env_config,
                         },
                         {
                             "name": "provisioning-volume",
                             "config_map_name": "veritable-provisioning-config",
-                            "key": "provisioning-config.json",
-                            "path": "provisioning-config.json",
+                            "key": provisioning_config,
+                            "path": provisioning_config,
                         },
                     ],
                     container_envs=[
@@ -646,7 +651,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "FALSE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "orgName")},
-                        {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
+                        {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
                     ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
@@ -672,18 +677,18 @@ class VeritableOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "custom-volume",
-                            "mount_path": "/config/custom-config.json",
-                            "sub_path": "custom-config.json",
+                            "mount_path": f"/{config_dir}/{custom_config}",
+                            "sub_path": custom_config,
                         },
                         {
                             "name": "env-volume",
-                            "mount_path": "/config/env-config.json",
-                            "sub_path": "env-config.json",
+                            "mount_path": f"/{config_dir}/{env_config}",
+                            "sub_path": env_config,
                         },
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {
                             "name": "vector-volume",
@@ -692,40 +697,40 @@ class VeritableOnboardingWorkflow(Workflow):
                         },
                         {
                             "name": "provisioning-volume",
-                            "mount_path": "/config/provisioning-config.json",
-                            "sub_path": "provisioning-config.json",
+                            "mount_path": f"/{config_dir}/{provisioning_config}",
+                            "sub_path": provisioning_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "veritable-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "custom-volume",
                             "config_map_name": "veritable-custom-config",
-                            "key": "custom-config.json",
-                            "path": "custom-config.json",
+                            "key": custom_config,
+                            "path": custom_config,
                         },
                         {
                             "name": "env-volume",
                             "config_map_name": "veritable-env-config",
-                            "key": "env-config.json",
-                            "path": "env-config.json",
+                            "key": env_config,
+                            "path": env_config,
                         },
                         {
                             "name": "vector-volume",
                             "config_map_name": "veritable-cli-vector-config",
-                            "key": "vector-config.toml",
-                            "path": "vector-config.toml",
+                            "key": vector_config,
+                            "path": vector_config,
                         },
                         {
                             "name": "provisioning-volume",
                             "config_map_name": "veritable-provisioning-config",
-                            "key": "provisioning-config.json",
-                            "path": "provisioning-config.json",
+                            "key": provisioning_config,
+                            "path": provisioning_config,
                         },
                     ],
                     container_envs=[
@@ -739,7 +744,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "TRUE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "orgName")},
-                        {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
+                        {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
                     ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),

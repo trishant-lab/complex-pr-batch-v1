@@ -20,7 +20,7 @@ def render_form(tmp_dir: str) -> dict:
     html_render_path = os.path.join(tmp_dir, "form/html_render")
 
     os.makedirs(html_render_path, exist_ok=True)
-    args_ = ["node", SCRIPT_PATH, f"inputDir={form_path}", f"outputDir={html_render_path}", f"i18Path=" f"{i18n_path}"]
+    args_ = ["node", SCRIPT_PATH, f"inputDir={form_path}", f"outputDir={html_render_path}", f"i18Path={i18n_path}"]
     subprocess.run(args_, check=True)
 
     with open(os.path.join(html_render_path, "form.json")) as f:

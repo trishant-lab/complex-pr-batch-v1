@@ -159,7 +159,7 @@ def create_acls(properties: RedpandaProperties) -> bool:
         # Create the ACLs
         futures = admin.create_acls(access_control_entries).values()
         # Wait for all futures to complete
-        done, not_done = wait(futures, return_when=ALL_COMPLETED)
+        done, _not_done = wait(futures, return_when=ALL_COMPLETED)
 
         # Check if any task encountered an exception
         for future in done:

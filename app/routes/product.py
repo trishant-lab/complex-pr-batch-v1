@@ -38,7 +38,6 @@ async def list_all_products(_: dict = Depends(get_oauth_scheme())) -> list[Produ
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        # parameters = {"product_name": product.value.lower() if product else None}
         response = await db.fetch_all("listAllProducts.sql")
 
         output_response = []

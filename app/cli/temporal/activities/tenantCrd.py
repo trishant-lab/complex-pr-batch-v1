@@ -11,6 +11,9 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 from app.cli.k8s_util import ResourceKindEnum
 
+CRD_GROUP = "com.softwareartistry"
+CRD_VERSION = "v1"
+
 
 class TenantCrdCreationActivityModel(LaunchpadCLIBaseModel):
     """
@@ -53,11 +56,11 @@ class TenantCrdCreationActivity(Activity):
         resource = get_resource(
             dynamic_client=k8s_dynamic_client,
             kind=ResourceKindEnum.PractiflyTenant,
-            api_version="com.softwareartistry/v1",
+            api_version=f"{CRD_GROUP}/{CRD_VERSION}",
         )
 
         body = {
-            "apiVersion": "com.softwareartistry/v1",
+            "apiVersion": f"{CRD_GROUP}/{CRD_VERSION}",
             "kind": activity_model.kind,
             "metadata": {
                 "name": f"{activity_model.product}-{activity_model.tenant}",
@@ -114,8 +117,8 @@ class TenantCrdDeletionActivity(Activity):
 
         try:
             k8s_custom_objects_api.delete_namespaced_custom_object(
-                group="com.softwareartistry",
-                version="v1",
+                group=CRD_GROUP,
+                version=CRD_VERSION,
                 namespace="default",
                 plural=f"{activity_model.product.lower()}tenants",
                 name=f"{activity_model.product}-{activity_model.tenant}",
@@ -161,8 +164,8 @@ class GetTenantCrdActivity(Activity):
         k8s_custom_objects_api = get_custom_objects_api()
 
         return k8s_custom_objects_api.list_namespaced_custom_object(
-            group="com.softwareartistry",
-            version="v1",
+            group=CRD_GROUP,
+            version=CRD_VERSION,
             namespace="default",
             plural=f"{activity_model.product.lower()}tenants",
         )
@@ -206,8 +209,8 @@ class TenantCrdExistsActivity(Activity):
         k8s_custom_objects_api = get_custom_objects_api()
         try:
             _obj = k8s_custom_objects_api.get_namespaced_custom_object(
-                group="com.softwareartistry",
-                version="v1",
+                group=CRD_GROUP,
+                version=CRD_VERSION,
                 namespace="default",
                 plural=f"{activity_model.product.lower()}tenants",
                 name=f"{activity_model.product}-{activity_model.tenant}",

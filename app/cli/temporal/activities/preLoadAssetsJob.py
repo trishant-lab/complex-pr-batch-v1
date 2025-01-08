@@ -32,6 +32,9 @@ from app.core.settings import get_settings
 from app.onepasswordutil import OnePasswordUtil
 
 
+TENANT_CONFIG_FILE = "tenant-config.json"
+
+
 def check_pod_logs(namespace: str, job_name: str) -> bool:
     """
     :return:
@@ -85,7 +88,7 @@ async def check_execution_status(jeeves: JeevesSpec, job_name: str) -> bool:
             return check_pod_logs(namespace=jeeves.tenant, job_name=job_name)
         elif counter == 60:
             logger.error(f"Provisioning Job execution timed out for {jeeves.tenant}")
-            raise Exception(f"Provisioning Job execution timed out for {jeeves.tenant}")
+            raise TimeoutError(f"Provisioning Job execution timed out for {jeeves.tenant}")
 
         logger.info("Waiting for job execution to complete")
         await asyncio.sleep(30)
@@ -150,7 +153,7 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
                                     V1VolumeMount(
                                         name="jeeves-tenant-config",
                                         mount_path="/config/tenant-config.json",
-                                        sub_path="tenant-config.json",
+                                        sub_path=TENANT_CONFIG_FILE,
                                         read_only=True,
                                     ),
                                     V1VolumeMount(
@@ -173,7 +176,7 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
                                 name="jeeves-tenant-config",
                                 config_map=V1ConfigMapVolumeSource(
                                     name="jeeves-tenant-config",
-                                    items=[V1KeyToPath(key="tenant-config.json", path="tenant-config.json")],
+                                    items=[V1KeyToPath(key=TENANT_CONFIG_FILE, path=TENANT_CONFIG_FILE)],
                                 ),
                             ),
                         ],
@@ -200,7 +203,7 @@ class PreLoadAssetsJob(K8sResourceBaseClass):
                 self.k8s_dynamic_client.delete(resource=self.resource, name=self.job_name, namespace=self.jeeves.tenant)
             except NotFoundError:
                 logger.error(f"Provisioning job not found for {self.jeeves.tenant}")
-            raise Exception(f"Provisioning Job execution failed for {self.jeeves.tenant}")
+                raise NotFoundError(f"Provisioning Job execution failed for {self.jeeves.tenant}")
 
     def delete(self: "PreLoadAssetsJob") -> None:
         """

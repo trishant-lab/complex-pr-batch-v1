@@ -18,11 +18,9 @@ class PenknifeWorkflow(ProductWorkflow):
         """
         onboard method
         """
-        from app.core.settings import PenknifeSettings, get_settings
         from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
-        product_config: PenknifeSettings = get_settings().penknife
         await trigger_workflow(
             workflow_input=PenknifeSpec(**schema),
             workflow=PenknifeOnboardingWorkflow,
@@ -34,11 +32,9 @@ class PenknifeWorkflow(ProductWorkflow):
         """
         deprovision method
         """
-        from app.core.settings import PenknifeSettings, get_settings
         from app.cli.temporal.starter import trigger_workflow
         from app.cli.temporal.penknife.workflows.deprovisioning import PenknifeDeProvisioningWorkflow
 
-        product_config: PenknifeSettings = get_settings().penknife
         await trigger_workflow(
             workflow_input=PenknifeSpec(**schema),
             workflow=PenknifeDeProvisioningWorkflow,

@@ -59,7 +59,6 @@ class PenknifeSpec(LaunchpadCLIBaseModel):
     phoneNumber: str
     companyDomain: str
     tenantType: TenantType = TenantType.staffing
-    # TODO: add emailprovider related changes to config
     emailProvider: EmailProvider = EmailProvider.google
     serverSpec: None | ResourceSpec = ResourceSpec()
     cliSpec: None | ResourceSpec = ResourceSpec()

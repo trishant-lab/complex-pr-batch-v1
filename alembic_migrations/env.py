@@ -87,7 +87,6 @@ def run_migrations_offline() -> None:
         if "dry-run" in context.get_x_argument():
             print("Dry-run succeeded; now rolling back transaction...")
             context.execute(text("ABORT;"))
-            return
 
 
 def run_migrations_online() -> None:
@@ -126,7 +125,6 @@ def run_migrations_online() -> None:
             if "dry-run" in context.get_x_argument():
                 print("Dry-run succeeded; now rolling back transaction...")
                 context.execute(text("ABORT;"))
-                return
 
 
 if context.is_offline_mode():

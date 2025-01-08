@@ -10,6 +10,8 @@ from app.core.settings import JeevesSettings
 from app.onepasswordutil import OnePasswordUtil
 from datetime import timedelta
 
+CONTENT_TYPE = "application/json"
+
 
 class ChatwootSetup:
     def __init__(self: "ChatwootSetup", tenant: str, product: str, config: JeevesSettings) -> None:
@@ -32,7 +34,7 @@ class ChatwootSetup:
         """
         headers = {
             "api_access_token": self.chatwoot_platform_api_token,
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
 
         url = f"{self.chatwoot_base_url}/platform/api/v1/accounts"
@@ -45,7 +47,7 @@ class ChatwootSetup:
 
         if response.status_code >= 400:
             logger.error(f"Failed to create account in chatwoot : {response.json()}")
-            raise Exception(f"Failed to create account in chatwoot : {response.json()}")
+            raise RuntimeError(f"Failed to create account in chatwoot : {response.json()}")
 
         logger.info(f"chatwoot account created successfully : {self.tenant}")
         return response.json().get("id")
@@ -56,7 +58,7 @@ class ChatwootSetup:
         """
         headers = {
             "api_access_token": self.chatwoot_platform_api_token,
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
 
         url = f"{self.chatwoot_base_url}/platform/api/v1/users"
@@ -70,7 +72,7 @@ class ChatwootSetup:
         response = requests.post(url=url, headers=headers, json=data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to create user in chatwoot : {response.status_code}")
-            raise
+            raise RuntimeError(f"Failed to create user in chatwoot : {response.status_code}")
         logger.info(f"chatwoot user created successfully apiuser {self.tenant}")
         return response.json()
 
@@ -81,7 +83,7 @@ class ChatwootSetup:
         """
         headers: dict = {
             "api_access_token": f"{self.chatwoot_platform_api_token}",
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
         url: str = f"{self.chatwoot_base_url}/platform/api/v1/accounts/{account_id}/account_users"
 
@@ -92,7 +94,7 @@ class ChatwootSetup:
         response = requests.post(url=url, headers=headers, json=data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to add user to chatwoot account : {response.json()}")
-            raise
+            raise RuntimeError(f"Failed to add user to chatwoot account : {response.json()}")
         logger.info(f"user added to chatwoot account successfully. user id:{user_id}")
         return response.status_code
 
@@ -104,7 +106,7 @@ class ChatwootSetup:
 
         headers = {
             "api_access_token": user_api_key,
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/agent_bots"
@@ -117,7 +119,7 @@ class ChatwootSetup:
         response = requests.post(url=url, headers=headers, json=data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to create agent bot for chatwoot account : {response.json()}")
-            raise
+            raise RuntimeError(f"Failed to create agent bot for chatwoot account : {response.json()}")
         logger.info(f"agent bot created successfully: {self.product} AI Bot")
         return response.json()
 
@@ -127,7 +129,7 @@ class ChatwootSetup:
         """
         headers = {
             "api_access_token": user_api_key,
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes"
@@ -136,7 +138,7 @@ class ChatwootSetup:
 
         if response.status_code >= 400:
             logger.error(f"Failed to list all inboxes for chatwoot account : {response.status_code}")
-            raise Exception(f"Failed to list all inboxes for chatwoot account : {response.status_code}")
+            raise RuntimeError(f"Failed to list all inboxes for chatwoot account : {response.status_code}")
 
         return response.json()
 
@@ -147,7 +149,7 @@ class ChatwootSetup:
         """
         headers: dict = {
             "api_access_token": f"{user_api_key}",
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes"
         inbox_data: dict = {
@@ -160,7 +162,7 @@ class ChatwootSetup:
         response = requests.post(url=url, headers=headers, json=inbox_data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to create inbox bot for chatwoot account : {response.json()}")
-            raise
+            raise RuntimeError(f"Failed to create inbox bot for chatwoot account : {response.json()}")
         logger.info(f"chatwoot inbox created successfully: {self.product}")
         return response.json().get("id")
 
@@ -171,7 +173,7 @@ class ChatwootSetup:
         """
         api_token_headers: dict = {
             "api_access_token": f"{user_api_key}",
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
         update_data: dict = {
             "name": self.product,
@@ -186,7 +188,7 @@ class ChatwootSetup:
         response = requests.patch(url=url, headers=api_token_headers, json=update_data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to update inbox for chatwoot account : {response.json()}")
-            raise
+            raise RuntimeError(f"Failed to update inbox for chatwoot account : {response.json()}")
         logger.info(f"chatwoot inbox updated successfully: inbox id:{inbox_id}")
         return response.status_code
 
@@ -199,7 +201,7 @@ class ChatwootSetup:
         """
         api_token_headers: dict = {
             "api_access_token": f"{user_api_key}",
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
         agent_bot_data: dict = {
             "agent_bot": agent_bot_id,
@@ -208,7 +210,7 @@ class ChatwootSetup:
         response = requests.post(url=url, headers=api_token_headers, json=agent_bot_data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to add agent bot to inbox for chatwoot account : {response.json()}")
-            raise
+            raise RuntimeError(f"Failed to add agent bot to inbox for chatwoot account : {response.json()}")
         logger.info(f"agent bot added to inbox successfully: agent bot id :{agent_bot_id}")
         return response.status_code
 
@@ -218,7 +220,7 @@ class ChatwootSetup:
         """
         headers = {
             "api_access_token": user_api_key,
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/agent_bot"
@@ -227,7 +229,7 @@ class ChatwootSetup:
 
         if response.status_code >= 400:
             logger.error(f"Failed to get agent bot for chatwoot account : {response.status_code}")
-            raise Exception(f"Failed to get agent bot for chatwoot account : {response.status_code}")
+            raise RuntimeError(f"Failed to get agent bot for chatwoot account : {response.status_code}")
 
         return response.json()
 
@@ -237,7 +239,7 @@ class ChatwootSetup:
         """
         headers = {
             "api_access_token": user_api_key,
-            "Content-Type": "application/json",
+            "Content-Type": CONTENT_TYPE,
         }
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/agent_bots"
@@ -246,7 +248,7 @@ class ChatwootSetup:
 
         if response.status_code >= 400:
             logger.error(f"Failed to list all agents for chatwoot account : {response.status_code}")
-            raise Exception(f"Failed to list all agents for chatwoot account : {response.status_code}")
+            raise RuntimeError(f"Failed to list all agents for chatwoot account : {response.status_code}")
 
         return response.json()
 

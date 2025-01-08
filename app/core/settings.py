@@ -131,7 +131,7 @@ class SendGridSettings(BaseModel):
     """SendGrid Settings"""
 
     api_key: str = ""
-    email_from: str = "developer@314ecorp.com"
+    email_from: str = ""
     category: str = "provisioning"
 
 
@@ -139,8 +139,8 @@ class GSuiteModel(BaseSettings):
     type: str = "service_account"
     project_id: str = "e235711"
 
-    private_key_id: SecretStr = ""
-    private_key: SecretStr = ""
+    private_key_id: SecretStr = SecretStr("")
+    private_key: SecretStr = SecretStr("")
 
     client_email: str = ""
 
@@ -203,7 +203,7 @@ class JeevesSettings(BaseModel):
     temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
     temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
 
-    novu_url: str = "https://alerting.314ecorp.tech"
+    novu_url: str = ""
     novu_admin_user: str = "jeeves.assistant@314ecorp.com"
     novu_admin_password: str = ""
     novu_sendgrid_sender_email: str = "noreply@okjeeves.com"
@@ -235,8 +235,8 @@ class HDPSettings(BaseModel):
     domain_name: str = "hdp.314ecorp.tech"
     zone_name: str = "e314ecorptech"
 
-    sender_email: str = "developer@314ecorp.com"
-    sender_name: str = "314e Support"
+    sender_email: str = ""
+    sender_name: str = ""
 
     # grafana: GrafanaSettings = GrafanaSettings()
 
@@ -269,13 +269,6 @@ class PenknifeSettings(BaseModel):
     novu_admin_password: str = ""
 
     keycloak_db_password: str = ""
-
-    # r2_url: str = ""
-    # r2_access_key: str = ""
-    # r2_secret: str = ""
-    # r2_bucket: str = ""
-
-    # reporting_site_id: str = "1"
 
 
 class DexitAIOcrEngines(str, Enum):
@@ -385,41 +378,6 @@ class DexitSettings(BaseModel):
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
 
     ai_config: DexitAISettings = DexitAISettings()
-
-
-# class ZSegmentSettings(BaseModel):
-#     """
-#     ZSegment Settings
-#     """
-
-#     postgres: PostgresSettings = PostgresSettings()
-#     domain_name: str = "zsegment.tech"
-#     zone_name: str = "e314ecorptech"
-#     zone_id: str = ""
-#     redpanda_broker: str = "redpanda-0.redpanda.redpanda-system.svc.cluster.local:9092"
-#     redpanda_admin_username: str = "superuser"
-#     redpanda_admin_password: str = ""
-#     redpanda_admin_api_base_url: str = "http://redpanda-0.redpanda.redpanda-system.svc.cluster.local:9644"
-
-#     keycloak_auth_server_url: str = "https://auth.314ecorp.tech/auth"
-
-#     gitea_base_url: str = "https://gitea.314ecorp.tech/api/v1/"
-#     gitea_admin_username: str = ""
-#     gitea_admin_password: str = ""
-#     gitea_template_owner: str = ""
-
-#     lago_api_url: str = "http://lago-api.lago.svc.cluster.local:3000"
-#     lago_plan_code: str = "Free"
-#     lago_api_key: str = ""
-
-#     postgres_url: str = "db-cluster-ha.postgresql.svc.cluster.local"
-
-#     matomo_auth_token: str = "e9c5ba18c4d7af04c4fdb1443d604e88&force_api_session=1"
-
-#     sender_name: str = ""
-#     sender_email: str = ""
-
-#     temporal_zsegment_onboarding_task_queue: str = "temporal_zsegment_onboarding_task_queue"
 
 
 class ZSegmentSettings(BaseModel):

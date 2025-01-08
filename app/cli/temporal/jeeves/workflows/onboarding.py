@@ -406,26 +406,32 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
+            tenant_config = "tenant-config.json"
+            rclone_config = "rclone.conf"
+            vector_config = "vector-config.toml"
+            statestore_config = "statestore.yaml"
+            config_dir = "config"
+
             # setup tenant configmap
             for config_map in [
                 {
                     "name": "jeeves-tenant-config",
-                    "key": "tenant-config.json",
+                    "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "jeeves-rclone-config",
-                    "key": "rclone.conf",
+                    "key": rclone_config,
                     "template_file_name": f"{config.env}-rclone.tmpl.conf",
                 },
                 {
                     "name": "jeeves-cli-vector-config",
-                    "key": "vector-config.toml",
+                    "key": vector_config,
                     "template_file_name": f"{config.env}-vector-config.tmpl.toml",
                 },
                 {
                     "name": "jeeves-statestore-config",
-                    "key": "statestore.yaml",
+                    "key": statestore_config,
                     "template_file_name": f"{config.env}-statestore.tmpl.yaml",
                 },
             ]:
@@ -616,20 +622,20 @@ class JeevesOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "jeeves-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                     ],
                     container_envs=[
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
@@ -722,41 +728,41 @@ class JeevesOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {"name": "rclone-volume", "mount_path": "/root/.config/rclone/", "read_only": True},
                         {
                             "name": "statestore-volume",
-                            "mount_path": "/root/.dapr/components/statestore.yaml",
-                            "sub_path": "statestore.yaml",
+                            "mount_path": f"/root/.dapr/components/{statestore_config}",
+                            "sub_path": statestore_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "jeeves-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "rclone-volume",
                             "config_map_name": "jeeves-rclone-config",
-                            "key": "rclone.conf",
-                            "path": "rclone.conf",
+                            "key": rclone_config,
+                            "path": rclone_config,
                         },
                         {
                             "name": "statestore-volume",
                             "config_map_name": "jeeves-statestore-config",
-                            "key": "statestore.yaml",
-                            "path": "statestore.yaml",
+                            "key": statestore_config,
+                            "path": statestore_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -788,14 +794,14 @@ class JeevesOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {"name": "rclone-volume", "mount_path": "/root/.config/rclone/", "read_only": True},
                         {
                             "name": "statestore-volume",
-                            "mount_path": "/root/.dapr/components/statestore.yaml",
-                            "sub_path": "statestore.yaml",
+                            "mount_path": f"/root/.dapr/components/{statestore_config}",
+                            "sub_path": statestore_config,
                         },
                         {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
                     ],
@@ -803,32 +809,32 @@ class JeevesOnboardingWorkflow(Workflow):
                         {
                             "name": "tenant-volume",
                             "config_map_name": "jeeves-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "rclone-volume",
                             "config_map_name": "jeeves-rclone-config",
-                            "key": "rclone.conf",
-                            "path": "rclone.conf",
+                            "key": rclone_config,
+                            "path": rclone_config,
                         },
                         {
                             "name": "statestore-volume",
                             "config_map_name": "jeeves-statestore-config",
-                            "key": "statestore.yaml",
-                            "path": "statestore.yaml",
+                            "key": statestore_config,
+                            "path": statestore_config,
                         },
                         {
                             "name": "vector-volume",
                             "config_map_name": "jeeves-cli-vector-config",
-                            "key": "vector-config.toml",
-                            "path": "vector-config.toml",
+                            "key": vector_config,
+                            "path": vector_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},

@@ -86,7 +86,7 @@ async def check_execution_status(resource: Resource, namespace: str, job_name: s
 
             elif iteration == max_iterations:
                 log_error(f"Number of retry exited job {job_name} for {namespace}: 10 minutes")
-                raise Exception(f"Number of retry exited job {job_name} for {namespace}: 10 minutes")
+                raise TimeoutError(f"Number of retry exited job {job_name} for {namespace}: 10 minutes")
 
             log_info(f"Job {job_name} not completed yet for {namespace}")
             # Sleep for 10 seconds
@@ -237,7 +237,7 @@ class PractiflyJobActivity(Activity):
 
         if not status:
             log_error(f"Job {job_name} failed for {activity_model.tenant}")
-            raise Exception(f"Job {job_name} failed for {activity_model.tenant}")
+            raise RuntimeError(f"Job {job_name} failed for {activity_model.tenant}")
 
         log_info(f"Job {job_name} completed successfully for {activity_model.tenant}")
 

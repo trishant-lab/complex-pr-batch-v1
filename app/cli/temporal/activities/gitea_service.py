@@ -90,31 +90,25 @@ class GiteaService:
                 return GiteaUser(username=username, email=email)
             else:
                 log_error(f"Failed to create user '{username}': {e}")
-                raise Exception("Error creating user") from e
+                raise httpx.HTTPStatusError(
+                    f"Failed to create user '{username}'", request=e.request, response=e.response
+                ) from e
 
     def create_repository(self, gitea_user: GiteaUser, repo_name: str) -> None:
         """
         Create a new repository
         """
-        try:
-            self._create_repo_from_template(gitea_user.username, repo_name)
-            log_info("Repository created successfully.")
-        except Exception as e:
-            log_error(f"Could not create repository for user {gitea_user.username}")
-            raise Exception("Error creating repository") from e
+        self._create_repo_from_template(gitea_user.username, repo_name)
+        log_info("Repository created successfully.")
 
     def delete_user(self, username: str) -> None:
         """
         Delete a user
         """
-        try:
-            url = f"{self.base_url}/admin/users/{username}"
-            response = httpx.delete(url, auth=self.auth, timeout=30)
-            response.raise_for_status()
-            log_info("User deleted successfully.")
-        except httpx.HTTPStatusError as e:
-            log_error(f"Could not delete user {username}: {e}")
-            raise Exception("Error deleting user") from e
+        url = f"{self.base_url}/admin/users/{username}"
+        response = httpx.delete(url, auth=self.auth, timeout=30)
+        response.raise_for_status()
+        log_info("User deleted successfully.")
 
     def _create_repo_from_template(self, username: str, repo_name: str) -> None:
         """
@@ -130,10 +124,12 @@ class GiteaService:
             log_info(f"Repository created successfully: {response.json()}")
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 409:
-                pass
+                log_info(f"Repository {repo_name} already exists. Skipping creation.")
             else:
                 log_error(f"Failed to create repository {repo_name}: {e}")
-                raise Exception("Error creating repository") from e
+                raise httpx.HTTPStatusError(
+                    f"Failed to create repository {repo_name}", request=e.request, response=e.response
+                ) from e
 
 
 class GiteaSetupActivity(Activity):

@@ -17,11 +17,9 @@ class JeevesWorkflow(ProductWorkflow):
         """
         onboard method
         """
-        from app.core.settings import JeevesSettings, get_settings
         from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
-        product_config: JeevesSettings = get_settings().jeeves
         await trigger_workflow(
             workflow_input=JeevesSpec(**schema),
             workflow=JeevesOnboardingWorkflow,
@@ -33,11 +31,9 @@ class JeevesWorkflow(ProductWorkflow):
         """
         deprovision method
         """
-        from app.core.settings import JeevesSettings, get_settings
         from app.cli.temporal.starter import trigger_workflow
         from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
 
-        product_config: JeevesSettings = get_settings().jeeves
         await trigger_workflow(
             workflow_input=JeevesSpec(**schema),
             workflow=JeevesDeProvisioningWorkflow,

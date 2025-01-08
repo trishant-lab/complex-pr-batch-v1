@@ -25,7 +25,6 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivityModel,
 )
 
-# from app.cli.temporal.activities.gitea_service import GiteaProperties
 from app.cli.temporal.activities.k8snamespace import (
     K8sNamespaceCreationActivity,
     K8sNamespaceCreationActivityModel,
@@ -538,13 +537,17 @@ class ZSegmentOnboardingWorkflow(Workflow):
             gitea_username = GiteaService.extract_username(email)
             gitea_repo_url = f"/repos/{zsegment_config.gitea_admin_username}/{tenant}/"
             # setup api-dev-config
+            api_config = "api-config.json"
+            engine_config = "engine-config.json"
+            config_dir = "config"
+
             await workflow.execute_activity(
                 activity=K8sConfigMapCreationActivity.defn,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="zsegment-api-config",
                     template_file_name=f"{config.env}-api-config.tmpl.json",
-                    destination_file_name="api-config.json",
+                    destination_file_name=api_config,
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
@@ -586,7 +589,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     namespace=tenant,
                     name="zsegment-engine-config",
                     template_file_name=f"{config.env}-engine-config.tmpl.json",
-                    destination_file_name="engine-config.json",
+                    destination_file_name=engine_config,
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
@@ -730,16 +733,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/api-config.json",
-                            "sub_path": "api-config.json",
+                            "mount_path": f"/{config_dir}/{api_config}",
+                            "sub_path": api_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "zsegment-api-config",
-                            "key": "api-config.json",
-                            "path": "api-config.json",
+                            "key": api_config,
+                            "path": api_config,
                         }
                     ],
                     container_envs=[
@@ -783,16 +786,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/engine-config.json",
-                            "sub_path": "engine-config.json",
+                            "mount_path": f"/{config_dir}/{engine_config}",
+                            "sub_path": engine_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "zsegment-engine-config",
-                            "key": "engine-config.json",
-                            "path": "engine-config.json",
+                            "key": engine_config,
+                            "path": engine_config,
                         }
                     ],
                     container_envs=[

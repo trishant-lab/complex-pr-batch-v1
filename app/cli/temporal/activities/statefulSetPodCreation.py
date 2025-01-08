@@ -43,6 +43,9 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 
 
+K8S_RESOURCE_VERSION = "apps/v1"
+
+
 class KubernetesStatefulSetActivityModel(LaunchpadCLIBaseModel):
     """
     KubernetesStatefulSetActivityModel
@@ -96,13 +99,11 @@ class KubernetesStatefulSetActivity(Activity):
         resource = get_resource(
             dynamic_client=k8s_dynamic_client,
             kind=ResourceKindEnum.StatefulSet,
-            api_version="apps/v1",
+            api_version=K8S_RESOURCE_VERSION,
         )
 
-        # container_port_name = "http" if len(activity_model.container_ports) <= 1 else ""
-
         body = V1StatefulSet(
-            api_version="apps/v1",
+            api_version=K8S_RESOURCE_VERSION,
             kind=ResourceKindEnum.StatefulSet.value,
             metadata=V1ObjectMeta(namespace=activity_model.namespace, name=activity_model.name),
             spec=V1StatefulSetSpec(
@@ -341,9 +342,9 @@ class CheckPodRunningStatusActivity(Activity):
                 if v1_pod_status.phase == "Running":
                     return
                 elif v1_pod_status.phase == "Failed":
-                    raise Exception(f"Pod {activity_model.name} failed to start")
+                    raise RuntimeError(f"Pod {activity_model.name} failed to start")
             await asyncio.sleep(10)
             count += 1
 
             if count > 60:
-                raise Exception(f"Pod {activity_model.name} failed to start even after 10 minutes")
+                raise RuntimeError(f"Pod {activity_model.name} failed to start even after 10 minutes")

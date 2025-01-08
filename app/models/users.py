@@ -61,11 +61,11 @@ class UpdateUserRequestModel(BaseModel):
 
 class GSuiteUser(BaseModel):
     class Name(BaseModel):
-        givenName: str = None
-        familyName: str = None
-        fullName: str = None
+        givenName: str | None = None
+        familyName: str | None = None
+        fullName: str | None = None
 
     id: float
     primaryEmail: str
-    name: Name = None
+    name: Name | None = None
     aliases: list[str] | None = None

@@ -203,7 +203,6 @@ class CopyArtifactsToBucketActivity(Activity):
 
         environment: str = config.env
 
-        # artifacts_temporary_credentials = await get_temporary_credentials(config, "artifacts")
         artifacts_access_key = config.cloudflare.r2_access_key
         artifacts_secret_key = config.cloudflare.r2_secret_key
 
@@ -255,7 +254,6 @@ class CopyArtifactsToBucketActivity(Activity):
                     bucket_name=activity_input.bucket_name,
                 )
 
-                # todo: check if this is needed for all products
                 if environment == "production":
                     sync_and_verify_files(
                         storage_client=storage_client,
@@ -523,7 +521,7 @@ class PropagateDNSRecordActivity(Activity):
             except socket.gaierror:
                 count += 1
                 if count == 61:
-                    raise Exception(f"DNS propagation check timed out after [10 min]: {activity_input.domain_name}")
+                    raise TimeoutError(f"DNS propagation check timed out after [10 min]: {activity_input.domain_name}")
                 log_info(f"DNS not propagated yet: {activity_input.domain_name}")
                 await asyncio.sleep(10)
 
