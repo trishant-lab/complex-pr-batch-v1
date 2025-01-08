@@ -155,6 +155,7 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordGetActivity.defn,
             DeploymentDeletionActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            SlackNotificationActivity.defn
         ]
 
     @classmethod
@@ -905,12 +906,12 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # preload assets job
-            await workflow.execute_activity(
-                activity=PreloadAssetsJobActivity.defn,
-                arg=jeeves,
-                retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
-                start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=PreloadAssetsJobActivity.defn,
+            #     arg=jeeves,
+            #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
+            #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            # )
 
             # check pod running status
             for pod in ["jeeves", "jeeves-worker"]:
