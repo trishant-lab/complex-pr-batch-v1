@@ -674,13 +674,13 @@ class NovuSetup:
 
         return response.json()
 
-    def get_organization_api_key(self: "NovuSetup", token: str) -> str:
+    def get_organization_api_key(self: "NovuSetup", token: str, organization_id: str) -> str:
         """
         Get the API keys for the organization
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments/api-keys"
 
-        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"}, timeout=120)
 
         if response.status_code >= 300:
             raise httpx.HTTPStatusError(
@@ -723,7 +723,7 @@ class NovuSetup:
             organization_id = organization["_id"]
 
         organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
-        api_keys = self.get_organization_api_key(token=organization_token)
+        api_keys = self.get_organization_api_key(token=organization_token, organization_id=organization_id)
 
         # store in 1Password
         OnePasswordUtil(
