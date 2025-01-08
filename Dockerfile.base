@@ -13,11 +13,6 @@ ADD https://github.com/just-containers/s6-overlay/releases/download/v2.2.0.3/s6-
     /tmp/s6-overlay-amd64.tar.gz
 
 RUN \
-    # install vector
-    bash /tmp/setup/vector.deb.sh && \
-    apt-get update && \
-    apt-get install -y vector && \
-    rm -f /tmp/setup/vector.deb.sh && \
     # install unzip
     apt-get install --no-install-recommends -y unzip && \
     # install op
