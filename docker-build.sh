@@ -1,4 +1,4 @@
-BASE_IMAGE_TAG=py-3131-v1 # py-3.11.11-v1, update this to rebuild the base image
+BASE_IMAGE_TAG=py-3131-v2 # py-3.11.11-v1, update this to rebuild the base image
 
 UV_VERSION=latest
 

@@ -211,3 +211,15 @@ def copy_files_to_cloudflare_with_exclude(
         f'mc mirror --remove --overwrite --exclude "{exclude_pattern}" {input_path} launchpad_{tenant}/{output_path}'
     )
     os.system(command)  # nosec
+
+
+def copy_files_to_s3(
+    input_path: str,
+    output_path: str,
+    config: AppSettings,
+) -> None:
+    """
+    Copy files to s3
+    """
+    os.system(f"mc alias set launchpad {config.r2.endpoint} {config.r2.access_key} {config.r2.secret_key}")  # nosec
+    os.system(f"mc copy {input_path} launchpad/{output_path}")  # nosec

@@ -9,6 +9,9 @@ RUN apt-get -qq update && \
 
 ADD https://setup.vector.dev /tmp/setup/vector.deb.sh
 RUN bash /tmp/setup/vector.deb.sh && \
+    apt-get update && \
+    apt-get install -y vector && \
+    rm -rf /var/lib/apt/lists/* && \
     rm -f /tmp/setup/vector.deb.sh
 
 
