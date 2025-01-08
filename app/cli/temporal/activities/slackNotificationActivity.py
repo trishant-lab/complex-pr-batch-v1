@@ -1,0 +1,61 @@
+from datetime import timedelta
+import logging
+from temporalio import activity
+from temporalio.common import RetryPolicy
+from slack_sdk.errors import SlackApiError
+
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
+from app.slack_utils import send_slack_msg
+
+
+class SlackNotificationActivityModel(LaunchpadCLIBaseModel):
+    error_message: str
+    product: str
+
+
+class SlackNotifier:
+    def __init__(self, product: str, error_message: str):
+        self.product = product
+        self.logger = logging.getLogger(__name__)
+        self.error_message = error_message
+    def send_notification(self) -> bool:
+        try:
+            error_message = f"{self.error_message} :{self.product}"
+            send_slack_msg(text=error_message, blocks=[])
+        except SlackApiError as slack_error:
+            self.logger.error(f"Failed to send Slack notification: {slack_error}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Unexpected error sending Slack notification: {e}")
+            return False
+        
+
+class SlackNotificationActivity(Activity):
+    """
+    SlackNotificationActivity
+    """
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), backoff_coefficient=2, maximum_attempts=2)
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    @activity.defn(name="SlackNotificationActivity")
+    async def defn(activity_model: SlackNotificationActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        slack_notification = SlackNotifier(
+            product=activity_model.product, error_message=activity_model.error_message
+        )
+        slack_notification.send_notification()

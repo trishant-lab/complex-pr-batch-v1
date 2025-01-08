@@ -209,9 +209,10 @@ class JeevesSettings(BaseModel):
     novu_sendgrid_sender_email: str = "noreply@okjeeves.com"
     novu_sendgrid_sender_name: str = "Jeeves Support"
 
-    chatwoot_base_url: str = "https://jeeves-agent.314ecorp.tech/"
+    chatwoot_base_url: str = "http://chatwoot.chatwoot.svc.cluster.local:3000" #NOSONAR
     chatwoot_platform_api_token: str = ""
     chatwoot_default_user_password: str = ""
+    server_url: str = ""
 
     keycloak_db_password: str = ""
     matomo_db_password: str = ""

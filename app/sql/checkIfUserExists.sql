@@ -1,1 +1,1 @@
-SELECT usename FROM pg_user WHERE usename = '{{username | sqlsafe }}'
+SELECT usename FROM pg_user WHERE lower(usename) = lower('{{username | sqlsafe }}')

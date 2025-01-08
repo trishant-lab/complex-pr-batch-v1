@@ -1,7 +1,9 @@
+import os
+import re
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-
+import orjson
 import requests
 from loguru import logger
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
@@ -102,7 +104,7 @@ class ChatwootSetup:
         """
         Create a chatwoot account agent bot
         """
-        server_url = f"https://{self.tenant}.{self.config.domain_name}"
+        server_url = f"http://jeeves.{self.tenant}.svc.cluster.local:8000" #NOSONAR
 
         headers = {
             "api_access_token": user_api_key,
@@ -304,6 +306,32 @@ class ChatwootSetup:
         # update inbox
         self.update_chatwoot_inbox(account_id=account_id, user_api_key=api_key, inbox_id=inbox_id)
         log_info(f"chatwoot inbox updated successfully : {self.tenant}")
+
+        # create chatwoot custom attributes
+        self.create_chatwoot_custom_attributes(user_api_key=api_key, account_id=account_id)
+    
+    def create_chatwoot_custom_attributes(self: "ChatwootSetup", user_api_key: str, account_id: int) -> None:
+        """
+        Create chatwoot custom attributes
+        """
+        url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/custom_attribute_definitions"
+        headers = {
+            "api_access_token": user_api_key,
+            "Content-Type": "application/json",
+        }
+        if not os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)) , f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json")):
+            logger.warning(f"chatwoot_custom_attrs.json not found")
+            return
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)) , f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json"), "rb") as file:
+            data = orjson.loads(file.read())
+        for attr in data:
+            attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
+
+        response = requests.post(url=url, headers=headers, json=data, timeout=30)
+        if response.status != 200:
+            logger.error(f"Failed to create custom attribute with status code: {response.status}")
+            raise Exception(f"Failed to create custom attribute with status code: {response.status}")
+        logger.info(f"chatwoot custom attributes created successfully : {self.tenant}")
 
 
 class ChatwootSetupActivityModel(LaunchpadCLIBaseModel):
