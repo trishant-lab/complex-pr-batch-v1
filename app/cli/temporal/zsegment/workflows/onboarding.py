@@ -337,9 +337,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     domain=zsegment_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_client.json",
-                    template_payload={
-                        "installer_secret": installer_secret,
-                    },
                 ),
                 retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
@@ -349,11 +346,14 @@ class ZSegmentOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=KeycloakClientSetupActivity.defn,
                 arg=KeycloakClientSetupActivityModel(
-                    tenant=tenant,
+                    tenant="installer",
                     realm_name=realm_name,
                     domain=zsegment_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_installer_client.json",
+                    template_payload={
+                        "installer_secret": installer_secret,
+                    },
                 ),
                 retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
