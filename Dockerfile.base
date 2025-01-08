@@ -37,4 +37,3 @@ RUN \
     tar xzf /tmp/s6-overlay-amd64.tar.gz -C /tmp/s6/ && \
     rm -f /tmp/s6-overlay-amd64.tar.gz &&  \
     rsync -aq --ignore-existing --remove-source-files /tmp/s6/ /
-
