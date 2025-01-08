@@ -194,7 +194,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
         last_name = pydash.get(zsegment, "lastName")
         email = pydash.get(zsegment, "email")
         tenant = pydash.get(zsegment, "tenant")
-        realm_name = f"zsegment-{tenant}"
+        realm_name = f"{tenant}"
 
         template_env = get_env(template_path=TemplatePath)
 
