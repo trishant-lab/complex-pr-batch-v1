@@ -401,13 +401,13 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-expiring-in-1-days
-    if "jeeves-asset-expiring-in-1-days" not in template_names:
+    if "jeeves-asset-expiring-in-1-day" not in template_names:
         asset_expiring_1_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>This is to inform you that several of your assets will expire in one day. Please take action and update the asset details.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Expiration Date: {{asset.expiration_date}}</span></p><p class="editor-paragraph" dir="ltr"><span>You can update the asset information by clicking [</span><a href="{{asset.asset_link}}" class="editor-link"><span>here</span></a><span>].</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Please take immediate action to update the information for these assets to ensure smooth operations.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_expiring_1_subject: str = "Action Required: Asset Expiring In One Day"
         asset_expiring_1_inapp_content: str = 'Some of your assets are about to expire in one day.<br />{{#each step.events}}Asset title: "{{asset.asset_title}}"<br />{{/each}}'
         asset_expiring_1_chat_content: str = 'Some of your assets are about to expire in one day.\n{{#each step.events}}\nAsset title:  "{{asset.asset_title}}".\nClick here to update: {{asset.asset_link}}\n\n{{/each}}'
         create_novu_workflow_template(
-            event_name="jeeves-asset-expiring-in-1-days",
+            event_name="jeeves-asset-expiring-in-1-day",
             custom_email=asset_expiring_1_custom_email,
             email_subject=asset_expiring_1_subject,
             chat_content=asset_expiring_1_chat_content,

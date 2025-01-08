@@ -212,6 +212,7 @@ class JeevesSettings(BaseModel):
     chatwoot_base_url: str = "http://chatwoot.chatwoot.svc.cluster.local:3000"
     chatwoot_platform_api_token: str = ""
     chatwoot_default_user_password: str = ""
+    server_url: str = ""
 
     keycloak_db_password: str = ""
     matomo_db_password: str = ""

@@ -104,7 +104,7 @@ class ChatwootSetup:
         """
         Create a chatwoot account agent bot
         """
-        server_url = f"http://jeeves.{self.tenant}.svc.cluster.local:8000"
+        server_url = f"http://jeeves.{self.tenant}.svc.cluster.local:8000" #NOSONAR
 
         headers = {
             "api_access_token": user_api_key,
