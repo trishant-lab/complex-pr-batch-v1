@@ -342,6 +342,23 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
+            # keycloak client setup
+            await workflow.execute_activity(
+                activity=KeycloakClientSetupActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant="installer",
+                    realm_name=realm_name,
+                    domain=zsegment_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_installer_client.json",
+                    template_payload={
+                        "installer_secret": installer_secret,
+                    },
+                ),
+                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
+            )
+
             roles = [
                 "_admin",
                 "_default-users",

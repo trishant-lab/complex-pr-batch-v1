@@ -252,6 +252,7 @@ class CopyArtifactsToBucketActivity(Activity):
                     storage_client=storage_client,
                     input_path=f"{tmp_dir}/{activity_input.bundle_path}",
                     bucket_name=activity_input.bucket_name,
+                    dest_dir=activity_input.dest_dir,
                 )
 
                 if environment == "production":
@@ -259,6 +260,7 @@ class CopyArtifactsToBucketActivity(Activity):
                         storage_client=storage_client,
                         input_path=f"{tmp_dir}/{activity_input.bundle_path}/index.html",
                         bucket_name=activity_input.bucket_name,
+                        dest_dir=activity_input.dest_dir,
                     )
 
                 log_info(f"UI setup completed for {activity_input.dest_dir}")
@@ -644,6 +646,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                     storage_client=storage_client,
                     input_path=f"{tmp_dir}/bundle/dist/careerpages/apply",
                     bucket_name=activity_input.careerportal_bucket_name,
+                    dest_dir="",
                     prefix="apply",
                 )
                 # copy "public" directory
@@ -652,6 +655,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                     input_path=f"{tmp_dir}/bundle/dist/careerpages/public",
                     bucket_name=activity_input.careerportal_bucket_name,
                     prefix="public",
+                    dest_dir="",
                 )
 
                 log_info(f"UI setup completed for {activity_input.tenant}")

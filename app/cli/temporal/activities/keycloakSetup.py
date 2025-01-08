@@ -83,6 +83,7 @@ class KeycloakClientSetupActivityModel(LaunchpadCLIBaseModel):
     domain: str
     template_path: str
     template_name: str
+    template_payload: dict | None = None
     auth_credential: str | None = None
 
 
@@ -114,7 +115,10 @@ class KeycloakClientSetupActivity(Activity):
         jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
         template = jinja_env.get_template(activity_model.template_name)
         client_config = template.render(
-            tenant=activity_model.tenant, domain=activity_model.domain, auth_credential=activity_model.auth_credential
+            tenant=activity_model.tenant,
+            domain=activity_model.domain,
+            auth_credential=activity_model.auth_credential,
+            **(activity_model.template_payload if activity_model.template_payload else {}),
         )
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
