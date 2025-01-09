@@ -1,10 +1,10 @@
 import os
 import re
+import httpx
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
 import orjson
-import requests
 from loguru import logger
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
@@ -45,7 +45,7 @@ class ChatwootSetup:
             "name": self.tenant,
         }
 
-        response = requests.post(url=url, headers=headers, json=data, timeout=20)
+        response = httpx.post(url=url, headers=headers, json=data, timeout=20)
 
         if response.status_code >= 400:
             logger.error(f"Failed to create account in chatwoot : {response.json()}")
@@ -71,7 +71,7 @@ class ChatwootSetup:
             "password": self.chatwoot_default_user_password,
             "custom_attributes": {},
         }
-        response = requests.post(url=url, headers=headers, json=data, timeout=20)
+        response = httpx.post(url=url, headers=headers, json=data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to create user in chatwoot : {response.status_code}")
             raise RuntimeError(f"Failed to create user in chatwoot : {response.status_code}")
@@ -93,10 +93,10 @@ class ChatwootSetup:
             "user_id": user_id,
             "role": "administrator",
         }
-        response = requests.post(url=url, headers=headers, json=data, timeout=20)
+        response = httpx.post(url=url, headers=headers, json=data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to add user to chatwoot account : {response.json()}")
-            raise RuntimeError(f"Failed to add user to chatwoot account : {response.json()}")
+            raise httpx.HTTPStatusError(f"Failed to add user to chatwoot account : {response.json()}")
         logger.info(f"user added to chatwoot account successfully. user id:{user_id}")
         return response.status_code
 
@@ -118,10 +118,10 @@ class ChatwootSetup:
             "description": f"{self.product} AI Bot",
             "outgoing_url": f"{server_url}/public/api/v1/agent/{self.product.lower()}Chatbot",
         }
-        response = requests.post(url=url, headers=headers, json=data, timeout=20)
+        response = httpx.post(url=url, headers=headers, json=data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to create agent bot for chatwoot account : {response.json()}")
-            raise RuntimeError(f"Failed to create agent bot for chatwoot account : {response.json()}")
+            raise httpx.HTTPStatusError(f"Failed to create agent bot for chatwoot account : {response.json()}")
         logger.info(f"agent bot created successfully: {self.product} AI Bot")
         return response.json()
 
@@ -136,11 +136,11 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes"
 
-        response = requests.get(url=url, headers=headers, timeout=20)
+        response = httpx.get(url=url, headers=headers, timeout=20)
 
         if response.status_code >= 400:
             logger.error(f"Failed to list all inboxes for chatwoot account : {response.status_code}")
-            raise RuntimeError(f"Failed to list all inboxes for chatwoot account : {response.status_code}")
+            raise httpx.HTTPStatusError(f"Failed to list all inboxes for chatwoot account : {response.status_code}")
 
         return response.json()
 
@@ -161,10 +161,10 @@ class ChatwootSetup:
                 "website_url": "localhost:2000",
             },
         }
-        response = requests.post(url=url, headers=headers, json=inbox_data, timeout=20)
+        response = httpx.post(url=url, headers=headers, json=inbox_data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to create inbox bot for chatwoot account : {response.json()}")
-            raise RuntimeError(f"Failed to create inbox bot for chatwoot account : {response.json()}")
+            raise httpx.HTTPStatusError(f"Failed to create inbox bot for chatwoot account : {response.json()}")
         logger.info(f"chatwoot inbox created successfully: {self.product}")
         return response.json().get("id")
 
@@ -187,10 +187,10 @@ class ChatwootSetup:
         }
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}"
 
-        response = requests.patch(url=url, headers=api_token_headers, json=update_data, timeout=20)
+        response = httpx.patch(url=url, headers=api_token_headers, json=update_data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to update inbox for chatwoot account : {response.json()}")
-            raise RuntimeError(f"Failed to update inbox for chatwoot account : {response.json()}")
+            raise httpx.HTTPStatusError(f"Failed to update inbox for chatwoot account : {response.json()}")
         logger.info(f"chatwoot inbox updated successfully: inbox id:{inbox_id}")
         return response.status_code
 
@@ -209,10 +209,10 @@ class ChatwootSetup:
             "agent_bot": agent_bot_id,
         }
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/set_agent_bot"
-        response = requests.post(url=url, headers=api_token_headers, json=agent_bot_data, timeout=20)
+        response = httpx.post(url=url, headers=api_token_headers, json=agent_bot_data, timeout=20)
         if response.status_code >= 400:
             logger.error(f"Failed to add agent bot to inbox for chatwoot account : {response.json()}")
-            raise RuntimeError(f"Failed to add agent bot to inbox for chatwoot account : {response.json()}")
+            raise httpx.HTTPStatusError(f"Failed to add agent bot to inbox for chatwoot account : {response.json()}")
         logger.info(f"agent bot added to inbox successfully: agent bot id :{agent_bot_id}")
         return response.status_code
 
@@ -227,11 +227,11 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/agent_bot"
 
-        response = requests.get(url=url, headers=headers, timeout=20)
+        response = httpx.get(url=url, headers=headers, timeout=20)
 
         if response.status_code >= 400:
             logger.error(f"Failed to get agent bot for chatwoot account : {response.status_code}")
-            raise RuntimeError(f"Failed to get agent bot for chatwoot account : {response.status_code}")
+            raise httpx.HTTPStatusError(f"Failed to get agent bot for chatwoot account : {response.status_code}")
 
         return response.json()
 
@@ -246,11 +246,11 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/agent_bots"
 
-        response = requests.get(url=url, headers=headers, timeout=20)
+        response = httpx.get(url=url, headers=headers, timeout=20)
 
         if response.status_code >= 400:
             logger.error(f"Failed to list all agents for chatwoot account : {response.status_code}")
-            raise RuntimeError(f"Failed to list all agents for chatwoot account : {response.status_code}")
+            raise httpx.HTTPStatusError(f"Failed to list all agents for chatwoot account : {response.status_code}")
 
         return response.json()
 
@@ -338,10 +338,10 @@ class ChatwootSetup:
         for attr in data:
             attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
 
-        response = requests.post(url=url, headers=headers, json=data, timeout=30)
+        response = httpx.post(url=url, headers=headers, json=data, timeout=30)
         if response.status != 200:
             logger.error(f"Failed to create custom attribute with status code: {response.status}")
-            raise Exception(f"Failed to create custom attribute with status code: {response.status}")
+            raise httpx.HTTPStatusError(f"Failed to create custom attribute with status code: {response.status}")
         logger.info(f"chatwoot custom attributes created successfully : {self.tenant}")
 
 

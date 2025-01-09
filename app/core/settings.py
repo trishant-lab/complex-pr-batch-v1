@@ -46,7 +46,7 @@ class KeycloakSettings(BaseModel):
 
     client_id: str = "app"
     auth_url: str = "https://auth.314ecorp.tech"
-    internal_auth_url: str = "http://keycloak-service.keycloak.svc.cluster.local:8080"
+    internal_auth_url: str = "http://keycloak-service.keycloak.svc.cluster.local:8080"  # NOSONAR
     auth_user: str = "installer"
     auth_secret: str = ""
     keycloak_db_password: str = ""
@@ -209,7 +209,7 @@ class JeevesSettings(BaseModel):
     novu_sendgrid_sender_email: str = "noreply@okjeeves.com"
     novu_sendgrid_sender_name: str = "Jeeves Support"
 
-    chatwoot_base_url: str = "http://chatwoot.chatwoot.svc.cluster.local:3000" #NOSONAR
+    chatwoot_base_url: str = "http://chatwoot.chatwoot.svc.cluster.local:3000"  # NOSONAR
     chatwoot_platform_api_token: str = ""
     chatwoot_default_user_password: str = ""
     server_url: str = ""
@@ -217,7 +217,7 @@ class JeevesSettings(BaseModel):
     keycloak_db_password: str = ""
     matomo_db_password: str = ""
 
-    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
 
     r2_url: str = ""
     r2_access_key: str = ""
@@ -376,7 +376,7 @@ class DexitSettings(BaseModel):
     FaxAccountId: str = ""
     FaxApiToken: str = ""
 
-    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"
+    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
 
     ai_config: DexitAISettings = DexitAISettings()
 
@@ -477,7 +477,7 @@ class AppSettings(BaseSettings):
     grafana_datasource_uid: str = "e4hhV8CGk"
     grafana_token: str = ""
 
-    supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"
+    supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"  # NOSONAR
     supavisor_token: str = ""
 
     cache_admin_password: str = ""

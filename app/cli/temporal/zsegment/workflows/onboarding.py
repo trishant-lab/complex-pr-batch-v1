@@ -577,7 +577,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "lagoUrl": zsegment_config.lago_api_url,
                         "lagoKey": zsegment_config.lago_api_key,
                         "lagoCustomerId": lago_customer_id,
-                        "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",
+                        "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",  # NOSONAR
                         "victoriaMetricsUrl": zsegment_config.victoria_metrics_url,
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
@@ -592,7 +592,9 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "codeServerHost": f"{tenant}.cs.{zsegment_config.domain_name}",
                         "codeServerAlllowedOrigin": f"https://{tenant}.{zsegment_config.domain_name}",
                         "webhookSecret": "abcdefghijkl",
-                        "jgitApiServiceUrl": f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook",
+                        "jgitApiServiceUrl": (
+                            f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook"  # NOSONAR
+                        ),
                     },
                 ),
                 retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),

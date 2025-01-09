@@ -691,7 +691,7 @@ class HDPOnboardingWorkflow(Workflow):
                         },
                         {
                             "name": "volume-storage",
-                            "mount_path": "/tmp/kestra-wd/tmp",  # noqa: S108  #nosec
+                            "mount_path": "/tmp/kestra-wd/tmp",  # noqa: S108  #nosec  #NOSONAR
                         },
                     ],
                     volumes=[

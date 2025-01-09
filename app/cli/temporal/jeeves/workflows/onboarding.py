@@ -223,8 +223,6 @@ class JeevesOnboardingWorkflow(Workflow):
             postgres_database_name = "jeeves"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
-            image_tag = "production" if config.env == "production" else "sprint"
-            docker_image = f"registry.314ecorp.tech/jeeves-app:{image_tag}"
 
             await workflow.execute_activity(
                 activity=PostgresUserCreationActivity.defn,
@@ -500,12 +498,14 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             repo_name = "jeeves-ui"
-            image_tag = "production" if config.env == "production" else "sprint"
-
             if config.env == "production":
+                image_tag = "production"
                 dest_dir = f"{bucket_name}/"
             else:
+                image_tag = "sprint"
                 dest_dir = f"{bucket_name}/{image_tag}"
+
+            docker_image = f"registry.314ecorp.tech/jeeves-app:{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
