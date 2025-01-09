@@ -48,7 +48,7 @@ class CreateCloudflareBucketActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=60)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -90,7 +90,7 @@ class CreateCloudflareDNSRecordActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=60)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -134,7 +134,7 @@ class LinkBucketToDomainActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=60)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -184,7 +184,7 @@ class CopyArtifactsToBucketActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=60)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -296,7 +296,7 @@ class CopyWebCoreToBucketActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=60)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -369,7 +369,7 @@ class DeleteCloudflareBucketActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=60)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -411,7 +411,7 @@ class DeleteFilesFromCloudflareActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=60)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -504,7 +504,7 @@ class PropagateDNSRecordActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=600)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
@@ -554,7 +554,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=60)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
