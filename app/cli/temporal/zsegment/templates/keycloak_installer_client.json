@@ -166,8 +166,5 @@
     "phone",
     "offline_access",
     "microprofile-jwt"
-  ],
-  "clientRoles": {
-    "realm-management": ["manage-users", "view-clients", "query-clients"]
-  }
+  ]
 }
