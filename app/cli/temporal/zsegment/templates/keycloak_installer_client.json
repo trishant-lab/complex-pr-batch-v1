@@ -166,5 +166,22 @@
     "phone",
     "offline_access",
     "microprofile-jwt"
+  ],
+  "users": [
+    {
+      "username": "service-account-installer",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": false,
+      "serviceAccountClientId": "installer",
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "realmRoles": ["default-roles-<<tenant>>"],
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-clients", "query-clients"]
+      },
+      "notBefore": 0,
+      "groups": []
+    }
   ]
 }
