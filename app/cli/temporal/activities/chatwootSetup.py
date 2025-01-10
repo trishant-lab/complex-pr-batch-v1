@@ -48,7 +48,7 @@ class ChatwootSetup:
         }
         async with aiohttp.ClientSession() as session:
             response = await session.post(url=url, headers=headers, json=data, timeout=20)
-            response_json = await response.json()
+            response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to create account in chatwoot : {response_json}")
                 raise RuntimeError(f"Failed to create account in chatwoot : {response_json}")
@@ -130,7 +130,7 @@ class ChatwootSetup:
         }
         async with aiohttp.ClientSession() as session:
             response = await session.post(url=url, headers=headers, json=data, timeout=20)
-            response_json = await response.json()
+            response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to create agent bot for chatwoot account : {response_json}")
                 raise HTTPException(f"Failed to create agent bot for chatwoot account : {response_json}")
