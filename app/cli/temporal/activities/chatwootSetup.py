@@ -148,7 +148,7 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes"
 
-        async with aiohttp.ClientSession as session:
+        async with aiohttp.ClientSession() as session:
             response = await session.get(url=url, headers=headers, timeout=20)
             response_json: dict = await response.json()
             if response.status >= 400:
@@ -174,7 +174,7 @@ class ChatwootSetup:
                 "website_url": "localhost:2000",
             },
         }
-        async with aiohttp.ClientSession as session:
+        async with aiohttp.ClientSession() as session:
             response = await session.post(url=url, headers=headers, json=inbox_data, timeout=20)
             response_json: dict = await response.json()
             if response.status >= 400:
@@ -202,7 +202,7 @@ class ChatwootSetup:
         }
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}"
 
-        async with aiohttp.ClientSession as session:
+        async with aiohttp.ClientSession() as session:
             response = await session.patch(url=url, headers=api_token_headers, json=update_data, timeout=20)
             response_json = await response.json()
             if response.status >= 400:
@@ -226,7 +226,7 @@ class ChatwootSetup:
             "agent_bot": agent_bot_id,
         }
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/set_agent_bot"
-        async with aiohttp.ClientSession as session:
+        async with aiohttp.ClientSession() as session:
             response = await session.post(url=url, headers=api_token_headers, json=agent_bot_data, timeout=20)
             response_json: dict = await response.json()
             if response.status >= 400:
@@ -246,7 +246,7 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/agent_bot"
 
-        async with aiohttp.ClientSession as session:
+        async with aiohttp.ClientSession() as session:
             response = await session.get(url=url, headers=headers, timeout=20)
             response_json: dict = await response.json()
             if response.status >= 400:
@@ -266,7 +266,7 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/agent_bots"
 
-        async with aiohttp.ClientSession as session:
+        async with aiohttp.ClientSession() as session:
             response = await session.get(url=url, headers=headers, timeout=20)
             response_json: dict = await response.json()
             if response.status >= 400:

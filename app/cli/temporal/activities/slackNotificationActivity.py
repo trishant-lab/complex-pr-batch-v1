@@ -1,4 +1,5 @@
 from datetime import timedelta
+import traceback
 from loguru import logger
 from temporalio import activity
 from temporalio.common import RetryPolicy
@@ -11,19 +12,28 @@ from app.slack_utils import send_slack_msg
 class SlackNotificationActivityModel(LaunchpadCLIBaseModel):
     error_message: str
     product: str
+    exception: Exception | None = None
 
 
 class SlackNotifier:
-    def __init__(self, product: str, error_message: str) -> bool:
+    def __init__(self, product: str, error_message: str, exception: Exception | None = None) -> bool:
         self.product = product
         self.error_message = error_message
+        self.exception = exception
 
     def send_notification(self) -> bool:
         """
         Send a notification to Slack
         """
         try:
-            error_message = f"{self.error_message} :{self.product}"
+            if self.exception:
+                tb = traceback.extract_tb(self.exception.__traceback__)
+                last_frame = tb[-1]
+                error_context = f"Code: {last_frame.line}"
+                exception_msg: str = f"Traceback:\n{error_context}\n"
+                error_message = f"{self.error_message} :{self.product} - {exception_msg}"
+            else:
+                error_message = f"{self.error_message} :{self.product}"
             send_slack_msg(text=error_message, blocks=[])
         except SlackApiError as slack_error:
             logger.error(f"Failed to send Slack notification: {slack_error}")
