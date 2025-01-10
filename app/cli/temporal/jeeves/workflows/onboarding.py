@@ -887,6 +887,19 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
+            await workflow.execute_activity(
+                activity=VMPodScrapperActivity.defn,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="jeeves-worker-metrics",
+                    app="jeeves",
+                    path="/metrics/",
+                    interval="15s",
+                ),
+                retry_policy=VMPodScrapperActivity.get_retry_policy(),
+                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
+            )
+
             # temporal namespace creation
             await workflow.execute_activity(
                 activity=TemporalNamespaceActivity.defn,
@@ -909,12 +922,12 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # preload assets job
-            # await workflow.execute_activity(
-            #     activity=PreloadAssetsJobActivity.defn,
-            #     arg=jeeves,
-            #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
-            #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
-            # )
+            await workflow.execute_activity(
+                activity=PreloadAssetsJobActivity.defn,
+                arg=jeeves,
+                retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
+                start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            )
 
             # check pod running status
             for pod in ["jeeves", "jeeves-worker"]:

@@ -3,7 +3,6 @@
     "attribute_description": "EHR Department",
     "attribute_display_name": "Department",
     "attribute_display_type": "text",
-    "attribute_key": "department",
     "attribute_model": "contact_attribute",
     "attribute_values": []
   },
@@ -11,7 +10,6 @@
     "attribute_description": "EHR Location",
     "attribute_display_name": "Location",
     "attribute_display_type": "text",
-    "attribute_key": "location",
     "attribute_model": "contact_attribute",
     "attribute_values": []
   },
@@ -19,7 +17,6 @@
     "attribute_description": "EHR Service Area",
     "attribute_display_name": "Service Area",
     "attribute_display_type": "text",
-    "attribute_key": "service_area",
     "attribute_model": "contact_attribute",
     "attribute_values": []
   },
@@ -34,7 +31,6 @@
     "attribute_description": "EHR Provider Type",
     "attribute_display_name": "Provider Type",
     "attribute_display_type": "text",
-    "attribute_key": "provider_type",
     "attribute_model": "contact_attribute",
     "attribute_values": []
   }
