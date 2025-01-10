@@ -1,5 +1,6 @@
 from datetime import timedelta
 import traceback
+from typing import Any
 from loguru import logger
 from temporalio import activity
 from temporalio.common import RetryPolicy
@@ -12,11 +13,11 @@ from app.slack_utils import send_slack_msg
 class SlackNotificationActivityModel(LaunchpadCLIBaseModel):
     error_message: str
     product: str
-    exception: Exception | None = None
+    exception: Any | None = None
 
 
 class SlackNotifier:
-    def __init__(self, product: str, error_message: str, exception: Exception | None = None) -> bool:
+    def __init__(self, product: str, error_message: str, exception: Any | None = None) -> None:
         self.product = product
         self.error_message = error_message
         self.exception = exception
