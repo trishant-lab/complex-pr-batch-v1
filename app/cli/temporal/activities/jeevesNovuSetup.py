@@ -680,11 +680,15 @@ class NovuSetup:
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments/api-keys"
 
-        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"}, timeout=120)
+        response = httpx.get(
+            url=url,
+            headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
+            timeout=120,
+        )
 
         if response.status_code >= 300:
             raise httpx.HTTPStatusError(
-                f"Failed to get API keys for organization status_code:{response.status_code}",
+                f"Failed to get API keys for organization status_code:{response.status_code}, {response.json()}",
                 request=response.request,
                 response=response,
             )
