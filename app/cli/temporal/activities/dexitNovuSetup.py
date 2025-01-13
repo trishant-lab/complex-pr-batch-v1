@@ -65,8 +65,6 @@ def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: 
     :param api_key:
     :return:
     """
-    novu_client = NotificationTemplateApi(url=config.dexit.novu_url, api_key=api_key)
-
     workflow = get_novu_notification_workflow_by_name(workflow_name=data["name"], config=config, api_key=api_key)
     headers: dict = {
         "Authorization": f"ApiKey {api_key}",
@@ -76,9 +74,7 @@ def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: 
     if not workflow:
         response = requests.post(url, headers=headers, json=data, timeout=10)
         if response.status_code >= 400:
-            print(f"Failed to create novu workflow template : {response.json()}")
-        # notification_template = NotificationTemplateFormDto(**data)
-        # novu_client.create(notification_template=notification_template)
+            raise RuntimeError(f"Failed to create novu workflow template : {response.json()}")
 
 
 def create_novu_workflow_templates(target_dir: str, config: AppSettings, api_key: str) -> None:
@@ -91,17 +87,10 @@ def create_novu_workflow_templates(target_dir: str, config: AppSettings, api_key
     """
     id_ = get_notification_group_id(group_name="General", config=config, api_key=api_key)
     notification = {"notification_grp_id": id_}
-    for root, dirs, files in os.walk(target_dir):
+    for _root, _dirs, files in os.walk(target_dir):
         for file in files:
-            print(file)
-            # file_ = os.path.join(root, file)
-
-            # with open(file_) as f:
-            #     json_data = f.read()
-
             template_env = get_env(template_path=target_dir)
             jinja_template = template_env.get_template(file)
-            # jinja_template = Template(json_data)
 
             rendered_template = jinja_template.render(notification=notification)
             rendered_template = orjson.loads(rendered_template)
@@ -177,23 +166,6 @@ def add_integration_provider(config: AppSettings, novu_api_key: str) -> None:
             email_exist = True
         if item.get("channel", "") == "in_app":
             in_app_exist = True
-        # if item.get("channel", "") == "chat":
-        #     chat_exist = True
-
-    # # adding chat provider slack
-    # if not chat_exist:
-    #     integrate_provider(
-    #         provider="slack",
-    #         channel="chat",
-    #         credentials={
-    #             "applicationId": config.dexit.slack_application_id,
-    #             "clientId": config.dexit.slack_client_id,
-    #             "secretKey": config.dexit.slack_channel_secret_key,
-    #         },
-    #         active=True,
-    #         config=config,
-    #         novu_api_key=novu_api_key
-    #     )
 
     # adding email provider sendgrid
     if not email_exist:
@@ -240,7 +212,7 @@ class NovuSetup:
         response = requests.post(url=url, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get access token for Novu environment, status_code: {response.status_code}")
+            raise RuntimeError(f"Failed to get access token for Novu environment, status_code: {response.status_code}")
 
         return response.json()["data"]["token"]
 
@@ -253,7 +225,7 @@ class NovuSetup:
         response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get organization by name: {organization_name}")
+            raise RuntimeError(f"Failed to get organization by name: {organization_name}")
 
         return [row for row in response.json()["data"] if row["name"] == organization_name]
 
@@ -270,7 +242,7 @@ class NovuSetup:
         response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to create organization: {org_name}")
+            raise RuntimeError(f"Failed to create organization: {org_name}")
 
         return response.json()
 
@@ -283,7 +255,7 @@ class NovuSetup:
         response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get API keys for organization status_code:{response.status_code}")
+            raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status_code}")
 
         return response.json()["data"][0]["key"]
 
@@ -296,7 +268,7 @@ class NovuSetup:
         response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to switch organization: {organization_id}")
+            raise RuntimeError(f"Failed to switch organization: {organization_id}")
 
         return response.json()["data"]
 

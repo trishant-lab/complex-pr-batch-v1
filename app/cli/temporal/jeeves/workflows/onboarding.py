@@ -16,6 +16,10 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivityModel,
 )
 from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
+from app.cli.temporal.activities.slackNotificationActivity import (
+    SlackNotificationActivity,
+    SlackNotificationActivityModel,
+)
 from app.cli.temporal.activities.vespaJob import VespaJobActivity
 from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
 from app.cli.temporal.activities.chatwootSetup import ChatwootSetupActivity, ChatwootSetupActivityModel
@@ -154,6 +158,7 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordGetActivity.defn,
             DeploymentDeletionActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            SlackNotificationActivity.defn,
         ]
 
     @classmethod
@@ -218,8 +223,6 @@ class JeevesOnboardingWorkflow(Workflow):
             postgres_database_name = "jeeves"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
-            image_tag = "production" if config.env == "production" else "sprint"
-            docker_image = f"registry.314ecorp.tech/jeeves-app:{image_tag}"
 
             await workflow.execute_activity(
                 activity=PostgresUserCreationActivity.defn,
@@ -406,26 +409,32 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
+            tenant_config = "tenant-config.json"
+            rclone_config = "rclone.conf"
+            vector_config = "vector-config.toml"
+            statestore_config = "statestore.yaml"
+            config_dir = "config"
+
             # setup tenant configmap
             for config_map in [
                 {
                     "name": "jeeves-tenant-config",
-                    "key": "tenant-config.json",
+                    "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "jeeves-rclone-config",
-                    "key": "rclone.conf",
+                    "key": rclone_config,
                     "template_file_name": f"{config.env}-rclone.tmpl.conf",
                 },
                 {
                     "name": "jeeves-cli-vector-config",
-                    "key": "vector-config.toml",
+                    "key": vector_config,
                     "template_file_name": f"{config.env}-vector-config.tmpl.toml",
                 },
                 {
                     "name": "jeeves-statestore-config",
-                    "key": "statestore.yaml",
+                    "key": statestore_config,
                     "template_file_name": f"{config.env}-statestore.tmpl.yaml",
                 },
             ]:
@@ -489,12 +498,14 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             repo_name = "jeeves-ui"
-            image_tag = "production" if config.env == "production" else "sprint"
-
             if config.env == "production":
+                image_tag = "production"
                 dest_dir = f"{bucket_name}/"
             else:
+                image_tag = "sprint"
                 dest_dir = f"{bucket_name}/{image_tag}"
+
+            docker_image = f"registry.314ecorp.tech/jeeves-app:{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -616,20 +627,20 @@ class JeevesOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "jeeves-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                     ],
                     container_envs=[
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
@@ -722,41 +733,41 @@ class JeevesOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {"name": "rclone-volume", "mount_path": "/root/.config/rclone/", "read_only": True},
                         {
                             "name": "statestore-volume",
-                            "mount_path": "/root/.dapr/components/statestore.yaml",
-                            "sub_path": "statestore.yaml",
+                            "mount_path": f"/root/.dapr/components/{statestore_config}",
+                            "sub_path": statestore_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "jeeves-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "rclone-volume",
                             "config_map_name": "jeeves-rclone-config",
-                            "key": "rclone.conf",
-                            "path": "rclone.conf",
+                            "key": rclone_config,
+                            "path": rclone_config,
                         },
                         {
                             "name": "statestore-volume",
                             "config_map_name": "jeeves-statestore-config",
-                            "key": "statestore.yaml",
-                            "path": "statestore.yaml",
+                            "key": statestore_config,
+                            "path": statestore_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
@@ -788,14 +799,14 @@ class JeevesOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {"name": "rclone-volume", "mount_path": "/root/.config/rclone/", "read_only": True},
                         {
                             "name": "statestore-volume",
-                            "mount_path": "/root/.dapr/components/statestore.yaml",
-                            "sub_path": "statestore.yaml",
+                            "mount_path": f"/root/.dapr/components/{statestore_config}",
+                            "sub_path": statestore_config,
                         },
                         {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
                     ],
@@ -803,32 +814,32 @@ class JeevesOnboardingWorkflow(Workflow):
                         {
                             "name": "tenant-volume",
                             "config_map_name": "jeeves-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "rclone-volume",
                             "config_map_name": "jeeves-rclone-config",
-                            "key": "rclone.conf",
-                            "path": "rclone.conf",
+                            "key": rclone_config,
+                            "path": rclone_config,
                         },
                         {
                             "name": "statestore-volume",
                             "config_map_name": "jeeves-statestore-config",
-                            "key": "statestore.yaml",
-                            "path": "statestore.yaml",
+                            "key": statestore_config,
+                            "path": statestore_config,
                         },
                         {
                             "name": "vector-volume",
                             "config_map_name": "jeeves-cli-vector-config",
-                            "key": "vector-config.toml",
-                            "path": "vector-config.toml",
+                            "key": vector_config,
+                            "path": vector_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},
@@ -876,6 +887,19 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
+            await workflow.execute_activity(
+                activity=VMPodScrapperActivity.defn,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="jeeves-worker-metrics",
+                    app="jeeves",
+                    path="/metrics/",
+                    interval="15s",
+                ),
+                retry_policy=VMPodScrapperActivity.get_retry_policy(),
+                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
+            )
+
             # temporal namespace creation
             await workflow.execute_activity(
                 activity=TemporalNamespaceActivity.defn,
@@ -898,12 +922,12 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # preload assets job
-            # await workflow.execute_activity(
-            #     activity=PreloadAssetsJobActivity.defn,
-            #     arg=jeeves,
-            #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
-            #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
-            # )
+            await workflow.execute_activity(
+                activity=PreloadAssetsJobActivity.defn,
+                arg=jeeves,
+                retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
+                start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            )
 
             # check pod running status
             for pod in ["jeeves", "jeeves-worker"]:
@@ -958,6 +982,15 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
+            )
+            await workflow.execute_activity(
+                activity=SlackNotificationActivity.defn,
+                arg=SlackNotificationActivityModel(
+                    product=ProductName,
+                    error_message=str(e),
+                ),
+                retry_policy=SlackNotificationActivity.get_retry_policy(),
+                start_to_close_timeout=SlackNotificationActivity.get_timeout(),
             )
             raise e
 

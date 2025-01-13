@@ -64,8 +64,6 @@ from app.cli.temporal.activities.postgresSetup import (
 )
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
-    # SendAfterProvisioningMailActivity,
-    # SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
 )
@@ -404,7 +402,6 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
-            # todo: add the rest of the activities for keycloak
             # Setup keycloak auth client
             auth_credential = generate_password(length=32)
 
@@ -540,22 +537,25 @@ class PenknifeOnboardingWorkflow(Workflow):
                 retry_policy=KeycloakCreateIDPFlowActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateIDPFlowActivity.get_timeout(),
             )
+            tenant_config = "tenant-config.json"
+            vector_config = "vector-config.toml"
+            statestore_config = "statestore.yaml"
 
             # setup tenant configmap
             for config_map in [
                 {
                     "name": "penknife-tenant-config",
-                    "key": "tenant-config.json",
+                    "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "penknife-cli-vector-config",
-                    "key": "vector-config.toml",
+                    "key": vector_config,
                     "template_file_name": f"{config.env}-vector-config.tmpl.toml",
                 },
                 {
                     "name": "penknife-statestore-config",
-                    "key": "statestore.yaml",
+                    "key": statestore_config,
                     "template_file_name": f"{config.env}-statestore.tmpl.yaml",
                 },
             ]:
@@ -689,6 +689,8 @@ class PenknifeOnboardingWorkflow(Workflow):
             )
 
             # database migration job
+            tenant_config = "tenant-config.json"
+            config_dir = "config"
 
             await workflow.execute_activity(
                 activity=DatabaseMigrationJobActivity.defn,
@@ -699,20 +701,20 @@ class PenknifeOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "penknife-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                     ],
                     container_envs=[
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
@@ -803,33 +805,33 @@ class PenknifeOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {
                             "name": "statestore-volume",
-                            "mount_path": "/root/.dapr/components/statestore.yaml",
-                            "sub_path": "statestore.yaml",
+                            "mount_path": f"/root/.dapr/components/{statestore_config}",
+                            "sub_path": statestore_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "penknife-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "statestore-volume",
                             "config_map_name": "penknife-statestore-config",
-                            "key": "statestore.yaml",
-                            "path": "statestore.yaml",
+                            "key": statestore_config,
+                            "path": statestore_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "IS_CLI", "value": "FALSE"},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
                     ],
@@ -859,13 +861,13 @@ class PenknifeOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {
                             "name": "statestore-volume",
-                            "mount_path": "/root/.dapr/components/statestore.yaml",
-                            "sub_path": "statestore.yaml",
+                            "mount_path": f"/root/.dapr/components/{statestore_config}",
+                            "sub_path": statestore_config,
                         },
                         {
                             "name": "vector-volume",
@@ -877,25 +879,25 @@ class PenknifeOnboardingWorkflow(Workflow):
                         {
                             "name": "tenant-volume",
                             "config_map_name": "penknife-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "statestore-volume",
                             "config_map_name": "penknife-statestore-config",
-                            "key": "statestore.yaml",
-                            "path": "statestore.yaml",
+                            "key": statestore_config,
+                            "path": statestore_config,
                         },
                         {
                             "name": "vector-volume",
                             "config_map_name": "penknife-cli-vector-config",
-                            "key": "vector-config.toml",
-                            "path": "vector-config.toml",
+                            "key": vector_config,
+                            "path": vector_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "IS_CLI", "value": "TRUE"},
                         {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},
                         {"name": "IS_TEMPORAL_WORKER", "value": "TRUE"},

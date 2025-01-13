@@ -5,9 +5,6 @@ from temporalio import workflow
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 
-with workflow.unsafe.imports_passed_through():
-    pass
-
 
 @workflow.defn
 class DexitDeProvisioningWorkflow(Workflow):

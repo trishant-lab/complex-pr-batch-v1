@@ -1,8 +1,8 @@
+import httpx
 from temporalio.common import RetryPolicy
 from temporalio import activity
 
 from datetime import timedelta
-import requests
 from loguru import logger
 from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi
 from novu.dto import IntegrationDto
@@ -72,7 +72,7 @@ def create_novu_notification_layout(
         "content": layout_content,
         "isDefault": is_default,
     }
-    response = requests.post(url=f"{config.jeeves.novu_url}/v1/layouts", json=data, headers=headers, timeout=60)
+    response = httpx.post(url=f"{config.jeeves.novu_url}/v1/layouts", json=data, headers=headers, timeout=60)
     response_json = response.json()
     if response.status_code >= 400:
         logger.error(f"Failed to create novu layout : {response_json}")
@@ -211,7 +211,7 @@ def create_novu_workflow_template(
         "Content-Type": "application/json",
     }
     url: str = f"{config.jeeves.novu_url}/v1/workflows"
-    response = requests.post(url, headers=headers, json=data, timeout=10)
+    response = httpx.post(url, headers=headers, json=data, timeout=10)
     if response.status_code >= 400:
         logger.error(f"Failed to create novu workflow template : {response.json()}")
     return response.status_code
@@ -401,13 +401,13 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
 
     # jeeves-asset-expiring-in-1-days
-    if "jeeves-asset-expiring-in-1-days" not in template_names:
+    if "jeeves-asset-expiring-in-1-day" not in template_names:
         asset_expiring_1_custom_email: str = '<p class="editor-paragraph" dir="ltr"><span>Hi {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>This is to inform you that several of your assets will expire in one day. Please take action and update the asset details.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{#each step.events}}</span></p><p class="editor-paragraph" dir="ltr"><span>Asset Title: {{asset.asset_title}}</span></p><p class="editor-paragraph" dir="ltr"><span>Expiration Date: {{asset.expiration_date}}</span></p><p class="editor-paragraph" dir="ltr"><span>You can update the asset information by clicking [</span><a href="{{asset.asset_link}}" class="editor-link"><span>here</span></a><span>].</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>{{/each}}</span></p><p class="editor-paragraph" dir="ltr"><span>Please take immediate action to update the information for these assets to ensure smooth operations.</span></p><p class="editor-paragraph"><br></p><p class="editor-paragraph" dir="ltr"><span>Regards,</span></p><p class="editor-paragraph" dir="ltr"><span>Team Jeeves</span></p>'
         asset_expiring_1_subject: str = "Action Required: Asset Expiring In One Day"
         asset_expiring_1_inapp_content: str = 'Some of your assets are about to expire in one day.<br />{{#each step.events}}Asset title: "{{asset.asset_title}}"<br />{{/each}}'
         asset_expiring_1_chat_content: str = 'Some of your assets are about to expire in one day.\n{{#each step.events}}\nAsset title:  "{{asset.asset_title}}".\nClick here to update: {{asset.asset_link}}\n\n{{/each}}'
         create_novu_workflow_template(
-            event_name="jeeves-asset-expiring-in-1-days",
+            event_name="jeeves-asset-expiring-in-1-day",
             custom_email=asset_expiring_1_custom_email,
             email_subject=asset_expiring_1_subject,
             chat_content=asset_expiring_1_chat_content,
@@ -629,10 +629,14 @@ class NovuSetup:
 
         payload = {"email": self.config.jeeves.novu_admin_user, "password": self.config.jeeves.novu_admin_password}
 
-        response = requests.post(url=url, json=payload, timeout=120)
+        response = httpx.post(url=url, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception("Failed to get access token for Novu environment")
+            raise httpx.HTTPStatusError(
+                f"Failed to get access token for Novu environment. Status code: {response.status_code}",
+                request=response.request,
+                response=response,
+            )
 
         return response.json()["data"]["token"]
 
@@ -642,10 +646,12 @@ class NovuSetup:
         """
         url = f"{self.config.jeeves.novu_url}/v1/organizations"
 
-        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get organization by name: {organization_name}")
+            raise httpx.HTTPStatusError(
+                f"Failed to get organization by name: {organization_name}", request=response.request, response=response
+            )
 
         return [row for row in response.json()["data"] if row["name"] == organization_name]
 
@@ -659,23 +665,33 @@ class NovuSetup:
             "name": org_name,
         }
 
-        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
+        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to create organization: {org_name}")
+            raise httpx.HTTPStatusError(
+                f"Failed to create organization: {org_name}", request=response.request, response=response
+            )
 
         return response.json()
 
-    def get_organization_api_key(self: "NovuSetup", token: str) -> str:
+    def get_organization_api_key(self: "NovuSetup", token: str, organization_id: str) -> str:
         """
         Get the API keys for the organization
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments/api-keys"
 
-        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        response = httpx.get(
+            url=url,
+            headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
+            timeout=120,
+        )
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get API keys for organization status_code:{response.status_code}")
+            raise httpx.HTTPStatusError(
+                f"Failed to get API keys for organization status_code:{response.status_code}, {response.json()}",
+                request=response.request,
+                response=response,
+            )
 
         return response.json()["data"][0]["key"]
 
@@ -685,10 +701,12 @@ class NovuSetup:
         """
         url = f"{self.config.jeeves.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
-        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to switch organization: {organization_id}")
+            raise httpx.HTTPStatusError(
+                f"Failed to switch organization: {organization_id}", request=response.request, response=response
+            )
 
         return response.json()["data"]
 
@@ -709,7 +727,7 @@ class NovuSetup:
             organization_id = organization["_id"]
 
         organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
-        api_keys = self.get_organization_api_key(token=organization_token)
+        api_keys = self.get_organization_api_key(token=organization_token, organization_id=organization_id)
 
         # store in 1Password
         OnePasswordUtil(

@@ -23,6 +23,8 @@ from ..slack_utils import send_slack_msg
 
 provisioning_router = APIRouter()
 
+GET_TENANT_SQL = "getTenant.sql"
+
 
 if TYPE_CHECKING:
     from ..cli.workflowbase import ProductWorkflow
@@ -36,7 +38,7 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     schema_details = "\n".join(
         [f"{key}: {value}" for key, value in schema.items() if value and key != "termsAndConditions[]"]
     )
-    text = f"A new {product.value} tenant has been requested by \n" f"{schema_details}"
+    text = f"A new {product.value} tenant has been requested by \n {schema_details}"
     blocks = [
         {"type": "divider"},
         {
@@ -127,12 +129,6 @@ async def prepare_schema(product: ProductEnum, schema: dict) -> dict:
         product=product, tenant_names=[company_domain.lower(), f"{prefix}{company_domain.lower()}"]
     )
 
-    # if not company_domain[0].isdigit() and not existing_tenant_names:
-    #     tenant_name = company_domain
-    # else:
-    #     suggested_tenant_names = await suggest_tenant_names(company_domain)
-    #     tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
-
     if existing_tenant_names:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
@@ -143,25 +139,6 @@ async def prepare_schema(product: ProductEnum, schema: dict) -> dict:
         tenant_name = company_domain
     else:
         tenant_name = f"{prefix}{company_domain}"
-
-    # if not company_domain[0].isdigit():
-    #     if not existing_tenant_names:
-    #         tenant_name = company_domain
-    #     else:
-    #         suggested_tenant_names = await suggest_tenant_names(company_domain)
-    #         tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
-    # else:
-    #     if not existing_tenant_names:
-    #         tenant_name = f"{prefix}{company_domain}"
-    #     else:
-    #         suggested_tenant_names = await suggest_tenant_names(f"{prefix}{company_domain}")
-    #         tenant_name = suggested_tenant_names[0] if suggested_tenant_names else None
-
-    # if not tenant_name:
-    #     raise HTTPException(
-    #         status_code=HTTP_400_BAD_REQUEST,
-    #         detail="Tenant name not available",
-    #     )
 
     schema["tenant"] = tenant_name if schema.get("tenant") is None else schema.get("tenant")
 
@@ -249,7 +226,7 @@ async def approve_tenant(
     user_id: dict = request.scope.get("user", {}).get("sub")
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getTenant.sql", tenant_id=str(tenant_id))
+        response = await db.fetch_one(GET_TENANT_SQL, tenant_id=str(tenant_id))
         await db.fetch_one(
             "approveTenant.sql",
             tenant_id=str(tenant_id),
@@ -314,7 +291,7 @@ async def retry_provisioning(
 
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getTenant.sql", tenant_id=str(tenant_id))
+        response = await db.fetch_one(GET_TENANT_SQL, tenant_id=str(tenant_id))
         await db.fetch_one(
             "updateTenant.sql",
             tenant_name=response["name"],
@@ -418,7 +395,7 @@ async def get_workflow_steps(
     config: AppSettings = get_settings()
     try:
         db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one("getTenant.sql", tenant_id=str(tenant_id))
+        response = await db.fetch_one(GET_TENANT_SQL, tenant_id=str(tenant_id))
         schema = orjson.loads(response["schema"])
     except Exception as e:
         logger.error(f"Error fetching tenant: {e}")

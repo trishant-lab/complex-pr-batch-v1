@@ -18,11 +18,9 @@ class HdpWorkflow(ProductWorkflow):
         """
         onboard method
         """
-        from app.core.settings import HDPSettings, get_settings
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
-        product_config: HDPSettings = get_settings().hdp
         await trigger_workflow(
             workflow_input=HDPSpec(**schema),
             workflow=HDPOnboardingWorkflow,

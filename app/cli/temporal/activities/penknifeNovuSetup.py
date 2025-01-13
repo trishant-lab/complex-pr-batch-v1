@@ -4,7 +4,7 @@ from temporalio.common import RetryPolicy
 from datetime import timedelta
 import os
 import orjson
-import requests
+import httpx
 from loguru import logger
 from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi, SubscriberApi
 from novu.dto import IntegrationDto, SubscriberDto
@@ -184,7 +184,7 @@ def create_novu_workflow_templates(template_path: str, config: AppSettings, novu
                 "Authorization": f"ApiKey {novu_api_key}",
                 "Content-Type": "application/json",
             }
-            response = requests.post(url=workflow_url, headers=headers, json=workflow_, timeout=10)
+            response = httpx.post(url=workflow_url, headers=headers, json=workflow_, timeout=10)
             if response.status_code >= 400:
                 logger.error(f"Failed to create novu workflow template : {response.json()}")
 
@@ -206,10 +206,14 @@ class NovuSetup:
 
         payload = {"email": self.config.penknife.novu_admin_user, "password": self.config.penknife.novu_admin_password}
 
-        response = requests.post(url=url, json=payload, timeout=120)
+        response = httpx.post(url=url, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception("Failed to get access token for Novu environment")
+            raise httpx.HTTPStatusError(
+                "Failed to get access token for Novu environment",
+                request=response.request,
+                response=response,
+            )
 
         return response.json()["data"]["token"]
 
@@ -219,10 +223,14 @@ class NovuSetup:
         """
         url = f"{self.config.penknife.novu_url}/v1/organizations"
 
-        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get organization by name: {organization_name}")
+            raise httpx.HTTPStatusError(
+                f"Failed to get organization by name: {organization_name}",
+                request=response.request,
+                response=response,
+            )
 
         return [row for row in response.json()["data"] if row["name"] == organization_name]
 
@@ -236,10 +244,14 @@ class NovuSetup:
             "name": org_name,
         }
 
-        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
+        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to create organization: {org_name}")
+            raise httpx.HTTPStatusError(
+                f"Failed to create organization: {org_name}",
+                request=response.request,
+                response=response,
+            )
 
         return response.json()
 
@@ -249,10 +261,14 @@ class NovuSetup:
         """
         url = f"{self.config.penknife.novu_url}/v1/environments/api-keys"
 
-        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to get API keys for organization status_code:{response.status_code}")
+            raise httpx.HTTPStatusError(
+                f"Failed to get API keys for organization status_code:{response.status_code}",
+                request=response.request,
+                response=response,
+            )
 
         return response.json()["data"][0]["key"]
 
@@ -262,10 +278,14 @@ class NovuSetup:
         """
         url = f"{self.config.penknife.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
-        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise Exception(f"Failed to switch organization: {organization_id}")
+            raise httpx.HTTPStatusError(
+                f"Failed to switch organization: {organization_id}",
+                request=response.request,
+                response=response,
+            )
 
         return response.json()["data"]
 

@@ -47,6 +47,8 @@ CONFIGMAP_KEY = "cache.conf"
 CONFIG_VOLUME_NAME = "cache-config-volume"
 CONFIG_VOLUME_MOUNT_PATH = "/config/cache.conf"
 
+K8S_RESOURCE_VERSION = "apps/v1"
+
 
 def get_secret(namespace: str, secret_name: str, secret_key: str) -> str:
     """
@@ -123,7 +125,7 @@ class CacheConfigMap:
                     api_version="v1",
                     kind=ResourceKindEnum.ConfigMap.value,
                     metadata=V1ObjectMeta(namespace=self.namespace, name=self.name),
-                    data={"cache.conf": "\n".join(f"{k} {v}" for k, v in data.items())},
+                    data={CONFIGMAP_KEY: "\n".join(f"{k} {v}" for k, v in data.items())},
                 ),
             )
         else:
@@ -134,7 +136,7 @@ class CacheConfigMap:
                     api_version="v1",
                     kind=ResourceKindEnum.ConfigMap.value,
                     metadata=V1ObjectMeta(namespace=self.namespace, name=self.name),
-                    data={"cache.conf": "\n".join(f"{k} {v}" for k, v in data.items())},
+                    data={CONFIGMAP_KEY: "\n".join(f"{k} {v}" for k, v in data.items())},
                 ),
             )
         log_info(f"ConfigMap {self.name} created successfully")
@@ -255,7 +257,7 @@ class RedisSetupActivity(Activity):
         """
         k8s_dynamic_client = get_dynamic_client()
         redis_resource = get_resource(
-            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
+            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version=K8S_RESOURCE_VERSION
         )
 
         CacheConfigMap(activity_model.namespace).create_or_update_configmap(
@@ -264,7 +266,7 @@ class RedisSetupActivity(Activity):
         )
 
         body = V1StatefulSet(
-            api_version="apps/v1",
+            api_version=K8S_RESOURCE_VERSION,
             kind=ResourceKindEnum.StatefulSet.value,
             metadata=V1ObjectMeta(namespace=activity_model.namespace, name=CACHE_SERVICE_NAME),
             spec=V1StatefulSetSpec(
@@ -363,7 +365,7 @@ class RedisSetupFromSecretActivity(Activity):
         """
         k8s_dynamic_client = get_dynamic_client()
         redis_resource = get_resource(
-            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version="apps/v1"
+            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version=K8S_RESOURCE_VERSION
         )
 
         CacheConfigMap(activity_model.namespace).create_or_update_configmap(
@@ -376,7 +378,7 @@ class RedisSetupFromSecretActivity(Activity):
         )
 
         body = V1StatefulSet(
-            api_version="apps/v1",
+            api_version=K8S_RESOURCE_VERSION,
             kind=ResourceKindEnum.StatefulSet.value,
             metadata=V1ObjectMeta(namespace=activity_model.namespace, name=CACHE_SERVICE_NAME),
             spec=V1StatefulSetSpec(
@@ -472,7 +474,5 @@ class RedisDeleteNamespaceActivity(Activity):
         """
         Delete redis namespace
         """
-        k8s_dynamic_client = get_dynamic_client()
-
         CacheConfigMap(activity_model.namespace).delete_namespace_from_configmap(activity_model.product)
         await restart_cache_statefulset(activity_model.namespace)

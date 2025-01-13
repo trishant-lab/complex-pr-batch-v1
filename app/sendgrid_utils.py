@@ -1,6 +1,6 @@
 import base64
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 from collections.abc import Callable
 from typing import ClassVar
 
@@ -22,6 +22,8 @@ from sendgrid import (
     Personalization,
     Bcc,
 )
+
+TEXT_HTML_MIME_TYPE = "text/html"
 
 from app.core.settings import get_settings, AppSettings
 from app.models.mail import SGMailStatus, CommunicationMedium, MessageProvider
@@ -78,7 +80,7 @@ class Sendgrid(metaclass=Singleton):
         bcc_email: str | list | None = None,
         attachments: list[Attachment] | None = None,
         from_name: str | None = None,
-        mime_type: str = "text/html",
+        mime_type: str = TEXT_HTML_MIME_TYPE,
     ) -> Mail:
         """
         @param to_email:
@@ -163,7 +165,7 @@ class Sendgrid(metaclass=Singleton):
         to_email: str | list | None = None,
         bcc_email: str | list | None = None,
         attachments: list | None = None,
-        mime_type: str = "text/html",
+        mime_type: str = TEXT_HTML_MIME_TYPE,
     ) -> dict:
         """
         @param to_email:
@@ -194,7 +196,7 @@ class Sendgrid(metaclass=Singleton):
             "provider": MessageProvider.sendgrid.value,
             "msgto": to_email,
             "msgfrom": self.sendgrid_config.email_from,
-            "created": datetime.utcnow(),
+            "created": datetime.now(UTC),
             "responseStatus": response.status_code,
         }
 
@@ -211,7 +213,7 @@ def send_mail(
     bcc_email: str | list | None = None,
     attachments: list | None = None,
     attachment_with_url: bool = False,
-    mime_type: str = "text/html",
+    mime_type: str = TEXT_HTML_MIME_TYPE,
 ) -> dict[str, datetime | str]:
     """
     @param to_email:

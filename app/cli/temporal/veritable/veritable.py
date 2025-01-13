@@ -17,11 +17,9 @@ class VeritableWorkflow(ProductWorkflow):
         """
         onboard method
         """
-        from app.core.settings import VeritableSettings, get_settings
         from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
-        product_config: VeritableSettings = get_settings().veritable
         await trigger_workflow(
             workflow_input=VeritableSpec(**schema),
             workflow=VeritableOnboardingWorkflow,

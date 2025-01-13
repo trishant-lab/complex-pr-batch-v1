@@ -11,6 +11,9 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 
 
+API_VERSION = "networking.istio.io/v1beta1"
+
+
 class KubernetesIstioVirtualServiceActivityModel(LaunchpadCLIBaseModel):
     """
     KubernetesIstioVirtualServiceActivityModel
@@ -51,11 +54,11 @@ class KubernetesIstioVirtualServiceActivity(Activity):
         resource = get_resource(
             dynamic_client=k8s_dynamic_client,
             kind=ResourceKindEnum.VirtualService,
-            api_version="networking.istio.io/v1beta1",
+            api_version=API_VERSION,
         )
 
         body = {
-            "apiVersion": "networking.istio.io/v1beta1",
+            "apiVersion": API_VERSION,
             "kind": "VirtualService",
             "metadata": {
                 "name": activity_model.service_name,
@@ -111,7 +114,7 @@ class DeleteKubernetesIstioVirtualServiceActivity(Activity):
         resource = get_resource(
             dynamic_client=k8s_dynamic_client,
             kind=ResourceKindEnum.VirtualService,
-            api_version="networking.istio.io/v1beta1",
+            api_version=API_VERSION,
         )
 
         try:

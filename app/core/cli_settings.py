@@ -85,7 +85,6 @@ def get_workers_config() -> dict[str, WorkerConfig]:
             },
             "count": 1,
         },
-        # todo scheduler worker for k8s config check
     }
 
     return {k: WorkerConfig.model_validate(v) for k, v in workers_config.items()}

@@ -170,7 +170,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             if tenant_crd_exists:
-                raise Exception(f"Tenant {tenant} already exists")  # noqa: TRY301
+                raise ValueError(f"Tenant {tenant} already exists")  # noqa: TRY301
 
             if not pydash.get(practifly, "emailSent"):
                 await workflow.execute_activity(
@@ -398,32 +398,38 @@ class PractiflyOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
+            common_config = "common-config.json"
+            env_config = f"{config.env}-env-config.json"
+            tenant_config = "tenant-config.json"
+            vector_config = "vector-config.toml"
+            provisioning_config = f"{config.env}-provisioning-config.json"
+            config_dir = "config"
 
             # kubernetes config map creation
             for config_map in [
                 {
                     "name": "practifly-common-config",
-                    "key": "common-config.json",
+                    "key": common_config,
                     "template_file_name": "common-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-env-config",
-                    "key": "env-config.json",
+                    "key": env_config,
                     "template_file_name": f"{config.env}-env-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-tenant-config",
-                    "key": "tenant-config.json",
+                    "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.jtmpl.json",
                 },
                 {
                     "name": "practifly-cli-vector-config",
-                    "key": "vector-config.toml",
+                    "key": vector_config,
                     "template_file_name": "vector-config.jtmpl.toml",
                 },
                 {
                     "name": "practifly-provisioning-config",
-                    "key": "provisioning-config.json",
+                    "key": provisioning_config,
                     "template_file_name": f"{config.env}-provisioning-config.jtmpl.json",
                 },
             ]:
@@ -650,49 +656,49 @@ class PractiflyOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "common-volume",
-                            "mount_path": "/config/common-config.json",
-                            "sub_path": "common-config.json",
+                            "mount_path": f"/{config_dir}/{common_config}",
+                            "sub_path": common_config,
                         },
                         {
                             "name": "env-volume",
-                            "mount_path": "/config/env-config.json",
-                            "sub_path": "env-config.json",
+                            "mount_path": f"/{config_dir}/{env_config}",
+                            "sub_path": env_config,
                         },
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                     ],
                     volumes=[
                         {
                             "name": "tenant-volume",
                             "config_map_name": "practifly-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "common-volume",
                             "config_map_name": "practifly-common-config",
-                            "key": "common-config.json",
-                            "path": "common-config.json",
+                            "key": common_config,
+                            "path": common_config,
                         },
                         {
                             "name": "env-volume",
                             "config_map_name": "practifly-env-config",
-                            "key": "env-config.json",
-                            "path": "env-config.json",
+                            "key": env_config,
+                            "path": env_config,
                         },
                         {
                             "name": "provisioning-volume",
                             "config_map_name": "practifly-provisioning-config",
-                            "key": "provisioning-config.json",
-                            "path": "provisioning-config.json",
+                            "key": provisioning_config,
+                            "path": provisioning_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
+                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {
                             "name": "POSTGRES__PASSWORD",
                             "value_from": {
@@ -735,18 +741,18 @@ class PractiflyOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "common-volume",
-                            "mount_path": "/config/common-config.json",
-                            "sub_path": "common-config.json",
+                            "mount_path": f"/{config_dir}/{common_config}",
+                            "sub_path": common_config,
                         },
                         {
                             "name": "env-volume",
-                            "mount_path": "/config/env-config.json",
-                            "sub_path": "env-config.json",
+                            "mount_path": f"/{config_dir}/{env_config}",
+                            "sub_path": env_config,
                         },
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {
                             "name": "vector-volume",
@@ -763,26 +769,26 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {
                             "name": "tenant-volume",
                             "config_map_name": "practifly-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {
                             "name": "common-volume",
                             "config_map_name": "practifly-common-config",
-                            "key": "common-config.json",
-                            "path": "common-config.json",
+                            "key": common_config,
+                            "path": common_config,
                         },
                         {
                             "name": "env-volume",
                             "config_map_name": "practifly-env-config",
-                            "key": "env-config.json",
-                            "path": "env-config.json",
+                            "key": env_config,
+                            "path": env_config,
                         },
                         {
                             "name": "vector-volume",
                             "config_map_name": "practifly-cli-vector-config",
-                            "key": "vector-config.toml",
-                            "path": "vector-config.toml",
+                            "key": vector_config,
+                            "path": vector_config,
                         },
                         {
                             "name": "practifly-pvc",

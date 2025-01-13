@@ -10,6 +10,9 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 
 
+VMPODSCRAPE_API_VERSION = "operator.victoriametrics.com/v1beta1"
+
+
 class VMPodScrapperActivityModel(LaunchpadCLIBaseModel):
     """
     VMPodScrapperActivityModel
@@ -57,11 +60,11 @@ class VMPodScrapperActivity(Activity):
         resource = get_resource(
             dynamic_client=k8s_dynamic_client,
             kind=ResourceKindEnum.VMPodScrape,
-            api_version="operator.victoriametrics.com/v1beta1",
+            api_version=VMPODSCRAPE_API_VERSION,
         )
 
         body = {
-            "apiVersion": "operator.victoriametrics.com/v1beta1",
+            "apiVersion": VMPODSCRAPE_API_VERSION,
             "kind": ResourceKindEnum.VMPodScrape.value,
             "metadata": {
                 "name": activity_model.name,
@@ -125,7 +128,7 @@ class VMPodScrapperDeletionActivity(Activity):
         resource = get_resource(
             dynamic_client=k8s_dynamic_client,
             kind=ResourceKindEnum.VMPodScrape,
-            api_version="operator.victoriametrics.com/v1beta1",
+            api_version=VMPODSCRAPE_API_VERSION,
         )
         try:
             k8s_dynamic_client.delete(resource=resource, name=activity_model.name, namespace=activity_model.namespace)

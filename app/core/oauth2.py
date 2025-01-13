@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 import httpx
 import logging
 from functools import lru_cache
@@ -7,7 +8,7 @@ from fastapi.security import OAuth2
 from fastapi.security.utils import get_authorization_scheme_param
 from requests import Response
 from starlette.requests import Request
-
+from starlette.status import HTTP_401_UNAUTHORIZED
 from .settings import get_security_config
 
 security_config = get_security_config()
@@ -30,10 +31,10 @@ def get_token(request: Request, error: bool = True) -> str | None:
     """
     authorization: str = request.headers.get("Authorization")
     scheme, param = get_authorization_scheme_param(authorization)
-    # if not authorization or scheme.lower() != "bearer":
-    #     if error:
-    #         raise Exception("Unauthorized")
-    #     return None
+    if not authorization or scheme.lower() != "bearer":
+        if error:
+            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        return None
     return param
 
 

@@ -5,7 +5,7 @@ from temporalio.common import RetryPolicy
 
 from datetime import timedelta
 
-import requests
+import httpx
 
 from app.cli.k8s_util import get_k8s_core_v1_api_client
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
@@ -536,7 +536,7 @@ class PostgresSupavisorPollUserActivity(Activity):
             DB_PASSWORD=activity_model.db_password,
         )
 
-        response = requests.put(
+        response = httpx.put(
             url=f"{config.supavisor_url}/api/tenants/{activity_model.username}",
             headers={
                 "Authorization": f"Bearer {config.supavisor_token}",
@@ -552,5 +552,9 @@ class PostgresSupavisorPollUserActivity(Activity):
                 f"Supavisor user creation failed with status code: "
                 f"{response.status_code} and response: {response.json()}"
             )
-            raise Exception(f"Supavisor user creation failed with status code: {response.status_code}")
+            raise httpx.HTTPStatusError(
+                f"Supavisor user creation failed with status code: {response.status_code}",
+                request=response.request,
+                response=response,
+            )
         log_info(f"Supervisor poll user created: {activity_model.username}")

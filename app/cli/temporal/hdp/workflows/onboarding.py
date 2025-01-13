@@ -348,16 +348,19 @@ class HDPOnboardingWorkflow(Workflow):
                 start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
+            tenant_config = "tenant-config.json"
+            kestra_config = "kestra-config.yml"
+            config_dir = "config"
             # setup tenant configmap
             for config_map in [
                 {
                     "name": "hdp-tenant-config",
-                    "key": "tenant-config.json",
+                    "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "kestra-config",
-                    "key": "kestra-config.yml",
+                    "key": kestra_config,
                     "template_file_name": f"{config.env}-kestra-config.tmpl.yml",
                 },
             ]:
@@ -585,8 +588,8 @@ class HDPOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": "/config/tenant-config.json",
-                            "sub_path": "tenant-config.json",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                         {"name": "volume-storage", "mount_path": "/data/logs"},
                     ],
@@ -594,8 +597,8 @@ class HDPOnboardingWorkflow(Workflow):
                         {
                             "name": "tenant-volume",
                             "config_map_name": "hdp-tenant-config",
-                            "key": "tenant-config.json",
-                            "path": "tenant-config.json",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                         {"name": "volume-storage", "persistent_volume_claim": "hdp-volume"},
                     ],
@@ -603,7 +606,7 @@ class HDPOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": "/config/tenant-config.json"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "SUPERSET_CONFIG_PATH", "value": "/hdpapi/app/superset_config.py"},
                         {"name": "DATABASE_DB", "value": postgres_database_name},
                         {"name": "DATABASE_HOST", "value": get_settings().postgres.host},
@@ -625,18 +628,20 @@ class HDPOnboardingWorkflow(Workflow):
                         {"name": "SUPERSET_URL", "value": f"https://{tenant}.hdp.314ecorp.tech/hdpsuperset"},
                         {"name": "KEYCLOAK_SUPERSET_PREFIX", "value": "_hdpdashboard_"},
                     ],
-                    # init_containers=[{
-                    #     "name": "hdp-init",
-                    #     "image": docker_image,
-                    #     "command": ["sh", "-c"],
-                    #     "args": [
-                    #         f"export FLASK_APP=superset && "
-                    #         f"superset db upgrade && "
-                    #         f"superset fab create-admin --username 'admin' --firstname 'hdp' --lastname 'admin' "
-                    #         f"--email 'superset@314ecorp.com' --password '{superset_password}' && "
-                    #         f"superset init"
-                    #     ],
-                    # }]
+                    init_containers=[
+                        {
+                            "name": "hdp-init",
+                            "image": docker_image,
+                            "command": ["sh", "-c"],
+                            "args": [
+                                f"export FLASK_APP=superset && "
+                                f"superset db upgrade && "
+                                f"superset fab create-admin --username 'admin' --firstname 'hdp' --lastname 'admin' "
+                                f"--email 'superset@314ecorp.com' --password '{superset_password}' && "
+                                f"superset init"
+                            ],
+                        }
+                    ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
@@ -677,8 +682,8 @@ class HDPOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "kestra-volume",
-                            "mount_path": "/config/kestra-config.yml",
-                            "sub_path": "kestra-config.yml",
+                            "mount_path": f"/{config_dir}/{kestra_config}",
+                            "sub_path": kestra_config,
                         },
                         {
                             "name": "volume-storage",
@@ -686,15 +691,15 @@ class HDPOnboardingWorkflow(Workflow):
                         },
                         {
                             "name": "volume-storage",
-                            "mount_path": "/tmp/kestra-wd/tmp",  # noqa: S108  #nosec
+                            "mount_path": "/tmp/kestra-wd/tmp",  # noqa: S108  #nosec  #NOSONAR
                         },
                     ],
                     volumes=[
                         {
                             "name": "kestra-volume",
                             "config_map_name": "kestra-config",
-                            "key": "kestra-config.yml",
-                            "path": "kestra-config.yml",
+                            "key": kestra_config,
+                            "path": kestra_config,
                         },
                         {"name": "volume-storage", "persistent_volume_claim": "kestra-volume"},
                     ],
@@ -708,7 +713,7 @@ class HDPOnboardingWorkflow(Workflow):
                             "value_from": {
                                 "config_map_key_ref": {
                                     "name": "kestra-config",
-                                    "key": "kestra-config.yml",
+                                    "key": kestra_config,
                                 }
                             },
                         },

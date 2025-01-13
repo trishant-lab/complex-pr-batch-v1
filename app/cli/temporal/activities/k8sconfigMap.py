@@ -178,7 +178,6 @@ class K8sConfigMapCreatFromTemplateActivity(Activity):
         """
         Callable for the activity
         """
-        app_config: AppSettings = get_settings()
         k8s_dynamic_client = get_dynamic_client()
         resource = get_resource(dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.ConfigMap, api_version="v1")
 

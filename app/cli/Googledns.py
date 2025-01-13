@@ -52,7 +52,7 @@ class Googledns:
             except socket.gaierror:
                 count += 1
                 if count == 61:
-                    raise Exception(f"DNS propagation check timed out after [10 min]: {self.fqdn}")
+                    raise TimeoutError(f"DNS propagation check timed out after [10 min]: {self.fqdn}")
                 log_info(f"DNS not propagated yet: {self.fqdn}")
                 await asyncio.sleep(10)
 
