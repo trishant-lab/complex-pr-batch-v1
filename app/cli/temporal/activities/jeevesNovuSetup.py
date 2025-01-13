@@ -647,7 +647,7 @@ class NovuSetup:
         url = f"{self.config.jeeves.novu_url}/v1/organizations"
 
         response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
-
+        logger.debug(f"organisation name key: {response.json()}")
         if response.status_code >= 300:
             raise httpx.HTTPStatusError(
                 f"Failed to get organization by name: {organization_name}", request=response.request, response=response
@@ -685,7 +685,7 @@ class NovuSetup:
             headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
             timeout=120,
         )
-
+        logger.debug(f"API key: {response.json()}")
         if response.status_code >= 300:
             raise httpx.HTTPStatusError(
                 f"Failed to get API keys for organization status_code:{response.status_code}, {response.json()}",
@@ -727,6 +727,7 @@ class NovuSetup:
             organization_id = organization["_id"]
 
         organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
+        logger.debug(f"Organisation: {organization}")
         api_keys = self.get_organization_api_key(token=organization_token, organization_id=organization_id)
 
         # store in 1Password
