@@ -303,11 +303,11 @@ class ChatwootSetup:
         for attr in data:
             attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
             async with aiohttp.ClientSession() as session:
-                response = await session.post(url=url, headers=headers, json=data, timeout=30)
+                response = await session.post(url=url, headers=headers, json=attr, timeout=30)
                 if response.status != 200:
                     logger.error(f"Failed to create custom attribute with status code: {response.status}")
                     raise HTTPException(f"Failed to create custom attribute with status code: {response.status}")
-            logger.info(f"chatwoot custom attributes created successfully : {self.tenant}")
+        logger.info(f"chatwoot custom attributes created successfully : {self.tenant}")
 
     async def setup(self: "ChatwootSetup") -> None:
         """
