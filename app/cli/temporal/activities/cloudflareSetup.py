@@ -21,8 +21,8 @@ from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import (
     download_file_from_storage,
-    get_storage_client,
-    get_storage_client_with_session_token,
+    get_opendal_operator,
+    get_opendal_operator_with_session_token,
     delete_files_from_cloudflare,
     copy_files_to_cloudflare,
     copy_files_to_cloudflare_with_exclude,
@@ -206,8 +206,7 @@ class CopyArtifactsToBucketActivity(Activity):
         artifacts_access_key = config.cloudflare.r2_access_key
         artifacts_secret_key = config.cloudflare.r2_secret_key
 
-        artifacts_s3_client = get_storage_client(
-            config=config,
+        artifacts_s3_client = get_opendal_operator(
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
@@ -224,15 +223,13 @@ class CopyArtifactsToBucketActivity(Activity):
                     object_name=activity_input.src_object_name,
                     file_path=f"{tmp_dir}/{activity_input.bundle_name}",
                     storage_client=artifacts_s3_client,
-                    bucket_name="artifacts",
                 )
 
                 # unzip the file
                 with zipfile.ZipFile(f"{tmp_dir}/{activity_input.bundle_name}", "r") as zip_ref:
                     zip_ref.extractall(f"{tmp_dir}/bundle")
 
-                storage_client = get_storage_client_with_session_token(
-                    config=config,
+                storage_client = get_opendal_operator_with_session_token(
                     access_key=bucket_access_key,
                     secret_key=bucket_secret_key,
                     endpoint=config.cloudflare.r2_endpoint,
@@ -251,7 +248,7 @@ class CopyArtifactsToBucketActivity(Activity):
                 )
 
                 sync_and_verify_files(
-                    storage_client=storage_client,
+                    op=storage_client,
                     input_path=f"{tmp_dir}/{activity_input.bundle_path}",
                     bucket_name=activity_input.bucket_name,
                     dest_dir=activity_input.dest_dir,
@@ -260,7 +257,7 @@ class CopyArtifactsToBucketActivity(Activity):
 
                 if environment == "production":
                     sync_and_verify_files(
-                        storage_client=storage_client,
+                        op=storage_client,
                         input_path=f"{tmp_dir}/{activity_input.bundle_path}/index.html",
                         bucket_name=activity_input.bucket_name,
                         dest_dir=activity_input.dest_dir,
@@ -319,8 +316,7 @@ class CopyWebCoreToBucketActivity(Activity):
 
         artifacts_access_key = config.cloudflare.r2_access_key
         artifacts_secret_key = config.cloudflare.r2_secret_key
-        artifacts_s3_client = get_storage_client(
-            config=config,
+        artifacts_s3_client = get_opendal_operator(
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
@@ -331,7 +327,6 @@ class CopyWebCoreToBucketActivity(Activity):
                     object_name=activity_input.src_object_name,
                     file_path=f"{tmp_dir}/{activity_input.bundle_name}",
                     storage_client=artifacts_s3_client,
-                    bucket_name="artifacts",
                 )
 
                 copy_files_to_cloudflare(
@@ -576,8 +571,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
         artifacts_access_key = config.cloudflare.r2_access_key
         artifacts_secret_key = config.cloudflare.r2_secret_key
 
-        artifacts_s3_client = get_storage_client(
-            config=config,
+        artifacts_s3_client = get_opendal_operator(
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
@@ -589,7 +583,6 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                     object_name=activity_input.src_object_name,
                     file_path=f"{tmp_dir}/{activity_input.bundle_name}",
                     storage_client=artifacts_s3_client,
-                    bucket_name="artifacts",
                 )
 
                 # unzip the file
@@ -637,8 +630,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                     session_token=bucket_temporary_credentials.session_token,
                 )
 
-                storage_client = get_storage_client_with_session_token(
-                    config=config,
+                storage_client = get_opendal_operator_with_session_token(
                     access_key=bucket_access_key,
                     secret_key=bucket_secret_key,
                     endpoint=config.cloudflare.r2_endpoint,
@@ -647,7 +639,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
 
                 # copy "apply" directory
                 sync_and_verify_files(
-                    storage_client=storage_client,
+                    op=storage_client,
                     input_path=f"{tmp_dir}/bundle/dist/careerpages/apply",
                     bucket_name=activity_input.careerportal_bucket_name,
                     dest_dir="",
@@ -655,7 +647,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                 )
                 # copy "public" directory
                 sync_and_verify_files(
-                    storage_client=storage_client,
+                    op=storage_client,
                     input_path=f"{tmp_dir}/bundle/dist/careerpages/public",
                     bucket_name=activity_input.careerportal_bucket_name,
                     prefix="public",

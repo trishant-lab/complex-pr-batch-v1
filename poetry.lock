@@ -318,44 +318,6 @@ files = [
 cryptography = "*"
 
 [[package]]
-name = "boto3"
-version = "1.34.119"
-description = "The AWS SDK for Python"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "boto3-1.34.119-py3-none-any.whl", hash = "sha256:8f9c43c54b3dfaa36c4a0d7b42c417227a515bc7a2e163e62802780000a5a3e2"},
-    {file = "boto3-1.34.119.tar.gz", hash = "sha256:cea2365a25b2b83a97e77f24ac6f922ef62e20636b42f9f6ee9f97188f9c1c03"},
-]
-
-[package.dependencies]
-botocore = ">=1.34.119,<1.35.0"
-jmespath = ">=0.7.1,<2.0.0"
-s3transfer = ">=0.10.0,<0.11.0"
-
-[package.extras]
-crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
-
-[[package]]
-name = "botocore"
-version = "1.34.119"
-description = "Low-level, data-driven core of boto 3."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "botocore-1.34.119-py3-none-any.whl", hash = "sha256:4bdf7926a1290b2650d62899ceba65073dd2693e61c35f5cdeb3a286a0aaa27b"},
-    {file = "botocore-1.34.119.tar.gz", hash = "sha256:b253f15b24b87b070e176af48e8ef146516090429d30a7d8b136a4c079b28008"},
-]
-
-[package.dependencies]
-jmespath = ">=0.7.1,<2.0.0"
-python-dateutil = ">=2.1,<3.0.0"
-urllib3 = {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >= \"3.10\""}
-
-[package.extras]
-crt = ["awscrt (==0.20.9)"]
-
-[[package]]
 name = "cachetools"
 version = "5.3.3"
 description = "Extensible memoizing collections and decorators"
@@ -1457,17 +1419,6 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
-name = "jmespath"
-version = "1.0.1"
-description = "JSON Matching Expressions"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "jmespath-1.0.1-py3-none-any.whl", hash = "sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980"},
-    {file = "jmespath-1.0.1.tar.gz", hash = "sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe"},
-]
-
-[[package]]
 name = "jsonpickle"
 version = "4.0.1"
 description = "jsonpickle encodes/decodes any Python object to/from JSON"
@@ -1828,6 +1779,36 @@ files = [
 rsa = ["cryptography (>=3.0.0)"]
 signals = ["blinker (>=1.4.0)"]
 signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
+
+[[package]]
+name = "opendal"
+version = "0.45.14"
+description = "Apache OpenDAL™ Python Binding"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "opendal-0.45.14-cp310-cp310-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:500b0a25f7c5d11ade03f2e261ea3cb7634bb4720e86bc5c452dc13ece799bca"},
+    {file = "opendal-0.45.14-cp310-cp310-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:13fa9af23dfa57bf3fc83bb3f7fa0402aa885ed21666d9232f573cfd1397a7ce"},
+    {file = "opendal-0.45.14-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b7924e667303d5d646516509654dd1ce11f434587c2a448489a0f6fa62ee374a"},
+    {file = "opendal-0.45.14-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:100ffad58de7ac8f795f893e4cd7527d875dfd6923dad57d0f475d8436929aa0"},
+    {file = "opendal-0.45.14-cp310-cp310-win_amd64.whl", hash = "sha256:7f822591598eeb56c010eacddbd315e02517c738afffc7c207a9688fd4b436a7"},
+    {file = "opendal-0.45.14-cp311-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:036309db35765fadb22602c02dff718da77788ce08a291714aa0aa454e0dbff2"},
+    {file = "opendal-0.45.14-cp311-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:d51bb62384af1959306bb5750ec9fab53c4f9b0d4737e270d704c90dd62bcdaf"},
+    {file = "opendal-0.45.14-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f828bd163abfdf2d68935ce47ce9a7f22ee0e2f352e1dd3dcb26f4ee3259800"},
+    {file = "opendal-0.45.14-cp311-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:2961f1478d3419767fb8c42e97093afbbbed9ff339bf25e3bc05c18f39127356"},
+    {file = "opendal-0.45.14-cp311-abi3-win_amd64.whl", hash = "sha256:47d41e1a412b82fd772ba4e0dd29c8848345a4312d630e0753a4330a6b5f9681"},
+    {file = "opendal-0.45.14-cp313-cp313t-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:7cf22ac17d5693348e066e9cf23bff7d1a23cac1f7de59a5fca08b66712a846e"},
+    {file = "opendal-0.45.14-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:901bd4edd011bf6fe262d7b920dd70176e37037bd74da62cc0862fba5b9da7be"},
+    {file = "opendal-0.45.14-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c6485a504ea1cdc90829c8c66bce339549f900470e384a35fb5de2fdb151ea42"},
+    {file = "opendal-0.45.14-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:de76bfba28a9fa296fcdaad10ef5da72b23b387c5012239b43514d656068335b"},
+    {file = "opendal-0.45.14.tar.gz", hash = "sha256:6efa48efc77ff24ccbdc310c2252f92d90a626e065ce4bb659ec20a3a84d8b1e"},
+]
+
+[package.extras]
+benchmark = ["boto3", "boto3-stubs[essential]", "gevent", "greenify", "greenlet", "pydantic"]
+docs = ["pdoc"]
+lint = ["ruff"]
+test = ["pytest", "pytest-asyncio", "python-dotenv"]
 
 [[package]]
 name = "orjson"
@@ -2836,23 +2817,6 @@ files = [
 ]
 
 [[package]]
-name = "s3transfer"
-version = "0.10.1"
-description = "An Amazon S3 Transfer Manager"
-optional = false
-python-versions = ">= 3.8"
-files = [
-    {file = "s3transfer-0.10.1-py3-none-any.whl", hash = "sha256:ceb252b11bcf87080fb7850a224fb6e05c8a776bab8f2b64b7f25b969464839d"},
-    {file = "s3transfer-0.10.1.tar.gz", hash = "sha256:5683916b4c724f799e600f41dd9e10a9ff19871bf87623cc8f491cb4f5fa0a19"},
-]
-
-[package.dependencies]
-botocore = ">=1.33.2,<2.0a.0"
-
-[package.extras]
-crt = ["botocore[crt] (>=1.33.2,<2.0a.0)"]
-
-[[package]]
 name = "sendgrid"
 version = "6.11.0"
 description = "Twilio SendGrid library for Python"
@@ -3374,4 +3338,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "7aa47d79200ddebb5658b3ddbf107cb2f6d1f8c044a43e26bdbeefb1565dfabd"
+content-hash = "20e2d8bce381b4a36cb0170ca7878a445b5e855ba1e98c674ea112f0fc96c665"
