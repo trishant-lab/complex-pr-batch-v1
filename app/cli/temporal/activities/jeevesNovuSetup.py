@@ -710,6 +710,20 @@ class NovuSetup:
 
         return response.json()["data"]
 
+    def get_environment_id(self: "NovuSetup", token: str) -> str:
+        """
+        Get novu env id
+        """
+        url = f"{self.config.jeeves.novu_url}/v1/environments"
+
+        response = httpx.post(
+            url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"}, timeout=120
+        )
+        if response.status_code >= 300:
+            raise httpx.HTTPStatusError("Failed to get novu env id", request=response.request, response=response)
+
+        return response.json()["data"][0]["_id"]
+
     def setup_novu(self: "NovuSetup") -> None:
         """
         Setup the Novu environment
@@ -727,8 +741,9 @@ class NovuSetup:
             organization_id = organization["_id"]
 
         organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
-        logger.debug(f"Organisation: {organization}")
-        api_keys = self.get_organization_api_key(token=organization_token, organization_id=organization_id)
+        environment_id = self.get_environment_id(token=organization_token)
+        logger.debug(f"Env Id: {environment_id}")
+        api_keys = self.get_organization_api_key(token=organization_token, organization_id=environment_id)
 
         # store in 1Password
         OnePasswordUtil(
