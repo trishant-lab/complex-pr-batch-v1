@@ -74,12 +74,14 @@ class K8sConfigMapCreationActivity(Activity):
                         access_key=app_config.s3_int.access_key,
                         secret_key=app_config.s3_int.secret_key,
                         endpoint=app_config.s3_int.endpoint,
+                        bucket_name=activity_model.bucket_name,
                     )
                     if activity_model.cloudflare_r2_folder_path is None
                     else get_opendal_operator(
                         access_key=app_config.cloudflare.r2_access_key,
                         secret_key=app_config.cloudflare.r2_secret_key,
                         endpoint=app_config.cloudflare.r2_endpoint,
+                        bucket_name=activity_model.bucket_name,
                     )
                 )
 
@@ -98,7 +100,6 @@ class K8sConfigMapCreationActivity(Activity):
                     object_name=object_name,
                     file_path=f"{temp_dir}/{template_file_name}",
                     storage_client=s3_client,
-                    bucket_name=bucket_name,
                 )
 
                 template_env = get_env(template_path=temp_dir)

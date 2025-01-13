@@ -56,6 +56,7 @@ class UiSetupActivity(Activity):
             access_key=config.s3_int.access_key,
             secret_key=config.s3_int.secret_key,
             endpoint=config.s3_int.endpoint,
+            bucket_name="artifacts",
         )
 
         try:

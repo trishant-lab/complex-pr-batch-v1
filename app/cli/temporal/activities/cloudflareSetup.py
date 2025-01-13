@@ -210,6 +210,7 @@ class CopyArtifactsToBucketActivity(Activity):
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
+            bucket_name="artifacts",
         )
 
         bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
@@ -234,6 +235,7 @@ class CopyArtifactsToBucketActivity(Activity):
                     secret_key=bucket_secret_key,
                     endpoint=config.cloudflare.r2_endpoint,
                     session_token=bucket_session_token,
+                    bucket_name=activity_input.bucket_name,
                 )
 
                 prefix = activity_input.dest_dir.split("/")[-1]
@@ -320,6 +322,7 @@ class CopyWebCoreToBucketActivity(Activity):
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
+            bucket_name="artifacts",
         )
         try:
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -575,6 +578,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
+            bucket_name="artifacts",
         )
 
         try:
@@ -635,6 +639,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                     secret_key=bucket_secret_key,
                     endpoint=config.cloudflare.r2_endpoint,
                     session_token=bucket_temporary_credentials.session_token,
+                    bucket_name=activity_input.careerportal_bucket_name,
                 )
 
                 # copy "apply" directory
