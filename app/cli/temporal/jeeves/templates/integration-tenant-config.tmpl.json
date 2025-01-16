@@ -71,6 +71,5 @@
   "cfstream_api_token": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_api_token }}",
   "cfstream_jwk_key": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_jwk_key }}",
   "ffmpeg_app_url": "ffmpeg.ffmpeg.svc.cluster.local:8000",
-  "elevenlabs_api_key": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/elevenlabs_api_key }}",
-  "org_domain": []
+  "elevenlabs_api_key": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/elevenlabs_api_key }}"
 }

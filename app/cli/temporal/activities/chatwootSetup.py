@@ -1,6 +1,8 @@
 import os
 import re
-import httpx
+from http.client import HTTPException
+
+import aiohttp
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
@@ -30,7 +32,7 @@ class ChatwootSetup:
             vault=self.product,
         )
 
-    def create_chatwoot_account(self: "ChatwootSetup") -> int:
+    async def create_chatwoot_account(self: "ChatwootSetup") -> int:
         """
         Create a chatwoot account
         """
@@ -44,17 +46,17 @@ class ChatwootSetup:
         data = {
             "name": self.tenant,
         }
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, headers=headers, json=data, timeout=20)
+            response_json: dict = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to create account in chatwoot : {response_json}")
+                raise RuntimeError(f"Failed to create account in chatwoot : {response_json}")
 
-        response = httpx.post(url=url, headers=headers, json=data, timeout=20)
+            logger.info(f"chatwoot account created successfully : {self.tenant}")
+            return response_json.get("id")
 
-        if response.status_code >= 400:
-            logger.error(f"Failed to create account in chatwoot : {response.json()}")
-            raise RuntimeError(f"Failed to create account in chatwoot : {response.json()}")
-
-        logger.info(f"chatwoot account created successfully : {self.tenant}")
-        return response.json().get("id")
-
-    def create_chatwoot_user(self: "ChatwootSetup") -> dict:
+    async def create_chatwoot_user(self: "ChatwootSetup") -> dict:
         """
         Create a chatwoot user
         """
@@ -71,14 +73,20 @@ class ChatwootSetup:
             "password": self.chatwoot_default_user_password,
             "custom_attributes": {},
         }
-        response = httpx.post(url=url, headers=headers, json=data, timeout=20)
-        if response.status_code >= 400:
-            logger.error(f"Failed to create user in chatwoot : {response.status_code}")
-            raise RuntimeError(f"Failed to create user in chatwoot : {response.status_code}")
-        logger.info(f"chatwoot user created successfully apiuser {self.tenant}")
-        return response.json()
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(
+                url=url,
+                json=data,
+                headers=headers,
+                timeout=20,
+            )
+            if response.status >= 400:
+                logger.error(f"Failed to create user in chatwoot : {response.status}")
+                raise RuntimeError(f"Failed to create user in chatwoot : {response.status}")
+            logger.info(f"chatwoot user created successfully apiuser {self.tenant}")
+            return await response.json()
 
-    def add_user_to_account(self: "ChatwootSetup", user_id: int, account_id: int) -> int:
+    async def add_user_to_account(self: "ChatwootSetup", user_id: int, account_id: int) -> int:
         """
         Add a user to a chatwoot account
             :return:
@@ -93,14 +101,16 @@ class ChatwootSetup:
             "user_id": user_id,
             "role": "administrator",
         }
-        response = httpx.post(url=url, headers=headers, json=data, timeout=20)
-        if response.status_code >= 400:
-            logger.error(f"Failed to add user to chatwoot account : {response.json()}")
-            raise httpx.HTTPStatusError(f"Failed to add user to chatwoot account : {response.json()}")
-        logger.info(f"user added to chatwoot account successfully. user id:{user_id}")
-        return response.status_code
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, headers=headers, json=data, timeout=20)
+            response_json = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to add user to chatwoot account : {response_json}")
+                raise HTTPException(f"Failed to add user to chatwoot account : {response_json}")
+            logger.info(f"user added to chatwoot account successfully. user id:{user_id}")
+            return response.status
 
-    def create_account_agent_bot(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
+    async def create_account_agent_bot(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
         """
         Create a chatwoot account agent bot
         """
@@ -118,14 +128,16 @@ class ChatwootSetup:
             "description": f"{self.product} AI Bot",
             "outgoing_url": f"{server_url}/public/api/v1/agent/{self.product.lower()}Chatbot",
         }
-        response = httpx.post(url=url, headers=headers, json=data, timeout=20)
-        if response.status_code >= 400:
-            logger.error(f"Failed to create agent bot for chatwoot account : {response.json()}")
-            raise httpx.HTTPStatusError(f"Failed to create agent bot for chatwoot account : {response.json()}")
-        logger.info(f"agent bot created successfully: {self.product} AI Bot")
-        return response.json()
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, headers=headers, json=data, timeout=20)
+            response_json: dict = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to create agent bot for chatwoot account : {response_json}")
+                raise HTTPException(f"Failed to create agent bot for chatwoot account : {response_json}")
+            logger.info(f"agent bot created successfully: {self.product} AI Bot")
+            return response_json
 
-    def list_all_inboxes(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
+    async def list_all_inboxes(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
         """
         List all the inboxes in a chatwoot account
         """
@@ -136,15 +148,16 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes"
 
-        response = httpx.get(url=url, headers=headers, timeout=20)
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url=url, headers=headers, timeout=20)
+            response_json: dict = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to list all inboxes for chatwoot account : {response_json}")
+                raise HTTPException(f"Failed to list all inboxes for chatwoot account : {response_json}")
 
-        if response.status_code >= 400:
-            logger.error(f"Failed to list all inboxes for chatwoot account : {response.status_code}")
-            raise httpx.HTTPStatusError(f"Failed to list all inboxes for chatwoot account : {response.status_code}")
+            return response_json
 
-        return response.json()
-
-    def create_chatwoot_inbox(self: "ChatwootSetup", user_api_key: str, account_id: int) -> int | None:
+    async def create_chatwoot_inbox(self: "ChatwootSetup", user_api_key: str, account_id: int) -> int | None:
         """
         Create a chatwoot inbox
         :return:
@@ -161,14 +174,16 @@ class ChatwootSetup:
                 "website_url": "localhost:2000",
             },
         }
-        response = httpx.post(url=url, headers=headers, json=inbox_data, timeout=20)
-        if response.status_code >= 400:
-            logger.error(f"Failed to create inbox bot for chatwoot account : {response.json()}")
-            raise httpx.HTTPStatusError(f"Failed to create inbox bot for chatwoot account : {response.json()}")
-        logger.info(f"chatwoot inbox created successfully: {self.product}")
-        return response.json().get("id")
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, headers=headers, json=inbox_data, timeout=20)
+            response_json: dict = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to create inbox bot for chatwoot account : {response_json}")
+                raise HTTPException(f"Failed to create inbox bot for chatwoot account : {response_json}")
+            logger.info(f"chatwoot inbox created successfully: {self.product}")
+            return response_json.get("id")
 
-    def update_chatwoot_inbox(self: "ChatwootSetup", account_id: int, user_api_key: str, inbox_id: int) -> int:
+    async def update_chatwoot_inbox(self: "ChatwootSetup", account_id: int, user_api_key: str, inbox_id: int) -> int:
         """
         Update a chatwoot inbox
         :return:
@@ -187,14 +202,16 @@ class ChatwootSetup:
         }
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}"
 
-        response = httpx.patch(url=url, headers=api_token_headers, json=update_data, timeout=20)
-        if response.status_code >= 400:
-            logger.error(f"Failed to update inbox for chatwoot account : {response.json()}")
-            raise httpx.HTTPStatusError(f"Failed to update inbox for chatwoot account : {response.json()}")
-        logger.info(f"chatwoot inbox updated successfully: inbox id:{inbox_id}")
-        return response.status_code
+        async with aiohttp.ClientSession() as session:
+            response = await session.patch(url=url, headers=api_token_headers, json=update_data, timeout=20)
+            response_json = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to update inbox for chatwoot account : {response_json}")
+                raise HTTPException(f"Failed to update inbox for chatwoot account : {response_json}")
+            logger.info(f"chatwoot inbox updated successfully: inbox id:{inbox_id}")
+            return response.status
 
-    def add_agent_bot_to_inbox(
+    async def add_agent_bot_to_inbox(
         self: "ChatwootSetup", agent_bot_id: int, user_api_key: str, account_id: int, inbox_id: int
     ) -> int:
         """
@@ -209,14 +226,16 @@ class ChatwootSetup:
             "agent_bot": agent_bot_id,
         }
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/set_agent_bot"
-        response = httpx.post(url=url, headers=api_token_headers, json=agent_bot_data, timeout=20)
-        if response.status_code >= 400:
-            logger.error(f"Failed to add agent bot to inbox for chatwoot account : {response.json()}")
-            raise httpx.HTTPStatusError(f"Failed to add agent bot to inbox for chatwoot account : {response.json()}")
-        logger.info(f"agent bot added to inbox successfully: agent bot id :{agent_bot_id}")
-        return response.status_code
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, headers=api_token_headers, json=agent_bot_data, timeout=20)
+            response_json: dict = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to add agent bot to inbox for chatwoot account : {response_json}")
+                raise HTTPException(f"Failed to add agent bot to inbox for chatwoot account : {response_json}")
+            logger.info(f"agent bot added to inbox successfully: agent bot id :{agent_bot_id}")
+            return response.status
 
-    def get_inbox_agent_bot(self: "ChatwootSetup", user_api_key: str, account_id: int, inbox_id: int) -> dict:
+    async def get_inbox_agent_bot(self: "ChatwootSetup", user_api_key: str, account_id: int, inbox_id: int) -> dict:
         """
         Get the agent bot for a chatwoot inbox
         """
@@ -227,15 +246,16 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/agent_bot"
 
-        response = httpx.get(url=url, headers=headers, timeout=20)
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url=url, headers=headers, timeout=20)
+            response_json: dict = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to get agent bot for chatwoot account : {response.status}")
+                raise HTTPException(f"Failed to get agent bot for chatwoot account : {response.status}")
 
-        if response.status_code >= 400:
-            logger.error(f"Failed to get agent bot for chatwoot account : {response.status_code}")
-            raise httpx.HTTPStatusError(f"Failed to get agent bot for chatwoot account : {response.status_code}")
+            return response_json
 
-        return response.json()
-
-    def list_all_agent_bots_in_account(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
+    async def list_all_agent_bots_in_account(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
         """
         List all the agents in a chatwoot account
         """
@@ -246,71 +266,16 @@ class ChatwootSetup:
 
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/agent_bots"
 
-        response = httpx.get(url=url, headers=headers, timeout=20)
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url=url, headers=headers, timeout=20)
+            response_json: dict = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to list all agents for chatwoot account : {response.status}")
+                raise HTTPException(f"Failed to list all agents for chatwoot account : {response.status}")
 
-        if response.status_code >= 400:
-            logger.error(f"Failed to list all agents for chatwoot account : {response.status_code}")
-            raise httpx.HTTPStatusError(f"Failed to list all agents for chatwoot account : {response.status_code}")
+            return response_json
 
-        return response.json()
-
-    def setup(self: "ChatwootSetup") -> None:
-        """
-        Setup the Chatwoot environment
-        """
-        # Create Chatwoot Account If not exists
-        account_id = self.onepassword_util.get_key("chatwoot_account_id")
-        if not account_id:
-            account_id = self.create_chatwoot_account()
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_account_id", value=str(account_id))
-            log_info(f"chatwoot account created successfully : {self.tenant}")
-
-        # Create Chatwoot User If not exists
-        api_key = self.onepassword_util.get_key("chatwoot_api_key")
-        if not api_key:
-            user = self.create_chatwoot_user()
-            log_info(f"chatwoot user created successfully : {self.tenant}")
-            self.add_user_to_account(user_id=user["id"], account_id=account_id)
-            log_info(f"chatwoot user added to account successfully : {self.tenant}")
-
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_api_key", value=user["access_token"])
-            api_key = user["access_token"]
-
-        # Create Chatwoot Agent Bot If not exists
-        agents = self.list_all_agent_bots_in_account(user_api_key=api_key, account_id=account_id)
-
-        if not agents:
-            agent_bot = self.create_account_agent_bot(user_api_key=api_key, account_id=account_id)
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_bot_token", value=agent_bot["access_token"])
-            agent_bot_id = agent_bot["id"]
-        else:
-            agent_bot = agents[0]
-            agent_bot_id = agent_bot["id"]
-
-        log_info(f"chatwoot agent bot created successfully : {self.tenant}")
-
-        inboxes = self.list_all_inboxes(user_api_key=api_key, account_id=account_id)
-        if not inboxes["payload"]:
-            inbox_id = self.create_chatwoot_inbox(user_api_key=api_key, account_id=account_id)
-        else:
-            inbox_id = inboxes["payload"][0]["id"]
-        log_info(f"chatwoot inbox created successfully : {self.tenant}")
-
-        if not self.get_inbox_agent_bot(user_api_key=api_key, account_id=account_id, inbox_id=inbox_id):
-            # add agent bot to inbox
-            self.add_agent_bot_to_inbox(
-                agent_bot_id=agent_bot_id, user_api_key=api_key, account_id=account_id, inbox_id=inbox_id
-            )
-            log_info(f"agent bot added to inbox successfully : {self.tenant}")
-
-        # update inbox
-        self.update_chatwoot_inbox(account_id=account_id, user_api_key=api_key, inbox_id=inbox_id)
-        log_info(f"chatwoot inbox updated successfully : {self.tenant}")
-
-        # create chatwoot custom attributes
-        self.create_chatwoot_custom_attributes(user_api_key=api_key, account_id=account_id)
-
-    def create_chatwoot_custom_attributes(self: "ChatwootSetup", user_api_key: str, account_id: int) -> None:
+    async def create_chatwoot_custom_attributes(self: "ChatwootSetup", user_api_key: str, account_id: int) -> None:
         """
         Create chatwoot custom attributes
         """
@@ -337,12 +302,68 @@ class ChatwootSetup:
             data = orjson.loads(file.read())
         for attr in data:
             attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
-
-        response = httpx.post(url=url, headers=headers, json=data, timeout=30)
-        if response.status != 200:
-            logger.error(f"Failed to create custom attribute with status code: {response.status}")
-            raise httpx.HTTPStatusError(f"Failed to create custom attribute with status code: {response.status}")
+            async with aiohttp.ClientSession() as session:
+                response = await session.post(url=url, headers=headers, json=attr, timeout=30)
+                if response.status != 200:
+                    logger.error(f"Failed to create custom attribute with status code: {response.status}")
+                    raise HTTPException(f"Failed to create custom attribute with status code: {response.status}")
         logger.info(f"chatwoot custom attributes created successfully : {self.tenant}")
+
+    async def setup(self: "ChatwootSetup") -> None:
+        """
+        Setup the Chatwoot environment
+        """
+        # Create Chatwoot Account If not exists
+        account_id = self.onepassword_util.get_key("chatwoot_account_id")
+        if not account_id:
+            account_id = await self.create_chatwoot_account()
+            self.onepassword_util.insert_if_not_exists(key="chatwoot_account_id", value=str(account_id))
+            log_info(f"chatwoot account created successfully : {self.tenant}")
+
+        # Create Chatwoot User If not exists
+        api_key = self.onepassword_util.get_key("chatwoot_api_key")
+        if not api_key:
+            user = await self.create_chatwoot_user()
+            log_info(f"chatwoot user created successfully : {self.tenant}")
+            await self.add_user_to_account(user_id=user["id"], account_id=account_id)
+            log_info(f"chatwoot user added to account successfully : {self.tenant}")
+
+            self.onepassword_util.insert_if_not_exists(key="chatwoot_api_key", value=user["access_token"])
+            api_key = user["access_token"]
+
+        # Create Chatwoot Agent Bot If not exists
+        agents = await self.list_all_agent_bots_in_account(user_api_key=api_key, account_id=account_id)
+
+        if not agents:
+            agent_bot = await self.create_account_agent_bot(user_api_key=api_key, account_id=account_id)
+            self.onepassword_util.insert_if_not_exists(key="chatwoot_bot_token", value=agent_bot["access_token"])
+            agent_bot_id = agent_bot["id"]
+        else:
+            agent_bot = agents[0]
+            agent_bot_id = agent_bot["id"]
+
+        log_info(f"chatwoot agent bot created successfully : {self.tenant}")
+
+        inboxes = await self.list_all_inboxes(user_api_key=api_key, account_id=account_id)
+        if not inboxes["payload"]:
+            inbox_id = await self.create_chatwoot_inbox(user_api_key=api_key, account_id=account_id)
+        else:
+            inbox_id = inboxes["payload"][0]["id"]
+        log_info(f"chatwoot inbox created successfully : {self.tenant}")
+
+        if not await self.get_inbox_agent_bot(user_api_key=api_key, account_id=account_id, inbox_id=inbox_id):
+            # add agent bot to inbox
+            await self.add_agent_bot_to_inbox(
+                agent_bot_id=agent_bot_id, user_api_key=api_key, account_id=account_id, inbox_id=inbox_id
+            )
+            log_info(f"agent bot added to inbox successfully : {self.tenant}")
+
+        # update inbox
+        await self.update_chatwoot_inbox(account_id=account_id, user_api_key=api_key, inbox_id=inbox_id)
+        log_info(f"chatwoot inbox updated successfully : {self.tenant}")
+
+        # create chatwoot custom attributes
+        await self.create_chatwoot_custom_attributes(user_api_key=api_key, account_id=account_id)
 
 
 class ChatwootSetupActivityModel(LaunchpadCLIBaseModel):
@@ -383,4 +404,4 @@ class ChatwootSetupActivity(Activity):
         chatwoot_setup = ChatwootSetup(
             tenant=activity_model.tenant, product=activity_model.product, config=activity_model.config
         )
-        chatwoot_setup.setup()
+        await chatwoot_setup.setup()
