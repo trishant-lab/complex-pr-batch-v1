@@ -63,6 +63,12 @@ class K8sConfigMapCreationActivity(Activity):
 
         template_file_name = activity_model.template_file_name
 
+        bucket_name = (
+            activity_model.bucket_name
+            if activity_model.cloudflare_r2_folder_path is None
+            else "launchpad-config-templates"
+        )
+
         if activity_model.data:
             data = {
                 activity_model.destination_file_name: activity_model.data,
@@ -74,14 +80,14 @@ class K8sConfigMapCreationActivity(Activity):
                         access_key=app_config.s3_int.access_key,
                         secret_key=app_config.s3_int.secret_key,
                         endpoint=app_config.s3_int.endpoint,
-                        bucket_name=activity_model.bucket_name,
+                        bucket_name=bucket_name,
                     )
                     if activity_model.cloudflare_r2_folder_path is None
                     else get_opendal_operator(
                         access_key=app_config.cloudflare.r2_access_key,
                         secret_key=app_config.cloudflare.r2_secret_key,
                         endpoint=app_config.cloudflare.r2_endpoint,
-                        bucket_name=activity_model.bucket_name,
+                        bucket_name=bucket_name,
                     )
                 )
 
@@ -89,11 +95,6 @@ class K8sConfigMapCreationActivity(Activity):
                     f"{activity_model.cloudflare_r2_folder_path}/{template_file_name}"
                     if activity_model.cloudflare_r2_folder_path is not None
                     else template_file_name
-                )
-                bucket_name = (
-                    activity_model.bucket_name
-                    if activity_model.cloudflare_r2_folder_path is None
-                    else "launchpad-config-templates"
                 )
 
                 download_file_from_storage(
