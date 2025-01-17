@@ -186,7 +186,7 @@ async def create_novu_workflow_templates(template_path: str, config: AppSettings
             }
             async with aiohttp.ClientSession() as session:
                 response = await session.post(url=workflow_url, headers=headers, json=workflow_, timeout=10)
-            if response.status_code >= 400:
+            if response.status >= 400:
                 logger.error(f"Failed to create novu workflow template : {response.json()}")
 
 
@@ -210,12 +210,8 @@ class NovuSetup:
         async with aiohttp.ClientSession() as session:
             response = await session.post(url=url, json=payload, timeout=120)
 
-        if response.status_code >= 300:
-            raise aiohttp.ClientResponseError(
-                "Failed to get access token for Novu environment",
-                request=response.request,
-                response=response,
-            )
+        if response.status >= 300:
+            raise aiohttp.ClientResponseError("Failed to get access token for Novu environment")
 
         return response.json()["data"]["token"]
 
@@ -228,11 +224,9 @@ class NovuSetup:
         async with aiohttp.ClientSession() as session:
             response = await session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
-        if response.status_code >= 300:
+        if response.status >= 300:
             raise aiohttp.ClientResponseError(
                 f"Failed to get organization by name: {organization_name}",
-                request=response.request,
-                response=response,
             )
 
         return [row for row in response.json()["data"] if row["name"] == organization_name]
@@ -252,12 +246,8 @@ class NovuSetup:
                 url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120
             )
 
-        if response.status_code >= 300:
-            raise aiohttp.ClientResponseError(
-                f"Failed to create organization: {org_name}",
-                request=response.request,
-                response=response,
-            )
+        if response.status >= 300:
+            raise aiohttp.ClientResponseError(f"Failed to create organization: {org_name}")
 
         return response.json()
 
@@ -270,12 +260,8 @@ class NovuSetup:
         async with aiohttp.ClientSession() as session:
             response = await session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
-        if response.status_code >= 300:
-            raise aiohttp.ClientResponseError(
-                f"Failed to get API keys for organization status_code:{response.status_code}",
-                request=response.request,
-                response=response,
-            )
+        if response.status >= 300:
+            raise aiohttp.ClientResponseError(f"Failed to get API keys for organization status_code:{response.status}")
 
         return response.json()["data"][0]["key"]
 
@@ -288,12 +274,8 @@ class NovuSetup:
         async with aiohttp.ClientSession() as session:
             response = await session.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
-        if response.status_code >= 300:
-            raise aiohttp.ClientResponseError(
-                f"Failed to switch organization: {organization_id}",
-                request=response.request,
-                response=response,
-            )
+        if response.status >= 300:
+            raise aiohttp.ClientResponseError(f"Failed to switch organization: {organization_id}")
 
         return response.json()["data"]
 

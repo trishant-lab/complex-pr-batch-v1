@@ -219,9 +219,9 @@ class NovuSetup:
                         response=response,
                     )
 
-        if response.status_code >= 300:
+        if response.status >= 300:
             raise aiohttp.ClientResponseError(
-                f"Failed to get access token for Novu environment, status_code: {response.status_code}",
+                f"Failed to get access token for Novu environment, status_code: {response.status}",
                 request=response.request,
                 response=response,
             )
@@ -239,7 +239,7 @@ class NovuSetup:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to get organization by name: {organization_name}")
 
-        if response.status_code >= 300:
+        if response.status >= 300:
             raise RuntimeError(f"Failed to get organization by name: {organization_name}")
 
         return [row for row in response.json()["data"] if row["name"] == organization_name]
@@ -261,7 +261,7 @@ class NovuSetup:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to create organization: {org_name}")
 
-        if response.status_code >= 300:
+        if response.status >= 300:
             raise RuntimeError(f"Failed to create organization: {org_name}")
 
         return response.json()
@@ -277,8 +277,8 @@ class NovuSetup:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
-        if response.status_code >= 300:
-            raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status_code}")
+        if response.status >= 300:
+            raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
         return response.json()["data"][0]["key"]
 
@@ -293,7 +293,7 @@ class NovuSetup:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to switch organization: {organization_id}")
 
-        if response.status_code >= 300:
+        if response.status >= 300:
             raise RuntimeError(f"Failed to switch organization: {organization_id}")
 
         return response.json()["data"]
