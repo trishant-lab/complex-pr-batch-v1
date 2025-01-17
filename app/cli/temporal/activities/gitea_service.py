@@ -81,7 +81,9 @@ class GiteaService:
                 "restricted": False,
             }
             async with aiohttp.ClientSession() as session:
-                response = await session.post(url, json=payload, auth=self.auth, timeout=30)
+                response = await session.post(
+                    url, json=payload, auth=self.auth, timeout=aiohttp.ClientTimeout(total=30)
+                )
                 response.raise_for_status()
             response_json = await response.json()
             log_info(f"User created successfully: {response_json}")
@@ -107,7 +109,7 @@ class GiteaService:
         """
         url = f"{self.base_url}/admin/users/{username}"
         async with aiohttp.ClientSession() as session:
-            response = await session.delete(url, auth=self.auth, timeout=30)
+            response = await session.delete(url, auth=self.auth, timeout=aiohttp.ClientTimeout(total=30))
             response.raise_for_status()
         log_info("User deleted successfully.")
 
@@ -121,7 +123,9 @@ class GiteaService:
             url = f"{self.base_url}/repos/{zsegment_config.gitea_admin_username}/{self.template_repo}/generate"
             payload = {"name": repo_name, "owner": username, "git_content": True}
             async with aiohttp.ClientSession() as session:
-                response = await session.post(url, json=payload, auth=self.auth, timeout=30)
+                response = await session.post(
+                    url, json=payload, auth=self.auth, timeout=aiohttp.ClientTimeout(total=30)
+                )
                 response.raise_for_status()
             response_json = await response.json()
             log_info(f"Repository created successfully: {response_json}")

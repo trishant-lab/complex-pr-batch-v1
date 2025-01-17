@@ -362,7 +362,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
     ).decode()
 
     async with aiohttp.ClientSession() as session:
-        response = await session.post(url, headers=headers, data=payload, timeout=120)
+        response = await session.post(url, headers=headers, data=payload, timeout=aiohttp.ClientTimeout(total=120))
 
     response.raise_for_status()
 

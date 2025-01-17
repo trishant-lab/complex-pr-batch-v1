@@ -73,7 +73,9 @@ async def create_novu_notification_workflow(data: dict, config: AppSettings, api
     url: str = f"{config.dexit.novu_url}/v1/workflows"
     if not workflow:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=data, timeout=10) as response:
+            async with session.post(
+                url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to create novu workflow template : {response.json()}")
 
@@ -211,7 +213,7 @@ class NovuSetup:
         payload = {"email": self.config.dexit.novu_admin_user, "password": self.config.dexit.novu_admin_password}
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(url=url, json=payload, timeout=120) as response:
+            async with session.post(url=url, json=payload, timeout=aiohttp.ClientTimeout(total=120)) as response:
                 if response.status >= 400:
                     raise aiohttp.ClientResponseError(
                         f"Failed to get access token for Novu environment, status_code: {response.status}",
@@ -235,7 +237,9 @@ class NovuSetup:
         url = f"{self.config.dexit.novu_url}/v1/organizations"
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120) as response:
+            async with session.get(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            ) as response:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to get organization by name: {organization_name}")
 
@@ -256,7 +260,10 @@ class NovuSetup:
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120
+                url=url,
+                headers={"Authorization": f"Bearer {token}"},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=120),
             ) as response:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to create organization: {org_name}")
@@ -273,7 +280,9 @@ class NovuSetup:
         url = f"{self.config.dexit.novu_url}/v1/environments/api-keys"
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120) as response:
+            async with session.get(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            ) as response:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
@@ -289,7 +298,9 @@ class NovuSetup:
         url = f"{self.config.dexit.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120) as response:
+            async with session.post(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            ) as response:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to switch organization: {organization_id}")
 
