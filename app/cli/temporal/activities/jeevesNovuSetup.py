@@ -686,6 +686,7 @@ class NovuSetup:
 
         return response.json()
 
+    # todo: we will keep this method until we upgrade production and after making sure that the new method is working fine
     async def get_organization_api_key(self: "NovuSetup", token: str, organization_id: str) -> str:
         """
         Get the API keys for the organization
@@ -724,6 +725,7 @@ class NovuSetup:
 
         return response.json()["data"]
 
+    # todo: we will keep this method until we upgrade production and after making sure that the new method is working fine
     async def get_environment_id(self: "NovuSetup", token: str) -> str:
         """
         Get novu env id
@@ -738,6 +740,35 @@ class NovuSetup:
             raise aiohttp.ClientResponseError("Failed to get novu env id", request=response.request, response=response)
 
         return response.json()["data"][0]["_id"]
+
+    async def get_environment_api_key(self: "NovuSetup", token: str) -> str:
+        """
+        Get novu env id
+        """
+        url = f"{self.config.jeeves.novu_url}/v1/environments"
+
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(
+                url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"}, timeout=120
+            )
+        if response.status_code >= 300:
+            raise aiohttp.ClientResponseError(
+                "Failed to get novu env id",
+                request=response.request,
+                response=response,
+            )
+
+        api_keys: list = [
+            env.get("apiKeys")[0].get("key") for env in response.json()["data"] if env.get("name") == "Development"
+        ]
+        if api_keys and api_keys[0]:
+            return api_keys[0]
+        else:
+            raise aiohttp.ClientResponseError(
+                "Failed to get novu env api key",
+                request=response.request,
+                response=response,
+            )
 
     async def setup_novu(self: "NovuSetup") -> None:
         """
@@ -755,10 +786,11 @@ class NovuSetup:
             organization = organization[0]
             organization_id = organization["_id"]
 
-        organization_token = await self.switch_organization(organization_id=organization_id, token=access_token)
-        environment_id = await self.get_environment_id(token=organization_token)
-        logger.debug(f"Env Id: {environment_id}")
-        api_keys = await self.get_organization_api_key(token=organization_token, organization_id=environment_id)
+        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
+        # environment_id = self.get_environment_id(token=organization_token)
+        # logger.debug(f"Env Id: {environment_id}")
+        # api_keys = self.get_organization_api_key(token=organization_token, organization_id=environment_id)
+        api_keys = await self.get_environment_api_key(token=organization_token)
 
         # store in 1Password
         OnePasswordUtil(
