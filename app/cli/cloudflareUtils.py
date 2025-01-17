@@ -23,7 +23,7 @@ async def get_async_cloudflare_client() -> aiohttp.ClientSession:
     """
     _config = get_settings()
     headers = {"Authorization": f"Bearer {_config.cloudflare.api_token}"}
-    return await aiohttp.ClientSession(
+    return aiohttp.ClientSession(
         base_url=_config.cloudflare.api_url, headers=headers, timeout=aiohttp.ClientTimeout(total=120)
     )
 
