@@ -5,7 +5,7 @@ from collections.abc import Callable
 from typing import ClassVar
 
 import python_http_client.exceptions as sg_exceptions
-import requests
+import aiohttp
 from sendgrid import (
     SendGridAPIClient,
     Attachment,
@@ -204,7 +204,7 @@ class Sendgrid(metaclass=Singleton):
 sendgrid = Sendgrid()
 
 
-def send_mail(
+async def send_mail(
     subject: str,
     content: str,
     from_name: str,
@@ -228,7 +228,7 @@ def send_mail(
     @return:
     """
     if attachment_with_url:
-        attachments = fetch_and_set_attachments(attachments=attachments)
+        attachments = await fetch_and_set_attachments(attachments=attachments)
     return sendgrid.send_mail(
         subject=subject,
         content=content,
@@ -241,16 +241,17 @@ def send_mail(
     )
 
 
-def fetch_and_set_attachments(attachments: list) -> list[Attachment]:
+async def fetch_and_set_attachments(attachments: list) -> list[Attachment]:
     """
     @param attachments:
     @return:
     """
     attaches = []
     for attachment in attachments:
-        response = requests.get(attachment, timeout=60)
-        file_content = base64.b64encode(response.content).decode("utf-8")
-        file_name = os.path.basename(attachment)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(attachment, timeout=60) as response:
+                file_content = base64.b64encode(await response.content.read()).decode("utf-8")
+                file_name = os.path.basename(attachment)
         file_type = "application/pdf"  # Adjust the MIME type according to your attachment
 
         attachment = Attachment()

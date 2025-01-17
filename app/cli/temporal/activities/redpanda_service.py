@@ -3,7 +3,7 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 from concurrent.futures import wait, ALL_COMPLETED
 
-import httpx
+import aiohttp
 from confluent_kafka.admin import (
     AdminClient,
     AclBinding,
@@ -174,14 +174,15 @@ def create_acls(properties: RedpandaProperties) -> bool:
         return False
 
 
-def create_user(properties: RedpandaProperties) -> bool:
+async def create_user(properties: RedpandaProperties) -> bool:
     """
     Create a user for the given tenant
     """
     try:
         username = f"zsegment_{properties.tenant}"
 
-        list_user = httpx.get(f"{properties.admin_api_base_url}/v1/security/users", timeout=30)
+        async with aiohttp.ClientSession() as session:
+            list_user = await session.get(f"{properties.admin_api_base_url}/v1/security/users", timeout=30)
         if list_user.status_code == 200:
             existing_users = list_user.json()
             if username in existing_users:
@@ -190,11 +191,12 @@ def create_user(properties: RedpandaProperties) -> bool:
                     "algorithm": properties.tenant_sasl_mechanism,
                     "password": properties.tenant_password,
                 }
-                response = httpx.put(
-                    f"{properties.admin_api_base_url}/v1/security/users/{username}",
-                    json=user_payload,
-                    timeout=30,
-                )
+                async with aiohttp.ClientSession() as session:
+                    response = await session.put(
+                        f"{properties.admin_api_base_url}/v1/security/users/{username}",
+                        json=user_payload,
+                        timeout=30,
+                    )
                 if response.status_code == 200:
                     log_info(
                         f"User '{username}' already exists for tenant '{properties.tenant}'."
@@ -218,42 +220,37 @@ def create_user(properties: RedpandaProperties) -> bool:
             "algorithm": properties.tenant_sasl_mechanism,
             "password": properties.tenant_password,
         }
-        response = httpx.post(
-            f"{properties.admin_api_base_url}/v1/security/users",
-            json=user_payload,
-            timeout=30,
-        )
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(
+                f"{properties.admin_api_base_url}/v1/security/users",
+                json=user_payload,
+                timeout=30,
+            )
         if response.status_code == 200:
             log_info(f"Created user for tenant {properties.tenant}")
             return True
-
-    except httpx.RequestError as req_err:
-        log_error(f"Network error occurred while creating user for tenant {properties.tenant}: {req_err}")
-        return False
-    except httpx.HTTPStatusError as http_err:
-        log_error(f"HTTP error occurred while creating user for tenant {properties.tenant}: {http_err}")
-        return False
-    except Exception as e:
+    except aiohttp.ClientResponseError as e:
         log_error(f"Unexpected error occurred while creating user for tenant {properties.tenant}: {e}")
         return False
 
 
-def delete_user(properties: RedpandaProperties) -> bool:
+async def delete_user(properties: RedpandaProperties) -> bool:
     """
     Delete a user for the given tenant
     """
     try:
-        response = httpx.delete(
-            f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}",
-            timeout=30,
-        )
+        async with aiohttp.ClientSession() as session:
+            response = await session.delete(
+                f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}",
+                timeout=30,
+            )
         if response.status_code == 200:
             log_info(f"Deleted user for tenant {properties.tenant}")
             return True
         else:
             log_error(f"Failed to delete user: {response.status_code}")
             return False
-    except httpx.HTTPStatusError as e:
+    except aiohttp.ClientResponseError as e:
         log_error(f"Failed to delete user: {e}")
         return False
 
@@ -286,7 +283,7 @@ class RedpandaSetupActivity(Activity):
         log_info(f"Starting Redpanda setup for tenant {properties.__dict__}")
 
         # Step 1: Create user
-        user_created = create_user(properties)
+        user_created = await create_user(properties)
         if not user_created:
             log_error(f"Failed to create user for tenant {properties.tenant}")
 

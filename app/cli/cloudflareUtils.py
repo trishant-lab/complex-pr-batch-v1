@@ -1,7 +1,7 @@
 import asyncio
 from functools import lru_cache
 
-import httpx
+import aiohttp
 from cloudflare import AsyncCloudflare
 from cloudflare.types.r2 import TemporaryCredentialCreateResponse
 from loguru import logger
@@ -17,13 +17,13 @@ def get_cloudflare_sdk_client(config: AppSettings) -> AsyncCloudflare:
 
 
 @lru_cache
-def get_async_cloudflare_client() -> httpx.AsyncClient:
+async def get_async_cloudflare_client() -> aiohttp.ClientSession:
     """
     Get an async HTTP client for Cloudflare API
     """
     _config = get_settings()
     headers = {"Authorization": f"Bearer {_config.cloudflare.api_token}"}
-    return httpx.AsyncClient(base_url=_config.cloudflare.api_url, headers=headers, timeout=120)
+    return await aiohttp.ClientSession(base_url=_config.cloudflare.api_url, headers=headers, timeout=120)
 
 
 async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> TemporaryCredentialCreateResponse:
@@ -118,7 +118,7 @@ async def _list_custom_domains(config: AppSettings, bucket_name: str) -> list:
     """
     List custom domains
     """
-    client = get_async_cloudflare_client()
+    client = await get_async_cloudflare_client()
     response = await client.get(
         url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
         timeout=120,
@@ -169,13 +169,13 @@ async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, cu
     Link a bucket to a custom domain
     """
     existing_domains: list[dict] = await _list_custom_domains(config=config, bucket_name=bucket_name)
-    client: httpx.AsyncClient = get_async_cloudflare_client()
+    client: aiohttp.ClientSession = await get_async_cloudflare_client()
     found: bool = False
     for domain in existing_domains:
         if domain["domain"] == custom_domain:
             found = True
             if not domain["enabled"]:
-                response: httpx.Response = await client.put(
+                response = await client.put(
                     url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom/{custom_domain}",
                     json={"enabled": True},
                 )
@@ -183,7 +183,7 @@ async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, cu
             break
 
     if not found:
-        response: httpx.Response = await client.post(
+        response = await client.post(
             url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
             json={"domain": custom_domain, "zoneId": zone_id, "enabled": True},
         )
