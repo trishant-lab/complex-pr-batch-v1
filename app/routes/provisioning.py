@@ -366,8 +366,9 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
 
     response.raise_for_status()
 
+    response_json = await response.json()
     logs = {}
-    for log in response.json()["results"]["loki-data-samples"]["frames"][0]["data"]["values"][0]:
+    for log in response_json["results"]["loki-data-samples"]["frames"][0]["data"]["values"][0]:
         loglevel_match = re.search(r"loglevel=(\w+)", log["message"])
         activity_log = re.search(r"activity_name:[^ ]+ (.+)", log["message"])
         activity_name = re.search(r"activity_name:([^ ]+)", log["message"])

@@ -646,7 +646,8 @@ class NovuSetup:
                 response=response,
             )
 
-        return response.json()["data"]["token"]
+        response_json = await response.json()
+        return response_json["data"]["token"]
 
     async def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
@@ -660,7 +661,8 @@ class NovuSetup:
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to get organization by name: {organization_name}")
 
-        return [row for row in response.json()["data"] if row["name"] == organization_name]
+        response_json = await response.json()
+        return [row for row in response_json["data"] if row["name"] == organization_name]
 
     async def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
@@ -680,7 +682,7 @@ class NovuSetup:
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to create organization: {org_name}")
 
-        return response.json()
+        return await response.json()
 
     # todo: we will keep this method until we upgrade production and after making sure that the new method is working fine
     async def get_organization_api_key(self: "NovuSetup", token: str, organization_id: str) -> str:
@@ -695,13 +697,14 @@ class NovuSetup:
                 headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
                 timeout=120,
             )
-        logger.debug(f"API key: {response.json()}")
+            resp = await response.json()
+        logger.debug(f"API key: {resp}")
         if response.status >= 300:
             raise aiohttp.ClientResponseError(
-                f"Failed to get API keys for organization status_code:{response.status}, {response.json()}"
+                f"Failed to get API keys for organization status_code:{response.status}, {resp}"
             )
 
-        return response.json()["data"][0]["key"]
+        return resp["data"][0]["key"]
 
     async def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
@@ -715,7 +718,8 @@ class NovuSetup:
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to switch organization: {organization_id}")
 
-        return response.json()["data"]
+        response_json = await response.json()
+        return response_json["data"]
 
     # todo: we will keep this method until we upgrade production and after making sure that the new method is working fine
     async def get_environment_id(self: "NovuSetup", token: str) -> str:
@@ -731,7 +735,8 @@ class NovuSetup:
         if response.status >= 300:
             raise aiohttp.ClientResponseError("Failed to get novu env id", request=response.request, response=response)
 
-        return response.json()["data"][0]["_id"]
+        response_json = await response.json()
+        return response_json["data"][0]["_id"]
 
     async def get_environment_api_key(self: "NovuSetup", token: str) -> str:
         """
@@ -746,17 +751,14 @@ class NovuSetup:
         if response.status >= 300:
             raise aiohttp.ClientResponseError("Failed to get novu env id")
 
+        response_json = await response.json()
         api_keys: list = [
-            env.get("apiKeys")[0].get("key") for env in response.json()["data"] if env.get("name") == "Development"
+            env.get("apiKeys")[0].get("key") for env in response_json["data"] if env.get("name") == "Development"
         ]
         if api_keys and api_keys[0]:
             return api_keys[0]
         else:
-            raise aiohttp.ClientResponseError(
-                "Failed to get novu env api key",
-                request=response.request,
-                response=response,
-            )
+            raise aiohttp.ClientResponseError("Failed to get novu env api key")
 
     async def setup_novu(self: "NovuSetup") -> None:
         """

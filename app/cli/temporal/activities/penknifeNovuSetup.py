@@ -187,7 +187,8 @@ async def create_novu_workflow_templates(template_path: str, config: AppSettings
             async with aiohttp.ClientSession() as session:
                 response = await session.post(url=workflow_url, headers=headers, json=workflow_, timeout=10)
             if response.status >= 400:
-                logger.error(f"Failed to create novu workflow template : {response.json()}")
+                response_json = await response.json()
+                logger.error(f"Failed to create novu workflow template : {response_json}")
 
 
 class NovuSetup:
@@ -209,11 +210,11 @@ class NovuSetup:
 
         async with aiohttp.ClientSession() as session:
             response = await session.post(url=url, json=payload, timeout=120)
-
         if response.status >= 300:
             raise aiohttp.ClientResponseError("Failed to get access token for Novu environment")
 
-        return response.json()["data"]["token"]
+        response_json = await response.json()
+        return response_json["data"]["token"]
 
     async def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
@@ -229,7 +230,8 @@ class NovuSetup:
                 f"Failed to get organization by name: {organization_name}",
             )
 
-        return [row for row in response.json()["data"] if row["name"] == organization_name]
+        response_json = await response.json()
+        return [row for row in response_json["data"] if row["name"] == organization_name]
 
     async def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
@@ -249,7 +251,7 @@ class NovuSetup:
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to create organization: {org_name}")
 
-        return response.json()
+        return await response.json()
 
     async def get_organization_api_key(self: "NovuSetup", token: str) -> str:
         """
@@ -263,7 +265,8 @@ class NovuSetup:
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to get API keys for organization status_code:{response.status}")
 
-        return response.json()["data"][0]["key"]
+        response_json = await response.json()
+        return response_json["data"][0]["key"]
 
     async def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
@@ -277,7 +280,8 @@ class NovuSetup:
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to switch organization: {organization_id}")
 
-        return response.json()["data"]
+        response_json = await response.json()
+        return response_json["data"]
 
     async def setup_novu(self: "NovuSetup") -> None:
         """

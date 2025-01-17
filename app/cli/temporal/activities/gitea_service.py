@@ -83,8 +83,8 @@ class GiteaService:
             async with aiohttp.ClientSession() as session:
                 response = await session.post(url, json=payload, auth=self.auth, timeout=30)
                 response.raise_for_status()
-
-            log_info(f"User created successfully: {response.json()}")
+            response_json = await response.json()
+            log_info(f"User created successfully: {response_json}")
             return GiteaUser(username=username, email=email)
         except aiohttp.ClientResponseError as e:
             if response.status == 422:
@@ -123,7 +123,8 @@ class GiteaService:
             async with aiohttp.ClientSession() as session:
                 response = await session.post(url, json=payload, auth=self.auth, timeout=30)
                 response.raise_for_status()
-            log_info(f"Repository created successfully: {response.json()}")
+            response_json = await response.json()
+            log_info(f"Repository created successfully: {response_json}")
         except aiohttp.ClientResponseError as e:
             if response.status == 409:
                 log_info(f"Repository {repo_name} already exists. Skipping creation.")
