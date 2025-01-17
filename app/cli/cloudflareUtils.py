@@ -120,7 +120,7 @@ async def _list_custom_domains(config: AppSettings, bucket_name: str) -> list:
     """
     async with await get_async_cloudflare_client() as client:
         response = await client.get(
-            url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom/",
+            url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
             timeout=aiohttp.ClientTimeout(total=120),
         )
         response.raise_for_status()
