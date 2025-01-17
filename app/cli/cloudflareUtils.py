@@ -120,7 +120,7 @@ async def _list_custom_domains(config: AppSettings, bucket_name: str) -> list:
     """
     async with await get_async_cloudflare_client() as client:
         response = await client.get(
-            url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
+            url=f"accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
             timeout=aiohttp.ClientTimeout(total=120),
         )
         response.raise_for_status()
@@ -178,7 +178,7 @@ async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, cu
                 found = True
                 if not domain["enabled"]:
                     response = await client.put(
-                        url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom/{custom_domain}",
+                        url=f"accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom/{custom_domain}",
                         json={"enabled": True},
                     )
                     response.raise_for_status()
@@ -186,7 +186,7 @@ async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, cu
 
         if not found:
             response = await client.post(
-                url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
+                url=f"accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
                 json={"domain": custom_domain, "zoneId": zone_id, "enabled": True},
             )
             response.raise_for_status()
