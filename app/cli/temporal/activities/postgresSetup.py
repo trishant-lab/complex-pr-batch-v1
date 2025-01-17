@@ -545,7 +545,7 @@ class PostgresSupavisorPollUserActivity(Activity):
                     "Accept": "application/json",
                 },
                 data=rendered_template,
-                timeout=120,
+                timeout=aiohttp.ClientTimeout(total=120),
             )
 
         if response.status < 200 or response.status >= 299:

@@ -77,7 +77,10 @@ async def create_novu_notification_layout(
     }
     async with aiohttp.ClientSession() as session:
         response = await session.post(
-            url=f"{config.jeeves.novu_url}/v1/layouts", json=data, headers=headers, timeout=60
+            url=f"{config.jeeves.novu_url}/v1/layouts",
+            json=data,
+            headers=headers,
+            timeout=aiohttp.ClientTimeout(total=60),
         )
         response_json = await response.json()
         if response.status >= 400:
@@ -218,7 +221,7 @@ async def create_novu_workflow_template(
     }
     url: str = f"{config.jeeves.novu_url}/v1/workflows"
     async with aiohttp.ClientSession() as session:
-        response = await session.post(url, headers=headers, json=data, timeout=10)
+        response = await session.post(url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=10))
         if response.status >= 400:
             logger.error(f"Failed to create novu workflow template : {response.json()}")
     return response.status
@@ -637,7 +640,7 @@ class NovuSetup:
         payload = {"email": self.config.jeeves.novu_admin_user, "password": self.config.jeeves.novu_admin_password}
 
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, json=payload, timeout=120)
+            response = await session.post(url=url, json=payload, timeout=aiohttp.ClientTimeout(total=120))
 
         if response.status >= 300:
             raise aiohttp.ClientResponseError(
@@ -656,7 +659,9 @@ class NovuSetup:
         url = f"{self.config.jeeves.novu_url}/v1/organizations"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+            response = await session.get(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            )
         logger.debug(f"organisation name key: {response.json()}")
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to get organization by name: {organization_name}")
@@ -676,7 +681,10 @@ class NovuSetup:
 
         async with aiohttp.ClientSession() as session:
             response = await session.post(
-                url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120
+                url=url,
+                headers={"Authorization": f"Bearer {token}"},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=120),
             )
 
         if response.status >= 300:
@@ -695,7 +703,7 @@ class NovuSetup:
             response = await session.get(
                 url=url,
                 headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
-                timeout=120,
+                timeout=aiohttp.ClientTimeout(total=120),
             )
             resp = await response.json()
         logger.debug(f"API key: {resp}")
@@ -713,7 +721,9 @@ class NovuSetup:
         url = f"{self.config.jeeves.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+            response = await session.post(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            )
 
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to switch organization: {organization_id}")
@@ -730,7 +740,9 @@ class NovuSetup:
 
         async with aiohttp.ClientSession() as session:
             response = await session.post(
-                url, headers={"Authorization": f"Bearer {token}", "Accept": CONTENT_TYPE}, timeout=120
+                url,
+                headers={"Authorization": f"Bearer {token}", "Accept": CONTENT_TYPE},
+                timeout=aiohttp.ClientTimeout(total=120),
             )
         if response.status >= 300:
             raise aiohttp.ClientResponseError("Failed to get novu env id", request=response.request, response=response)
@@ -746,7 +758,9 @@ class NovuSetup:
 
         async with aiohttp.ClientSession() as session:
             response = await session.get(
-                url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"}, timeout=120
+                url,
+                headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                timeout=aiohttp.ClientTimeout(total=120),
             )
         if response.status >= 300:
             raise aiohttp.ClientResponseError("Failed to get novu env id")

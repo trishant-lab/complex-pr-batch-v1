@@ -47,7 +47,7 @@ class ChatwootSetup:
             "name": self.tenant,
         }
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, headers=headers, json=data, timeout=20)
+            response = await session.post(url=url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=20))
             response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to create account in chatwoot : {response_json}")
@@ -78,7 +78,7 @@ class ChatwootSetup:
                 url=url,
                 json=data,
                 headers=headers,
-                timeout=20,
+                timeout=aiohttp.ClientTimeout(total=20),
             )
             if response.status >= 400:
                 logger.error(f"Failed to create user in chatwoot : {response.status}")
@@ -102,7 +102,7 @@ class ChatwootSetup:
             "role": "administrator",
         }
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, headers=headers, json=data, timeout=20)
+            response = await session.post(url=url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=20))
             response_json = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to add user to chatwoot account : {response_json}")
@@ -129,7 +129,7 @@ class ChatwootSetup:
             "outgoing_url": f"{server_url}/public/api/v1/agent/{self.product.lower()}Chatbot",
         }
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, headers=headers, json=data, timeout=20)
+            response = await session.post(url=url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=20))
             response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to create agent bot for chatwoot account : {response_json}")
@@ -149,7 +149,7 @@ class ChatwootSetup:
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.get(url=url, headers=headers, timeout=20)
+            response = await session.get(url=url, headers=headers, timeout=aiohttp.ClientTimeout(total=20))
             response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to list all inboxes for chatwoot account : {response_json}")
@@ -175,7 +175,9 @@ class ChatwootSetup:
             },
         }
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, headers=headers, json=inbox_data, timeout=20)
+            response = await session.post(
+                url=url, headers=headers, json=inbox_data, timeout=aiohttp.ClientTimeout(total=20)
+            )
             response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to create inbox bot for chatwoot account : {response_json}")
@@ -203,7 +205,9 @@ class ChatwootSetup:
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.patch(url=url, headers=api_token_headers, json=update_data, timeout=20)
+            response = await session.patch(
+                url=url, headers=api_token_headers, json=update_data, timeout=aiohttp.ClientTimeout(total=20)
+            )
             response_json = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to update inbox for chatwoot account : {response_json}")
@@ -227,7 +231,9 @@ class ChatwootSetup:
         }
         url: str = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/set_agent_bot"
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, headers=api_token_headers, json=agent_bot_data, timeout=20)
+            response = await session.post(
+                url=url, headers=api_token_headers, json=agent_bot_data, timeout=aiohttp.ClientTimeout(total=20)
+            )
             response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to add agent bot to inbox for chatwoot account : {response_json}")
@@ -247,7 +253,7 @@ class ChatwootSetup:
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes/{inbox_id}/agent_bot"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.get(url=url, headers=headers, timeout=20)
+            response = await session.get(url=url, headers=headers, timeout=aiohttp.ClientTimeout(total=20))
             response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to get agent bot for chatwoot account : {response.status}")
@@ -267,7 +273,7 @@ class ChatwootSetup:
         url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/agent_bots"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.get(url=url, headers=headers, timeout=20)
+            response = await session.get(url=url, headers=headers, timeout=aiohttp.ClientTimeout(total=20))
             response_json: dict = await response.json()
             if response.status >= 400:
                 logger.error(f"Failed to list all agents for chatwoot account : {response.status}")
@@ -303,7 +309,9 @@ class ChatwootSetup:
         for attr in data:
             attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
             async with aiohttp.ClientSession() as session:
-                response = await session.post(url=url, headers=headers, json=attr, timeout=30)
+                response = await session.post(
+                    url=url, headers=headers, json=attr, timeout=aiohttp.ClientTimeout(total=30)
+                )
                 if response.status != 200:
                     logger.error(f"Failed to create custom attribute with status code: {response.status}")
                     raise HTTPException(f"Failed to create custom attribute with status code: {response.status}")

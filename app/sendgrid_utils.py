@@ -249,7 +249,7 @@ async def fetch_and_set_attachments(attachments: list) -> list[Attachment]:
     attaches = []
     for attachment in attachments:
         async with aiohttp.ClientSession() as session:
-            async with session.get(attachment, timeout=60) as response:
+            async with session.get(attachment, timeout=aiohttp.ClientTimeout(total=60)) as response:
                 file_content = base64.b64encode(await response.content.read()).decode("utf-8")
                 file_name = os.path.basename(attachment)
         file_type = "application/pdf"  # Adjust the MIME type according to your attachment

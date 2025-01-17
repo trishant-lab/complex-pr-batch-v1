@@ -21,7 +21,7 @@ async def request_client() -> aiohttp.ClientSession:
     """
     Request object with defaults
     """
-    return await aiohttp.ClientSession(timeout=60)
+    return await aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60))
 
 
 def get_token(request: Request, error: bool = True) -> str | None:

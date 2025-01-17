@@ -182,7 +182,9 @@ async def create_user(properties: RedpandaProperties) -> bool:
         username = f"zsegment_{properties.tenant}"
 
         async with aiohttp.ClientSession() as session:
-            list_user = await session.get(f"{properties.admin_api_base_url}/v1/security/users", timeout=30)
+            list_user = await session.get(
+                f"{properties.admin_api_base_url}/v1/security/users", timeout=aiohttp.ClientTimeout(total=30)
+            )
         if list_user.status == 200:
             existing_users = await list_user.json()
             if username in existing_users:
@@ -195,7 +197,7 @@ async def create_user(properties: RedpandaProperties) -> bool:
                     response = await session.put(
                         f"{properties.admin_api_base_url}/v1/security/users/{username}",
                         json=user_payload,
-                        timeout=30,
+                        timeout=aiohttp.ClientTimeout(total=30),
                     )
                 if response.status == 200:
                     log_info(
@@ -222,7 +224,7 @@ async def create_user(properties: RedpandaProperties) -> bool:
             response = await session.post(
                 f"{properties.admin_api_base_url}/v1/security/users",
                 json=user_payload,
-                timeout=30,
+                timeout=aiohttp.ClientTimeout(total=30),
             )
         if response.status == 200:
             log_info(f"Created user for tenant {properties.tenant}")
@@ -240,7 +242,7 @@ async def delete_user(properties: RedpandaProperties) -> bool:
         async with aiohttp.ClientSession() as session:
             response = await session.delete(
                 f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}",
-                timeout=30,
+                timeout=aiohttp.ClientTimeout(total=30),
             )
         if response.status == 200:
             log_info(f"Deleted user for tenant {properties.tenant}")

@@ -23,7 +23,9 @@ async def get_async_cloudflare_client() -> aiohttp.ClientSession:
     """
     _config = get_settings()
     headers = {"Authorization": f"Bearer {_config.cloudflare.api_token}"}
-    return await aiohttp.ClientSession(base_url=_config.cloudflare.api_url, headers=headers, timeout=120)
+    return await aiohttp.ClientSession(
+        base_url=_config.cloudflare.api_url, headers=headers, timeout=aiohttp.ClientTimeout(total=120)
+    )
 
 
 async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> TemporaryCredentialCreateResponse:
@@ -120,8 +122,8 @@ async def _list_custom_domains(config: AppSettings, bucket_name: str) -> list:
     """
     client = await get_async_cloudflare_client()
     response = await client.get(
-        url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
-        timeout=120,
+        url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom/",
+        timeout=aiohttp.ClientTimeout(total=120),
     )
     response.raise_for_status()
     return response.json().get("result", {}).get("domains", [])
@@ -190,3 +192,9 @@ async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, cu
         response.raise_for_status()
 
     await _validate_custom_domain(config=config, bucket_name=bucket_name, custom_domain=custom_domain)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(_list_custom_domains(config=get_settings(), bucket_name="test9-zsegment-tech"))

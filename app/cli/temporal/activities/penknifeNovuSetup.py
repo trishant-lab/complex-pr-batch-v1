@@ -185,7 +185,9 @@ async def create_novu_workflow_templates(template_path: str, config: AppSettings
                 "Content-Type": "application/json",
             }
             async with aiohttp.ClientSession() as session:
-                response = await session.post(url=workflow_url, headers=headers, json=workflow_, timeout=10)
+                response = await session.post(
+                    url=workflow_url, headers=headers, json=workflow_, timeout=aiohttp.ClientTimeout(total=10)
+                )
             if response.status >= 400:
                 response_json = await response.json()
                 logger.error(f"Failed to create novu workflow template : {response_json}")
@@ -209,7 +211,7 @@ class NovuSetup:
         payload = {"email": self.config.penknife.novu_admin_user, "password": self.config.penknife.novu_admin_password}
 
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, json=payload, timeout=120)
+            response = await session.post(url=url, json=payload, timeout=aiohttp.ClientTimeout(total=120))
         if response.status >= 300:
             raise aiohttp.ClientResponseError("Failed to get access token for Novu environment")
 
@@ -223,7 +225,9 @@ class NovuSetup:
         url = f"{self.config.penknife.novu_url}/v1/organizations"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+            response = await session.get(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            )
 
         if response.status >= 300:
             raise aiohttp.ClientResponseError(
@@ -245,7 +249,10 @@ class NovuSetup:
 
         async with aiohttp.ClientSession() as session:
             response = await session.post(
-                url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120
+                url=url,
+                headers={"Authorization": f"Bearer {token}"},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=120),
             )
 
         if response.status >= 300:
@@ -260,7 +267,9 @@ class NovuSetup:
         url = f"{self.config.penknife.novu_url}/v1/environments/api-keys"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+            response = await session.get(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            )
 
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to get API keys for organization status_code:{response.status}")
@@ -275,7 +284,9 @@ class NovuSetup:
         url = f"{self.config.penknife.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
         async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+            response = await session.post(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            )
 
         if response.status >= 300:
             raise aiohttp.ClientResponseError(f"Failed to switch organization: {organization_id}")
