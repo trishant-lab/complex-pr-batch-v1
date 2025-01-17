@@ -228,7 +228,7 @@ async def update_user(
         "enabled": user.status,
     }
 
-    kc_agent.kc_client.realm_name = config.keycloak.realm
+    kc_agent.kc_client.connection.realm_name = config.keycloak.realm
     kc_agent.kc_client.update_user(user_id=user.user_id, payload=payload)
     update_roles(
         user_id=uuid.UUID(user.user_id),
