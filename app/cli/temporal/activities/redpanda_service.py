@@ -184,7 +184,7 @@ async def create_user(properties: RedpandaProperties) -> bool:
         async with aiohttp.ClientSession() as session:
             list_user = await session.get(f"{properties.admin_api_base_url}/v1/security/users", timeout=30)
         if list_user.status == 200:
-            existing_users = list_user.json()
+            existing_users = await list_user.json()
             if username in existing_users:
                 # change the user password
                 user_payload = {
