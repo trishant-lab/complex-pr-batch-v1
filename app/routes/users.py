@@ -1,8 +1,10 @@
+import time
 import uuid
 from functools import lru_cache
 from uuid import UUID
 
-import httpx
+import aiohttp
+import jwt
 import orjson
 from fastapi import APIRouter, Depends
 from keycloak import urls_patterns
@@ -10,7 +12,6 @@ from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
-from authlib.integrations.httpx_client import AsyncAssertionClient
 
 from app.cli.keycloakUtils import KeycloakAdminClient
 from app.core.oauth2 import get_oauth_scheme
@@ -239,9 +240,9 @@ async def update_user(
 
 
 @lru_cache
-def get_g_suite_client(
+async def get_g_suite_token(
     scope: str = "https://www.googleapis.com/auth/admin.directory.user",
-) -> AsyncAssertionClient:
+) -> str:
     """
 
     :param scope: OAuth Scope
@@ -249,20 +250,31 @@ def get_g_suite_client(
     """
     config: AppSettings = get_settings()
     subject: str = config.gsuite.gsuite_admin
-    header = {"alg": "RS256", "kid": config.gsuite.private_key_id.get_secret_value()}
-    claims = {"scope": scope}
-    timeout = httpx.Timeout(10 * 60)
-    return AsyncAssertionClient(
-        token_endpoint=config.gsuite.token_uri,
-        issuer=config.gsuite.client_email,
-        audience=config.gsuite.token_uri,
-        claims=claims,
-        subject=subject,
-        scope=None,
-        key=config.gsuite.private_key.get_secret_value(),
-        header=header,
-        timeout=timeout,
-    )
+    private_key = config.gsuite.private_key.get_secret_value()
+    token_uri = config.gsuite.token_uri
+
+    now = int(time.time())
+    jwt_payload = {
+        "iss": config.gsuite.client_email,
+        "sub": subject,
+        "aud": config.gsuite.token_uri,
+        "iat": now,
+        "exp": now + 3600,  # Token expires in 1 hour
+        "scope": scope,
+    }
+
+    jwt_headers = {"alg": "RS256", "kid": config.gsuite.private_key_id.get_secret_value()}
+    signed_jwt = jwt.encode(jwt_payload, private_key, algorithm="RS256", headers=jwt_headers)
+
+    async with aiohttp.ClientSession() as session:
+        response = await session.post(
+            token_uri, data={"grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer", "assertion": signed_jwt}
+        )
+        if response.status == 200:
+            data = await response.json()
+            return data.get("access_token")
+        else:
+            raise aiohttp.ClientResponseError(f"Failed to get access token: {await response.text()}")
 
 
 @user_router.get(
@@ -278,21 +290,27 @@ async def get_g_suite_users_list(_: dict = Depends(get_oauth_scheme())) -> list:
     :return:  List of all GSuite Users
     """
     config: AppSettings = get_settings()
-    client = get_g_suite_client()
+    token = await get_g_suite_token()
     users_list: list = []
     next_page_token: str = ""
     while True:
         parameters: dict = {"customer": config.gsuite.customer_id, "pageToken": next_page_token}
-        res = await client.get("https://www.googleapis.com/admin/directory/v1/users", params=parameters)
-        if res.status_code != 200:
-            raise HTTPException(status_code=400, detail="GSuite API Error")
-        else:
-            result: dict = res.json()
-            users_list.extend(result["users"]) if "users" in result.keys() else None
-            if res.json().get("nextPageToken", ""):
-                next_page_token = res.json().get("nextPageToken")
+
+        async with aiohttp.ClientSession() as session:
+            res = await session.get(
+                "https://www.googleapis.com/admin/directory/v1/users",
+                params=parameters,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            if res.status != 200:
+                raise HTTPException(status_code=400, detail="GSuite API Error")
             else:
-                break
+                result: dict = await res.json()
+                users_list.extend(result["users"]) if "users" in result.keys() else None
+                if result.get("nextPageToken", ""):
+                    next_page_token = result.get("nextPageToken")
+                else:
+                    break
     # extracting only id, email and name of each GSuite User
     return [
         {key: user.get(key) for key in ["id", "primaryEmail", "name", "aliases"]}

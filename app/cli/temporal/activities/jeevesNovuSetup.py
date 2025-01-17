@@ -1,4 +1,4 @@
-import httpx
+import aiohttp
 from temporalio.common import RetryPolicy
 from temporalio import activity
 
@@ -12,6 +12,9 @@ from app.cli.temporal.jeeves.jeeves import JeevesSpec
 from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
+
+
+CONTENT_TYPE = "application/json"
 
 
 def get_default_notification_group_id(config: AppSettings, novu_api_key: str) -> str | None:
@@ -45,7 +48,7 @@ def get_default_notification_layout_id(
     return None
 
 
-def create_novu_notification_layout(
+async def create_novu_notification_layout(
     config: AppSettings,
     novu_api_key: str,
     layout_name: str,
@@ -63,7 +66,7 @@ def create_novu_notification_layout(
     """
     headers: dict = {
         "Authorization": f"ApiKey {novu_api_key}",
-        "Content-Type": "application/json",
+        "Content-Type": CONTENT_TYPE,
     }
     data: dict = {
         "name": layout_name,
@@ -72,10 +75,13 @@ def create_novu_notification_layout(
         "content": layout_content,
         "isDefault": is_default,
     }
-    response = httpx.post(url=f"{config.jeeves.novu_url}/v1/layouts", json=data, headers=headers, timeout=60)
-    response_json = response.json()
-    if response.status_code >= 400:
-        logger.error(f"Failed to create novu layout : {response_json}")
+    async with aiohttp.ClientSession() as session:
+        response = await session.post(
+            url=f"{config.jeeves.novu_url}/v1/layouts", json=data, headers=headers, timeout=60
+        )
+        response_json = await response.json()
+        if response.status_code >= 400:
+            logger.error(f"Failed to create novu layout : {response_json}")
     return response.status_code
 
 
@@ -104,7 +110,7 @@ def integrate_provider(
     return res._id
 
 
-def create_novu_workflow_template(
+async def create_novu_workflow_template(
     event_name: str,
     custom_email: str,
     email_subject: str,
@@ -208,12 +214,13 @@ def create_novu_workflow_template(
     data["steps"].append(chat_step)
     headers: dict = {
         "Authorization": f"ApiKey {novu_api_key}",
-        "Content-Type": "application/json",
+        "Content-Type": CONTENT_TYPE,
     }
     url: str = f"{config.jeeves.novu_url}/v1/workflows"
-    response = httpx.post(url, headers=headers, json=data, timeout=10)
-    if response.status_code >= 400:
-        logger.error(f"Failed to create novu workflow template : {response.json()}")
+    async with aiohttp.ClientSession() as session:
+        response = await session.post(url, headers=headers, json=data, timeout=10)
+        if response.status_code >= 400:
+            logger.error(f"Failed to create novu workflow template : {response.json()}")
     return response.status_code
 
 
@@ -232,7 +239,7 @@ def list_novu_notification_template(
     return template_names
 
 
-def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
+async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     """
 
     :param config:
@@ -243,7 +250,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     jeeves_layout: str | None = get_default_notification_layout_id(config=config, novu_api_key=novu_api_key)
     if jeeves_layout is None:
         layout_content = '<html> <head> <style> .content-container { background-color: #FFFFFF; text-align: center; margin: 30px auto; max-width: 600px; overflow: auto; height:auto; } .header img { height: 70px; width: 600px; } .container { background: #F0F0F0; text-align: center; padding: 16px 0; } .container img { margin-bottom: 16px; } </style> </head> <body style="background:#f6f6f6;max-height: 476px;"> <div class="content-container"> <div class="header"> <img src="https://lh7-us.googleusercontent.com/3bnmDGQiiB8YRKxTLdv6mYmWv10dXbCyx0DATLSbgmJLzqa2PilPOI-3a_71yu51ePodUKKFl6JhI_9KK9uLOo_3Sqq5E4QLEovovmLjFNZM4LYOgQ1BrbxCnBXzS8_YNiBsz0wqcHkwv_Ov1HaP7ww" alt="Jeeves Logo"> </div> <div style="margin:28px 28px"> {{{body}}} </div> <div class="container"> <img src="https://lh7-us.googleusercontent.com/k2Tx_FF2fhgoAnJombKAAW9SvmG8QrwaxPdXRBd8h10XKHxnwK_hFkNvwQBEV_tCZmf2V-F4npUaDwGyTeRMhxcUlPBQLgTjmqVyer40xaViWOrGRgYotgIK1T8FmJNR11p5eaqN8YacqXdwyf1w13M" alt="jeeves-favicon" style="height:24px"></img> <div> <p style="color: #434343; font-weight: 300;margin: 0px;">(C) 2024 314e Corporation. All rights reserved. This email is sent by 314e Corporation,</p> <p style="color: #434343; font-weight: 300;margin: 5px 0px;">301 Oxford Valley Rd., Ste 1303B, Yardley, PA 19067</p> </div> </div> </div> </body> </html>'
-        create_novu_notification_layout(
+        await create_novu_notification_layout(
             config=config,
             novu_api_key=novu_api_key,
             layout_name="Jeeves Layout",
@@ -257,7 +264,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         assignment_created_chat_content: str = "Assignments are created in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"
         assignment_created_inapp_content: str = "Assignments are created in Jeeves.\n<br />\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nDue on: {{assignment.duedate}}\n<br />\n{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-assignment-created",
             custom_email=assignment_created_custom_email,
             email_subject=assignment_created_subject,
@@ -274,7 +281,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         assignment_updated_chat_content: str = "Assignments are updated in Jeeves.\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nClick here: {{assignment.link}}\n\n{{/each}}"
         assignment_updated_inapp_content: str = "Assignments are updated in Jeeves.\n<br />\n{{#each step.events}}\nAssignment title : {{assignment.name}}.\nDue on: {{assignment.duedate}}\n<br />\n{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-assignment-updated",
             custom_email=assignment_updated_custom_email,
             email_subject=assignment_updated_subject,
@@ -291,7 +298,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         asset_created_chat_content: str = "New assets are created.\n\n{{#each step.events}}\nAsset title:  {{asset.asset_title}} \nClick to View: {{asset.asset_link}}\n\n{{/each}}"
         aasset_created_inapp_content: str = "New assets are created.\n<br />\n{{#each step.events}}\nAsset title:  {{asset.asset_title}} \n<br />\n{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-asset-created",
             custom_email=asset_created_custom_email,
             email_subject=asset_created_subject,
@@ -308,7 +315,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         assignment_due_15_chat_content: str = "Some of your assignments will due in 15 days.\n{{#each step.events}}\nAssignment title: {{assignment.title}}]nDue date: {{assignment.due_date}}\nClick here: {{assignment.link}}\n\n{{/each}}"
         assignment_due_15_inapp_content: str = "Some of your assignments will due in 15 days.<br />{{#each step.events}}Assignment title: {{assignment.title}}Due date: {{assignment.due_date}}<br />{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-assignment-due-in-15-days",
             custom_email=assignment_due_15_custom_email,
             email_subject=assignment_due_15_subject,
@@ -325,7 +332,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         assignment_due_7_chat_content: str = "Some of your assignments will due in 7 days.\n{{#each step.events}}\nAssignment title: {{assignment.title}}]nDue date: {{assignment.due_date}}\nClick here: {{assignment.link}}\n\n{{/each}}"
         assignment_due_7_inapp_content: str = "Some of your assignments will due in 7 days.<br />{{#each step.events}}Assignment title: {{assignment.title}}</br>Due date: {{assignment.due_date}}<br />{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-assignment-due-in-7-days",
             custom_email=assignment_due_7_custom_email,
             email_subject=assignment_due_7_subject,
@@ -342,7 +349,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         assignment_due_1_inapp_content: str = "Some of your assignments will due in one day.<br />{{#each step.events}}Assignment title: {{assignment.title}}<br />Due date: {{assignment.due_date}}<br />{{/each}}"
         assignment_due_1_chat_content: str = "Some of your assignments will due in one day.\n{{#each step.events}}\nAssignment title: {{assignment.title}}\nDue date: {{assignment.due_date}}\nClick here: {{assignment.link}}\n\n{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-assignment-due-in-1-day",
             custom_email=assignment_due_1_custom_email,
             email_subject=assignment_due_1_subject,
@@ -358,7 +365,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         assignment_over_due_subject: str = "Urgent: Overdue Assignments - Action Required."
         assignment_over_due_inapp_content: str = "Some of your assignments are overdue.<br />{{#each step.events}}Assignment title : {{assignment.title}}.<br />Due on: {{assignment.due_date}}<br />{{/each}}"
         assignment_over_due_chat_content: str = "Some of your assignments are overdue.\n{{#each step.events}}\nAssignment title : {{assignment.title}}.\nDue date: {{assignment.due_date}}\nClick here: {{assignment.link}}\n\n{{/each}}"
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-assignment-overdue",
             custom_email=assignment_over_due_custom_email,
             email_subject=assignment_over_due_subject,
@@ -374,7 +381,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         asset_expiring_7_subject: str = "Action Required: Asset Expiring In 7 Days"
         asset_expiring_7_inapp_content: str = 'Some of your assets are about to expire in 7 days.<br />{{#each step.events}}Asset title: "{{asset.asset_title}}"<br />{{/each}}'
         asset_expiring_7_chat_content: str = 'Some of your assets are about to expire in 7 days.\n{{#each step.events}}\nAsset title:  "{{asset.asset_title}}".\nClick here to update: {{asset.asset_link}}\n\n{{/each}}'
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-asset-expiring-in-7-days",
             custom_email=asset_expiring_7_custom_email,
             email_subject=asset_expiring_7_subject,
@@ -390,7 +397,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         asset_expiring_30_subject: str = "Action Required: Asset Expiring In 30 Days"
         asset_expiring_30_inapp_content: str = 'Some of your assets are about to expire in 30 days.<br />{{#each step.events}}Asset title: "{{asset.asset_title}}"<br />{{/each}}'
         asset_expiring_30_chat_content: str = 'Some of your assets are about to expire in 30 days.\n{{#each step.events}}\nAsset title:  "{{asset.asset_title}}".\nClick here to update: {{asset.asset_link}}\n\n{{/each}}'
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-asset-expiring-in-30-days",
             custom_email=asset_expiring_30_custom_email,
             email_subject=asset_expiring_30_subject,
@@ -406,7 +413,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         asset_expiring_1_subject: str = "Action Required: Asset Expiring In One Day"
         asset_expiring_1_inapp_content: str = 'Some of your assets are about to expire in one day.<br />{{#each step.events}}Asset title: "{{asset.asset_title}}"<br />{{/each}}'
         asset_expiring_1_chat_content: str = 'Some of your assets are about to expire in one day.\n{{#each step.events}}\nAsset title:  "{{asset.asset_title}}".\nClick here to update: {{asset.asset_link}}\n\n{{/each}}'
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-asset-expiring-in-1-day",
             custom_email=asset_expiring_1_custom_email,
             email_subject=asset_expiring_1_subject,
@@ -423,7 +430,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         asset_expired_inapp_content: str = 'Some of your assets have expired. Update now to continue learning.<br />{{#each step.events}}Asset Title: "{{asset.asset_title}}". <br />{{/each}}'
         asset_expired_chat_content: str = 'Some of your assets have expired. Update now to continue learning.\n{{#each step.events}}\nAsset title :  "{{asset.asset_title}}" .\nClick here to update: {{asset.asset_link}}\n\n{{/each}}'
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-asset-expired",
             custom_email=asset_expired_custom_email,
             email_subject=asset_expired_subject,
@@ -440,7 +447,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         asset_deleted_inapp_content: str = "Following Assets are deleted from Jeeeves<br />{{#each step.events}}Asset title:  {{asset.asset_title}}<br />{{/each}}"
         asset_deleted_chat_content: str = "Following Assets are deleted from Jeeeves.\n{{#each step.events}}\nAsset title:  {{asset.asset_title}}\n\n{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-asset-deleted",
             custom_email=asset_deleted_custom_email,
             email_subject=asset_deleted_subject,
@@ -457,7 +464,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         asset_updated_inapp_content: str = "Following assets are updated in Jeeves.<br />{{#each step.events}}Asset title: {{asset.asset_title}}<br />{{/each}}"
         asset_updated_chat_content: str = "Following assets are updated in Jeeves.\n{{#each step.events}}\nAsset title:  {{asset.asset_title}}\n\n{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-asset-updated",
             custom_email=asset_updated_custom_email,
             email_subject=asset_updated_subject,
@@ -474,7 +481,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         asset_published_inapp_content: str = "Following assets are published in Jeeves.<br />{{#each step.events}}Asset title: {{asset.asset_title}}<br />{{/each}}"
         asset_published_chat_content: str = "Following assets are published in Jeeves.\n{{#each step.events}}\nAsset title:  {{asset.asset_title}}\n\n{{/each}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-asset-published",
             custom_email=asset_published_custom_email,
             email_subject=asset_published_subject,
@@ -491,7 +498,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         assignment_assigned_inapp_content: str = "A new Assignment has been assigned to you."
         assignment_assigned_chat_content: str = "You have received a new assignment.\n{{todo_title}} :  {{todo_link}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-assignment-assigned",
             custom_email=assignment_assigned_custom_email,
             email_subject=assignment_assigned_subject,
@@ -512,7 +519,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         account_created_inapp_content: str = "Welcome to JEEVES"
         account_created_chat_content: str = "New Jeeves account has been created successfully."
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-account-created",
             custom_email=account_created_custom_email,
             email_subject=account_created_subject,
@@ -532,7 +539,7 @@ def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         )
         feedback_created_chat_content: str = "There's a new feedback/question on asset {{asset.asset_title}}.\nRemarks: {{feedback.feedback_text}}\nLink to edit the asset: {{asset.asset_link}}"
 
-        create_novu_workflow_template(
+        await create_novu_workflow_template(
             event_name="jeeves-feedback-created",
             custom_email=feedback_created_custom_email,
             email_subject=feedback_created_subject,
@@ -621,7 +628,7 @@ class NovuSetup:
         self.jeeves: JeevesSpec = jeeves
         self.config: AppSettings = get_settings()
 
-    def get_access_token(self: "NovuSetup") -> str:
+    async def get_access_token(self: "NovuSetup") -> str:
         """
         Get the access token for the Novu environment
         """
@@ -629,10 +636,11 @@ class NovuSetup:
 
         payload = {"email": self.config.jeeves.novu_admin_user, "password": self.config.jeeves.novu_admin_password}
 
-        response = httpx.post(url=url, json=payload, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to get access token for Novu environment. Status code: {response.status_code}",
                 request=response.request,
                 response=response,
@@ -640,22 +648,23 @@ class NovuSetup:
 
         return response.json()["data"]["token"]
 
-    def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
+    async def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
         List the organizations in the Novu environment
         """
         url = f"{self.config.jeeves.novu_url}/v1/organizations"
 
-        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
         logger.debug(f"organisation name key: {response.json()}")
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to get organization by name: {organization_name}", request=response.request, response=response
             )
 
         return [row for row in response.json()["data"] if row["name"] == organization_name]
 
-    def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
+    async def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
         Create an organization in the Novu environment
         """
@@ -665,29 +674,33 @@ class NovuSetup:
             "name": org_name,
         }
 
-        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(
+                url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120
+            )
 
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to create organization: {org_name}", request=response.request, response=response
             )
 
         return response.json()
 
-    def get_organization_api_key(self: "NovuSetup", token: str, organization_id: str) -> str:
+    async def get_organization_api_key(self: "NovuSetup", token: str, organization_id: str) -> str:
         """
         Get the API keys for the organization
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments/api-keys"
 
-        response = httpx.get(
-            url=url,
-            headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
-            timeout=120,
-        )
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(
+                url=url,
+                headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
+                timeout=120,
+            )
         logger.debug(f"API key: {response.json()}")
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to get API keys for organization status_code:{response.status_code}, {response.json()}",
                 request=response.request,
                 response=response,
@@ -695,55 +708,57 @@ class NovuSetup:
 
         return response.json()["data"][0]["key"]
 
-    def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
+    async def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
         Switch the organization
         """
         url = f"{self.config.jeeves.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
-        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to switch organization: {organization_id}", request=response.request, response=response
             )
 
         return response.json()["data"]
 
-    def get_environment_id(self: "NovuSetup", token: str) -> str:
+    async def get_environment_id(self: "NovuSetup", token: str) -> str:
         """
         Get novu env id
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments"
 
-        response = httpx.post(
-            url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"}, timeout=120
-        )
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(
+                url, headers={"Authorization": f"Bearer {token}", "Accept": CONTENT_TYPE}, timeout=120
+            )
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError("Failed to get novu env id", request=response.request, response=response)
+            raise aiohttp.ClientResponseError("Failed to get novu env id", request=response.request, response=response)
 
         return response.json()["data"][0]["_id"]
 
-    def setup_novu(self: "NovuSetup") -> None:
+    async def setup_novu(self: "NovuSetup") -> None:
         """
         Setup the Novu environment
         """
         config: AppSettings = get_settings()
 
         organization_name = f"jeeves_{self.jeeves.tenant}"
-        access_token = self.get_access_token()
-        organization = self.get_organizations_by_name(organization_name=organization_name, token=access_token)
+        access_token = await self.get_access_token()
+        organization = await self.get_organizations_by_name(organization_name=organization_name, token=access_token)
         if not organization:
-            organization = self.create_organization(token=access_token, org_name=organization_name)
+            organization = await self.create_organization(token=access_token, org_name=organization_name)
             organization_id = organization["data"]["id"]
         else:
             organization = organization[0]
             organization_id = organization["_id"]
 
-        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
-        environment_id = self.get_environment_id(token=organization_token)
+        organization_token = await self.switch_organization(organization_id=organization_id, token=access_token)
+        environment_id = await self.get_environment_id(token=organization_token)
         logger.debug(f"Env Id: {environment_id}")
-        api_keys = self.get_organization_api_key(token=organization_token, organization_id=environment_id)
+        api_keys = await self.get_organization_api_key(token=organization_token, organization_id=environment_id)
 
         # store in 1Password
         OnePasswordUtil(
@@ -753,7 +768,7 @@ class NovuSetup:
         ).insert_if_not_exists(key="novu_api_key", value=api_keys)
 
         # create the templates
-        add_novu_templates(config=config, novu_api_key=api_keys)
+        await add_novu_templates(config=config, novu_api_key=api_keys)
 
         # add the integration provider
         add_integration_provider(config=config, novu_api_key=api_keys)
@@ -787,4 +802,4 @@ class JeevesNovuSetupActivity(Activity):
         Callable for the activity
         """
         jeeves_novu_setup = NovuSetup(jeeves=jeeves)
-        jeeves_novu_setup.setup_novu()
+        await jeeves_novu_setup.setup_novu()

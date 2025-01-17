@@ -1,6 +1,7 @@
+import asyncio
 from datetime import timedelta
 
-import httpx
+import aiohttp
 import uuid
 import re
 import hashlib
@@ -37,7 +38,7 @@ class GiteaService:
         Initialize the Gitea service
         """
         self.base_url = properties.base_url
-        self.auth = httpx.BasicAuth(properties.admin_username, properties.admin_password)
+        self.auth = aiohttp.BasicAuth(properties.admin_username, properties.admin_password)
         self.template_repo = properties.template_repo
         self.template_owner = properties.template_owner
 
@@ -66,7 +67,7 @@ class GiteaService:
         # Return the first 8 characters for a short hash
         return hash_hex[:8]
 
-    def create_gitea_user(self, username: str, email: str) -> GiteaUser:
+    async def create_gitea_user(self, username: str, email: str) -> GiteaUser:
         """
         Create a new Gitea user
         """
@@ -79,38 +80,40 @@ class GiteaService:
                 "must_change_password": False,
                 "restricted": False,
             }
-            response = httpx.post(url, json=payload, auth=self.auth, timeout=30)
-            response.raise_for_status()
+            async with aiohttp.ClientSession() as session:
+                response = await session.post(url, json=payload, auth=self.auth, timeout=30)
+                response.raise_for_status()
 
             log_info(f"User created successfully: {response.json()}")
             return GiteaUser(username=username, email=email)
-        except httpx.HTTPStatusError as e:
+        except aiohttp.ClientResponseError as e:
             if e.response.status_code == 422:
                 log_info(f"User '{username}' already exists. Skipping creation.")
                 return GiteaUser(username=username, email=email)
             else:
                 log_error(f"Failed to create user '{username}': {e}")
-                raise httpx.HTTPStatusError(
+                raise aiohttp.ClientResponseError(
                     f"Failed to create user '{username}'", request=e.request, response=e.response
                 ) from e
 
-    def create_repository(self, gitea_user: GiteaUser, repo_name: str) -> None:
+    async def create_repository(self, gitea_user: GiteaUser, repo_name: str) -> None:
         """
         Create a new repository
         """
-        self._create_repo_from_template(gitea_user.username, repo_name)
+        await self._create_repo_from_template(gitea_user.username, repo_name)
         log_info("Repository created successfully.")
 
-    def delete_user(self, username: str) -> None:
+    async def delete_user(self, username: str) -> None:
         """
         Delete a user
         """
         url = f"{self.base_url}/admin/users/{username}"
-        response = httpx.delete(url, auth=self.auth, timeout=30)
-        response.raise_for_status()
+        async with aiohttp.ClientSession() as session:
+            response = await session.delete(url, auth=self.auth, timeout=30)
+            response.raise_for_status()
         log_info("User deleted successfully.")
 
-    def _create_repo_from_template(self, username: str, repo_name: str) -> None:
+    async def _create_repo_from_template(self, username: str, repo_name: str) -> None:
         """
         Create a new repository from the template repository
         """
@@ -119,15 +122,16 @@ class GiteaService:
             zsegment_config: ZSegmentSettings = config.zsegment
             url = f"{self.base_url}/repos/{zsegment_config.gitea_admin_username}/{self.template_repo}/generate"
             payload = {"name": repo_name, "owner": username, "git_content": True}
-            response = httpx.post(url, json=payload, auth=self.auth, timeout=30)
-            response.raise_for_status()
+            async with aiohttp.ClientSession() as session:
+                response = await session.post(url, json=payload, auth=self.auth, timeout=30)
+                response.raise_for_status()
             log_info(f"Repository created successfully: {response.json()}")
-        except httpx.HTTPStatusError as e:
+        except aiohttp.ClientResponseError as e:
             if e.response.status_code == 409:
                 log_info(f"Repository {repo_name} already exists. Skipping creation.")
             else:
                 log_error(f"Failed to create repository {repo_name}: {e}")
-                raise httpx.HTTPStatusError(
+                raise aiohttp.ClientResponseError(
                     f"Failed to create repository {repo_name}", request=e.request, response=e.response
                 ) from e
 
@@ -172,8 +176,10 @@ class GiteaSetupActivity(Activity):
 
         # Create repository
         try:
-            gitea_service.create_gitea_user(username=username, email=email)
-            gitea_service.create_repository(gitea_user=gitea_user, repo_name=tenant)
+            await asyncio.gather(
+                gitea_service.create_gitea_user(username=username, email=email),
+                gitea_service.create_repository(gitea_user=gitea_user, repo_name=tenant),
+            )
 
             log_info(f"Repository '{tenant}' setup successfully for user '{username}'")
 

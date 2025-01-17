@@ -4,7 +4,7 @@ from temporalio.common import RetryPolicy
 from datetime import timedelta
 import os
 import orjson
-import httpx
+import aiohttp
 from loguru import logger
 from novu.api import NotificationGroupApi, LayoutApi, IntegrationApi, NotificationTemplateApi, SubscriberApi
 from novu.dto import IntegrationDto, SubscriberDto
@@ -153,7 +153,7 @@ def list_novu_notification_template(
     return template_names
 
 
-def create_novu_workflow_templates(template_path: str, config: AppSettings, novu_api_key: str) -> None:
+async def create_novu_workflow_templates(template_path: str, config: AppSettings, novu_api_key: str) -> None:
     """
 
     :param template_path:
@@ -184,7 +184,8 @@ def create_novu_workflow_templates(template_path: str, config: AppSettings, novu
                 "Authorization": f"ApiKey {novu_api_key}",
                 "Content-Type": "application/json",
             }
-            response = httpx.post(url=workflow_url, headers=headers, json=workflow_, timeout=10)
+            async with aiohttp.ClientSession() as session:
+                response = await session.post(url=workflow_url, headers=headers, json=workflow_, timeout=10)
             if response.status_code >= 400:
                 logger.error(f"Failed to create novu workflow template : {response.json()}")
 
@@ -198,7 +199,7 @@ class NovuSetup:
         self.penknife: PenknifeSpec = penknife
         self.config: AppSettings = get_settings()
 
-    def get_access_token(self: "NovuSetup") -> str:
+    async def get_access_token(self: "NovuSetup") -> str:
         """
         Get the access token for the Novu environment
         """
@@ -206,10 +207,11 @@ class NovuSetup:
 
         payload = {"email": self.config.penknife.novu_admin_user, "password": self.config.penknife.novu_admin_password}
 
-        response = httpx.post(url=url, json=payload, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, json=payload, timeout=120)
 
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 "Failed to get access token for Novu environment",
                 request=response.request,
                 response=response,
@@ -217,16 +219,17 @@ class NovuSetup:
 
         return response.json()["data"]["token"]
 
-    def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
+    async def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
         List the organizations in the Novu environment
         """
         url = f"{self.config.penknife.novu_url}/v1/organizations"
 
-        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to get organization by name: {organization_name}",
                 request=response.request,
                 response=response,
@@ -234,7 +237,7 @@ class NovuSetup:
 
         return [row for row in response.json()["data"] if row["name"] == organization_name]
 
-    def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
+    async def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
         Create an organization in the Novu environment
         """
@@ -244,10 +247,13 @@ class NovuSetup:
             "name": org_name,
         }
 
-        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(
+                url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120
+            )
 
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to create organization: {org_name}",
                 request=response.request,
                 response=response,
@@ -255,16 +261,17 @@ class NovuSetup:
 
         return response.json()
 
-    def get_organization_api_key(self: "NovuSetup", token: str) -> str:
+    async def get_organization_api_key(self: "NovuSetup", token: str) -> str:
         """
         Get the API keys for the organization
         """
         url = f"{self.config.penknife.novu_url}/v1/environments/api-keys"
 
-        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to get API keys for organization status_code:{response.status_code}",
                 request=response.request,
                 response=response,
@@ -272,16 +279,17 @@ class NovuSetup:
 
         return response.json()["data"][0]["key"]
 
-    def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
+    async def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
         Switch the organization
         """
         url = f"{self.config.penknife.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
-        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            response = await session.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
 
         if response.status_code >= 300:
-            raise httpx.HTTPStatusError(
+            raise aiohttp.ClientResponseError(
                 f"Failed to switch organization: {organization_id}",
                 request=response.request,
                 response=response,
@@ -289,24 +297,24 @@ class NovuSetup:
 
         return response.json()["data"]
 
-    def setup_novu(self: "NovuSetup") -> None:
+    async def setup_novu(self: "NovuSetup") -> None:
         """
         Setup the Novu environment
         """
         config: AppSettings = get_settings()
 
         organization_name = f"penknife_{self.penknife.tenant}"
-        access_token = self.get_access_token()
-        organization = self.get_organizations_by_name(organization_name=organization_name, token=access_token)
+        access_token = await self.get_access_token()
+        organization = await self.get_organizations_by_name(organization_name=organization_name, token=access_token)
         if not organization:
-            organization = self.create_organization(token=access_token, org_name=organization_name)
+            organization = await self.create_organization(token=access_token, org_name=organization_name)
             organization_id = organization["data"]["id"]
         else:
             organization = organization[0]
             organization_id = organization["_id"]
 
-        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
-        api_keys = self.get_organization_api_key(token=organization_token)
+        organization_token = await self.switch_organization(organization_id=organization_id, token=access_token)
+        api_keys = await self.get_organization_api_key(token=organization_token)
 
         # store in 1Password
         OnePasswordUtil(
@@ -324,21 +332,21 @@ class NovuSetup:
 
         log_info(f"Novu environment setup completed for tenant: {self.penknife.tenant}")
 
-    def create_subscriber_in_novu(self: "NovuSetup", subscriber_id: str) -> None:
+    async def create_subscriber_in_novu(self: "NovuSetup", subscriber_id: str) -> None:
         """
         Create subscriber in the new organization
         """
         config: AppSettings = get_settings()
 
         organization_name = f"penknife_{self.penknife.tenant}"
-        access_token = self.get_access_token()
-        organization = self.get_organizations_by_name(organization_name=organization_name, token=access_token)
+        access_token = await self.get_access_token()
+        organization = await self.get_organizations_by_name(organization_name=organization_name, token=access_token)
 
         organization = organization[0]
         organization_id = organization["_id"]
 
-        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
-        api_key = self.get_organization_api_key(token=organization_token)
+        organization_token = await self.switch_organization(organization_id=organization_id, token=access_token)
+        api_key = await self.get_organization_api_key(token=organization_token)
 
         novu_client = SubscriberApi(url=config.penknife.novu_url, api_key=api_key)
         subscriber = {
@@ -349,7 +357,7 @@ class NovuSetup:
             "is_online": True,
         }
         subscriber = SubscriberDto(**subscriber)
-        novu_client.create(subscriber)
+        await novu_client.create(subscriber)
 
 
 class PenknifeNovuSetupActivity(Activity):
@@ -377,4 +385,4 @@ class PenknifeNovuSetupActivity(Activity):
         """
         Callable for the activity
         """
-        NovuSetup(penknife=penknife).setup_novu()
+        await NovuSetup(penknife=penknife).setup_novu()
