@@ -87,14 +87,12 @@ class GiteaService:
             log_info(f"User created successfully: {response.json()}")
             return GiteaUser(username=username, email=email)
         except aiohttp.ClientResponseError as e:
-            if e.response.status_code == 422:
+            if response.status == 422:
                 log_info(f"User '{username}' already exists. Skipping creation.")
                 return GiteaUser(username=username, email=email)
             else:
                 log_error(f"Failed to create user '{username}': {e}")
-                raise aiohttp.ClientResponseError(
-                    f"Failed to create user '{username}'", request=e.request, response=e.response
-                ) from e
+                raise aiohttp.ClientResponseError(f"Failed to create user '{username}'") from e
 
     async def create_repository(self, gitea_user: GiteaUser, repo_name: str) -> None:
         """
@@ -127,13 +125,11 @@ class GiteaService:
                 response.raise_for_status()
             log_info(f"Repository created successfully: {response.json()}")
         except aiohttp.ClientResponseError as e:
-            if e.response.status_code == 409:
+            if response.status == 409:
                 log_info(f"Repository {repo_name} already exists. Skipping creation.")
             else:
                 log_error(f"Failed to create repository {repo_name}: {e}")
-                raise aiohttp.ClientResponseError(
-                    f"Failed to create repository {repo_name}", request=e.request, response=e.response
-                ) from e
+                raise aiohttp.ClientResponseError(f"Failed to create repository {repo_name}") from e
 
 
 class GiteaSetupActivity(Activity):

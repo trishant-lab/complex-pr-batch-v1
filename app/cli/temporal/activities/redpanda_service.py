@@ -183,7 +183,7 @@ async def create_user(properties: RedpandaProperties) -> bool:
 
         async with aiohttp.ClientSession() as session:
             list_user = await session.get(f"{properties.admin_api_base_url}/v1/security/users", timeout=30)
-        if list_user.status_code == 200:
+        if list_user.status == 200:
             existing_users = list_user.json()
             if username in existing_users:
                 # change the user password
@@ -197,7 +197,7 @@ async def create_user(properties: RedpandaProperties) -> bool:
                         json=user_payload,
                         timeout=30,
                     )
-                if response.status_code == 200:
+                if response.status == 200:
                     log_info(
                         f"User '{username}' already exists for tenant '{properties.tenant}'."
                         " Password updated successfully."
@@ -206,13 +206,11 @@ async def create_user(properties: RedpandaProperties) -> bool:
                 else:
                     log_error(
                         f"User '{username}' exists for tenant '{properties.tenant}', but failed to update password."
-                        "Status code: {response.status_code}"
+                        "Status code: {response.status}"
                     )
                     return False
         else:
-            log_error(
-                f"Failed to retrieve user list for tenant '{properties.tenant}'. Status code: {list_user.status_code}"
-            )
+            log_error(f"Failed to retrieve user list for tenant '{properties.tenant}'. Status code: {list_user.status}")
 
         # User does not exist; create the user
         user_payload = {
@@ -226,7 +224,7 @@ async def create_user(properties: RedpandaProperties) -> bool:
                 json=user_payload,
                 timeout=30,
             )
-        if response.status_code == 200:
+        if response.status == 200:
             log_info(f"Created user for tenant {properties.tenant}")
             return True
     except aiohttp.ClientResponseError as e:
@@ -244,11 +242,11 @@ async def delete_user(properties: RedpandaProperties) -> bool:
                 f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}",
                 timeout=30,
             )
-        if response.status_code == 200:
+        if response.status == 200:
             log_info(f"Deleted user for tenant {properties.tenant}")
             return True
         else:
-            log_error(f"Failed to delete user: {response.status_code}")
+            log_error(f"Failed to delete user: {response.status}")
             return False
     except aiohttp.ClientResponseError as e:
         log_error(f"Failed to delete user: {e}")
