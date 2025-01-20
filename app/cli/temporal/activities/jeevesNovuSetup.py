@@ -792,7 +792,7 @@ class NovuSetup:
             organization = organization[0]
             organization_id = organization["_id"]
 
-        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
+        organization_token = await self.switch_organization(organization_id=organization_id, token=access_token)
         api_keys = await self.get_environment_api_key(token=organization_token)
 
         # store in 1Password
