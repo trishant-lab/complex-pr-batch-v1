@@ -765,7 +765,6 @@ class NovuSetup:
                 response=response,
             )
 
-
     async def setup_novu(self: "NovuSetup") -> None:
         """
         Setup the Novu environment
@@ -782,8 +781,7 @@ class NovuSetup:
             organization = organization[0]
             organization_id = organization["_id"]
 
-
-        organization_token = await self.switch_organization(organization_id=organization_id, token=access_token)
+        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
 
         api_keys = await self.get_environment_api_key(token=organization_token)
 
