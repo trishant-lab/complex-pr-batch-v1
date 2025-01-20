@@ -759,7 +759,13 @@ class NovuSetup:
                 timeout=aiohttp.ClientTimeout(total=120),
             )
             if response.status >= 300:
-                raise aiohttp.ClientResponseError("Failed to get novu env id", response)
+                error_text = await response.text()
+                raise aiohttp.ClientResponseError(
+                    request_info=response.request_info,
+                    history=response.history,
+                    status=response.status,
+                    message=f"Failed to get novu env id. Status: {response.status}. Response: {error_text}",
+                )
 
             response_json = await response.json()
             api_keys: list = [
