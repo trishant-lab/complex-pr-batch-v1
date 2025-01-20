@@ -298,6 +298,11 @@ class ChatwootSetup:
         ):
             logger.warning("chatwoot_custom_attrs.json not found")
             return
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url=url, headers=headers, timeout=aiohttp.ClientTimeout(total=30))
+            existing_attrs = await response.json() if response.status == 200 else []
+            existing_keys = {attr.get("attribute_key") for attr in existing_attrs}
+
         with open(
             os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
@@ -308,6 +313,9 @@ class ChatwootSetup:
             data = orjson.loads(file.read())
         for attr in data:
             attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
+            if attr["attribute_key"] in existing_keys:
+                logger.info(f"Custom attribute {attr['attribute_key']} already exists, skipping...")
+                continue
             async with aiohttp.ClientSession() as session:
                 response = await session.post(
                     url=url, headers=headers, json=attr, timeout=aiohttp.ClientTimeout(total=30)
