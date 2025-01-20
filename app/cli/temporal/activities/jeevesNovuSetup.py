@@ -1,4 +1,5 @@
 import aiohttp
+import httpx
 from temporalio.common import RetryPolicy
 from temporalio import activity
 
@@ -85,7 +86,7 @@ async def create_novu_notification_layout(
         response_json = await response.json()
         if response.status >= 400:
             logger.error(f"Failed to create novu layout : {response_json}")
-        return response.status
+    return response.status
 
 
 def integrate_provider(
@@ -224,7 +225,7 @@ async def create_novu_workflow_template(
         response = await session.post(url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=10))
         if response.status >= 400:
             logger.error(f"Failed to create novu workflow template : {response.json()}")
-        return response.status
+    return response.status
 
 
 def list_novu_notification_template(
@@ -639,16 +640,16 @@ class NovuSetup:
 
         payload = {"email": self.config.jeeves.novu_admin_user, "password": self.config.jeeves.novu_admin_password}
 
-        async with aiohttp.ClientSession() as session:
-            response = await session.post(url=url, json=payload, timeout=aiohttp.ClientTimeout(total=120))
+        response = httpx.post(url=url, json=payload, timeout=120)
 
-            if response.status >= 300:
-                raise aiohttp.ClientResponseError(
-                    f"Failed to get access token for Novu environment. Status code: {response.status}", response
-                )
+        if response.status_code >= 300:
+            raise httpx.HTTPStatusError(
+                f"Failed to get access token for Novu environment. Status code: {response.status_code}",
+                request=response.request,
+                response=response,
+            )
 
-            response_json = await response.json()
-            return response_json["data"]["token"]
+        return response.json()["data"]["token"]
 
     async def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
@@ -656,16 +657,14 @@ class NovuSetup:
         """
         url = f"{self.config.jeeves.novu_url}/v1/organizations"
 
-        async with aiohttp.ClientSession() as session:
-            response = await session.get(
-                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+        response = httpx.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        logger.debug(f"organisation name key: {response.json()}")
+        if response.status_code >= 300:
+            raise httpx.HTTPStatusError(
+                f"Failed to get organization by name: {organization_name}", request=response.request, response=response
             )
 
-            if response.status >= 300:
-                raise aiohttp.ClientResponseError(f"Failed to get organization by name: {organization_name}", response)
-
-            response_json = await response.json()
-            return [row for row in response_json["data"] if row["name"] == organization_name]
+        return [row for row in response.json()["data"] if row["name"] == organization_name]
 
     async def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
@@ -677,18 +676,14 @@ class NovuSetup:
             "name": org_name,
         }
 
-        async with aiohttp.ClientSession() as session:
-            response = await session.post(
-                url=url,
-                headers={"Authorization": f"Bearer {token}"},
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=120),
+        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
+
+        if response.status_code >= 300:
+            raise httpx.HTTPStatusError(
+                f"Failed to create organization: {org_name}", request=response.request, response=response
             )
 
-            if response.status >= 300:
-                raise aiohttp.ClientResponseError(f"Failed to create organization: {org_name}", response)
-
-            return await response.json()
+        return response.json()
 
     # todo: we will keep this method until we upgrade production and after making sure that the new method is working fine
     async def get_organization_api_key(self: "NovuSetup", token: str, organization_id: str) -> str:
@@ -697,35 +692,35 @@ class NovuSetup:
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments/api-keys"
 
-        async with aiohttp.ClientSession() as session:
-            response = await session.get(
-                url=url,
-                headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
-                timeout=aiohttp.ClientTimeout(total=120),
+        response = httpx.get(
+            url=url,
+            headers={"Authorization": f"Bearer {token}", "novu-environment-id": f"{organization_id}"},
+            timeout=120,
+        )
+        logger.debug(f"API key: {response.json()}")
+        if response.status_code >= 300:
+            raise httpx.HTTPStatusError(
+                f"Failed to get API keys for organization status_code:{response.status_code}, {response.json()}",
+                request=response.request,
+                response=response,
             )
-            if response.status >= 300:
-                raise aiohttp.ClientResponseError(
-                    f"Failed to get API keys for organization status_code:{response.status}", response
-                )
-            resp = await response.json()
-            return resp["data"][0]["key"]
 
-    async def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
+        return response.json()["data"][0]["key"]
+
+    def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
         Switch the organization
         """
         url = f"{self.config.jeeves.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
-        async with aiohttp.ClientSession() as session:
-            response = await session.post(
-                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+        response = httpx.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+
+        if response.status_code >= 300:
+            raise httpx.HTTPStatusError(
+                f"Failed to switch organization: {organization_id}", request=response.request, response=response
             )
 
-            if response.status >= 300:
-                raise aiohttp.ClientResponseError(f"Failed to switch organization: {organization_id}", response)
-
-            response_json = await response.json()
-            return response_json["data"]
+        return response.json()["data"]
 
     # todo: we will keep this method until we upgrade production and after making sure that the new method is working fine
     async def get_environment_id(self: "NovuSetup", token: str) -> str:
@@ -734,17 +729,13 @@ class NovuSetup:
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments"
 
-        async with aiohttp.ClientSession() as session:
-            response = await session.post(
-                url,
-                headers={"Authorization": f"Bearer {token}", "Accept": CONTENT_TYPE},
-                timeout=aiohttp.ClientTimeout(total=120),
-            )
-            if response.status >= 300:
-                raise aiohttp.ClientResponseError("Failed to get novu env id", response)
+        response = httpx.get(
+            url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"}, timeout=120
+        )
+        if response.status_code >= 300:
+            raise httpx.HTTPStatusError("Failed to get novu env id", request=response.request, response=response)
 
-            response_json = await response.json()
-            return response_json["data"][0]["_id"]
+        return response.json()["data"][0]["_id"]
 
     async def get_environment_api_key(self: "NovuSetup", token: str) -> str:
         """
@@ -752,23 +743,27 @@ class NovuSetup:
         """
         url = f"{self.config.jeeves.novu_url}/v1/environments"
 
-        async with aiohttp.ClientSession() as session:
-            response = await session.get(
-                url,
-                headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=120),
+        response = httpx.get(
+            url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"}, timeout=120
+        )
+        if response.status_code >= 300:
+            raise httpx.HTTPStatusError(
+                "Failed to get novu env id",
+                request=response.request,
+                response=response,
             )
-            if response.status >= 300:
-                raise aiohttp.ClientResponseError("Failed to get novu env id", response)
 
-            response_json = await response.json()
-            api_keys: list = [
-                env.get("apiKeys")[0].get("key") for env in response_json["data"] if env.get("name") == "Development"
-            ]
-            if api_keys and api_keys[0]:
-                return api_keys[0]
-            else:
-                raise aiohttp.ClientResponseError("Failed to get novu env api key", response)
+        api_keys: list = [
+            env.get("apiKeys")[0].get("key") for env in response.json()["data"] if env.get("name") == "Development"
+        ]
+        if api_keys and api_keys[0]:
+            return api_keys[0]
+        else:
+            raise httpx.HTTPStatusError(
+                "Failed to get novu env api key",
+                request=response.request,
+                response=response,
+            )
 
     async def setup_novu(self: "NovuSetup") -> None:
         """
@@ -787,6 +782,7 @@ class NovuSetup:
             organization_id = organization["_id"]
 
         organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
+
         api_keys = await self.get_environment_api_key(token=organization_token)
 
         # store in 1Password
