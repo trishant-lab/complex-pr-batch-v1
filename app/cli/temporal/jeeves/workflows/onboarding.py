@@ -103,7 +103,7 @@ ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
 
 
-@workflow.defn(name="JeevesOnboardingWorkflow")
+@workflow.defn(name="JeevesOnboardingWorkflow", sandboxed=False)
 class JeevesOnboardingWorkflow(Workflow):
     """
     Jeeves Onboarding Workflow
