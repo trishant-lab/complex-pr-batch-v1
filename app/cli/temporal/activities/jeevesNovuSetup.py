@@ -765,6 +765,7 @@ class NovuSetup:
                 response=response,
             )
 
+
     async def setup_novu(self: "NovuSetup") -> None:
         """
         Setup the Novu environment
@@ -781,10 +782,9 @@ class NovuSetup:
             organization = organization[0]
             organization_id = organization["_id"]
 
-        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
-        # environment_id = self.get_environment_id(token=organization_token)
-        # logger.debug(f"Env Id: {environment_id}")
-        # api_keys = self.get_organization_api_key(token=organization_token, organization_id=environment_id)
+
+        organization_token = await self.switch_organization(organization_id=organization_id, token=access_token)
+
         api_keys = await self.get_environment_api_key(token=organization_token)
 
         # store in 1Password
