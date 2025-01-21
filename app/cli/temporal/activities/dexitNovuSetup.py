@@ -221,15 +221,15 @@ class NovuSetup:
                         response=response,
                     )
 
-        if response.status >= 300:
-            raise aiohttp.ClientResponseError(
-                f"Failed to get access token for Novu environment, status_code: {response.status}",
-                request=response.request,
-                response=response,
-            )
+                if response.status >= 300:
+                    raise aiohttp.ClientResponseError(
+                        f"Failed to get access token for Novu environment, status_code: {response.status}",
+                        request=response.request,
+                        response=response,
+                    )
 
-        result = await response.json()
-        return result["data"]["token"]
+                result = await response.json()
+                return result["data"]["token"]
 
     async def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
@@ -244,11 +244,11 @@ class NovuSetup:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to get organization by name: {organization_name}")
 
-        if response.status >= 300:
-            raise RuntimeError(f"Failed to get organization by name: {organization_name}")
+                if response.status >= 300:
+                    raise RuntimeError(f"Failed to get organization by name: {organization_name}")
 
-        result = await response.json()
-        return [row for row in result["data"] if row["name"] == organization_name]
+                result = await response.json()
+                return [row for row in result["data"] if row["name"] == organization_name]
 
     async def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
@@ -270,10 +270,10 @@ class NovuSetup:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to create organization: {org_name}")
 
-        if response.status >= 300:
-            raise RuntimeError(f"Failed to create organization: {org_name}")
+                if response.status >= 300:
+                    raise RuntimeError(f"Failed to create organization: {org_name}")
 
-        return await response.json()
+                return await response.json()
 
     async def get_organization_api_key(self: "NovuSetup", token: str) -> str:
         """
@@ -288,11 +288,11 @@ class NovuSetup:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
-        if response.status >= 300:
-            raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
+                if response.status >= 300:
+                    raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
-        result = await response.json()
-        return result["data"][0]["key"]
+                result = await response.json()
+                return result["data"][0]["key"]
 
     async def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
@@ -307,11 +307,11 @@ class NovuSetup:
                 if response.status >= 400:
                     raise RuntimeError(f"Failed to switch organization: {organization_id}")
 
-        if response.status >= 300:
-            raise RuntimeError(f"Failed to switch organization: {organization_id}")
+                if response.status >= 300:
+                    raise RuntimeError(f"Failed to switch organization: {organization_id}")
 
-        result = await response.json()
-        return result["data"]
+                result = await response.json()
+                return result["data"]
 
     async def setup_novu(self: "NovuSetup") -> None:
         """
