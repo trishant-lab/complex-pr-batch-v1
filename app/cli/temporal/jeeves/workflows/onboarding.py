@@ -103,7 +103,7 @@ ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
 
 
-@workflow.defn(name="JeevesOnboardingWorkflow")
+@workflow.defn(name="JeevesOnboardingWorkflow", sandboxed=False)
 class JeevesOnboardingWorkflow(Workflow):
     """
     Jeeves Onboarding Workflow
@@ -404,6 +404,19 @@ class JeevesOnboardingWorkflow(Workflow):
                     server_item="application-config",
                     secret_name="redis_password",
                     secret_value=redis_tenant_password,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="org_domain",
+                    secret_value="",
                 ),
                 retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
@@ -922,12 +935,12 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # preload assets job
-            await workflow.execute_activity(
-                activity=PreloadAssetsJobActivity.defn,
-                arg=jeeves,
-                retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
-                start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=PreloadAssetsJobActivity.defn,
+            #     arg=jeeves,
+            #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
+            #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            # )
 
             # check pod running status
             for pod in ["jeeves", "jeeves-worker"]:

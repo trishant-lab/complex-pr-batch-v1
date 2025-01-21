@@ -5,12 +5,11 @@ from temporalio.common import RetryPolicy
 from datetime import timedelta
 import tempfile
 import zipfile
-import boto3
 
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
-from app.s3_utils import copy_files_to_s3, download_file_from_storage, get_storage_client
+from app.s3_utils import copy_files_to_s3, download_file_from_storage, get_opendal_operator
 
 
 class UiSetupActivityModel(LaunchpadCLIBaseModel):
@@ -53,11 +52,11 @@ class UiSetupActivity(Activity):
 
         environment: str = config.env
 
-        s3_int_client: boto3.client = get_storage_client(
-            config=config,
+        s3_int_client = get_opendal_operator(
             access_key=config.s3_int.access_key,
             secret_key=config.s3_int.secret_key,
             endpoint=config.s3_int.endpoint,
+            bucket_name="artifacts",
         )
 
         try:
@@ -66,7 +65,6 @@ class UiSetupActivity(Activity):
                     object_name=activity_model.src_object_name,
                     file_path=f"{tmp_dir}/{activity_model.bundle_name}",
                     storage_client=s3_int_client,
-                    bucket_name="artifacts",
                 )
 
                 # unzip the file

@@ -8,7 +8,6 @@ from app.cli.temporal.core.log import log_error
 from datetime import timedelta
 from tempfile import TemporaryDirectory
 
-import boto3
 
 from kubernetes.client import V1ConfigMap, V1ObjectMeta
 from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
@@ -16,7 +15,7 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 from app.core.settings import AppSettings, get_settings
 from app.onepasswordutil import secret_inject
-from app.s3_utils import download_file_from_storage, get_storage_client
+from app.s3_utils import download_file_from_storage, get_opendal_operator
 from app.template_env import get_env
 
 
@@ -64,25 +63,31 @@ class K8sConfigMapCreationActivity(Activity):
 
         template_file_name = activity_model.template_file_name
 
+        bucket_name = (
+            activity_model.bucket_name
+            if activity_model.cloudflare_r2_folder_path is None
+            else "launchpad-config-templates"
+        )
+
         if activity_model.data:
             data = {
                 activity_model.destination_file_name: activity_model.data,
             }
         else:
             with TemporaryDirectory() as temp_dir:
-                s3_client: boto3.client = (
-                    get_storage_client(
-                        config=app_config,
+                s3_client = (
+                    get_opendal_operator(
                         access_key=app_config.s3_int.access_key,
                         secret_key=app_config.s3_int.secret_key,
                         endpoint=app_config.s3_int.endpoint,
+                        bucket_name=bucket_name,
                     )
                     if activity_model.cloudflare_r2_folder_path is None
-                    else get_storage_client(
-                        config=app_config,
+                    else get_opendal_operator(
                         access_key=app_config.cloudflare.r2_access_key,
                         secret_key=app_config.cloudflare.r2_secret_key,
                         endpoint=app_config.cloudflare.r2_endpoint,
+                        bucket_name=bucket_name,
                     )
                 )
 
@@ -91,17 +96,11 @@ class K8sConfigMapCreationActivity(Activity):
                     if activity_model.cloudflare_r2_folder_path is not None
                     else template_file_name
                 )
-                bucket_name = (
-                    activity_model.bucket_name
-                    if activity_model.cloudflare_r2_folder_path is None
-                    else "launchpad-config-templates"
-                )
 
                 download_file_from_storage(
                     object_name=object_name,
                     file_path=f"{temp_dir}/{template_file_name}",
                     storage_client=s3_client,
-                    bucket_name=bucket_name,
                 )
 
                 template_env = get_env(template_path=temp_dir)

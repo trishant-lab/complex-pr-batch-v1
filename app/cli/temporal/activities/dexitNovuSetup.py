@@ -2,7 +2,7 @@ import os
 from datetime import timedelta
 
 import orjson
-import requests
+import aiohttp
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
@@ -58,7 +58,7 @@ def get_novu_notification_workflow_by_name(
     return None
 
 
-def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: str) -> None:
+async def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: str) -> None:
     """
     :param data:
     :param config:
@@ -72,12 +72,15 @@ def create_novu_notification_workflow(data: dict, config: AppSettings, api_key: 
     }
     url: str = f"{config.dexit.novu_url}/v1/workflows"
     if not workflow:
-        response = requests.post(url, headers=headers, json=data, timeout=10)
-        if response.status_code >= 400:
-            raise RuntimeError(f"Failed to create novu workflow template : {response.json()}")
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+                if response.status >= 400:
+                    raise RuntimeError(f"Failed to create novu workflow template : {response.json()}")
 
 
-def create_novu_workflow_templates(target_dir: str, config: AppSettings, api_key: str) -> None:
+async def create_novu_workflow_templates(target_dir: str, config: AppSettings, api_key: str) -> None:
     """
 
     :param target_dir:
@@ -95,7 +98,7 @@ def create_novu_workflow_templates(target_dir: str, config: AppSettings, api_key
             rendered_template = jinja_template.render(notification=notification)
             rendered_template = orjson.loads(rendered_template)
 
-            create_novu_notification_workflow(data=rendered_template, config=config, api_key=api_key)
+            await create_novu_notification_workflow(data=rendered_template, config=config, api_key=api_key)
 
 
 def list_integration_provider(config: AppSettings, novu_api_key: str) -> list:
@@ -201,7 +204,7 @@ class NovuSetup:
         self.dexit: DexitSpec = dexit
         self.config: AppSettings = get_settings()
 
-    def get_access_token(self: "NovuSetup") -> str:
+    async def get_access_token(self: "NovuSetup") -> str:
         """
         Get the access token for the Novu environment
         """
@@ -209,27 +212,43 @@ class NovuSetup:
 
         payload = {"email": self.config.dexit.novu_admin_user, "password": self.config.dexit.novu_admin_password}
 
-        response = requests.post(url=url, json=payload, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url=url, json=payload, timeout=aiohttp.ClientTimeout(total=120)) as response:
+                if response.status >= 400:
+                    raise aiohttp.ClientResponseError(
+                        f"Failed to get access token for Novu environment, status_code: {response.status}",
+                        request=response.request,
+                        response=response,
+                    )
 
-        if response.status_code >= 300:
-            raise RuntimeError(f"Failed to get access token for Novu environment, status_code: {response.status_code}")
+        if response.status >= 300:
+            raise aiohttp.ClientResponseError(
+                f"Failed to get access token for Novu environment, status_code: {response.status}",
+                request=response.request,
+                response=response,
+            )
 
         return response.json()["data"]["token"]
 
-    def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
+    async def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
         List the organizations in the Novu environment
         """
         url = f"{self.config.dexit.novu_url}/v1/organizations"
 
-        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            ) as response:
+                if response.status >= 400:
+                    raise RuntimeError(f"Failed to get organization by name: {organization_name}")
 
-        if response.status_code >= 300:
+        if response.status >= 300:
             raise RuntimeError(f"Failed to get organization by name: {organization_name}")
 
         return [row for row in response.json()["data"] if row["name"] == organization_name]
 
-    def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
+    async def create_organization(self: "NovuSetup", token: str, org_name: str) -> dict:
         """
         Create an organization in the Novu environment
         """
@@ -239,40 +258,58 @@ class NovuSetup:
             "name": org_name,
         }
 
-        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, json=payload, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url=url,
+                headers={"Authorization": f"Bearer {token}"},
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=120),
+            ) as response:
+                if response.status >= 400:
+                    raise RuntimeError(f"Failed to create organization: {org_name}")
 
-        if response.status_code >= 300:
+        if response.status >= 300:
             raise RuntimeError(f"Failed to create organization: {org_name}")
 
         return response.json()
 
-    def get_organization_api_key(self: "NovuSetup", token: str) -> str:
+    async def get_organization_api_key(self: "NovuSetup", token: str) -> str:
         """
         Get the API keys for the organization
         """
         url = f"{self.config.dexit.novu_url}/v1/environments/api-keys"
 
-        response = requests.get(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            ) as response:
+                if response.status >= 400:
+                    raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
-        if response.status_code >= 300:
-            raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status_code}")
+        if response.status >= 300:
+            raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
         return response.json()["data"][0]["key"]
 
-    def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
+    async def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """
         Switch the organization
         """
         url = f"{self.config.dexit.novu_url}/v1/auth/organizations/{organization_id}/switch"
 
-        response = requests.post(url=url, headers={"Authorization": f"Bearer {token}"}, timeout=120)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url=url, headers={"Authorization": f"Bearer {token}"}, timeout=aiohttp.ClientTimeout(total=120)
+            ) as response:
+                if response.status >= 400:
+                    raise RuntimeError(f"Failed to switch organization: {organization_id}")
 
-        if response.status_code >= 300:
+        if response.status >= 300:
             raise RuntimeError(f"Failed to switch organization: {organization_id}")
 
         return response.json()["data"]
 
-    def setup_novu(self: "NovuSetup") -> None:
+    async def setup_novu(self: "NovuSetup") -> None:
         """
         Setup the Novu environment
         """
@@ -281,10 +318,10 @@ class NovuSetup:
         server_item = "production-config" if env == "production" else "integration-config"
 
         organization_name = f"dexit_{self.dexit.tenant}"
-        access_token = self.get_access_token()
-        organization = self.get_organizations_by_name(organization_name=organization_name, token=access_token)
+        access_token = await self.get_access_token()
+        organization = await self.get_organizations_by_name(organization_name=organization_name, token=access_token)
         if not organization:
-            organization = self.create_organization(token=access_token, org_name=organization_name)
+            organization = await self.create_organization(token=access_token, org_name=organization_name)
             organization_id = organization["data"]["id"]
         else:
             organization = organization[0]
@@ -292,8 +329,8 @@ class NovuSetup:
 
         log_info(f"Novu Organization {organization_name} created successfully.")
 
-        organization_token = self.switch_organization(organization_id=organization_id, token=access_token)
-        api_keys = self.get_organization_api_key(token=organization_token)
+        organization_token = await self.switch_organization(organization_id=organization_id, token=access_token)
+        api_keys = await self.get_organization_api_key(token=organization_token)
 
         # store in 1Password
         OnePasswordUtil(
@@ -304,7 +341,7 @@ class NovuSetup:
 
         # create the templates
         novu_template_path = os.path.join(TemplatePath, "novu_workflow_template")
-        create_novu_workflow_templates(target_dir=novu_template_path, config=config, api_key=api_keys)
+        await create_novu_workflow_templates(target_dir=novu_template_path, config=config, api_key=api_keys)
 
         log_info("Novu Workflow templates created successfully.")
 
@@ -342,4 +379,4 @@ class DexitNovuSetupActivity(Activity):
         """
         # Setup novu
         dexit_novu_setup = NovuSetup(dexit=dexit)
-        dexit_novu_setup.setup_novu()
+        await dexit_novu_setup.setup_novu()

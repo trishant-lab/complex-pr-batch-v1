@@ -85,7 +85,11 @@ async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
     config: AppSettings = get_settings()
     form: dict = await form_render_for_product(product.value.lower())
 
-    boto3_client = s3_utils.get_r2_storage_client(config=config)
+    storage_client = s3_utils.get_storage_client(
+        access_key=config.r2.access_key,
+        secret_key=config.r2.secret_key,
+        endpoint=config.r2.endpoint,
+    )
     form_path = f"{product.value}/form.json"
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -94,7 +98,7 @@ async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
             f.write(orjson.dumps(form).decode("utf-8"))
 
         s3_utils.upload_file_to_storage(
-            file_path=form_file_path, object_name=form_path, bucket_name=config.r2.bucket, storage_client=boto3_client
+            file_path=form_file_path, object_name=form_path, bucket_name=config.r2.bucket, storage_client=storage_client
         )
 
 

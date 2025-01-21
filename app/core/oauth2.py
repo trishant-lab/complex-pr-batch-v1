@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-import httpx
+import aiohttp
 import logging
 from functools import lru_cache
 
@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache
-def request_client() -> httpx.Client:
+async def request_client() -> aiohttp.ClientSession:
     """
     Request object with defaults
     """
-    return httpx.Client(timeout=60)
+    return await aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60))
 
 
 def get_token(request: Request, error: bool = True) -> str | None:
@@ -39,7 +39,7 @@ def get_token(request: Request, error: bool = True) -> str | None:
 
 
 @lru_cache
-def get_keycloak_key() -> str:
+async def get_keycloak_key() -> str:
     """
     Retrieves the certificate from keycloak jwks_uri. Parses the certificate and returns the public key from it
     """
@@ -47,7 +47,7 @@ def get_keycloak_key() -> str:
     from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import serialization
 
-    r: Response = request_client().get(security_config["jwks_uri"])
+    r: Response = await request_client().get(security_config["jwks_uri"])
     rsa256_key: dict = filter(lambda x: x["alg"] == "RS256", r.json()["keys"]).__next__()
     certificate: str = f'-----BEGIN CERTIFICATE-----\n{rsa256_key["x5c"][0]}\n-----END CERTIFICATE-----'
     cert_obj = load_pem_x509_certificate(certificate.encode(), default_backend())

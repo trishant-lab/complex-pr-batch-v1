@@ -1,7 +1,6 @@
 import asyncio
-from functools import lru_cache
 
-import httpx
+import aiohttp
 from cloudflare import AsyncCloudflare
 from cloudflare.types.r2 import TemporaryCredentialCreateResponse
 from loguru import logger
@@ -16,14 +15,15 @@ def get_cloudflare_sdk_client(config: AppSettings) -> AsyncCloudflare:
     return AsyncCloudflare(api_token=config.cloudflare.api_token)
 
 
-@lru_cache
-def get_async_cloudflare_client() -> httpx.AsyncClient:
+async def get_async_cloudflare_client() -> aiohttp.ClientSession:
     """
     Get an async HTTP client for Cloudflare API
     """
     _config = get_settings()
     headers = {"Authorization": f"Bearer {_config.cloudflare.api_token}"}
-    return httpx.AsyncClient(base_url=_config.cloudflare.api_url, headers=headers, timeout=120)
+    return aiohttp.ClientSession(
+        base_url=_config.cloudflare.api_url, headers=headers, timeout=aiohttp.ClientTimeout(total=120)
+    )
 
 
 async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> TemporaryCredentialCreateResponse:
@@ -118,13 +118,14 @@ async def _list_custom_domains(config: AppSettings, bucket_name: str) -> list:
     """
     List custom domains
     """
-    client = get_async_cloudflare_client()
-    response = await client.get(
-        url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
-        timeout=120,
-    )
-    response.raise_for_status()
-    return response.json().get("result", {}).get("domains", [])
+    async with await get_async_cloudflare_client() as client:
+        response = await client.get(
+            url=f"accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
+            timeout=aiohttp.ClientTimeout(total=120),
+        )
+        response.raise_for_status()
+        response_json = await response.json()
+        return response_json.get("result", {}).get("domains", [])
 
 
 async def _validate_custom_domain(config: AppSettings, bucket_name: str, custom_domain: str) -> None:
@@ -169,24 +170,31 @@ async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, cu
     Link a bucket to a custom domain
     """
     existing_domains: list[dict] = await _list_custom_domains(config=config, bucket_name=bucket_name)
-    client: httpx.AsyncClient = get_async_cloudflare_client()
-    found: bool = False
-    for domain in existing_domains:
-        if domain["domain"] == custom_domain:
-            found = True
-            if not domain["enabled"]:
-                response: httpx.Response = await client.put(
-                    url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom/{custom_domain}",
-                    json={"enabled": True},
-                )
-                response.raise_for_status()
-            break
 
-    if not found:
-        response: httpx.Response = await client.post(
-            url=f"/accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
-            json={"domain": custom_domain, "zoneId": zone_id, "enabled": True},
-        )
-        response.raise_for_status()
+    async with await get_async_cloudflare_client() as client:
+        found: bool = False
+        for domain in existing_domains:
+            if domain["domain"] == custom_domain:
+                found = True
+                if not domain["enabled"]:
+                    response = await client.put(
+                        url=f"accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom/{custom_domain}",
+                        json={"enabled": True},
+                    )
+                    response.raise_for_status()
+                break
+
+        if not found:
+            response = await client.post(
+                url=f"accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/domains/custom",
+                json={"domain": custom_domain, "zoneId": zone_id, "enabled": True},
+            )
+            response.raise_for_status()
 
     await _validate_custom_domain(config=config, bucket_name=bucket_name, custom_domain=custom_domain)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(_list_custom_domains(config=get_settings(), bucket_name="test9-zsegment-tech"))

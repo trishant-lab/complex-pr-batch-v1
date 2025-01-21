@@ -5,7 +5,7 @@ from temporalio.common import RetryPolicy
 
 from datetime import timedelta
 
-import httpx
+import aiohttp
 
 from app.cli.k8s_util import get_k8s_core_v1_api_client
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
@@ -536,24 +536,25 @@ class PostgresSupavisorPollUserActivity(Activity):
             DB_PASSWORD=activity_model.db_password,
         )
 
-        response = httpx.put(
-            url=f"{config.supavisor_url}/api/tenants/{activity_model.username}",
-            headers={
-                "Authorization": f"Bearer {config.supavisor_token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            data=rendered_template,
-            timeout=120,
-        )
-
-        if response.status_code < 200 or response.status_code >= 299:
-            log_error(
-                f"Supavisor user creation failed with status code: "
-                f"{response.status_code} and response: {response.json()}"
+        async with aiohttp.ClientSession() as session:
+            response = await session.put(
+                url=f"{config.supavisor_url}/api/tenants/{activity_model.username}",
+                headers={
+                    "Authorization": f"Bearer {config.supavisor_token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                data=rendered_template,
+                timeout=aiohttp.ClientTimeout(total=120),
             )
-            raise httpx.HTTPStatusError(
-                f"Supavisor user creation failed with status code: {response.status_code}",
+
+        if response.status < 200 or response.status >= 299:
+            response_json = await response.json()
+            log_error(
+                f"Supavisor user creation failed with status code: " f"{response.status} and response: {response_json}"
+            )
+            raise aiohttp.ClientResponseError(
+                f"Supavisor user creation failed with status code: {response.status}",
                 request=response.request,
                 response=response,
             )

@@ -66,7 +66,7 @@ async def send_customer_password_mail(
         password=password,
         email_template=response["template"],
     )
-    send_mail(
+    await send_mail(
         to_email=user_details.get("email"),
         subject=subject,
         content=content,
@@ -149,7 +149,7 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
             user_name=f"{user_details.get('firstName')} {user_details.get('lastName')}",
         )
 
-    send_mail(
+    await send_mail(
         to_email=user_details.get("email"),
         subject=subject,
         content=content,
