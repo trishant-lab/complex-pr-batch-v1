@@ -73,5 +73,6 @@
   "livekit_api_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_key }}",
   "livekit_api_secrete": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_secret }}",
   "atlas_token": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/atlas_token }}",
-  "atlas_pg_dsn": "postgresql://jeeves_<<tenant>>:{{ op://Jeeves/application-config/JEEVES_<<tenant>>/pg_password }}@db-cluster-ha.postgres16.svc.cluster.local/jeeves"
+  "atlas_pg_dsn": "postgresql://jeeves_<<tenant>>:{{ op://Jeeves/application-config/JEEVES_<<tenant>>/pg_password }}@db-cluster-ha.postgres16.svc.cluster.local/jeeves",
+  "org_domain": ["{{ op://Jeeves/application-config/JEEVES_<<tenant>>/org_domain }}"]
 }
