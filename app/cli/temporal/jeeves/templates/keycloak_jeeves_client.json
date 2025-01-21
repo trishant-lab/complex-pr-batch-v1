@@ -4,7 +4,7 @@
     "description": "Jeeves application client",
     "rootUrl": "https://<<tenant>>.<<domain>>",
     "adminUrl": "https://<<tenant>>.<<domain>>",
-    "baseUrl": "https://<<tenant>>.<<domain>>",
+    "baseUrl": "https://<<tenant>>.<<domain>>/login.html",
     "surrogateAuthRequired": false,
     "enabled": true,
     "alwaysDisplayInConsole": false,
