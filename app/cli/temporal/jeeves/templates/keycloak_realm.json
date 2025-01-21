@@ -820,20 +820,20 @@
             "clientId": "formauth",
             "name": "formauth",
             "description": "",
-            "rootUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>",
-            "adminUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>",
-            "baseUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>/login.html",
+            "rootUrl": "https://<<tenant>>.<<domain>>",
+            "adminUrl": "https://<<tenant>>.<<domain>>",
+            "baseUrl": "https://<<tenant>>.<<domain>>/login.html",
             "surrogateAuthRequired": false,
             "enabled": true,
             "alwaysDisplayInConsole": false,
             "clientAuthenticatorType": "client-secret",
             "redirectUris": [
                 "https://jeeves-agent.<<domain>>/*",
-                "https://okjeeves.<<domain>>/*"
+                "https://<<tenant>>.<<domain>>/*"
             ],
             "webOrigins": [
                 "https://jeeves-agent.<<domain>>",
-                "https://okjeeves.<<domain>>"
+                "https://<<tenant>>.<<domain>>"
             ],
             "notBefore": 0,
             "bearerOnly": false,
@@ -897,20 +897,20 @@
             "clientId": "jeeves",
             "name": "jeeves",
             "description": "Jeeves application client",
-            "rootUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>",
-            "adminUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>",
-            "baseUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>/login.html",
+            "rootUrl": "https://<<tenant>>.<<domain>>",
+            "adminUrl": "https://<<tenant>>.<<domain>>",
+            "baseUrl": "https://<<tenant>>.<<domain>>/login.html",
             "surrogateAuthRequired": false,
             "enabled": true,
             "alwaysDisplayInConsole": false,
             "clientAuthenticatorType": "client-secret",
             "redirectUris": [
                 "https://jeeves-agent.<<domain>>/*",
-                "https://okjeeves.<<domain>>/*"
+                "https://<<tenant>>.<<domain>>/*"
             ],
             "webOrigins": [
                 "https://jeeves-agent.<<domain>>",
-                "https://okjeeves.<<domain>>"
+                "https://<<tenant>>.<<domain>>"
             ],
             "notBefore": 0,
             "bearerOnly": false,

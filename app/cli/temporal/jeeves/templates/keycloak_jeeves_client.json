@@ -11,11 +11,11 @@
     "clientAuthenticatorType": "client-secret",
     "redirectUris": [
         "https://jeeves-agent.<<domain>>/*",
-        "https://okjeeves.<<domain>>/*"
+        "https://<<tenant>>.<<domain>>/*"
     ],
     "webOrigins": [
         "https://jeeves-agent.<<domain>>",
-        "https://okjeeves.<<domain>>"
+        "https://<<tenant>>.<<domain>>"
     ],
     "notBefore": 0,
     "bearerOnly": false,
