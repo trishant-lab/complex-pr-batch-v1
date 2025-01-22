@@ -274,7 +274,16 @@ async def get_g_suite_token(
             data = await response.json()
             return data.get("access_token")
         else:
-            raise aiohttp.ClientResponseError(f"Failed to get access token: {await response.text()}")
+            raise aiohttp.ClientResponseError(
+                request_info=aiohttp.RequestInfo(
+                    url=token_uri,
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                ),
+                history=(),
+                status=response.status,
+                message=f"Failed to get access token: {await response.text()}",
+            )
 
 
 @user_router.get(

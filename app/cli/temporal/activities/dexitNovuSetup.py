@@ -216,20 +216,30 @@ class NovuSetup:
             async with session.post(url=url, json=payload, timeout=aiohttp.ClientTimeout(total=120)) as response:
                 if response.status >= 400:
                     raise aiohttp.ClientResponseError(
-                        f"Failed to get access token for Novu environment, status_code: {response.status}",
-                        request=response.request,
-                        response=response,
+                        request_info=aiohttp.RequestInfo(
+                            url=url,
+                            method="POST",
+                            headers={"Content-Type": "application/json"},
+                        ),
+                        history=(),
+                        status=response.status,
+                        message=f"Failed to get access token for Novu environment, status_code: {response.status}",
                     )
 
                 if response.status >= 300:
                     raise aiohttp.ClientResponseError(
-                        f"Failed to get access token for Novu environment, status_code: {response.status}",
-                        request=response.request,
-                        response=response,
+                        request_info=aiohttp.RequestInfo(
+                            url=url,
+                            method="POST",
+                            headers={"Content-Type": "application/json"},
+                        ),
+                        history=(),
+                        status=response.status,
+                        message=f"Failed to get access token for Novu environment, status_code: {response.status}",
                     )
 
-                result = await response.json()
-                return result["data"]["token"]
+                response_json = await response.json()
+                return response_json["data"]["token"]
 
     async def get_organizations_by_name(self: "NovuSetup", organization_name: str, token: str) -> list:
         """
