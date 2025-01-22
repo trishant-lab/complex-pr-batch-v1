@@ -492,3 +492,54 @@ class KeycloakCreateIDPFlowActivity(Activity):
                         )
 
         log_info(f"Keycloak idp and flows for {activity_model.tenant} created successfully.")
+
+
+class JeevesKeycloakCreateIDPFlowActivity(Activity):
+    """
+    JeevesKeycloakCreateIDPFlowActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakCreateIDPFlowActivity")
+    async def defn(activity_model: KeycloakClientSetupActivityModel) -> None:
+        """
+        Create keycloak client
+        """
+        jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
+        template = jinja_env.get_template(activity_model.template_name)
+        client_config = template.render(
+            tenant=activity_model.tenant,
+            domain=activity_model.domain,
+            **(activity_model.template_payload if activity_model.template_payload else {}),
+        )
+        client_config = orjson.loads(client_config)
+
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+        identity_providers = keycloak_client.get_identity_providers(realm_name=activity_model.realm_name)
+        for idp_config in client_config["identityProviders"]:
+            if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
+                keycloak_client.create_identity_provider(idp_config, activity_model.realm_name)
+                for idp_mapper_config in client_config["identityProviderMappers"]:
+                    if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
+                        keycloak_client.add_mapper_to_idp(
+                            idp_alias=idp_mapper_config["identityProviderAlias"],
+                            mapper_config=idp_mapper_config,
+                            realm_name=activity_model.realm_name,
+                        )
+
+        log_info(f"Keycloak idp and flows for {activity_model.tenant} created successfully.")
