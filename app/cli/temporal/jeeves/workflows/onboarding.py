@@ -160,6 +160,7 @@ class JeevesOnboardingWorkflow(Workflow):
             DeploymentDeletionActivity.defn,
             CheckPodRunningStatusActivity.defn,
             SlackNotificationActivity.defn,
+            JeevesKeycloakCreateIDPFlowActivity.defn,
         ]
 
     @classmethod
