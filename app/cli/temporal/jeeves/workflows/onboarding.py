@@ -52,6 +52,7 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
+    JeevesKeycloakCreateIDPFlowActivity,
 )
 from app.cli.temporal.activities.preLoadAssetsJob import PreloadAssetsJobActivity
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
@@ -599,6 +600,20 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
             )
 
+            # Create IDP mappers
+            await workflow.execute_activity(
+                activity=JeevesKeycloakCreateIDPFlowActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=jeeves_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_idp_and_flows.json",
+                ),
+                retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
+                start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),
+            )
+
             # keycloak tenant customer admin user setup
             await workflow.execute_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
@@ -935,12 +950,12 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # preload assets job
-            # await workflow.execute_activity(
-            #     activity=PreloadAssetsJobActivity.defn,
-            #     arg=jeeves,
-            #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
-            #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
-            # )
+            await workflow.execute_activity(
+                activity=PreloadAssetsJobActivity.defn,
+                arg=jeeves,
+                retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
+                start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            )
 
             # check pod running status
             for pod in ["jeeves", "jeeves-worker"]:
