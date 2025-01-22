@@ -10,20 +10,36 @@ p, ADMINS, /api/v1/product/listAllProducts, GET
 p, JEEVES_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 p, PENKNIFE_VIEW_GROUP, /api/v1/product/listAllProducts, GET
+p, ZSEGMENT_VIEW_GROUP, /api/v1/product/listAllProducts, GET
+p, MUSPELL_VIEW_GROUP, /api/v1/product/listAllProducts, GET
+p, VERITABLE_VIEW_GROUP, /api/v1/product/listAllProducts, GET
+p, PRACTIFLY_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 
 p, JEEVES_VIEW_GROUP, /api/v1/product/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/Dexit, GET
 p, PENKNIFE_VIEW_GROUP, /api/v1/product/Penknife, GET
+p, ZSEGMENT_VIEW_GROUP, /api/v1/product/Zsegment, GET
+p, MUSPELL_VIEW_GROUP, /api/v1/product/Muspell, GET
+p, VERITABLE_VIEW_GROUP, /api/v1/product/Veritable, GET
+p, PRACTIFLY_VIEW_GROUP, /api/v1/product/Practifly, GET
 
 p, ADMINS, /api/v1/product/getProductByName/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/product/getProductByName/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/getProductByName/Dexit, GET
 p, PENKNIFE_VIEW_GROUP, /api/v1/product/getProductByName/Penknife, GET
+p, ZSEGMENT_VIEW_GROUP, /api/v1/product/getProductByName/Zsegment, GET
+p, MUSPELL_VIEW_GROUP, /api/v1/product/getProductByName/Muspell, GET
+p, VERITABLE_VIEW_GROUP, /api/v1/product/getProductByName/Veritable, GET
+p, PRACTIFLY_VIEW_GROUP, /api/v1/product/getProductByName/Practifly, GET
 
 p, ADMINS, /api/v1/product/updateProductSchema/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/product/updateProductSchema/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/product/updateProductSchema/Dexit, POST
 p, PENKNIFE_EDIT_GROUP, /api/v1/product/updateProductSchema/Penknife, POST
+p, ZSEGMENT_EDIT_GROUP, /api/v1/product/updateProductSchema/Zsegment, POST
+p, MUSPELL_EDIT_GROUP, /api/v1/product/updateProductSchema/Muspell, POST
+p, VERITABLE_EDIT_GROUP, /api/v1/product/updateProductSchema/Veritable, POST
+p, PRACTIFLY_EDIT_GROUP, /api/v1/product/updateProductSchema/Practifly, POST
 
 p, PUBLIC, /api/v1/product/renderForm/{product}, GET
 
@@ -31,12 +47,19 @@ p, ADMINS, /api/v1/tenant/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/tenant/Dexit, GET
 p, PENKNIFE_VIEW_GROUP, /api/v1/tenant/Penknife, GET
-
+p, ZSEGMENT_VIEW_GROUP, /api/v1/tenant/Zsegment, GET
+p, MUSPELL_VIEW_GROUP, /api/v1/tenant/Muspell, GET
+p, VERITABLE_VIEW_GROUP, /api/v1/tenant/Veritable, GET
+p, PRACTIFLY_VIEW_GROUP, /api/v1/tenant/Practifly, GET
 
 p, ADMINS, /api/v1/tenant/updateTenantDetails/{product}, PUT
 p, JEEVES_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Jeeves, PUT
 p, DEXIT_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Dexit, PUT
 p, PENKNIFE_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Penknife, PUT
+p, ZSEGMENT_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Zsegment, PUT
+p, MUSPELL_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Muspell, PUT
+p, VERITABLE_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Veritable, PUT
+p, PRACTIFLY_EDIT_GROUP, /api/v1/tenant/updateTenantDetails/Practifly, PUT
 
 
 p, PUBLIC, /api/v1/tenant/suggestTenantNames/{product}, GET
@@ -49,20 +72,39 @@ p, ADMINS, /api/v1/provisioning/approveOrDecline/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Dexit, POST
 p, PENKNIFE_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Penknife, POST
+p, ZSEGMENT_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Zsegment, POST
+p, MUSPELL_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Muspell, POST
+p, VERITABLE_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Veritable, POST
+p, PRACTIFLY_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Practifly, POST
 
 
 p, ADMINS, /api/v1/provisioning/retryProvisioning/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Dexit, POST
 p, PENKNIFE_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Penknife, POST
+p, ZSEGMENT_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Zsegment, POST
+p, MUSPELL_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Muspell, POST
+p, VERITABLE_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Veritable, POST
+p, PRACTIFLY_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Practifly, POST
 
 p, ADMINS, /api/v1/provisioning/workflowSteps/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Dexit, GET
 p, PENKNIFE_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Penknife, GET
+p, ZSEGMENT_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Zsegment, GET
+p, MUSPELL_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Muspell, GET
+p, VERITABLE_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Veritable, GET
+p, PRACTIFLY_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Practifly, GET
 
 p, ADMINS, /api/v1/deprovisioning, POST
 
+p, JEEVES_EDIT_GROUP, /api/v1/deprovisioning/Jeeves, POST
+p, DEXIT_EDIT_GROUP, /api/v1/deprovisioning/Dexit, POST
+p, PENKNIFE_EDIT_GROUP, /api/v1/deprovisioning/Penknife, POST
+p, ZSEGMENT_EDIT_GROUP, /api/v1/deprovisioning/Zsegment, POST
+p, MUSPELL_EDIT_GROUP, /api/v1/deprovisioning/Muspell, POST
+p, VERITABLE_EDIT_GROUP, /api/v1/deprovisioning/Veritable, POST
+p, PRACTIFLY_EDIT_GROUP, /api/v1/deprovisioning/Practifly, POST
 
 p, ADMINS, /api/v1/User, POST
 p, ADMINS, /api/v1/User, PUT
@@ -77,11 +119,19 @@ p, ADMINS, /api/v1/EmailTemplate/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/EmailTemplate/Jeeves,  GET
 p, DEXIT_VIEW_GROUP, /api/v1/EmailTemplate/Dexit,  GET
 p, PENKNIFE_VIEW_GROUP, /api/v1/EmailTemplate/Penknife,  GET
+p, ZSEGMENT_VIEW_GROUP, /api/v1/EmailTemplate/Zsegment,  GET
+p, MUSPELL_VIEW_GROUP, /api/v1/EmailTemplate/Muspell,  GET
+p, VERITABLE_VIEW_GROUP, /api/v1/EmailTemplate/Veritable,  GET
+p, PRACTIFLY_VIEW_GROUP, /api/v1/EmailTemplate/Practifly,  GET
 
 p, ADMINS, /api/v1/EmailTemplate/{product}, PUT
 p, JEEVES_EDIT_GROUP, /api/v1/EmailTemplate/Jeeves,  PUT
 p, DEXIT_EDIT_GROUP, /api/v1/EmailTemplate/Dexit,  PUT
 p, PENKNIFE_EDIT_GROUP, /api/v1/EmailTemplate/Penknife,  PUT
+p, ZSEGMENT_EDIT_GROUP, /api/v1/EmailTemplate/Zsegment,  PUT
+p, MUSPELL_EDIT_GROUP, /api/v1/EmailTemplate/Muspell,  PUT
+p, VERITABLE_EDIT_GROUP, /api/v1/EmailTemplate/Veritable,  PUT
+p, PRACTIFLY_EDIT_GROUP, /api/v1/EmailTemplate/Practifly,  PUT
 
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsViewedSummary, GET
 p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/query, GET
@@ -119,5 +169,35 @@ g, PENKNIFE_VIEW_GROUP, Admin
 
 g, PENKNIFE_EDIT_GROUP, PenknifeEdit
 g, PENKNIFE_EDIT_GROUP, Admin
+
+g, ZSEGMENT_VIEW_GROUP, ZsegmentView
+g, ZSEGMENT_VIEW_GROUP, ZsegmentEdit
+g, ZSEGMENT_VIEW_GROUP, Admin
+
+g, ZSEGMENT_EDIT_GROUP, ZsegmentEdit
+g, ZSEGMENT_EDIT_GROUP, Admin
+
+
+g, MUSPELL_VIEW_GROUP, MuspellView
+g, MUSPELL_VIEW_GROUP, MuspellEdit
+g, MUSPELL_VIEW_GROUP, Admin
+
+g, MUSPELL_EDIT_GROUP, MuspellEdit
+g, MUSPELL_EDIT_GROUP, Admin
+
+g, VERITABLE_VIEW_GROUP, VeritableView
+g, VERITABLE_VIEW_GROUP, VeritableEdit
+g, VERITABLE_VIEW_GROUP, Admin
+
+g, VERITABLE_EDIT_GROUP, VeritableEdit
+g, VERITABLE_EDIT_GROUP, Admin
+
+
+g, PRACTIFLY_VIEW_GROUP, PractiflyView
+g, PRACTIFLY_VIEW_GROUP, PractiflyEdit
+g, PRACTIFLY_VIEW_GROUP, Admin
+
+g, PRACTIFLY_EDIT_GROUP, PractiflyEdit
+g, PRACTIFLY_EDIT_GROUP, Admin
 
 g, PUBLIC, NO_AUTH
