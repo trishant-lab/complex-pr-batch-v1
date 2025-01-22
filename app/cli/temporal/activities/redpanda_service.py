@@ -226,11 +226,21 @@ async def create_user(properties: RedpandaProperties) -> bool:
                 json=user_payload,
                 timeout=aiohttp.ClientTimeout(total=30),
             )
-        if response.status == 200:
-            log_info(f"Created user for tenant {properties.tenant}")
-            return True
+            if response.status == 200:
+                log_info(f"Created user for tenant {properties.tenant}")
+                return True
     except aiohttp.ClientResponseError as e:
-        log_error(f"Unexpected error occurred while creating user for tenant {properties.tenant}: {e}")
+        log_error(
+            f"Unexpected error occurred while creating user for tenant {properties.tenant}: {e}",
+            request_info=aiohttp.RequestInfo(
+                url=f"{properties.admin_api_base_url}/v1/security/users",
+                method="POST",
+                headers={"Content-Type": "application/json"},
+            ),
+            history=(),
+            status=response.status,
+            message=f"Failed to create user for tenant {properties.tenant}",
+        )
         return False
 
 
@@ -244,12 +254,12 @@ async def delete_user(properties: RedpandaProperties) -> bool:
                 f"{properties.admin_api_base_url}/v1/security/users/{properties.tenant}",
                 timeout=aiohttp.ClientTimeout(total=30),
             )
-        if response.status == 200:
-            log_info(f"Deleted user for tenant {properties.tenant}")
-            return True
-        else:
-            log_error(f"Failed to delete user: {response.status}")
-            return False
+            if response.status == 200:
+                log_info(f"Deleted user for tenant {properties.tenant}")
+                return True
+            else:
+                log_error(f"Failed to delete user: {response.status}")
+                return False
     except aiohttp.ClientResponseError as e:
         log_error(f"Failed to delete user: {e}")
         return False
