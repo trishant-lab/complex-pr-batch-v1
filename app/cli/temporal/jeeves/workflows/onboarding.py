@@ -484,7 +484,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=CreateCloudflareBucketActivity.defn,
                 arg=CreateCloudflareBucketActivityModel(
-                    bucket_name=bucket_name,
+                    bucket_name=bucket_name, location_hint=jeeves_config.location_hint
                 ),
                 retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
@@ -500,16 +500,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
-            )
-
-            # propagate the dns record
-            await workflow.execute_activity(
-                activity=PropagateDNSRecordActivity.defn,
-                arg=PropagateDNSRecordActivityModel(
-                    domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
-                ),
-                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             repo_name = "jeeves-ui"
@@ -956,6 +946,16 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=jeeves,
                 retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
                 start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            )
+
+            # propagate the dns record
+            await workflow.execute_activity(
+                activity=PropagateDNSRecordActivity.defn,
+                arg=PropagateDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
+                ),
+                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             # check pod running status

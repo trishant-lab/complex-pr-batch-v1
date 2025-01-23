@@ -217,6 +217,8 @@ class JeevesSettings(BaseModel):
     keycloak_db_password: str = ""
     matomo_db_password: str = ""
 
+    location_hint: str = "enam"
+
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
 
     r2_url: str = ""
