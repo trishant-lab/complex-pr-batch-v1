@@ -548,14 +548,19 @@ class PostgresSupavisorPollUserActivity(Activity):
                 timeout=aiohttp.ClientTimeout(total=120),
             )
 
-        if response.status < 200 or response.status >= 299:
-            response_json = await response.json()
-            log_error(
-                f"Supavisor user creation failed with status code: " f"{response.status} and response: {response_json}"
-            )
-            raise aiohttp.ClientResponseError(
-                f"Supavisor user creation failed with status code: {response.status}",
-                request=response.request,
-                response=response,
-            )
+            if response.status < 200 or response.status >= 299:
+                response_json = await response.json()
+                log_error(
+                    f"Supavisor user creation failed with status code: {response.status} and response: {response_json}"
+                )
+                raise aiohttp.ClientResponseError(
+                    request_info=aiohttp.RequestInfo(
+                        url=f"{config.supavisor_url}/api/tenants/{activity_model.username}",
+                        method="PUT",
+                        headers={"Authorization": f"Bearer {config.supavisor_token}"},
+                    ),
+                    history=(),
+                    status=response.status,
+                    message=f"Supavisor user creation failed with status code: {response.status}",
+                )
         log_info(f"Supervisor poll user created: {activity_model.username}")

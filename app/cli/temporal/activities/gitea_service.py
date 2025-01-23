@@ -85,8 +85,8 @@ class GiteaService:
                     url, json=payload, auth=self.auth, timeout=aiohttp.ClientTimeout(total=30)
                 )
                 response.raise_for_status()
-            response_json = await response.json()
-            log_info(f"User created successfully: {response_json}")
+                response_json = await response.json()
+                log_info(f"User created successfully: {response_json}")
             return GiteaUser(username=username, email=email)
         except aiohttp.ClientResponseError as e:
             if response.status == 422:
@@ -94,7 +94,16 @@ class GiteaService:
                 return GiteaUser(username=username, email=email)
             else:
                 log_error(f"Failed to create user '{username}': {e}")
-                raise aiohttp.ClientResponseError(f"Failed to create user '{username}'") from e
+                raise aiohttp.ClientResponseError(
+                    request_info=aiohttp.RequestInfo(
+                        url=f"{self.base_url}/admin/users",
+                        method="POST",
+                        headers={"Content-Type": "application/json"},
+                    ),
+                    history=(),
+                    status=response.status,
+                    message=f"Failed to create user '{username}'",
+                )
 
     async def create_repository(self, gitea_user: GiteaUser, repo_name: str) -> None:
         """
@@ -127,14 +136,23 @@ class GiteaService:
                     url, json=payload, auth=self.auth, timeout=aiohttp.ClientTimeout(total=30)
                 )
                 response.raise_for_status()
-            response_json = await response.json()
-            log_info(f"Repository created successfully: {response_json}")
+                response_json = await response.json()
+                log_info(f"Repository created successfully: {response_json}")
         except aiohttp.ClientResponseError as e:
             if response.status == 409:
                 log_info(f"Repository {repo_name} already exists. Skipping creation.")
             else:
                 log_error(f"Failed to create repository {repo_name}: {e}")
-                raise aiohttp.ClientResponseError(f"Failed to create repository {repo_name}") from e
+                raise aiohttp.ClientResponseError(
+                    request_info=aiohttp.RequestInfo(
+                        url=f"{self.base_url}/repos/{zsegment_config.gitea_admin_username}/{self.template_repo}/generate",
+                        method="POST",
+                        headers={"Content-Type": "application/json"},
+                    ),
+                    history=(),
+                    status=response.status,
+                    message=f"Failed to create repository {repo_name}",
+                ) from e
 
 
 class GiteaSetupActivity(Activity):
