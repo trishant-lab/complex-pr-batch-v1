@@ -212,7 +212,13 @@ class JeevesSettings(BaseModel):
     chatwoot_base_url: str = "http://chatwoot.chatwoot.svc.cluster.local:3000"  # NOSONAR
     chatwoot_platform_api_token: str = ""
     chatwoot_default_user_password: str = ""
+    chatwoot_domain: str = "314ecorp.tech"
     server_url: str = ""
+
+    keycloak_smtp_password: str = ""
+
+    prod_image_tag: str = ""
+    idp_config: dict = {}
 
     keycloak_db_password: str = ""
     matomo_db_password: str = ""

@@ -27,6 +27,9 @@ class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
     template_name: str
     installer_secret: str | None = None
     template_payload: dict | None = None
+    company_name: str | None = None
+    chatwoot_domain: str | None = None
+    smtp_password: str | None = None
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -64,6 +67,9 @@ class KeycloakRealmSetupActivity(Activity):
             sendgrid_api_key=config.sendgrid.api_key,
             domain=activity_model.domain,
             installer_secret=activity_model.installer_secret,
+            company_name=activity_model.company_name,
+            chatwoot_domain=activity_model.chatwoot_domain,
+            smtp_password=activity_model.smtp_password,
             **(activity_model.template_payload if activity_model.template_payload else {}),
         )
 
@@ -85,6 +91,8 @@ class KeycloakClientSetupActivityModel(LaunchpadCLIBaseModel):
     template_name: str
     template_payload: dict | None = None
     auth_credential: str | None = None
+    idp_config: dict | None = None
+    chatwoot_domain: str | None = None
 
 
 class KeycloakClientSetupActivity(Activity):
@@ -118,6 +126,7 @@ class KeycloakClientSetupActivity(Activity):
             tenant=activity_model.tenant,
             domain=activity_model.domain,
             auth_credential=activity_model.auth_credential,
+            chatwoot_domain=activity_model.chatwoot_domain,
             **(activity_model.template_payload if activity_model.template_payload else {}),
         )
 
@@ -372,13 +381,13 @@ class KeycloakCreateInternalUsersActivity(Activity):
             keycloak_client.create_user(orjson.loads(user_config), activity_model.realm_name)
 
             log_info(f"Keycloak internal user {user['username']} created successfully")
+            user_id = keycloak_client.get_user_id(username=user["username"], realm_name=activity_model.realm_name)
+            keycloak_client.send_reset_password_link(user_id=user_id, realm_name=activity_model.realm_name)
 
             if activity_model.client_name:
                 keycloak_client.assign_client_role(
                     client_id=client_id,
-                    user_id=keycloak_client.get_user_id(
-                        username=user["username"], realm_name=activity_model.realm_name
-                    ),
+                    user_id=user_id,
                     roles=roles,
                     realm_name=activity_model.realm_name,
                 )
@@ -524,6 +533,7 @@ class JeevesKeycloakCreateIDPFlowActivity(Activity):
         client_config = template.render(
             tenant=activity_model.tenant,
             domain=activity_model.domain,
+            idp_config=activity_model.idp_config,
             **(activity_model.template_payload if activity_model.template_payload else {}),
         )
         client_config = orjson.loads(client_config)

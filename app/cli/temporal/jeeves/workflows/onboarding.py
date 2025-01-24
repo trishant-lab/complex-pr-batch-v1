@@ -504,7 +504,7 @@ class JeevesOnboardingWorkflow(Workflow):
 
             repo_name = "jeeves-ui"
             if config.env == "production":
-                image_tag = "production"
+                image_tag = jeeves_config.prod_image_tag
                 dest_dir = f"{bucket_name}/"
             else:
                 image_tag = "sprint"
@@ -540,6 +540,9 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
+                    company_name=pydash.get(jeeves, "companyNameProvidersOrPayersOnly"),
+                    chatwoot_domain=jeeves_config.chatwoot_domain,
+                    smtp_password=jeeves_config.keycloak_smtp_password,
                 ),
                 retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
@@ -600,6 +603,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_idp_and_flows.json",
+                    idp_config=jeeves_config.idp_config,
                 ),
                 retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
                 start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),

@@ -36,7 +36,7 @@ class CreateCloudflareBucketActivityModel(LaunchpadCLIBaseModel):
     """
 
     bucket_name: str
-    location_hint: str | None = None
+    location_hint: str | None = None  # Possible values: ["apac", "eeur", "enam", "weur", "wnam"]
 
 
 class CreateCloudflareBucketActivity(Activity):
