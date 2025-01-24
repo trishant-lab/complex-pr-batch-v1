@@ -418,6 +418,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="org_domain",
+                    secret_value=" ",
                 ),
                 retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
