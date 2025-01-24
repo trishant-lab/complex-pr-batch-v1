@@ -69,7 +69,7 @@ class CreateCloudflareBucketActivity(Activity):
         await create_bucket(
             config=config,
             bucket_name=activity_input.bucket_name,
-            location_hint=getattr(activity_input, "location_hint", None),
+            location_hint=activity_input.location_hint,
         )
 
         log_info(f"Created bucket {activity_input.bucket_name}")
