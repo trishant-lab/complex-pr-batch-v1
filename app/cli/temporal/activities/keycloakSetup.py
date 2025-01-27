@@ -120,7 +120,6 @@ class KeycloakClientSetupActivity(Activity):
             tenant=activity_model.tenant,
             domain=activity_model.domain,
             auth_credential=activity_model.auth_credential,
-            chatwoot_domain=activity_model.chatwoot_domain,
             **(activity_model.template_payload if activity_model.template_payload else {}),
         )
 
