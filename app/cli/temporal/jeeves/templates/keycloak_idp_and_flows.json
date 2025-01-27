@@ -12,12 +12,13 @@
             "authenticateByDefault": false,
             "linkOnly": false,
             "hideOnLogin": true,
-            "firstBrokerLoginFlowAlias": "smart on fhir Login",
+            "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
             "config": {
                 "validateSignature": "false",
                 "acceptsPromptNoneForwardFromClient": "true",
                 "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
                 "uiLocales": "false",
+                "clientId": "<< idp_config['cernernonprod']['client_id'] >>",
                 "isAccessTokenJWT": "false",
                 "filteredByClaim": "false",
                 "backchannelSupported": "false",
@@ -32,6 +33,45 @@
                 "disableUserInfo": "true",
                 "sendIdTokenOnLogout": "true",
                 "syncMode": "FORCE",
+                "clientSecret": "<< idp_config['cernernonprod']['client_secret'] >>",
+                "passMaxAge": "false",
+                "allowedClockSkew": "0",
+                "prompt": "none"
+            }
+        },
+        {
+            "alias": "cernerprod",
+            "displayName": "Cerner Smart on Fhir prod",
+            "providerId": "oidc",
+            "enabled": true,
+            "updateProfileFirstLoginMode": "on",
+            "trustEmail": true,
+            "storeToken": true,
+            "addReadTokenRoleOnCreate": true,
+            "authenticateByDefault": false,
+            "linkOnly": false,
+            "hideOnLogin": true,
+            "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
+            "config": {
+                "validateSignature": "false",
+                "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
+                "acceptsPromptNoneForwardFromClient": "false",
+                "clientId": "<< idp_config['cernerprod']['client_id'] >>",
+                "uiLocales": "false",
+                "isAccessTokenJWT": "false",
+                "filteredByClaim": "false",
+                "backchannelSupported": "false",
+                "caseSensitiveOriginalUsername": "false",
+                "disableNonce": "false",
+                "loginHint": "false",
+                "sendClientIdOnLogout": "false",
+                "pkceEnabled": "false",
+                "clientAuthMethod": "client_secret_basic",
+                "authorizationUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
+                "disableUserInfo": "true",
+                "sendIdTokenOnLogout": "true",
+                "syncMode": "FORCE",
+                "clientSecret": "<< idp_config['cernerprod']['client_secret'] >>",
                 "passMaxAge": "false",
                 "allowedClockSkew": "0",
                 "prompt": "none"
@@ -49,7 +89,7 @@
             "authenticateByDefault": false,
             "linkOnly": false,
             "hideOnLogin": true,
-            "firstBrokerLoginFlowAlias": "smart on fhir Login",
+            "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
             "config": {
                 "validateSignature": "false",
                 "acceptsPromptNoneForwardFromClient": "true",
@@ -67,9 +107,10 @@
                 "pkceEnabled": "false",
                 "clientAuthMethod": "client_secret_basic",
                 "authorizationUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
-                "disableUserInfo": "false",
+                "disableUserInfo": "true",
                 "sendIdTokenOnLogout": "true",
-                "syncMode": "IMPORT",
+                "syncMode": "FORCE",
+                "clientSecret": "<< idp_config['ehrsimulatorapp']['client_secret'] >>",
                 "passMaxAge": "false",
                 "allowedClockSkew": "0",
                 "prompt": "none"
@@ -87,12 +128,13 @@
             "authenticateByDefault": false,
             "linkOnly": false,
             "hideOnLogin": true,
-            "firstBrokerLoginFlowAlias": "smart on fhir Login",
+            "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
             "config": {
                 "validateSignature": "false",
-                "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
                 "acceptsPromptNoneForwardFromClient": "false",
+                "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
                 "uiLocales": "false",
+                "clientId": "<< idp_config['jeevesappsmartonfhir']['client_id'] >>",
                 "isAccessTokenJWT": "false",
                 "filteredByClaim": "false",
                 "backchannelSupported": "false",
@@ -103,11 +145,13 @@
                 "pkceEnabled": "false",
                 "clientAuthMethod": "client_secret_basic",
                 "authorizationUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
-                "disableUserInfo": "false",
+                "disableUserInfo": "true",
                 "sendIdTokenOnLogout": "true",
                 "syncMode": "FORCE",
+                "clientSecret": "<< idp_config['jeevesappsmartonfhir']['client_secret'] >>",
                 "passMaxAge": "false",
-                "allowedClockSkew": "0"
+                "allowedClockSkew": "0",
+                "prompt": "none"
             }
         },
         {
@@ -122,12 +166,13 @@
             "authenticateByDefault": false,
             "linkOnly": false,
             "hideOnLogin": true,
-            "firstBrokerLoginFlowAlias": "smart on fhir Login",
+            "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
             "config": {
                 "validateSignature": "false",
-                "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
                 "acceptsPromptNoneForwardFromClient": "false",
+                "tokenUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
                 "uiLocales": "false",
+                "clientId": "<< idp_config['jeevesappsmartonfhirprod']['client_id'] >>",
                 "isAccessTokenJWT": "false",
                 "filteredByClaim": "false",
                 "backchannelSupported": "false",
@@ -138,15 +183,47 @@
                 "pkceEnabled": "false",
                 "clientAuthMethod": "client_secret_basic",
                 "authorizationUrl": "http://jeeves.<<tenant>>.svc.cluster.local:8000/public/api/v1/ehrIntegration/ehrToken",
-                "disableUserInfo": "false",
+                "disableUserInfo": "true",
                 "sendIdTokenOnLogout": "true",
                 "syncMode": "FORCE",
+                "clientSecret": "<< idp_config['jeevesappsmartonfhirprod']['client_secret'] >>",
                 "passMaxAge": "false",
-                "allowedClockSkew": "0"
+                "allowedClockSkew": "0",
+                "prompt": "none"
             }
         }
     ],
-        "identityProviderMappers": [
+    "identityProviderMappers": [
+        {
+            "name": "ehr_app_name",
+            "identityProviderAlias": "cernernonprod",
+            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
+            "config": {
+                "syncMode": "FORCE",
+                "attribute.value": "Cerner",
+                "attribute": "ehr_app_name"
+            }
+        },
+        {
+            "name": "sub_to_username",
+            "identityProviderAlias": "cernernonprod",
+            "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+            "config": {
+                "syncMode": "IMPORT",
+                "claim": "sub",
+                "user.attribute": "username"
+            }
+        },
+        {
+            "name": "ehr_app_name",
+            "identityProviderAlias": "ehrsimulatorapp",
+            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
+            "config": {
+                "syncMode": "FORCE",
+                "attribute.value": "Epic",
+                "attribute": "ehr_app_name"
+            }
+        },
         {
             "name": "ehr_app_name",
             "identityProviderAlias": "jeevesappsmartonfhir",
@@ -168,8 +245,18 @@
             }
         },
         {
+            "name": "sub_to_username",
+            "identityProviderAlias": "cernerprod",
+            "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+            "config": {
+                "syncMode": "IMPORT",
+                "claim": "sub",
+                "user.attribute": "username"
+            }
+        },
+        {
             "name": "ehr_app_name",
-            "identityProviderAlias": "cernernonprod",
+            "identityProviderAlias": "cernerprod",
             "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
             "config": {
                 "syncMode": "FORCE",
@@ -178,23 +265,33 @@
             }
         },
         {
-            "name": "ehr_app_name",
+            "name": "sub_to_username",
             "identityProviderAlias": "ehrsimulatorapp",
-            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
+            "identityProviderMapper": "oidc-user-attribute-idp-mapper",
             "config": {
                 "syncMode": "FORCE",
-                "attribute.value": "Epic",
-                "attribute": "ehr_app_name"
+                "claim": "sub",
+                "user.attribute": "username"
             }
         },
         {
-            "name": "sub_to_username",
-            "identityProviderAlias": "cernernonprod",
-            "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+            "name": "override_sub",
+            "identityProviderAlias": "jeevesappsmartonfhirprod",
+            "identityProviderMapper": "oidc-username-idp-mapper",
             "config": {
-                "syncMode": "IMPORT",
-                "claim": "sub",
-                "user.attribute": "username"
+                "syncMode": "FORCE",
+                "template": "${CLAIM.preferred_username}",
+                "target": "BROKER_ID"
+            }
+        },
+        {
+            "name": "override_sub",
+            "identityProviderAlias": "jeevesappsmartonfhir",
+            "identityProviderMapper": "oidc-username-idp-mapper",
+            "config": {
+                "syncMode": "FORCE",
+                "template": "${CLAIM.preferred_username}",
+                "target": "BROKER_ID"
             }
         }
     ]

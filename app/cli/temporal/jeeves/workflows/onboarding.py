@@ -57,10 +57,10 @@ from app.cli.temporal.activities.keycloakSetup import (
 from app.cli.temporal.activities.preLoadAssetsJob import PreloadAssetsJobActivity
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
-    SendAfterProvisioningMailActivity,
-    SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
+    JeevesSendAfterProvisioningMailActivityModel,
+    JeevesSendAfterProvisioningMailActivity,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
     CheckPodRunningStatusActivity,
@@ -121,7 +121,6 @@ class JeevesOnboardingWorkflow(Workflow):
         """
         return [
             SendBeforeProvisioningMailActivity.defn,
-            SendAfterProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
@@ -161,6 +160,7 @@ class JeevesOnboardingWorkflow(Workflow):
             CheckPodRunningStatusActivity.defn,
             SlackNotificationActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
+            JeevesSendAfterProvisioningMailActivity.defn,
         ]
 
     @classmethod
@@ -418,7 +418,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="org_domain",
-                    secret_value="",
+                    secret_value=" ",
                 ),
                 retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
@@ -484,7 +484,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=CreateCloudflareBucketActivity.defn,
                 arg=CreateCloudflareBucketActivityModel(
-                    bucket_name=bucket_name,
+                    bucket_name=bucket_name, location_hint=jeeves_config.location_hint
                 ),
                 retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
@@ -502,19 +502,9 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
-            # propagate the dns record
-            await workflow.execute_activity(
-                activity=PropagateDNSRecordActivity.defn,
-                arg=PropagateDNSRecordActivityModel(
-                    domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
-                ),
-                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
-            )
-
             repo_name = "jeeves-ui"
             if config.env == "production":
-                image_tag = "production"
+                image_tag = jeeves_config.prod_image_tag
                 dest_dir = f"{bucket_name}/"
             else:
                 image_tag = "sprint"
@@ -550,6 +540,11 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
+                    template_payload={
+                        "company_name": pydash.get(jeeves, "companyNameProvidersOrPayersOnly"),
+                        "chatwoot_domain": jeeves_config.chatwoot_domain,
+                        "smtp_password": jeeves_config.keycloak_smtp_password,
+                    },
                 ),
                 retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
@@ -564,6 +559,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_jeeves_client.json",
+                    template_payload={"chatwoot_domain": jeeves_config.chatwoot_domain},
                 ),
                 retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
@@ -610,6 +606,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_idp_and_flows.json",
+                    template_payload={"idp_config": jeeves_config.idp_config},
                 ),
                 retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
                 start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),
@@ -951,11 +948,21 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # preload assets job
+            # await workflow.execute_activity(
+            #     activity=PreloadAssetsJobActivity.defn,
+            #     arg=jeeves,
+            #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
+            #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            # )
+
+            # propagate the dns record
             await workflow.execute_activity(
-                activity=PreloadAssetsJobActivity.defn,
-                arg=jeeves,
-                retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
-                start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+                activity=PropagateDNSRecordActivity.defn,
+                arg=PropagateDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
+                ),
+                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
+                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             # check pod running status
@@ -981,22 +988,13 @@ class JeevesOnboardingWorkflow(Workflow):
             # send mail
             if not is_deployment:
                 await workflow.execute_activity(
-                    activity=SendAfterProvisioningMailActivity.defn,
-                    arg=SendAfterProvisioningMailActivityModel(
+                    activity=JeevesSendAfterProvisioningMailActivity.defn,
+                    arg=JeevesSendAfterProvisioningMailActivityModel(
                         realm_name=realm_name,
-                        tenant=tenant,
-                        user_details={
-                            "firstName": first_name,
-                            "lastName": last_name,
-                            "email": email,
-                        },
-                        domain_name=jeeves_config.domain_name,
-                        product=ProductName,
-                        from_name=jeeves_config.sender_name,
-                        email_from=jeeves_config.sender_email,
+                        client_id="jeeves",
                     ),
-                    retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
+                    retry_policy=JeevesSendAfterProvisioningMailActivity.get_retry_policy(),
+                    start_to_close_timeout=JeevesSendAfterProvisioningMailActivity.get_timeout(),
                 )
 
         except Exception as e:

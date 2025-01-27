@@ -18,10 +18,6 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
 )
-from app.cli.temporal.activities.practiflyJob import (
-    PractiflyJobActivity,
-    PractiflyJobActivityModel,
-)
 from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     KubernetesIstioVirtualServiceActivity,
@@ -50,6 +46,10 @@ from app.cli.temporal.activities.postgresSetup import (
     PostgresUserCreationFromSecretActivity,
     PostgresUserCreationFromSecretActivityModel,
 )
+from app.cli.temporal.activities.practiflyJob import (
+    PractiflyJobActivity,
+    PractiflyJobActivityModel,
+)
 from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
 from app.cli.temporal.activities.redis import RedisSetupFromSecretActivity, RedisSetupFromSecretActivityModel
 from app.cli.temporal.activities.sendMail import (
@@ -66,22 +66,19 @@ from app.cli.temporal.activities.statefulSetPodCreation import (
 )
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.tenantCrd import (
-    TenantCrdExistsActivity,
-    TenantCrdExistsActivityModel,
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
+    TenantCrdExistsActivity,
+    TenantCrdExistsActivityModel,
 )
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.practifly import TemplatePath
 from app.cli.temporal.practifly.models.practiflySpec import PractiflyJobEnum, PractiflySpec
-
-
 from app.common import generate_password
 from app.core.settings import AppSettings, PractiflySettings, get_settings
 from app.template_env import get_env
-
 
 ProductName = "practifly"
 OnePasswordVaultName = "practifly"
