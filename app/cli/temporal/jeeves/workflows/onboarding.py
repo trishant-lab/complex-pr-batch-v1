@@ -57,7 +57,6 @@ from app.cli.temporal.activities.keycloakSetup import (
 from app.cli.temporal.activities.preLoadAssetsJob import PreloadAssetsJobActivity
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
-    SendAfterProvisioningMailActivity,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
     JeevesSendAfterProvisioningMailActivityModel,
@@ -122,7 +121,6 @@ class JeevesOnboardingWorkflow(Workflow):
         """
         return [
             SendBeforeProvisioningMailActivity.defn,
-            SendAfterProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
