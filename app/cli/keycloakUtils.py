@@ -9,7 +9,7 @@ from app.core.settings import KeycloakSettings, get_settings
 class KeycloakAdminClient:
     def __init__(self: "KeycloakAdminClient", config: KeycloakSettings) -> None:
         self.kc_client: KeycloakAdmin = KeycloakAdmin(
-            server_url=f"{config.internal_auth_url}/auth/",
+            server_url=f"{config.auth_url}/auth/",
             client_id=config.admin_client_id,
             username=config.username,
             password=config.password,
@@ -272,17 +272,14 @@ class KeycloakAdminClient:
         res = self.kc_client.get_client_service_account_user(client_id=client_id)
         return res["id"]
 
-    def send_reset_password_link(self: "KeycloakAdminClient", user_id: str, realm_name: str) -> None:
+    def send_reset_password_link(self: "KeycloakAdminClient", user_id: str, realm_name: str, client_id: str) -> None:
         """
         Send reset Password link
         """
         try:
             self._refresh_token(self.kc_client, self.realm)
             self.kc_client.connection.realm_name = realm_name
-            self.kc_client.send_update_account(
-                user_id=user_id,
-                payload=["UPDATE_PASSWORD"],
-            )
+            self.kc_client.send_update_account(user_id=user_id, payload=["UPDATE_PASSWORD"], client_id=client_id)
         except Exception as e:
             log_error(f"Failed to send reset password link to user {user_id}: {e}")
 
