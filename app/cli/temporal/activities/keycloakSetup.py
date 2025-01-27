@@ -27,9 +27,6 @@ class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
     template_name: str
     installer_secret: str | None = None
     template_payload: dict | None = None
-    company_name: str | None = None
-    chatwoot_domain: str | None = None
-    smtp_password: str | None = None
 
 
 class KeycloakRealmSetupActivity(Activity):
@@ -67,9 +64,9 @@ class KeycloakRealmSetupActivity(Activity):
             sendgrid_api_key=config.sendgrid.api_key,
             domain=activity_model.domain,
             installer_secret=activity_model.installer_secret,
-            company_name=activity_model.company_name,
-            chatwoot_domain=activity_model.chatwoot_domain,
-            smtp_password=activity_model.smtp_password,
+            company_name=activity_model.template_payload.get("company_name"),
+            chatwoot_domain=activity_model.template_payload.get("chatwoot_domain"),
+            smtp_password=activity_model.template_payload.get("smtp_password"),
             **(activity_model.template_payload if activity_model.template_payload else {}),
         )
 
@@ -306,6 +303,8 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
             user_id = keycloak_client.get_user_id(
                 username=activity_model.username, realm_name=activity_model.realm_name
             )
+
+            keycloak_client.send_reset_password_link(user_id=user_id, realm_name=activity_model.realm_name)
 
             keycloak_client.assign_client_role(
                 client_id=client_uuid,

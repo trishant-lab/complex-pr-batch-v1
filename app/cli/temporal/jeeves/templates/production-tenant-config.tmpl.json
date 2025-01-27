@@ -73,6 +73,10 @@
   "livekit_api_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_key }}",
   "livekit_api_secrete": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_secret }}",
   "atlas_token": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/atlas_token }}",
+  "cfstream_key_id": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_key_id }}",
+  "cfstream_account_id": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_account_id }}",
+  "cfstream_api_token": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_api_token }}",
+  "cfstream_jwk_key": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_jwk_key }}",
   "atlas_pg_dsn": "postgresql://jeeves_<<tenant>>:{{ op://Jeeves/application-config/JEEVES_<<tenant>>/pg_password }}@db-cluster-ha.postgres16.svc.cluster.local/jeeves",
   "org_domain": ["{{ op://Jeeves/application-config/JEEVES_<<tenant>>/org_domain }}"]
 }
