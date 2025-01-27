@@ -2,6 +2,7 @@ from functools import lru_cache
 
 from keycloak import KeycloakAdmin
 
+from app.cli.temporal.core.log import log_error
 from app.core.settings import KeycloakSettings, get_settings
 
 
@@ -270,6 +271,20 @@ class KeycloakAdminClient:
         self._refresh_token(self.kc_client, self.realm)
         res = self.kc_client.get_client_service_account_user(client_id=client_id)
         return res["id"]
+
+    def send_reset_password_link(self: "KeycloakAdminClient", user_id: str, realm_name: str) -> None:
+        """
+        Send reset Password link
+        """
+        try:
+            self._refresh_token(self.kc_client, self.realm)
+            self.kc_client.connection.realm_name = realm_name
+            self.kc_client.send_update_account(
+                user_id=user_id,
+                payload=["UPDATE_PASSWORD"],
+            )
+        except Exception as e:
+            log_error(f"Failed to send reset password link to user {user_id}: {e}")
 
 
 @lru_cache

@@ -1,3 +1,4 @@
+import os
 from tempfile import TemporaryDirectory
 from datetime import timedelta
 from temporalio import activity
@@ -6,7 +7,7 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 
 from app.sendgrid_utils import send_mail
 from app.template_env import get_env
-from app.cli.keycloakUtils import KeycloakAdminClient
+from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.temporal.core.log import log_error, log_info
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
@@ -148,6 +149,17 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
         content = template.render(
             user_name=f"{user_details.get('firstName')} {user_details.get('lastName')}",
         )
+        if product == "jeeves":
+            theme_template_env = get_env(
+                template_path=os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)),
+                    f"../{product}/templates",
+                )
+            )
+            theme_template_env.variable_start_string = "{{"
+            theme_template_env.variable_end_string = "}}"
+            template = theme_template_env.get_template("theme.html")
+            content = template.render(body=content)
 
     await send_mail(
         to_email=user_details.get("email"),
@@ -168,6 +180,14 @@ class SendBeforeProvisioningMailActivityModel(LaunchpadCLIBaseModel):
     product: str
     from_name: str
     email_from: str
+
+
+class JeevesSendAfterProvisioningMailActivityModel(LaunchpadCLIBaseModel):
+    """
+    JeevesSendAfterProvisioningMailActivityModel
+    """
+
+    realm_name: str
 
 
 class SendBeforeProvisioningMailActivity(Activity):
@@ -261,3 +281,42 @@ class SendAfterProvisioningMailActivity(Activity):
             from_name=activity_input.from_name,
             email_from=activity_input.email_from,
         )
+
+
+class JeevesSendAfterProvisioningMailActivity(Activity):
+    """
+    SendAfterProvisioningMailActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=60),
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="SendAfterProvisioningMailActivity")
+    async def defn(activity_input: JeevesSendAfterProvisioningMailActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        kc_client = get_keycloak_manager()
+        realm_users = kc_client.get_users(realm_name=activity_input.realm_name)
+        [
+            kc_client.send_reset_password_link(user.get("id"), realm_name=activity_input.realm_name)
+            for user in realm_users
+            if user and user.get("id")
+        ]

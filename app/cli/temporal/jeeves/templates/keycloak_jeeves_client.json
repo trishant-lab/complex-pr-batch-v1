@@ -10,11 +10,11 @@
     "alwaysDisplayInConsole": false,
     "clientAuthenticatorType": "client-secret",
     "redirectUris": [
-        "https://jeeves-agent.<<domain>>/*",
+        "https://jeeves-agent.<<chatwoot_domain>>/*",
         "https://<<tenant>>.<<domain>>/*"
     ],
     "webOrigins": [
-        "https://jeeves-agent.<<domain>>",
+        "https://jeeves-agent.<<chatwoot_domain>>",
         "https://<<tenant>>.<<domain>>"
     ],
     "notBefore": 0,
@@ -38,7 +38,7 @@
         "use.refresh.tokens": "true",
         "realm_client": "false",
         "oidc.ciba.grant.enabled": "false",
-        "backchannel.logout.session.required": "true",
+        "backchannel.logout.session.required": "false",
         "client_credentials.use_refresh_token": "false",
         "saml.client.signature": "false",
         "require.pushed.authorization.requests": "false",
@@ -63,21 +63,6 @@
     "nodeReRegistrationTimeout": -1,
     "protocolMappers": [
         {
-            "name": "ehr_app_name",
-            "protocol": "openid-connect",
-            "protocolMapper": "oidc-usersessionmodel-note-mapper",
-            "consentRequired": false,
-            "config": {
-                "user.session.note": "ehr_app_name",
-                "userinfo.token.claim": "true",
-                "id.token.claim": "true",
-                "access.token.claim": "true",
-                "claim.name": "ehr_app_name",
-                "jsonType.label": "String",
-                "access.tokenResponse.claim": "false"
-            }
-        },
-        {
             "name": "idp_name",
             "protocol": "openid-connect",
             "protocolMapper": "oidc-usersessionmodel-note-mapper",
@@ -91,11 +76,24 @@
                 "jsonType.label": "String",
                 "access.tokenResponse.claim": "false"
             }
+        },
+        {
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usersessionmodel-note-mapper",
+            "consentRequired": false,
+            "config": {
+                "user.session.note": "ehr_app_name",
+                "userinfo.token.claim": "true",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "claim.name": "ehr_app_name",
+                "jsonType.label": "String",
+                "access.tokenResponse.claim": "false"
+            }
         }
     ],
     "defaultClientScopes": [
         "web-origins",
-        "openid",
         "roles",
         "profile",
         "basic",

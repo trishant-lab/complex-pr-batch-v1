@@ -372,13 +372,12 @@ class KeycloakCreateInternalUsersActivity(Activity):
             keycloak_client.create_user(orjson.loads(user_config), activity_model.realm_name)
 
             log_info(f"Keycloak internal user {user['username']} created successfully")
+            user_id = keycloak_client.get_user_id(username=user["username"], realm_name=activity_model.realm_name)
 
             if activity_model.client_name:
                 keycloak_client.assign_client_role(
                     client_id=client_id,
-                    user_id=keycloak_client.get_user_id(
-                        username=user["username"], realm_name=activity_model.realm_name
-                    ),
+                    user_id=user_id,
                     roles=roles,
                     realm_name=activity_model.realm_name,
                 )
