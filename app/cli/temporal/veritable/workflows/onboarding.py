@@ -90,7 +90,7 @@ ProductName = "veritable"
 OnePasswordVaultName = "practifly"
 
 
-@workflow.defn(name="VeritableOnboardingWorkflow")
+@workflow.defn(sandboxed=False)
 class VeritableOnboardingWorkflow(Workflow):
     """
     Veritable Onboarding Workflow
