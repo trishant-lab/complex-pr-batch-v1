@@ -42,7 +42,11 @@ class PostgresSchemaCreationActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="PostgresSchemaCreationActivity")
@@ -93,7 +97,11 @@ class PostgresUserCreationActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="PostgresUserCreationActivity")
@@ -155,7 +163,11 @@ class PostgresUserCreationFromSecretActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="PostgresUserCreationFromSecretActivity")
@@ -219,7 +231,11 @@ class PostgresDatabaseCreationActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="PostgresDatabaseCreationActivity")
@@ -269,7 +285,11 @@ class PostgresGrantAccessToUserActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="PostgresGrantAccessToUserActivity")
@@ -326,7 +346,11 @@ class KeycloakUserMappingActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="KeycloakUserMappingActivity")
@@ -373,7 +397,11 @@ class MatomoUserMappingActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="MatomoUserMappingActivity")
@@ -420,7 +448,11 @@ class TableSpaceActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="TableSpaceActivity")
@@ -467,7 +499,11 @@ class PostgresGrantAllPrivilegesOnTableActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="PostgresGrantAllPrivilegesOnTableActivity")
@@ -516,7 +552,11 @@ class PostgresSupavisorPollUserActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="PostgresSupavisorPollUserActivity")

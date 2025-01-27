@@ -208,9 +208,8 @@ class SendBeforeProvisioningMailActivity(Activity):
         RetryPolicy for the activity
         """
         return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=60),
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
             maximum_attempts=5,
         )
 
@@ -260,9 +259,8 @@ class SendAfterProvisioningMailActivity(Activity):
         RetryPolicy for the activity
         """
         return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=60),
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
             maximum_attempts=5,
         )
 
@@ -301,9 +299,8 @@ class JeevesSendAfterProvisioningMailActivity(Activity):
         RetryPolicy for the activity
         """
         return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=60),
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
             maximum_attempts=5,
         )
 

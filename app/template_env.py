@@ -18,8 +18,5 @@ def get_env(template_path: str) -> jinja2.Environment:
         keep_trailing_newline=True,
         variable_start_string="<<",
         variable_end_string=">>",
-        extensions=[
-            "jinja2.ext.do",
-        ],
     )
     return env

@@ -97,7 +97,7 @@ class CreateDropletActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @activity.defn(name="create_droplet")
     async def defn(self, activity_input: CreateDropletActivityModel) -> str:
