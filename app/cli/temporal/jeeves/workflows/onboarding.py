@@ -947,12 +947,12 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # preload assets job
-            await workflow.execute_activity(
-                activity=PreloadAssetsJobActivity.defn,
-                arg=jeeves,
-                retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
-                start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=PreloadAssetsJobActivity.defn,
+            #     arg=jeeves,
+            #     retry_policy=PreloadAssetsJobActivity.get_retry_policy(),
+            #     start_to_close_timeout=PreloadAssetsJobActivity.get_timeout(),
+            # )
 
             # propagate the dns record
             await workflow.execute_activity(
