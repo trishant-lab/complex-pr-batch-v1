@@ -523,7 +523,6 @@ class JeevesKeycloakCreateIDPFlowActivity(Activity):
         client_config = template.render(
             tenant=activity_model.tenant,
             domain=activity_model.domain,
-            idp_config=activity_model.idp_config,
             **(activity_model.template_payload if activity_model.template_payload else {}),
         )
         client_config = orjson.loads(client_config)
