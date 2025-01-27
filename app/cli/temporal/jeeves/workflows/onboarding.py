@@ -991,6 +991,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     activity=JeevesSendAfterProvisioningMailActivity.defn,
                     arg=JeevesSendAfterProvisioningMailActivityModel(
                         realm_name=realm_name,
+                        client_id="jeeves",
                     ),
                     retry_policy=JeevesSendAfterProvisioningMailActivity.get_retry_policy(),
                     start_to_close_timeout=JeevesSendAfterProvisioningMailActivity.get_timeout(),
