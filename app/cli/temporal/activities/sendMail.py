@@ -188,6 +188,7 @@ class JeevesSendAfterProvisioningMailActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
+    client_id: str
 
 
 class SendBeforeProvisioningMailActivity(Activity):
@@ -313,7 +314,9 @@ class JeevesSendAfterProvisioningMailActivity(Activity):
         kc_client = get_keycloak_manager()
         realm_users = kc_client.get_users(realm_name=activity_input.realm_name)
         [
-            kc_client.send_reset_password_link(user.get("id"), realm_name=activity_input.realm_name)
+            kc_client.send_reset_password_link(
+                user.get("id"), realm_name=activity_input.realm_name, client_id=activity_input.client_id
+            )
             for user in realm_users
             if user and user.get("id")
         ]
