@@ -247,7 +247,11 @@ class RedisSetupActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="RedisSetupActivity")
@@ -355,7 +359,11 @@ class RedisSetupFromSecretActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="RedisSetupFromSecretActivity")
@@ -466,7 +474,11 @@ class RedisDeleteNamespaceActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="RedisDeleteNamespaceActivity")
