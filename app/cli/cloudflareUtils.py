@@ -49,13 +49,19 @@ async def get_bucket(config: AppSettings, bucket_name: str) -> list:
     return response.result.get("buckets", [])
 
 
-async def create_bucket(config: AppSettings, bucket_name: str) -> dict | None:
+async def create_bucket(config: AppSettings, bucket_name: str, location_hint: str | None = None) -> dict | None:
     """
     Create a bucket
     """
     client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
     if not await get_bucket(config=config, bucket_name=bucket_name):
-        return await client.r2.buckets.create(account_id=config.cloudflare.account_id, name=bucket_name)
+        return (
+            await client.r2.buckets.create(
+                account_id=config.cloudflare.account_id, name=bucket_name, location_hint=location_hint
+            )
+            if location_hint
+            else await client.r2.buckets.create(account_id=config.cloudflare.account_id, name=bucket_name)
+        )
     return None
 
 

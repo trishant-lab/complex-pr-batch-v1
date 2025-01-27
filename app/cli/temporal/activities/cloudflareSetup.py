@@ -36,6 +36,7 @@ class CreateCloudflareBucketActivityModel(LaunchpadCLIBaseModel):
     """
 
     bucket_name: str
+    location_hint: str | None = None  # Possible values: ["apac", "eeur", "enam", "weur", "wnam"]
 
 
 class CreateCloudflareBucketActivity(Activity):
@@ -65,7 +66,11 @@ class CreateCloudflareBucketActivity(Activity):
         """
         config: AppSettings = get_settings()
 
-        await create_bucket(config=config, bucket_name=activity_input.bucket_name)
+        await create_bucket(
+            config=config,
+            bucket_name=activity_input.bucket_name,
+            location_hint=activity_input.location_hint,
+        )
 
         log_info(f"Created bucket {activity_input.bucket_name}")
 
