@@ -85,8 +85,6 @@ class KeycloakClientSetupActivityModel(LaunchpadCLIBaseModel):
     template_name: str
     template_payload: dict | None = None
     auth_credential: str | None = None
-    idp_config: dict | None = None
-    chatwoot_domain: str | None = None
 
 
 class KeycloakClientSetupActivity(Activity):
