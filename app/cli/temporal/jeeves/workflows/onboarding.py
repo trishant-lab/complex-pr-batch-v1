@@ -58,9 +58,10 @@ from app.cli.temporal.activities.preLoadAssetsJob import PreloadAssetsJobActivit
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
     SendAfterProvisioningMailActivity,
-    SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
+    JeevesSendAfterProvisioningMailActivityModel,
+    JeevesSendAfterProvisioningMailActivity,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
     CheckPodRunningStatusActivity,
@@ -161,6 +162,7 @@ class JeevesOnboardingWorkflow(Workflow):
             CheckPodRunningStatusActivity.defn,
             SlackNotificationActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
+            JeevesSendAfterProvisioningMailActivity.defn,
         ]
 
     @classmethod
@@ -559,6 +561,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_jeeves_client.json",
+                    template_payload={"chatwoot_domain": jeeves_config.chatwoot_domain},
                 ),
                 retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
@@ -605,7 +608,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_idp_and_flows.json",
-                    idp_config=jeeves_config.idp_config,
+                    template_payload={"idp_config": jeeves_config.idp_config},
                 ),
                 retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
                 start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),
@@ -987,19 +990,9 @@ class JeevesOnboardingWorkflow(Workflow):
             # send mail
             if not is_deployment:
                 await workflow.execute_activity(
-                    activity=SendAfterProvisioningMailActivity.defn,
-                    arg=SendAfterProvisioningMailActivityModel(
+                    activity=JeevesSendAfterProvisioningMailActivity.defn,
+                    arg=JeevesSendAfterProvisioningMailActivityModel(
                         realm_name=realm_name,
-                        tenant=tenant,
-                        user_details={
-                            "firstName": first_name,
-                            "lastName": last_name,
-                            "email": email,
-                        },
-                        domain_name=jeeves_config.domain_name,
-                        product=ProductName,
-                        from_name=jeeves_config.sender_name,
-                        email_from=jeeves_config.sender_email,
                     ),
                     retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
                     start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),

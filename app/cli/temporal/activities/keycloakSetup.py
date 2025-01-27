@@ -301,8 +301,6 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
                 username=activity_model.username, realm_name=activity_model.realm_name
             )
 
-            keycloak_client.send_reset_password_link(user_id=user_id, realm_name=activity_model.realm_name)
-
             keycloak_client.assign_client_role(
                 client_id=client_uuid,
                 user_id=user_id,
@@ -378,7 +376,6 @@ class KeycloakCreateInternalUsersActivity(Activity):
 
             log_info(f"Keycloak internal user {user['username']} created successfully")
             user_id = keycloak_client.get_user_id(username=user["username"], realm_name=activity_model.realm_name)
-            keycloak_client.send_reset_password_link(user_id=user_id, realm_name=activity_model.realm_name)
 
             if activity_model.client_name:
                 keycloak_client.assign_client_role(
