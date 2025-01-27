@@ -1,3 +1,4 @@
+import os
 from tempfile import TemporaryDirectory
 from datetime import timedelta
 from temporalio import activity
@@ -148,6 +149,17 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
         content = template.render(
             user_name=f"{user_details.get('firstName')} {user_details.get('lastName')}",
         )
+        if product == "jeeves":
+            theme_template_env = get_env(
+                template_path=os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)),
+                    f"../{product}/templates/theme.html",
+                )
+            )
+            theme_template_env.variable_start_string = "{{"
+            theme_template_env.variable_end_string = "}}"
+            template = theme_template_env.get_template("before_provisioning_mail.html")
+            content = template.render(body=content)
 
     await send_mail(
         to_email=user_details.get("email"),
