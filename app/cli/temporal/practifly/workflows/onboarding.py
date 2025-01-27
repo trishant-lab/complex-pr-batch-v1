@@ -84,7 +84,7 @@ ProductName = "practifly"
 OnePasswordVaultName = "practifly"
 
 
-@workflow.defn
+@workflow.defn(sandboxed=False)
 class PractiflyOnboardingWorkflow(Workflow):
     """
     Practifly Onboarding Workflow

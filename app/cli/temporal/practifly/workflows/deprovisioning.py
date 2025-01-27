@@ -38,7 +38,7 @@ from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
 from app.core.settings import AppSettings, PractiflySettings, get_settings
 
 
-@workflow.defn
+@workflow.defn(sandboxed=False)
 class PractiflyDeProvisioningWorkflow(Workflow):
     """
     Practifly DeProvisioning Workflow
