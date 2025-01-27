@@ -11,15 +11,11 @@ def get_env(template_path: str) -> jinja2.Environment:
     :return:
     """
     loader: jinja2.FileSystemLoader = jinja2.FileSystemLoader(template_path)
-    env: jinja2.Environment = jinja2.Environment(
+    return jinja2.Environment(
         loader=loader,
         trim_blocks=True,
         autoescape=True,
         keep_trailing_newline=True,
         variable_start_string="<<",
         variable_end_string=">>",
-        extensions=[
-            "jinja2.ext.do",
-        ],
     )
-    return env
