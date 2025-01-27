@@ -308,7 +308,7 @@ class JeevesSendAfterProvisioningMailActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="SendAfterProvisioningMailActivity")
+    @activity.defn(name="JeevesSendAfterProvisioningMailActivity")
     async def defn(activity_input: JeevesSendAfterProvisioningMailActivityModel) -> None:
         """
         Callable for the activity

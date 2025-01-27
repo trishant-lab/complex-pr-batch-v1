@@ -57,7 +57,6 @@ from app.cli.temporal.activities.keycloakSetup import (
 from app.cli.temporal.activities.preLoadAssetsJob import PreloadAssetsJobActivity
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
-    SendAfterProvisioningMailActivity,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
     JeevesSendAfterProvisioningMailActivityModel,
@@ -122,7 +121,6 @@ class JeevesOnboardingWorkflow(Workflow):
         """
         return [
             SendBeforeProvisioningMailActivity.defn,
-            SendAfterProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
@@ -994,8 +992,8 @@ class JeevesOnboardingWorkflow(Workflow):
                     arg=JeevesSendAfterProvisioningMailActivityModel(
                         realm_name=realm_name,
                     ),
-                    retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
+                    retry_policy=JeevesSendAfterProvisioningMailActivity.get_retry_policy(),
+                    start_to_close_timeout=JeevesSendAfterProvisioningMailActivity.get_timeout(),
                 )
 
         except Exception as e:
