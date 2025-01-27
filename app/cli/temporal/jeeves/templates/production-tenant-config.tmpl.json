@@ -17,13 +17,15 @@
   "dynamic_url_hash_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/dynamic_url_hash_key }}",
   "dynamic_url_enabled": true,
   "tika_server_url": "http://tika-server.tika.svc.cluster.local:9998",
-  "epic_encode_token_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/epic_encode_token_key }}",
-  "epic_encode_token_algorithm": "HS256",
-  "epic_client_id_kc_idp_mapping": {
-    "simulator": "ehrsimulatorapp",
-    "a26c6714-6b3d-4a76-96f3-b3ac8db7d02a": "jeevestestappsmartonfhir",
+  "ehr_encode_token_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/epic_encode_token_key }}",
+  "ehr_encode_token_algorithm": "HS256",
+  "ehr_client_id_kc_idp_mapping": {
+    "71d1247e-f516-43ca-947c-23a21462af68": "cernerprod",
+    "55578b34-24d1-400e-87f3-2383fbac5b77": "cernernonprod",
+    "08772cce-42ef-4a79-98b7-ae82686a0a5d": "jeevesappsmartonfhirprod",
     "17e5c49f-df9d-4386-9fcc-c7ceda42f4c9": "jeevesappsmartonfhir",
-    "a0ed701d-bdd8-4854-b08c-63eb637187a1": "cernernonprod"
+    "a26c6714-6b3d-4a76-96f3-b3ac8db7d02a": "jeevestestappsmartonfhir",
+    "simulator": "ehrsimulatorapp"
   },
   "queue_url": "amqp://admin:{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/queue_password }}@rabbitmq.queue-system.svc.cluster.local:5672",
   "cdn_user_ftp": "ehrhelp",
@@ -65,7 +67,7 @@
   "openai_model_to_get_search_markers": "gpt-4o-mini",
   "max_token_in_output": 4095,
   "resemble_api_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/resemble_api_key }}",
-  "chatwoot_base_url": "https://jeeves-agent.314ecorp.com",
+  "chatwoot_base_url": "http://chatwoot.chatwoot.svc.cluster.local:3000",
   "chatwoot_api_key": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/chatwoot_api_key }}",
   "chatwoot_account_id": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/chatwoot_account_id }}",
   "chatwoot_bot_token": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/chatwoot_bot_token }}",
@@ -73,10 +75,11 @@
   "livekit_api_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_key }}",
   "livekit_api_secrete": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_secret }}",
   "atlas_token": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/atlas_token }}",
-  "cfstream_key_id": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_key_id }}",
-  "cfstream_account_id": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_account_id }}",
-  "cfstream_api_token": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_api_token }}",
-  "cfstream_jwk_key": "{{ op://Jeeves/application-config/INTEGRATION_COMMON_CONFIG/cfstream_jwk_key }}",
+  "cfstream_key_id": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/cfstream_key_id }}",
+  "cfstream_account_id": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/cfstream_account_id }}",
+  "cfstream_api_token": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/cfstream_api_token }}",
+  "cfstream_jwk_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/cfstream_jwk_key }}",
   "atlas_pg_dsn": "postgresql://jeeves_<<tenant>>:{{ op://Jeeves/application-config/JEEVES_<<tenant>>/pg_password }}@db-cluster-ha.postgres16.svc.cluster.local/jeeves",
+  "elevenlabs_api_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/elevenlabs_api_key }}",
   "org_domain": ["{{ op://Jeeves/application-config/JEEVES_<<tenant>>/org_domain }}"]
 }
