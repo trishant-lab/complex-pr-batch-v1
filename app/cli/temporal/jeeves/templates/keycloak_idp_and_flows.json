@@ -3,6 +3,7 @@
         {
             "alias": "cernernonprod",
             "displayName": "",
+            "providerId": "oidc",
             "enabled": true,
             "updateProfileFirstLoginMode": "on",
             "trustEmail": true,
@@ -41,6 +42,7 @@
         {
             "alias": "cernerprod",
             "displayName": "Cerner Smart on Fhir prod",
+            "providerId": "oidc",
             "enabled": true,
             "updateProfileFirstLoginMode": "on",
             "trustEmail": true,
