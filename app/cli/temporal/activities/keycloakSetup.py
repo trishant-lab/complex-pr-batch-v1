@@ -64,9 +64,6 @@ class KeycloakRealmSetupActivity(Activity):
             sendgrid_api_key=config.sendgrid.api_key,
             domain=activity_model.domain,
             installer_secret=activity_model.installer_secret,
-            company_name=activity_model.template_payload.get("company_name"),
-            chatwoot_domain=activity_model.template_payload.get("chatwoot_domain"),
-            smtp_password=activity_model.template_payload.get("smtp_password"),
             **(activity_model.template_payload if activity_model.template_payload else {}),
         )
 
