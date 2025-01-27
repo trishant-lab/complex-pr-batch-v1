@@ -8,41 +8,37 @@ from app.cli.temporal.activities.cloudflareSetup import (
     DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivity,
     DeleteCloudflareDNSRecordActivityModel,
+    DeleteFilesFromCloudflareActivity,
+    DeleteFilesFromCloudflareActivityModel,
 )
 from app.cli.temporal.activities.databaseMigrationJob import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     DeleteKubernetesIstioVirtualServiceActivity,
     DeleteKubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.cloudflareSetup import (
-    DeleteFilesFromCloudflareActivity,
-    DeleteFilesFromCloudflareActivityModel,
-)
-from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
-from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8sSecret import K8sSecretDeletionActivity, K8sSecretDeletionActivityModel
+from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
+from app.cli.temporal.activities.pvcSetup import PVCDeletionActivity, PVCDeletionActivityModel
 from app.cli.temporal.activities.statefulSetPodCreation import (
     StatefulSetPodDeletionActivity,
     StatefulSetPodDeletionActivityModel,
 )
-from app.cli.temporal.activities.pvcSetup import PVCDeletionActivity, PVCDeletionActivityModel
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
 from app.cli.temporal.activities.temporalNamespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
 )
+from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
+from app.core.settings import AppSettings, PractiflySettings, get_settings
 
 
-from app.core.settings import get_settings, PractiflySettings, AppSettings
-
-
-@workflow.defn(name="PractiflyDeProvisioningWorkflow")
+@workflow.defn
 class PractiflyDeProvisioningWorkflow(Workflow):
     """
     Practifly DeProvisioning Workflow
