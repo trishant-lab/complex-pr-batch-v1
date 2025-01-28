@@ -1,11 +1,5 @@
 import asyncio
 import datetime
-
-from temporalio import activity
-from temporalio.common import RetryPolicy
-from kubernetes.dynamic.exceptions import NotFoundError
-from app.cli.temporal.core.log import log_error
-
 from datetime import timedelta
 
 from kubernetes.client import (
@@ -19,29 +13,32 @@ from kubernetes.client import (
     V1LocalObjectReference,
     V1ObjectMeta,
     V1PersistentVolumeClaimVolumeSource,
+    V1Pod,
+    V1PodList,
     V1PodSpec,
+    V1PodStatus,
     V1PodTemplateSpec,
     V1ResourceRequirements,
+    V1SecretKeySelector,
     V1SecurityContext,
     V1StatefulSet,
     V1StatefulSetSpec,
     V1Volume,
     V1VolumeMount,
-    V1PodList,
-    V1Pod,
-    V1PodStatus,
 )
+from kubernetes.dynamic.exceptions import NotFoundError
+from temporalio import activity
+from temporalio.common import RetryPolicy
 
 from app.cli.k8s_util import (
     ResourceKindEnum,
     api_client,
     get_dynamic_client,
-    get_resource,
     get_k8s_core_v1_api_client,
+    get_resource,
 )
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
-
+from app.cli.temporal.core.log import log_error, log_info
 
 K8S_RESOURCE_VERSION = "apps/v1"
 
@@ -177,6 +174,21 @@ class KubernetesStatefulSetActivity(Activity):
                                     )
                                     for container_env in activity_model.container_envs
                                     if container_env.get("value_from")
+                                    and container_env["value_from"].get("config_map_key_ref")
+                                ]
+                                + [
+                                    V1EnvVar(
+                                        name=container_env["name"],
+                                        value_from=V1EnvVarSource(
+                                            secret_key_ref=V1SecretKeySelector(
+                                                name=container_env["value_from"]["secret_key_ref"]["name"],
+                                                key=container_env["value_from"]["secret_key_ref"]["key"],
+                                            )
+                                        ),
+                                    )
+                                    for container_env in activity_model.container_envs
+                                    if container_env.get("value_from")
+                                    and container_env["value_from"].get("secret_key_ref")
                                 ],
                             )
                         ],

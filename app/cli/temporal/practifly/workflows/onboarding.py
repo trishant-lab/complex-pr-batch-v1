@@ -720,15 +720,13 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {
                             "name": "POSTGRES__PASSWORD",
-                            "value_from": {"config_map_key_ref": {"name": postgres_secret_name, "key": "password"}},
+                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
                         {
                             "name": "REDIS__PASSWORD",
-                            "value_from": {
-                                "config_map_key_ref": {"name": redis_secret_name, "key": "password"},
-                            },
+                            "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
                         },
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
@@ -817,15 +815,13 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                         {
                             "name": "POSTGRES__PASSWORD",
-                            "value_from": {"config_map_key_ref": {"name": postgres_secret_name, "key": "password"}},
+                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
                         {
                             "name": "REDIS__PASSWORD",
-                            "value_from": {
-                                "config_map_key_ref": {"name": redis_secret_name, "key": "password"},
-                            },
+                            "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
                         },
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
