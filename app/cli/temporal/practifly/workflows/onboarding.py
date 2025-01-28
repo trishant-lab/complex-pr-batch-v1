@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 import orjson
 import pydash
+from cryptography.fernet import Fernet
 from temporalio import workflow
 
 from app.cli.temporal.activities.cloudflareSetup import (
@@ -33,6 +34,10 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
+)
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
 )
 from app.cli.temporal.activities.postgresSetup import (
     PostgresDatabaseCreationActivity,
@@ -396,6 +401,21 @@ class PractiflyOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
+            # insert fernet key into 1Password if it doesn't exist
+            fernet_key = Fernet.generate_key().decode()
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=f"practifly-tenant-config-{config.env.lower().strip()}",
+                    key="fernet_key",
+                    key_value=fernet_key,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
             common_config = "common-config.json"
             env_config = f"{config.env}-env-config.json"
             tenant_config = "tenant-config.json"
