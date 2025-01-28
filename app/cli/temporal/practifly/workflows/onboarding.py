@@ -136,6 +136,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             TenantCrdCreationActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
         ]
 
     @classmethod
