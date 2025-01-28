@@ -720,16 +720,14 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {
                             "name": "POSTGRES__PASSWORD",
-                            "value_from": {
-                                "secret_name": {"name": postgres_secret_name, "key": "password"},
-                            },
+                            "value_from": {"config_map_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
                         {
                             "name": "REDIS__PASSWORD",
                             "value_from": {
-                                "secret_name": {"name": redis_secret_name, "key": "password"},
+                                "config_map_key_ref": {"name": redis_secret_name, "key": "password"},
                             },
                         },
                         {"name": "RELEASE_VERSION", "value": image_tag},
@@ -819,16 +817,14 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                         {
                             "name": "POSTGRES__PASSWORD",
-                            "value_from": {
-                                "secret_name": {"name": postgres_secret_name, "key": "password"},
-                            },
+                            "value_from": {"config_map_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
                         {
                             "name": "REDIS__PASSWORD",
                             "value_from": {
-                                "secret_name": {"name": redis_secret_name, "key": "password"},
+                                "config_map_key_ref": {"name": redis_secret_name, "key": "password"},
                             },
                         },
                         {"name": "RELEASE_VERSION", "value": image_tag},
