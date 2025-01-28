@@ -68,6 +68,9 @@ class KeycloakRealmSetupActivity(Activity):
         )
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+        if keycloak_client.get_realm(realm_name=activity_model.realm_name):
+            log_info(f"Realm already created for tenant: {activity_model.realm_name}, skipping.")
+            return
         keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
 
         log_info(f"Keycloak realm {activity_model.realm_name} created successfully")
