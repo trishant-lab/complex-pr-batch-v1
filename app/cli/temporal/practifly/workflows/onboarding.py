@@ -418,10 +418,10 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             common_config = "common-config.json"
-            env_config = f"{config.env}-env-config.json"
+            env_config = "env-config.json"
             tenant_config = "tenant-config.json"
             vector_config = "vector-config.toml"
-            provisioning_config = f"{config.env}-provisioning-config.json"
+            provisioning_config = "provisioning-config.json"
             config_dir = "config"
 
             # kubernetes config map creation
