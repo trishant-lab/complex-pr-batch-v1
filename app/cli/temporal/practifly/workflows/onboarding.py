@@ -408,27 +408,27 @@ class PractiflyOnboardingWorkflow(Workflow):
                 {
                     "name": "practifly-common-config",
                     "key": common_config,
-                    "template_file_name": "common-config.jtmpl.json",
+                    "template_file_name": "common-config.tmpl.json",
                 },
                 {
                     "name": "practifly-env-config",
                     "key": env_config,
-                    "template_file_name": f"{config.env}-env-config.jtmpl.json",
+                    "template_file_name": f"{config.env}-env-config.tmpl.json",
                 },
                 {
                     "name": "practifly-tenant-config",
                     "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.jtmpl.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "practifly-cli-vector-config",
                     "key": vector_config,
-                    "template_file_name": "vector-config.jtmpl.toml",
+                    "template_file_name": "vector-config.tmpl.toml",
                 },
                 {
                     "name": "practifly-provisioning-config",
                     "key": provisioning_config,
-                    "template_file_name": f"{config.env}-provisioning-config.jtmpl.json",
+                    "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
                 },
             ]:
                 await workflow.execute_activity(
