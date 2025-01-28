@@ -31,6 +31,7 @@ from app.cli.temporal.activities.temporalNamespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
 )
+from app.cli.temporal.activities.tenantCrd import TenantCrdDeletionActivity, TenantCrdDeletionActivityModel
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
 from app.cli.temporal.core.base import Workflow
@@ -67,6 +68,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
             K8sSecretDeletionActivity.defn,
             DeleteFilesFromCloudflareActivity.defn,
             DeleteTemporalNamespaceActivity.defn,
+            TenantCrdDeletionActivity.defn,
         ]
 
     @classmethod
@@ -120,6 +122,28 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 arg=DeleteDatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="practifly-tenant-alembic-job",
+                ),
+                start_to_close_timeout=DeleteDatabaseMigrationJobActivity.get_timeout(),
+                retry_policy=DeleteDatabaseMigrationJobActivity.get_retry_policy(),
+            )
+
+            # delete provisioning job
+            await workflow.execute_activity(
+                DeleteDatabaseMigrationJobActivity.defn,
+                arg=DeleteDatabaseMigrationJobActivityModel(
+                    namespace=tenant,
+                    job_name="practifly-tenant-provisioning-job",
+                ),
+                start_to_close_timeout=DeleteDatabaseMigrationJobActivity.get_timeout(),
+                retry_policy=DeleteDatabaseMigrationJobActivity.get_retry_policy(),
+            )
+
+            # delete database migration job
+            await workflow.execute_activity(
+                DeleteDatabaseMigrationJobActivity.defn,
+                arg=DeleteDatabaseMigrationJobActivityModel(
+                    namespace=tenant,
+                    job_name="practifly-tenant-deployment-job",
                 ),
                 start_to_close_timeout=DeleteDatabaseMigrationJobActivity.get_timeout(),
                 retry_policy=DeleteDatabaseMigrationJobActivity.get_retry_policy(),
@@ -248,6 +272,17 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 ),
                 start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
                 retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
+            )
+
+            await workflow.execute_activity(
+                activity=TenantCrdDeletionActivity.defn,
+                arg=TenantCrdDeletionActivityModel(
+                    tenant=tenant,
+                    kind="PractiflyTenant",
+                    product="practifly",
+                ),
+                retry_policy=TenantCrdDeletionActivity.get_retry_policy(),
+                start_to_close_timeout=TenantCrdDeletionActivity.get_timeout(),
             )
 
         except Exception as e:
