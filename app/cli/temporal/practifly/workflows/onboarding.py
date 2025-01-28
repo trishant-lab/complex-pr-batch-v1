@@ -279,6 +279,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                     username=postgres_username,
                     database_name=postgres_database_name,
                     secret_name=postgres_secret_name,
+                    namespace=tenant,
                 ),
                 retry_policy=PostgresUserCreationFromSecretActivity.get_retry_policy(),
                 start_to_close_timeout=PostgresUserCreationFromSecretActivity.get_timeout(),
