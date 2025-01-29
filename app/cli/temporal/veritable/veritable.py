@@ -42,3 +42,12 @@ class VeritableWorkflow(ProductWorkflow):
         from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=VeritableSpec(**schema), workflow=VeritableOnboardingWorkflow)
+
+    @staticmethod
+    def get_workflow_id(schema: dict) -> str:
+        """
+        Get the workflow id for the given schema
+        """
+        from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
+
+        return VeritableOnboardingWorkflow.get_workflow_id(schema)

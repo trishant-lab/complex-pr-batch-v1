@@ -66,3 +66,12 @@ class ZSegmentWorkflow(ProductWorkflow):
         from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)
+
+    @staticmethod
+    def get_workflow_id(schema: dict) -> str:
+        """
+        Get the workflow id for the given schema
+        """
+        from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
+
+        return ZSegmentOnboardingWorkflow.get_workflow_id(schema)

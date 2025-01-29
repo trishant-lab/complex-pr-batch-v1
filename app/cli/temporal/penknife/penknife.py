@@ -74,3 +74,12 @@ class PenknifeWorkflow(ProductWorkflow):
         from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=PenknifeSpec(**schema), workflow=PenknifeOnboardingWorkflow)
+
+    @staticmethod
+    def get_workflow_id(schema: dict) -> str:
+        """
+        Get the workflow id for the given schema
+        """
+        from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
+
+        return PenknifeOnboardingWorkflow.get_workflow_id(schema)
