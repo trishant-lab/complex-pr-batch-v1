@@ -40,7 +40,7 @@ from app.core.settings import VeritableSettings, get_settings
 ProductName = "veritable"
 
 
-@workflow.defn(name="VeritableDeProvisioningWorkflow")
+@workflow.defn(sandboxed=False)
 class VeritableDeProvisioningWorkflow(Workflow):
     """
     Veritable DeProvisioning Workflow

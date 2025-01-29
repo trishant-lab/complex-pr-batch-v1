@@ -90,7 +90,7 @@ ProductName = "veritable"
 OnePasswordVaultName = "practifly"
 
 
-@workflow.defn(name="VeritableOnboardingWorkflow")
+@workflow.defn(sandboxed=False)
 class VeritableOnboardingWorkflow(Workflow):
     """
     Veritable Onboarding Workflow
@@ -352,10 +352,10 @@ class VeritableOnboardingWorkflow(Workflow):
             )
 
             custom_config = "custom-config.json"
-            env_config = f"{config.env}-env-config.json"
+            env_config = "env-config.json"
             tenant_config = "tenant-config.json"
             vector_config = "vector-config.toml"
-            provisioning_config = f"{config.env}-provisioning-config.json"
+            provisioning_config = "provisioning-config.json"
             config_dir = "config"
             # kubernetes config map creation
             for config_map in [
@@ -645,7 +645,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                         {"name": "POSTGRES__PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
                         {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
@@ -738,7 +738,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                         {"name": "POSTGRES__PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
                         {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},

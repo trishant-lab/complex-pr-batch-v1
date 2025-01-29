@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 import orjson
 import pydash
+from cryptography.fernet import Fernet
 from temporalio import workflow
 
 from app.cli.temporal.activities.cloudflareSetup import (
@@ -33,6 +34,10 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
+)
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
 )
 from app.cli.temporal.activities.postgresSetup import (
     PostgresDatabaseCreationActivity,
@@ -84,7 +89,7 @@ ProductName = "practifly"
 OnePasswordVaultName = "practifly"
 
 
-@workflow.defn
+@workflow.defn(sandboxed=False)
 class PractiflyOnboardingWorkflow(Workflow):
     """
     Practifly Onboarding Workflow
@@ -131,6 +136,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             TenantCrdCreationActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
         ]
 
     @classmethod
@@ -279,6 +285,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                     username=postgres_username,
                     database_name=postgres_database_name,
                     secret_name=postgres_secret_name,
+                    namespace=tenant,
                 ),
                 retry_policy=PostgresUserCreationFromSecretActivity.get_retry_policy(),
                 start_to_close_timeout=PostgresUserCreationFromSecretActivity.get_timeout(),
@@ -395,11 +402,26 @@ class PractiflyOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
+            # insert fernet key into 1Password if it doesn't exist
+            fernet_key = Fernet.generate_key().decode()
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=f"practifly-tenant-config-{config.env.lower().strip()}",
+                    key="fernet_key",
+                    key_value=fernet_key,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
             common_config = "common-config.json"
-            env_config = f"{config.env}-env-config.json"
+            env_config = "env-config.json"
             tenant_config = "tenant-config.json"
             vector_config = "vector-config.toml"
-            provisioning_config = f"{config.env}-provisioning-config.json"
+            provisioning_config = "provisioning-config.json"
             config_dir = "config"
 
             # kubernetes config map creation
@@ -407,27 +429,27 @@ class PractiflyOnboardingWorkflow(Workflow):
                 {
                     "name": "practifly-common-config",
                     "key": common_config,
-                    "template_file_name": "common-config.jtmpl.json",
+                    "template_file_name": "common-config.tmpl.json",
                 },
                 {
                     "name": "practifly-env-config",
                     "key": env_config,
-                    "template_file_name": f"{config.env}-env-config.jtmpl.json",
+                    "template_file_name": f"{config.env}-env-config.tmpl.json",
                 },
                 {
                     "name": "practifly-tenant-config",
                     "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.jtmpl.json",
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "practifly-cli-vector-config",
                     "key": vector_config,
-                    "template_file_name": "vector-config.jtmpl.toml",
+                    "template_file_name": "vector-config.tmpl.toml",
                 },
                 {
                     "name": "practifly-provisioning-config",
                     "key": provisioning_config,
-                    "template_file_name": f"{config.env}-provisioning-config.jtmpl.json",
+                    "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
                 },
             ]:
                 await workflow.execute_activity(
@@ -698,17 +720,13 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {
                             "name": "POSTGRES__PASSWORD",
-                            "value_from": {
-                                "secret_name": {"name": postgres_secret_name, "key": "password"},
-                            },
+                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
                         {
                             "name": "REDIS__PASSWORD",
-                            "value_from": {
-                                "secret_name": {"name": redis_secret_name, "key": "password"},
-                            },
+                            "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
                         },
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
@@ -797,17 +815,13 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                         {
                             "name": "POSTGRES__PASSWORD",
-                            "value_from": {
-                                "secret_name": {"name": postgres_secret_name, "key": "password"},
-                            },
+                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
                         {
                             "name": "REDIS__PASSWORD",
-                            "value_from": {
-                                "secret_name": {"name": redis_secret_name, "key": "password"},
-                            },
+                            "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
                         },
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},

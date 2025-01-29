@@ -143,6 +143,7 @@ class PostgresUserCreationFromSecretActivityModel(LaunchpadCLIBaseModel):
     secret_name: str
     database_name: str
     username: str
+    namespace: str
     password_key: str = "password"
 
 
