@@ -23,7 +23,6 @@ from app.cli.temporal.activities.databaseMigrationJob import (
 )
 from app.cli.temporal.activities.dexitNovuSetup import DexitNovuSetupActivity
 from app.cli.temporal.activities.faxSetup import FaxSetupActivity
-from app.cli.temporal.activities.hfinferenceendpoint import HFInferenceEndpointSetupActivity
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
@@ -132,7 +131,6 @@ class DexitOnboardingWorkflow(Workflow):
             TemporalNamespaceActivity.defn,
             TemporalSearchAttributesCreationActivity.defn,
             FaxSetupActivity.defn,
-            HFInferenceEndpointSetupActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             KeycloakServiceAccountSetupActivity.defn,
@@ -470,14 +468,6 @@ class DexitOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
-            )
-
-            # Creating HF Inference Endpoints
-            await workflow.execute_activity(
-                activity=HFInferenceEndpointSetupActivity.defn,
-                arg=dexit,
-                retry_policy=HFInferenceEndpointSetupActivity.get_retry_policy(),
-                start_to_close_timeout=HFInferenceEndpointSetupActivity.get_timeout(),
             )
 
             tenant_config = "tenant-config.json"
