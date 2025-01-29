@@ -67,3 +67,12 @@ class HdpWorkflow(ProductWorkflow):
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=HDPSpec(**schema), workflow=HDPOnboardingWorkflow)
+
+    @staticmethod
+    def get_workflow_id(schema: dict) -> str:
+        """
+        Get the workflow id for the given schema
+        """
+        from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
+
+        return HDPOnboardingWorkflow.get_workflow_id(schema)
