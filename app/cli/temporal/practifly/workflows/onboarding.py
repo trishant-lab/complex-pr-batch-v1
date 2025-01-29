@@ -209,7 +209,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
-            postgres_schema_name = tenant
+            postgres_schema_name = f"{ProductName}_{tenant}"
             postgres_database_name = f"{ProductName}-{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
