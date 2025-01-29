@@ -209,7 +209,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                     retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
-            postgres_schema_name = f"{ProductName}_{tenant}"
+            postgres_schema_name = tenant
             postgres_database_name = f"{ProductName}-{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
@@ -459,7 +459,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                         name=config_map["name"],
                         template_file_name=config_map["template_file_name"],
                         cloudflare_r2_folder_path="practifly-config",
-                        template_payload={"tenant": tenant},
+                        template_payload={"tenant": tenant, "orgName": practifly_config.org_name},
                         destination_file_name=config_map["key"],
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
