@@ -723,7 +723,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
                         {
                             "name": "REDIS__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
@@ -818,7 +818,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
                         {
                             "name": "REDIS__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},

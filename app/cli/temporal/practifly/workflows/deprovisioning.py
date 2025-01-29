@@ -181,7 +181,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 )
 
             # delete secrets
-            secrets = ["registrycred", "cache-secret", "tenant-cache-secret", "postgres-secret"]
+            secrets = ["practifly-postgres", "practifly-redis"]
             for secret in secrets:
                 await workflow.execute_activity(
                     K8sSecretDeletionActivity.defn,

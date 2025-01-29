@@ -1,3 +1,4 @@
+from keycloak import KeycloakGetError
 from pydash import py_
 from temporalio import activity
 from temporalio.common import RetryPolicy
@@ -68,9 +69,15 @@ class KeycloakRealmSetupActivity(Activity):
         )
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-        if keycloak_client.get_realm(realm_name=activity_model.realm_name):
+        try:
+            keycloak_client.get_realm(realm_name=activity_model.realm_name)
             log_info(f"Realm already created for tenant: {activity_model.realm_name}, skipping.")
             return
+        except KeycloakGetError as e:
+            if e.response_code != 404:
+                log_error(f"Error getting realm for tenant: {activity_model.realm_name}, error: {e}")
+                raise e
+            log_info(f"Realm not found for tenant: {activity_model.realm_name}, creating realm.")
         keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
 
         log_info(f"Keycloak realm {activity_model.realm_name} created successfully")
