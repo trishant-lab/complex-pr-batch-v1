@@ -158,6 +158,7 @@ class PractiflyOnboardingWorkflow(Workflow):
         first_name = pydash.get(practifly, "firstName")
         last_name = pydash.get(practifly, "lastName")
         email = pydash.get(practifly, "email")
+        organization = pydash.get(practifly, "organization")
 
         try:
             # get tenant crd
@@ -461,7 +462,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                         cloudflare_r2_folder_path="practifly-config",
                         template_payload={
                             "tenant": tenant,
-                            "orgName": practifly.organization or "Default Practice",
+                            "orgName": organization or "Default Practice",
                         },
                         destination_file_name=config_map["key"],
                     ),
