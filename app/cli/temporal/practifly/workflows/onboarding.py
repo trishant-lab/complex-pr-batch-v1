@@ -459,7 +459,10 @@ class PractiflyOnboardingWorkflow(Workflow):
                         name=config_map["name"],
                         template_file_name=config_map["template_file_name"],
                         cloudflare_r2_folder_path="practifly-config",
-                        template_payload={"tenant": tenant, "orgName": practifly_config.org_name},
+                        template_payload={
+                            "tenant": tenant,
+                            "orgName": practifly.organization or "Default Practice",
+                        },
                         destination_file_name=config_map["key"],
                     ),
                     retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
