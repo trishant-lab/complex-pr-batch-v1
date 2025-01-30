@@ -1,19 +1,16 @@
-from keycloak import KeycloakGetError
+from datetime import timedelta
+
+import jinja2
+import orjson
 from pydash import py_
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.temporal.core.log import log_error
-from app.onepasswordutil import OnePasswordUtil
-
-
-from datetime import timedelta
-import jinja2
-import orjson
 from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
+from app.onepasswordutil import OnePasswordUtil
 from app.template_env import get_env
 
 
@@ -69,15 +66,6 @@ class KeycloakRealmSetupActivity(Activity):
         )
 
         keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-        try:
-            keycloak_client.get_realm(realm_name=activity_model.realm_name)
-            log_info(f"Realm already created for tenant: {activity_model.realm_name}, skipping.")
-            return
-        except KeycloakGetError as e:
-            if e.response_code != 404:
-                log_error(f"Error getting realm for tenant: {activity_model.realm_name}, error: {e}")
-                raise e
-            log_info(f"Realm not found for tenant: {activity_model.realm_name}, creating realm.")
         keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
 
         log_info(f"Keycloak realm {activity_model.realm_name} created successfully")
