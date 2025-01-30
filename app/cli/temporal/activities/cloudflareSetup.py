@@ -56,7 +56,7 @@ class CreateCloudflareBucketActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="CreateCloudflareBucketActivity")
@@ -102,7 +102,7 @@ class CreateCloudflareDNSRecordActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="CreateCloudflareDNSRecordActivity")
@@ -146,7 +146,7 @@ class LinkBucketToDomainActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="LinkBucketToDomainActivity")
@@ -196,7 +196,7 @@ class CopyArtifactsToBucketActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="CopyArtifactsToBucketActivity")
@@ -305,7 +305,7 @@ class CopyWebCoreToBucketActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="CopyWebCoreToBucketActivity")
@@ -377,7 +377,7 @@ class DeleteCloudflareBucketActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="DeleteCloudflareBucketActivity")
@@ -419,7 +419,7 @@ class DeleteFilesFromCloudflareActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="DeleteFilesFromCloudflareActivity")
@@ -471,7 +471,7 @@ class DeleteCloudflareDNSRecordActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="DeleteCloudflareDNSRecordActivity")
@@ -512,7 +512,7 @@ class PropagateDNSRecordActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="PropagateDNSRecordActivity")
@@ -562,7 +562,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="PenknifeCopyArtifactsToBucketActivity")

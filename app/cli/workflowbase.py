@@ -51,3 +51,10 @@ class ProductWorkflow(abc.ABC):
         Retry a product
         """
         raise NotImplementedError
+
+    @staticmethod
+    def get_workflow_id(schema: dict) -> str:
+        """
+        Get the workflow id for the given schema
+        """
+        raise NotImplementedError

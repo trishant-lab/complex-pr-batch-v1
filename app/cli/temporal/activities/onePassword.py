@@ -38,7 +38,11 @@ class OnePasswordCreateOrUpdateActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="OnePasswordCreateOrUpdateActivity")
@@ -81,7 +85,7 @@ class OnePasswordGetActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="OnePasswordGetActivity")
@@ -125,7 +129,7 @@ class OnePasswordInsertIfNotExistsActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="OnePasswordInsertIfNotExistsActivity")

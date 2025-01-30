@@ -34,7 +34,7 @@ class DeploymentDeletionActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
 
     @staticmethod
     @activity.defn(name="DeploymentDeletionActivity")

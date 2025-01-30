@@ -11,6 +11,15 @@ from pydantic import ValidationError, BaseModel
 from starlette.requests import Request
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
 from temporalio.client import WorkflowHandle
+from temporalio import client
+from temporalio.api.workflowservice.v1 import (
+    ListWorkflowExecutionsRequest,
+    ListArchivedWorkflowExecutionsRequest,
+    GetWorkflowExecutionHistoryRequest,
+    GetWorkflowExecutionHistoryResponse,
+)
+from temporalio.api.common.v1 import WorkflowExecution
+from temporalio.api.enums.v1 import EventType
 
 from .product import get_product
 from .tenant import create_tenant, TenantCreateRequestModel, get_valid_tenant_names
@@ -336,7 +345,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
     """
     url = f"{config.grafana_url}/api/ds/query"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {config.grafana_token}"}
-    expr = f'{{name="launchpad_custom_logs"}} |= `workflow_id={workflow_id}` | json'
+    expr = f'{{k8s_app="launchpad-cli"}} |= `workflow_id={workflow_id}` | json'
 
     from_ = int(from_.timestamp()) * 1000
     to_ = int(datetime.datetime.now().timestamp()) * 1000
@@ -364,9 +373,9 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
     async with aiohttp.ClientSession() as session:
         response = await session.post(url, headers=headers, data=payload, timeout=aiohttp.ClientTimeout(total=120))
 
-    response.raise_for_status()
+        response.raise_for_status()
 
-    response_json = await response.json()
+        response_json = await response.json()
     logs = {}
     for log in response_json["results"]["loki-data-samples"]["frames"][0]["data"]["values"][0]:
         loglevel_match = re.search(r"loglevel=(\w+)", log["message"])
@@ -383,6 +392,65 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
         else:
             logs[activity_name_] = [{"loglevel": loglevel, "log": activity_log_}]
     return logs
+
+
+async def fetch_workflow_history(workflow_id: str, run_id: str) -> GetWorkflowExecutionHistoryResponse:
+    """
+    Fetch archived workflow history
+    """
+    # Connect to Temporal gRPC service
+    config: AppSettings = get_settings()
+    temporal_client = await client.Client.connect(config.temporal.dsn)
+
+    # Request archived workflow history
+    # history_event_filter_type: 0 = ALL_EVENTS, 1 = CLOSE_EVENT_ONLY
+    request = GetWorkflowExecutionHistoryRequest(
+        namespace=config.temporal.namespace,
+        execution=WorkflowExecution(workflow_id=workflow_id, run_id=run_id),
+        history_event_filter_type=0,
+    )
+
+    return await temporal_client.workflow_service.get_workflow_execution_history(request)
+
+
+async def get_latest_run_id_by_workflow_id(workflow_id: str) -> str | None:
+    """
+    Get latest run id by workflow id
+    """
+    config: AppSettings = get_settings()
+    temporal_client = await client.Client.connect(config.temporal.dsn)
+
+    # 1️⃣ Check in current (non-archived) workflows
+    request = ListWorkflowExecutionsRequest(
+        namespace=config.temporal.namespace,
+        query=f'WorkflowId = "{workflow_id}"',
+        page_size=1,  # Get only the latest execution
+    )
+    response = await temporal_client.workflow_service.list_workflow_executions(request)
+
+    if response.executions:
+        execution = response.executions[0]
+        logger.info(
+            f"Found in active workflows: {execution.execution.workflow_id}, Run ID: {execution.execution.run_id}"
+        )
+        return execution.execution.run_id
+
+    # 2️⃣ If not found, check archived workflows
+    logger.info("Not found in active workflows, checking archives...")
+    archive_request = ListArchivedWorkflowExecutionsRequest(
+        namespace=config.temporal.namespace,
+        query=f'WorkflowId = "{workflow_id}"',
+        page_size=1,  # Get only the latest archived execution
+    )
+    archive_response = await temporal_client.workflow_service.list_archived_workflow_executions(archive_request)
+
+    if archive_response.executions:
+        execution = archive_response.executions[0]
+        logger.info(f"Found in archives: {execution.execution.workflow_id}, Run ID: {execution.execution.run_id}")
+        return execution.execution.run_id
+
+    logger.info("No workflow found in active or archived executions.")
+    return None
 
 
 @provisioning_router.get("/workflowSteps/{product}", operation_id="workflowSteps")
@@ -403,44 +471,44 @@ async def get_workflow_steps(
         logger.error(f"Error fetching tenant: {e}")
         raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
 
-    # if created date is more than 30days, return empty list
-    if (datetime.datetime.now(tz=datetime.UTC) - response.get("created")).days >= 30:
-        return []
+    try:
+        product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
-    product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
+        workflow_id: str = product_workflow.get_workflow_id(schema)
+        run_id: str = await get_latest_run_id_by_workflow_id(workflow_id)
 
-    workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=schema)
-
-    history = await workflow_handle.fetch_history()
+        workflow_response: GetWorkflowExecutionHistoryResponse = await fetch_workflow_history(workflow_id, run_id)
+    except Exception as e:
+        logger.error(f"Error fetching workflow history: {e}")
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching workflow history")
 
     workflow_steps = {}
-    for event in history.to_json_dict()["events"]:
-        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_SCHEDULED"]:
-            workflow_steps[event["eventId"]] = {
-                "activityName": event["activityTaskScheduledEventAttributes"]["activityType"]["name"],
+    for event in workflow_response.history.events:
+        event_type = EventType.Name(event.event_type)
+        if event_type == "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED":
+            workflow_steps[event.event_id] = {
+                "activityName": event.activity_task_scheduled_event_attributes.activity_type.name,
                 "status": "scheduled",
             }
 
-        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_STARTED"]:
-            workflow_steps.get(event["activityTaskStartedEventAttributes"]["scheduledEventId"]).update(
+        if event_type == "EVENT_TYPE_ACTIVITY_TASK_STARTED":
+            workflow_steps.get(event.activity_task_started_event_attributes.scheduled_event_id).update(
                 {"status": "started"}
             )
-        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_COMPLETED"]:
-            workflow_steps.get(event["activityTaskCompletedEventAttributes"]["scheduledEventId"]).update(
+        if event_type == "EVENT_TYPE_ACTIVITY_TASK_COMPLETED":
+            workflow_steps.get(event.activity_task_completed_event_attributes.scheduled_event_id).update(
                 {"status": "completed"}
             )
 
-        if event["eventType"] in ["EVENT_TYPE_ACTIVITY_TASK_FAILED"]:
-            workflow_steps.get(event["activityTaskFailedEventAttributes"]["scheduledEventId"]).update(
+        if event_type == "EVENT_TYPE_ACTIVITY_TASK_FAILED":
+            workflow_steps.get(event.activity_task_failed_event_attributes.scheduled_event_id).update(
                 {
                     "status": "failed",
-                    "logs": [
-                        {"log": event["activityTaskFailedEventAttributes"]["failure"]["message"], "loglevel": "ERROR"}
-                    ],
+                    "logs": [{"log": event.activity_task_failed_event_attributes.failure.message, "loglevel": "ERROR"}],
                 }
             )
 
-    logs = await get_grafana_logs(config, workflow_id=workflow_handle.id, from_=response.get("created"))
+    logs = await get_grafana_logs(config, workflow_id=workflow_id, from_=response.get("created"))
 
     [
         activity.update({"logs": logs.get(activity["activityName"], activity.get("logs", []))})

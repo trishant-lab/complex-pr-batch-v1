@@ -69,14 +69,19 @@ class PractiflyJobEnum(str, Enum):
                 raise ValueError(f"Invalid job type: {enum_value}")
 
     @classmethod
-    def get_expected_log_message(cls: "PractiflyJobEnum", enum_value: "PractiflyJobEnum") -> str:
+    def get_expected_log_messages(cls: "PractiflyJobEnum", enum_value: "PractiflyJobEnum") -> list[str]:
         """
         Get the expected log message for the given enum value
         """
         match enum_value:
             case cls.DEPLOYMENT:
-                return "{namespace} Alembic run succeeded!"
+                return [
+                    "{namespace} Alembic run succeeded!",
+                    "{namespace} Deployment run succeeded!",
+                ]
             case cls.PROVISIONING:
-                return "{namespace} Provisioning succeeded!"
+                return [
+                    "{namespace} Provisioning succeeded!",
+                ]
             case _:
                 raise ValueError(f"Invalid job type: {enum_value}")

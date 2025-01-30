@@ -73,3 +73,12 @@ class JeevesWorkflow(ProductWorkflow):
         from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)
+
+    @staticmethod
+    def get_workflow_id(schema: dict) -> str:
+        """
+        Get the workflow id for the given schema
+        """
+        from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+
+        return JeevesOnboardingWorkflow.get_workflow_id(schema)

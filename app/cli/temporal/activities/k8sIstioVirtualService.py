@@ -42,7 +42,7 @@ class KubernetesIstioVirtualServiceActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KubernetesIstioVirtualServiceActivity")
@@ -102,7 +102,7 @@ class DeleteKubernetesIstioVirtualServiceActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="DeleteKubernetesIstioVirtualServiceActivity")

@@ -134,10 +134,9 @@ class FaxSetupActivity(Activity):
         RetryPolicy for the activity
         """
         return RetryPolicy(
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
-            maximum_attempts=1,
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
         )
 
     @staticmethod
