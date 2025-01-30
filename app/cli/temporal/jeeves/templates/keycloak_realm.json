@@ -3,7 +3,7 @@
     "realm": "<<tenant>>",
     "displayName": "<<company_name>>",
     "displayNameHtml": "",
-    "notBefore": 1737625663,
+    "notBefore": 0,
     "revokeRefreshToken": false,
     "refreshTokenMaxReuse": 0,
     "accessTokenLifespan": 28800,
