@@ -32,8 +32,35 @@ from app.cli.temporal.core.log import log_error, log_info
 from app.cli.temporal.practifly.models.practiflySpec import PractiflyJobEnum
 from app.core.settings import AppSettings, get_settings
 
+JOB_BACKOFF_LIMIT = 3
 
-async def poll_job_status(job_resource: Resource, namespace: str, job_name: str) -> bool:
+
+def check_pod_logs(namespace: str, job_name: str, job_type: PractiflyJobEnum) -> bool:
+    """
+    Check pod logs, return True if the logs contain the expected logs
+    """
+    k8s_api_client = get_k8s_core_v1_api_client()
+    pods: k8s.client.V1PodList = k8s_api_client.list_namespaced_pod(
+        namespace=namespace,
+        label_selector=f"job-name={job_name}",
+    )
+    if len(pods.items) == 0:
+        msg = f"No pod found for job {job_name} in namespace {namespace}"
+        log_error(msg)
+        raise RuntimeError(msg)
+
+    pod: k8s.client.V1Pod = sorted(pods.items, key=lambda x: x.metadata.creation_timestamp, reverse=True)[0]
+    # parse the logs
+    logs = k8s_api_client.read_namespaced_pod_log(name=pod.metadata.name, namespace=namespace)
+    expected_logs = PractiflyJobEnum.get_expected_log_messages(job_type)
+    if any(expected_log.format(namespace=namespace) in logs for expected_log in expected_logs):
+        return True
+    msg = f"Job failed for tenant {namespace}"
+    log_error(f"Logs: {logs}")
+    raise RuntimeError(msg)
+
+
+async def poll_job_status(job_resource: Resource, namespace: str, job_name: str, job_type: PractiflyJobEnum) -> bool:
     """
     Wait for job to complete
     """
@@ -46,11 +73,18 @@ async def poll_job_status(job_resource: Resource, namespace: str, job_name: str)
             job: V1Job = job_resource.get(name=job_name, namespace=namespace)
             job_status: V1JobStatus = job.status
 
+            if job_status.failed and job_status.failed >= JOB_BACKOFF_LIMIT:
+                check_pod_logs(namespace, job_name, job_type)
+                msg = f"Job failed for tenant {namespace}: {job_status!r}"
+                log_error(msg)
+                raise RuntimeError(msg)
+
             if job_status.completionTime is not None:
                 if job_status.succeeded < 1:
                     msg = f"Job failed for tenant {namespace}: {job_status!r}"
                     log_error(msg)
                     raise RuntimeError(msg)
+                check_pod_logs(namespace, job_name, job_type)
                 return True
         except k8s.client.ApiException as e:
             if e.status != 404:
@@ -142,6 +176,7 @@ class PractiflyJobActivity(Activity):
                 annotations={"app": "practifly", "jobKind": activity_model.job_type.value},
             ),
             spec=V1JobSpec(
+                backoff_limit=JOB_BACKOFF_LIMIT,
                 template=V1JobTemplateSpec(
                     spec=V1PodSpec(
                         node_selector={"app": "314e"},
@@ -217,6 +252,7 @@ class PractiflyJobActivity(Activity):
             job_resource=job_resource,
             namespace=activity_model.tenant,
             job_name=job_name,
+            job_type=activity_model.job_type,
         )
         log_info(f"Job {job_name} completed successfully for {activity_model.tenant}")
 
