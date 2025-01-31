@@ -1,6 +1,5 @@
 import os
 import tempfile
-from enum import Enum
 from functools import lru_cache, partial
 from typing import Final
 
@@ -280,79 +279,6 @@ class PenknifeSettings(BaseModel):
     keycloak_db_password: str = ""
 
 
-class DexitAIOcrEngines(str, Enum):
-    """OCR Engine"""
-
-    TESSERACT = "tesseract"
-    EASYOCR = "easyocr"
-    DOCTR = "doctr"
-
-
-class DexitAIEntityExtractionModels(str, Enum):
-    """Entity Extraction Models"""
-
-    LLAMA2_7B = "llama2:7b"
-    LLAMA2_13B = "llama2:13b"
-    LLAMA3_8B = "llama3:8b"
-    LLAMA3_1_8B = "llama3.1:8b"
-    GEMMA_7B = "gemma:7b"
-    GEMMA2_9B = "gemma2:9b"
-
-
-class DexitAIComputeEngineSettings(BaseModel):
-    """
-    Dexit AI Compute Engine Settings
-    """
-
-    accelerator: str = "cpu"
-    instance_size: str = "x8"
-    instance_type: str = "intel-spr"
-    min_replica: int = 0
-    max_replica: int = 1
-    scale_to_zero_timeout: int = 15  # minutes
-    vendor: str = "aws"
-    region: str = "us-east-1"
-
-
-class DexitAIEndpointSettings(BaseModel):
-    """
-    Dexit AI Endpoint Settings
-    """
-
-    enable_ocr: bool = True
-    enable_entity_llm: bool = False
-    enable_entity_layoutlm: bool = False
-    enable_classification: bool = False
-    compute_engine: DexitAIComputeEngineSettings = DexitAIComputeEngineSettings()
-
-
-class DexitAISettings(BaseModel):
-    """
-    Dexit AI Settings
-    """
-
-    hf_username: str = "314e"
-    hf_token_read: str = ""
-    hf_token_write: str = ""
-    hf_endpoint_repo_name: str = "314e/Dexit-AI"
-    hf_endpoint_repo_revision: str = "production"
-
-    ocr_engine: DexitAIOcrEngines = DexitAIOcrEngines.DOCTR
-
-    classification_modelid: str = "314e/Dexit-LayoutLMv3-Classification-test1"
-    classification_modelrevision: str = "v0.1.3-manual-upload"
-
-    entity_layoutlm_modelid: str = "314e/Dexit-LayoutLMv3-Entity-test1"
-    entity_layoutlm_modelrevision: str = "v0.1.6-test"
-
-    entity_llm_modelname: DexitAIEntityExtractionModels = DexitAIEntityExtractionModels.LLAMA3_8B
-    entity_llm_model_temperature: float = 0
-    entity_llm_model_numctx: int = 4096
-    entity_llm_model_numpredict: int = 300
-
-    inference_endpoints: list[DexitAIEndpointSettings] = [DexitAIEndpointSettings()]
-
-
 class DexitSettings(BaseModel):
     """
     Dexit Settings
@@ -385,8 +311,6 @@ class DexitSettings(BaseModel):
     FaxApiToken: str = ""
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
-
-    ai_config: DexitAISettings = DexitAISettings()
 
 
 class ZSegmentSettings(BaseModel):

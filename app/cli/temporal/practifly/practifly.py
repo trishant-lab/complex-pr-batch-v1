@@ -87,3 +87,12 @@ class PractiflyWorkflow(ProductWorkflow):
         from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
 
         return await get_workflow_handle(workflow_input=PractiflySpec(**schema), workflow=PractiflyOnboardingWorkflow)
+
+    @staticmethod
+    def get_workflow_id(schema: dict) -> str:
+        """
+        Get the workflow id for the given schema
+        """
+        from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
+
+        return PractiflyOnboardingWorkflow.get_workflow_id(schema)

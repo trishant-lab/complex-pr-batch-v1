@@ -44,9 +44,8 @@ class VMPodScrapperActivity(Activity):
         """
         return RetryPolicy(
             maximum_attempts=5,
-            initial_interval=timedelta(seconds=1),
-            backoff_coefficient=2,
-            maximum_interval=timedelta(seconds=10),
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
         )
 
     @staticmethod
@@ -115,7 +114,11 @@ class VMPodScrapperDeletionActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="VMPodScrapperDeletionActivity")

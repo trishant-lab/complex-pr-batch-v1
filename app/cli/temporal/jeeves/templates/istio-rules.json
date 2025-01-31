@@ -21,7 +21,8 @@
             {"uri": {"regex": "^/public/api/v1/.*"}},
             {"uri": {"prefix": "/docs"}},
             {"uri": {"prefix": "/redoc"}}
-        ]
+        ],
+        "retries": {"attempts": 2, "retryOn":  "reset"}
     },
     {
         "name": "jeeves-log-collect",

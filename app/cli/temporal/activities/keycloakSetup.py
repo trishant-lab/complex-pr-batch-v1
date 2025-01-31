@@ -1,18 +1,16 @@
+from datetime import timedelta
+
+import jinja2
+import orjson
 from pydash import py_
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.temporal.core.log import log_error
-from app.onepasswordutil import OnePasswordUtil
-
-
-from datetime import timedelta
-import jinja2
-import orjson
 from app.cli.keycloakUtils import KeycloakAdminClient, get_keycloak_manager
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
+from app.onepasswordutil import OnePasswordUtil
 from app.template_env import get_env
 
 
@@ -46,7 +44,7 @@ class KeycloakRealmSetupActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KeycloakRealmSetupActivity")
@@ -104,7 +102,7 @@ class KeycloakClientSetupActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KeycloakClientSetupActivity")
@@ -157,7 +155,7 @@ class KeycloakServiceAccountSetupActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KeycloakServiceAccountSetupActivity")
@@ -206,7 +204,7 @@ class KeycloakCreateClientRolesActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KeycloakCreateClientRolesActivity")
@@ -261,7 +259,7 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KeycloakCreateTenantCustomerAdminUserActivity")
@@ -338,7 +336,7 @@ class KeycloakCreateInternalUsersActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KeycloakCreateInternalUsersActivity")
@@ -411,7 +409,7 @@ class DeleteKeycloakClientActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="DeleteKeycloakClientActivity")
@@ -451,7 +449,7 @@ class KeycloakCreateIDPFlowActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KeycloakCreateIDPFlowActivity")
@@ -510,7 +508,7 @@ class JeevesKeycloakCreateIDPFlowActivity(Activity):
         """
         Get retry policy
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5)
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="KeycloakCreateIDPFlowActivity")

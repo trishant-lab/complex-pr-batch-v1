@@ -1,15 +1,12 @@
+from datetime import timedelta
+
+from kubernetes.dynamic.exceptions import ApiException
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.k8s_util import get_resource
-from app.cli.temporal.core.log import log_error
-from kubernetes.dynamic.exceptions import NotFoundError, ApiException
-
-from datetime import timedelta
-from app.cli.k8s_util import get_custom_objects_api, get_dynamic_client
+from app.cli.k8s_util import ResourceKindEnum, get_custom_objects_api, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
-from app.cli.k8s_util import ResourceKindEnum
+from app.cli.temporal.core.log import log_error, log_info
 
 CRD_GROUP = "com.softwareartistry"
 CRD_VERSION = "v1"
@@ -43,7 +40,11 @@ class TenantCrdCreationActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="TenantCrdCreationActivity")
@@ -105,7 +106,11 @@ class TenantCrdDeletionActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="TenantCrdDeletionActivity")
@@ -123,8 +128,11 @@ class TenantCrdDeletionActivity(Activity):
                 plural=f"{activity_model.product.lower()}tenants",
                 name=f"{activity_model.product}-{activity_model.tenant}",
             )
-        except NotFoundError:
-            log_error(f"TenantCrd {activity_model.product}-{activity_model.tenant} not found")
+        except ApiException as e:
+            if e.status != 404:
+                log_error(f"Error in TenantCrdDeletionActivity: {e}")
+                raise
+            log_info(f"TenantCrd {activity_model.product}-{activity_model.tenant} not found")
 
 
 class GetTenantCrdActivityModel(LaunchpadCLIBaseModel):
@@ -153,7 +161,11 @@ class GetTenantCrdActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="GetTenantCrdActivity")
@@ -198,7 +210,11 @@ class TenantCrdExistsActivity(Activity):
         """
         RetryPolicy for the activity
         """
-        return RetryPolicy(initial_interval=timedelta(seconds=1), maximum_attempts=5, backoff_coefficient=2)
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
 
     @staticmethod
     @activity.defn(name="TenantCrdExistsActivity")
