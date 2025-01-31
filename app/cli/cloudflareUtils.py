@@ -200,7 +200,25 @@ async def link_bucket_to_custom_domain(config: AppSettings, bucket_name: str, cu
     await _validate_custom_domain(config=config, bucket_name=bucket_name, custom_domain=custom_domain)
 
 
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(_list_custom_domains(config=get_settings(), bucket_name="test9-zsegment-tech"))
+async def update_cors_for_bucket(config: AppSettings, bucket_name: str, rules: list) -> None:
+    """
+    Update CORS for a bucket
+    rules: list[dict]
+    rules = [{
+        "allowed": {
+            "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+            "origins": ["*"],
+            "headers": ["Authorization", "content-type", "x-amz-*", "traceparent"],
+        },
+        "expose_headers": ["ETag", "Location"],
+    }]
+    """
+    async with await get_async_cloudflare_client() as client:
+        response = await client.put(
+            url=f"accounts/{config.cloudflare.account_id}/r2/buckets/{bucket_name}/cors",
+            json={"rules": rules},
+        )
+        if response.status == 200:
+            return
+        else:
+            raise RuntimeError(f"Failed to update CORS for bucket {bucket_name}")
