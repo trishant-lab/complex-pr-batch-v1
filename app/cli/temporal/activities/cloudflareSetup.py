@@ -16,6 +16,7 @@ from app.cli.cloudflareUtils import (
     link_bucket_to_custom_domain,
     delete_bucket,
     delete_dns_record,
+    update_cors_for_bucket,
 )
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
@@ -667,3 +668,41 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
         except Exception as e:
             log_error(f"Error downloading UI bundle: {e}")
             raise e
+
+
+class UpdateCORSForBucketActivityModel(LaunchpadCLIBaseModel):
+    """
+    UpdateCORSForBucketActivityModel
+    """
+
+    bucket_name: str
+    rules: list[dict]
+
+
+class UpdateCORSForBucketActivity(Activity):
+    """
+    UpdateCORSForBucketActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="UpdateCORSForBucketActivity")
+    async def defn(activity_input: UpdateCORSForBucketActivityModel) -> None:
+        """
+        Update CORS for a bucket
+        """
+        config: AppSettings = get_settings()
+        await update_cors_for_bucket(config=config, bucket_name=activity_input.bucket_name, rules=activity_input.rules)

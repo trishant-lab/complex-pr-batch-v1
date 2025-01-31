@@ -14,6 +14,8 @@ from app.cli.temporal.activities.cloudflareSetup import (
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivity,
+    UpdateCORSForBucketActivityModel,
 )
 from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
 from app.cli.temporal.activities.slackNotificationActivity import (
@@ -161,6 +163,7 @@ class JeevesOnboardingWorkflow(Workflow):
             SlackNotificationActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
             JeevesSendAfterProvisioningMailActivity.defn,
+            UpdateCORSForBucketActivity.defn,
         ]
 
     @classmethod
@@ -502,6 +505,31 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
+            # update cors for bucket
+            await workflow.execute_activity(
+                activity=UpdateCORSForBucketActivity.defn,
+                arg=UpdateCORSForBucketActivityModel(
+                    bucket_name=bucket_name,
+                    rules=[
+                        {
+                            "allowed": {
+                                "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                "origins": ["*"],
+                                "headers": [
+                                    "Authorization",
+                                    "content-type",
+                                    "x-amz-*",
+                                    "traceparent",
+                                    "x-highlight-request",
+                                ],
+                            },
+                            "expose_headers": ["ETag", "Location"],
+                        }
+                    ],
+                ),
+                retry_policy=UpdateCORSForBucketActivity.get_retry_policy(),
+                start_to_close_timeout=UpdateCORSForBucketActivity.get_timeout(),
+            )
             repo_name = "jeeves-ui"
             if config.env == "production":
                 image_tag = jeeves_config.prod_image_tag
