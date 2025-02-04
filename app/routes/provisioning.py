@@ -424,7 +424,6 @@ async def get_latest_run_id_by_workflow_id(workflow_id: str) -> str | None:
     request = ListWorkflowExecutionsRequest(
         namespace=config.temporal.namespace,
         query=f'WorkflowId = "{workflow_id}"',
-        page_size=1,  # Get only the latest execution
     )
     response = await temporal_client.workflow_service.list_workflow_executions(request)
 
