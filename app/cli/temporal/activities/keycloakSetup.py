@@ -14,6 +14,261 @@ from app.onepasswordutil import OnePasswordUtil
 from app.template_env import get_env
 
 
+def template_render(
+    template_path: str,
+    template_name: str,
+    template_payload: dict | None = None,
+) -> str:
+    """
+    Render template
+    """
+    jinja_env: jinja2.Environment = get_env(template_path=template_path)
+    template = jinja_env.get_template(template_name)
+    return template.render(**(template_payload if template_payload else {}))
+
+
+def create_keycloak_realm(
+    realm_name: str,
+    domain: str,
+    template_path: str,
+    template_name: str,
+    installer_secret: str | None = None,
+    template_payload: dict | None = None,
+) -> None:
+    """
+    Create keycloak realm
+    """
+    config: AppSettings = get_settings()
+
+    realm_config = template_render(
+        template_path=template_path,
+        template_name=template_name,
+        template_payload={
+            "tenant": realm_name,
+            "sendgrid_api_key": config.sendgrid.api_key,
+            "domain": domain,
+            "installer_secret": installer_secret,
+            **(template_payload if template_payload else {}),
+        },
+    )
+
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
+
+
+def create_keycloak_client(
+    tenant: str,
+    realm_name: str,
+    domain: str,
+    template_path: str,
+    template_name: str,
+    auth_credential: str | None = None,
+    template_payload: dict | None = None,
+) -> None:
+    """
+    Create keycloak client
+    """
+    client_config = template_render(
+        template_path=template_path,
+        template_name=template_name,
+        template_payload={
+            "tenant": tenant,
+            "domain": domain,
+            "auth_credential": auth_credential,
+            **(template_payload if template_payload else {}),
+        },
+    )
+
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    keycloak_client.create_client(orjson.loads(client_config), realm_name)
+
+
+def create_keycloak_service_account(
+    tenant: str,
+    realm_name: str,
+    domain: str,
+    template_path: str,
+    template_name: str,
+    secret: str,
+) -> None:
+    """
+    Create keycloak service account
+    """
+    service_account_config = template_render(
+        template_path=template_path,
+        template_name=template_name,
+        template_payload={
+            "tenant": tenant,
+            "domain": domain,
+            "secret": secret,
+        },
+    )
+
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    keycloak_client.create_client(orjson.loads(service_account_config), realm_name)
+
+
+def create_client_roles(
+    client_name: str,
+    realm_name: str,
+    roles: list[str],
+) -> None:
+    """
+    Create client roles
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    client_uuid = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+
+    for role in roles:
+        keycloak_client.create_client_role(client_id=client_uuid, role_config={"name": role}, realm_name=realm_name)
+
+
+def create_tenant_customer_admin_user(
+    realm_name: str,
+    client_name: str,
+    username: str,
+    email: str,
+    firstname: str,
+    lastname: str,
+    template_path: str,
+    template_name: str,
+    roles: list[str] | None = None,
+) -> None:
+    """
+    Create tenant customer admin user
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    user_config = template_render(
+        template_path=template_path,
+        template_name=template_name,
+        template_payload={
+            "username": username,
+            "email": email,
+            "firstname": firstname,
+            "lastname": lastname,
+        },
+    )
+
+    keycloak_client.create_user(orjson.loads(user_config), realm_name)
+
+    if client_name:
+        client_uuid = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+
+        if not roles:
+            roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=realm_name)
+
+        user_id = keycloak_client.get_user_id(username=username, realm_name=realm_name)
+
+        keycloak_client.assign_client_role(
+            client_id=client_uuid,
+            user_id=user_id,
+            roles=roles,
+            realm_name=realm_name,
+        )
+
+
+def create_internal_users(
+    realm_name: str,
+    client_name: str,
+    template_path: str,
+    template_name: str,
+    users: list[dict],
+    roles: list[str] | None = None,
+) -> None:
+    """
+    Create internal users
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    if client_name:
+        client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+
+        if not roles:
+            roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
+
+    for user in users:
+        user_config = template_render(
+            template_path=template_path,
+            template_name=template_name,
+            template_payload={
+                "username": user["username"],
+                "email": user["email"],
+                "firstname": user["firstname"],
+                "lastname": user["lastname"],
+            },
+        )
+
+        keycloak_client.create_user(orjson.loads(user_config), realm_name)
+
+        log_info(f"Keycloak internal user {user['username']} created successfully")
+        user_id = keycloak_client.get_user_id(username=user["username"], realm_name=realm_name)
+
+        if client_name:
+            keycloak_client.assign_client_role(
+                client_id=client_id,
+                user_id=user_id,
+                roles=roles,
+                realm_name=realm_name,
+            )
+
+
+def delete_keycloak_client(
+    client_name: str,
+    realm_name: str,
+) -> None:
+    """
+    Delete keycloak client
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+    try:
+        keycloak_client.delete_client(client_id=client_id, realm_name=realm_name)
+    except Exception as e:
+        log_error(f"Keycloak client {client_name} not found in realm {realm_name} {e}")
+
+    log_info(f"Keycloak client {client_name} deleted successfully")
+
+
+def create_jeeves_idp_flow(
+    tenant: str,
+    realm_name: str,
+    template_path: str,
+    template_name: str,
+    domain: str,
+    template_payload: dict | None = None,
+) -> None:
+    """
+    Create jeeves idp flow
+    """
+    idp_configs = template_render(
+        template_path=template_path,
+        template_name=template_name,
+        template_payload={
+            "tenant": tenant,
+            "domain": domain,
+            **(template_payload if template_payload else {}),
+        },
+    )
+
+    idp_configs = orjson.loads(idp_configs)
+
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    identity_providers = keycloak_client.get_identity_providers(realm_name=realm_name)
+    for idp_config in idp_configs["identityProviders"]:
+        if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
+            keycloak_client.create_identity_provider(idp_config, realm_name)
+            for idp_mapper_config in idp_configs["identityProviderMappers"]:
+                if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
+                    keycloak_client.add_mapper_to_idp(
+                        idp_alias=idp_mapper_config["identityProviderAlias"],
+                        mapper_config=idp_mapper_config,
+                        realm_name=realm_name,
+                    )
+
+        log_info(f"Keycloak idp and flows for {tenant} created successfully.")
+
+
 class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
     """
     KeycloakRealmSetupActivityModel
@@ -52,21 +307,14 @@ class KeycloakRealmSetupActivity(Activity):
         """
         Create keycloak realm
         """
-        config: AppSettings = get_settings()
-
-        jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
-        template = jinja_env.get_template(activity_model.template_name)
-
-        realm_config = template.render(
-            tenant=activity_model.realm_name,
-            sendgrid_api_key=config.sendgrid.api_key,
+        create_keycloak_realm(
+            realm_name=activity_model.realm_name,
             domain=activity_model.domain,
+            template_path=activity_model.template_path,
+            template_name=activity_model.template_name,
             installer_secret=activity_model.installer_secret,
-            **(activity_model.template_payload if activity_model.template_payload else {}),
+            template_payload=activity_model.template_payload,
         )
-
-        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-        keycloak_client.create_realm(orjson.loads(realm_config), skip_exists=True)
 
         log_info(f"Keycloak realm {activity_model.realm_name} created successfully")
 
@@ -110,17 +358,15 @@ class KeycloakClientSetupActivity(Activity):
         """
         Create keycloak client
         """
-        jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
-        template = jinja_env.get_template(activity_model.template_name)
-        client_config = template.render(
+        create_keycloak_client(
             tenant=activity_model.tenant,
+            realm_name=activity_model.realm_name,
             domain=activity_model.domain,
+            template_path=activity_model.template_path,
+            template_name=activity_model.template_name,
             auth_credential=activity_model.auth_credential,
-            **(activity_model.template_payload if activity_model.template_payload else {}),
+            template_payload=activity_model.template_payload,
         )
-
-        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-        keycloak_client.create_client(orjson.loads(client_config), activity_model.realm_name)
 
         log_info(f"Keycloak client {activity_model.tenant} created successfully")
 
@@ -163,16 +409,14 @@ class KeycloakServiceAccountSetupActivity(Activity):
         """
         Create keycloak service account
         """
-        jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
-        template = jinja_env.get_template(activity_model.template_name)
-        service_account_config = template.render(
+        create_keycloak_service_account(
             tenant=activity_model.tenant,
+            realm_name=activity_model.realm_name,
             domain=activity_model.domain,
+            template_path=activity_model.template_path,
+            template_name=activity_model.template_name,
             secret=activity_model.secret,
         )
-
-        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-        keycloak_client.create_client(orjson.loads(service_account_config), activity_model.realm_name)
 
         log_info(f"Keycloak service account {activity_model.tenant} created successfully")
 
@@ -212,16 +456,11 @@ class KeycloakCreateClientRolesActivity(Activity):
         """
         Create keycloak client roles
         """
-        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-
-        client_uuid = keycloak_client.get_client_id(
-            client=activity_model.client_name, realm_name=activity_model.realm_name
+        create_client_roles(
+            client_name=activity_model.client_name,
+            realm_name=activity_model.realm_name,
+            roles=activity_model.roles,
         )
-
-        for role in activity_model.roles:
-            keycloak_client.create_client_role(
-                client_id=client_uuid, role_config={"name": role}, realm_name=activity_model.realm_name
-            )
 
         log_info(f"Keycloak client roles {activity_model.client_name} created successfully")
 
@@ -267,41 +506,17 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
         """
         Create keycloak tenant customer admin user
         """
-        jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
-        template = jinja_env.get_template(activity_model.template_name)
-        user_config = template.render(
+        create_tenant_customer_admin_user(
+            realm_name=activity_model.realm_name,
+            client_name=activity_model.client_name,
             username=activity_model.username,
             email=activity_model.email,
             firstname=activity_model.firstname,
             lastname=activity_model.lastname,
+            roles=activity_model.roles,
+            template_path=activity_model.template_path,
+            template_name=activity_model.template_name,
         )
-
-        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-
-        keycloak_client.create_user(orjson.loads(user_config), activity_model.realm_name)
-
-        log_info(f"Keycloak tenant customer admin user {activity_model.username} created successfully")
-
-        if activity_model.client_name:
-            client_uuid = keycloak_client.get_client_id(
-                client=activity_model.client_name, realm_name=activity_model.realm_name
-            )
-
-            if not activity_model.roles:
-                roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=activity_model.realm_name)
-            else:
-                roles = activity_model.roles
-
-            user_id = keycloak_client.get_user_id(
-                username=activity_model.username, realm_name=activity_model.realm_name
-            )
-
-            keycloak_client.assign_client_role(
-                client_id=client_uuid,
-                user_id=user_id,
-                roles=roles,
-                realm_name=activity_model.realm_name,
-            )
 
         log_info(f"Keycloak tenant customer admin user {activity_model.username} assigned to client roles successfully")
 
@@ -344,43 +559,16 @@ class KeycloakCreateInternalUsersActivity(Activity):
         """
         Create keycloak internal users
         """
-        jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
-        template = jinja_env.get_template(activity_model.template_name)
+        create_internal_users(
+            realm_name=activity_model.realm_name,
+            client_name=activity_model.client_name,
+            roles=activity_model.roles,
+            template_path=activity_model.template_path,
+            template_name=activity_model.template_name,
+            users=activity_model.users,
+        )
 
-        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-
-        if activity_model.client_name:
-            client_id = keycloak_client.get_client_id(
-                client=activity_model.client_name, realm_name=activity_model.realm_name
-            )
-
-            if not activity_model.roles:
-                roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=activity_model.realm_name)
-            else:
-                roles = activity_model.roles
-
-        for user in activity_model.users:
-            user_config = template.render(
-                username=user["username"],
-                email=user["email"],
-                firstname=user["firstname"],
-                lastname=user["lastname"],
-            )
-
-            keycloak_client.create_user(orjson.loads(user_config), activity_model.realm_name)
-
-            log_info(f"Keycloak internal user {user['username']} created successfully")
-            user_id = keycloak_client.get_user_id(username=user["username"], realm_name=activity_model.realm_name)
-
-            if activity_model.client_name:
-                keycloak_client.assign_client_role(
-                    client_id=client_id,
-                    user_id=user_id,
-                    roles=roles,
-                    realm_name=activity_model.realm_name,
-                )
-
-                log_info(f"Keycloak internal user {user['username']} assigned to client roles successfully")
+        log_info(f"Created {len(activity_model.users)} keycloak internal users successfully")
 
 
 class DeleteKeycloakClientActivityModel(LaunchpadCLIBaseModel):
@@ -417,19 +605,10 @@ class DeleteKeycloakClientActivity(Activity):
         """
         Delete keycloak client
         """
-        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-
-        client_id = keycloak_client.get_client_id(
-            client=activity_model.client_name, realm_name=activity_model.realm_name
+        delete_keycloak_client(
+            client_name=activity_model.client_name,
+            realm_name=activity_model.realm_name,
         )
-        try:
-            keycloak_client.delete_client(client_id=client_id, realm_name=activity_model.realm_name)
-        except Exception as e:
-            log_error(
-                f"Keycloak client {activity_model.client_name} not found in realm {activity_model.realm_name} {e}"
-            )
-
-        log_info(f"Keycloak client {activity_model.client_name} deleted successfully")
 
 
 class KeycloakCreateIDPFlowActivity(Activity):
@@ -516,27 +695,11 @@ class JeevesKeycloakCreateIDPFlowActivity(Activity):
         """
         Create keycloak client
         """
-        jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
-        template = jinja_env.get_template(activity_model.template_name)
-        client_config = template.render(
+        create_jeeves_idp_flow(
             tenant=activity_model.tenant,
+            realm_name=activity_model.realm_name,
+            template_path=activity_model.template_path,
+            template_name=activity_model.template_name,
             domain=activity_model.domain,
-            **(activity_model.template_payload if activity_model.template_payload else {}),
+            template_payload=activity_model.template_payload,
         )
-        client_config = orjson.loads(client_config)
-
-        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-
-        identity_providers = keycloak_client.get_identity_providers(realm_name=activity_model.realm_name)
-        for idp_config in client_config["identityProviders"]:
-            if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
-                keycloak_client.create_identity_provider(idp_config, activity_model.realm_name)
-                for idp_mapper_config in client_config["identityProviderMappers"]:
-                    if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
-                        keycloak_client.add_mapper_to_idp(
-                            idp_alias=idp_mapper_config["identityProviderAlias"],
-                            mapper_config=idp_mapper_config,
-                            realm_name=activity_model.realm_name,
-                        )
-
-        log_info(f"Keycloak idp and flows for {activity_model.tenant} created successfully.")
