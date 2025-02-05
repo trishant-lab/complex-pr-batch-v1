@@ -326,6 +326,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "matomo_log_action_view",
                         "matomo_log_media_view",
                         "matomo_log_link_visit_action_view",
+                        "federated_identity",
                     ],
                 ),
                 retry_policy=PostgresGrantAllPrivilegesOnTableActivity.get_retry_policy(),
@@ -427,49 +428,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            tenant_config = "tenant-config.json"
-            rclone_config = "rclone.conf"
-            vector_config = "vector-config.toml"
-            statestore_config = "statestore.yaml"
-            config_dir = "config"
-
-            # setup tenant configmap
-            for config_map in [
-                {
-                    "name": "jeeves-tenant-config",
-                    "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
-                },
-                {
-                    "name": "jeeves-rclone-config",
-                    "key": rclone_config,
-                    "template_file_name": f"{config.env}-rclone.tmpl.conf",
-                },
-                {
-                    "name": "jeeves-cli-vector-config",
-                    "key": vector_config,
-                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
-                },
-                {
-                    "name": "jeeves-statestore-config",
-                    "key": statestore_config,
-                    "template_file_name": f"{config.env}-statestore.tmpl.yaml",
-                },
-            ]:
-                await workflow.execute_activity(
-                    activity=K8sConfigMapCreationActivity.defn,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
-                        destination_file_name=config_map["key"],
-                        cloudflare_r2_folder_path="jeeves-config",
-                        template_payload={"tenant": tenant},
-                    ),
-                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
-                )
-
             # dns setup for api
             await workflow.execute_activity(
                 activity=CreateCloudflareDNSRecordActivity.defn,
@@ -530,6 +488,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 retry_policy=UpdateCORSForBucketActivity.get_retry_policy(),
                 start_to_close_timeout=UpdateCORSForBucketActivity.get_timeout(),
             )
+
             repo_name = "jeeves-ui"
             if config.env == "production":
                 image_tag = jeeves_config.prod_image_tag
@@ -558,6 +517,106 @@ class JeevesOnboardingWorkflow(Workflow):
                 retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
+
+            # cdn base url added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="base_url_cdn",
+                    secret_value=f"{tenant}.{jeeves_config.domain_name}",
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
+            # s3 media bucket name added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="s3_media_bucket_name",
+                    secret_value=bucket_name,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
+            # s3 access key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="s3_access_key",
+                    secret_value=" ",  # TODO: add this to onepassword
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
+            # s3 secret key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="s3_secret_key",
+                    secret_value=" ",  # TODO: add this to onepassword
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
+            # setup configmaps
+            tenant_config = "tenant-config.json"
+            rclone_config = "rclone.conf"
+            vector_config = "vector-config.toml"
+            statestore_config = "statestore.yaml"
+            config_dir = "config"
+
+            # setup tenant configmap
+            for config_map in [
+                {
+                    "name": "jeeves-tenant-config",
+                    "key": tenant_config,
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                },
+                {
+                    "name": "jeeves-rclone-config",
+                    "key": rclone_config,
+                    "template_file_name": f"{config.env}-rclone.tmpl.conf",
+                },
+                {
+                    "name": "jeeves-cli-vector-config",
+                    "key": vector_config,
+                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
+                },
+                {
+                    "name": "jeeves-statestore-config",
+                    "key": statestore_config,
+                    "template_file_name": f"{config.env}-statestore.tmpl.yaml",
+                },
+            ]:
+                await workflow.execute_activity(
+                    activity=K8sConfigMapCreationActivity.defn,
+                    arg=K8sConfigMapCreationActivityModel(
+                        namespace=tenant,
+                        name=config_map["name"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
+                        cloudflare_r2_folder_path="jeeves-config",
+                        template_payload={"tenant": tenant},
+                    ),
+                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
+                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
+                )
 
             realm_name = tenant
             # keycloak realm setup
