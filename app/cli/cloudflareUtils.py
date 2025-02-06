@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 
 import aiohttp
 from cloudflare import AsyncCloudflare
@@ -222,3 +223,42 @@ async def update_cors_for_bucket(config: AppSettings, bucket_name: str, rules: l
             return
         else:
             raise RuntimeError(f"Failed to update CORS for bucket {bucket_name}")
+
+
+async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSettings, read_only: bool = False) -> dict:
+    """
+    Create a Cloudflare bucket credentials
+    """
+    if read_only:
+        permission_group_id = config.cloudflare.bucket_read_permission_group_id
+        permission_group_name = config.cloudflare.bucket_read_permission_group_name
+    else:
+        permission_group_id = config.cloudflare.bucket_write_permission_group_id
+        permission_group_name = config.cloudflare.bucket_write_permission_group_name
+
+    async with await get_async_cloudflare_client() as client:
+        response = await client.post(
+            url="user/tokens",
+            json={
+                "name": f"{bucket_name}-app-token",
+                "policies": [
+                    {
+                        "effect": "allow",
+                        "resources": {
+                            f"com.cloudflare.edge.r2.bucket.{config.cloudflare.account_id}_default_{bucket_name}": "*"
+                        },
+                        "permission_groups": [{"id": permission_group_id, "name": permission_group_name}],
+                    }
+                ],
+            },
+        )
+        if response.status != 200:
+            raise RuntimeError(f"Failed to create Cloudflare bucket credentials for {bucket_name}")
+        else:
+            response_json = await response.json()
+            access_key = response_json["result"]["id"]
+
+            # Secret Access Key: The SHA-256 hash of the API token value
+            secret_sha_key = response_json["result"]["value"]
+            secret_key = hashlib.sha256(secret_sha_key.encode()).hexdigest()
+            return {"access_key": access_key, "secret_key": secret_key}

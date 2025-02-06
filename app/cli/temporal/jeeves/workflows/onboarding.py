@@ -8,6 +8,8 @@ from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivity,
     CreateCloudflareBucketActivityModel,
+    CreateCloudflareBucketCredentialsActivity,
+    CreateCloudflareBucketCredentialsActivityModel,
     CreateCloudflareDNSRecordActivity,
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
@@ -164,6 +166,7 @@ class JeevesOnboardingWorkflow(Workflow):
             JeevesKeycloakCreateIDPFlowActivity.defn,
             JeevesSendAfterProvisioningMailActivity.defn,
             UpdateCORSForBucketActivity.defn,
+            CreateCloudflareBucketCredentialsActivity.defn,
         ]
 
     @classmethod
@@ -518,6 +521,16 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
+            credentials = await workflow.execute_activity(
+                activity=CreateCloudflareBucketCredentialsActivity.defn,
+                arg=CreateCloudflareBucketCredentialsActivityModel(
+                    bucket_name=bucket_name,
+                    read_only=False,
+                ),
+                retry_policy=CreateCloudflareBucketCredentialsActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareBucketCredentialsActivity.get_timeout(),
+            )
+
             # cdn base url added to onepassword
             await workflow.execute_activity(
                 activity=OnePasswordCreateOrUpdateActivity.defn,
@@ -554,7 +567,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="s3_access_key",
-                    secret_value=" ",  # TODO: add this to onepassword
+                    secret_value=credentials["access_key"],
                 ),
                 retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
@@ -568,7 +581,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="s3_secret_key",
-                    secret_value=" ",  # TODO: add this to onepassword
+                    secret_value=credentials["secret_key"],
                 ),
                 retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
