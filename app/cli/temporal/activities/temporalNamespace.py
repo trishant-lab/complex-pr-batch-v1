@@ -3,6 +3,7 @@ from temporalio import activity, client
 
 from datetime import timedelta
 from google.protobuf.duration_pb2 import Duration
+from temporalio.api.enums.v1 import ArchivalState
 from temporalio.api.operatorservice.v1 import DeleteNamespaceRequest
 from temporalio.api.workflowservice.v1 import RegisterNamespaceRequest
 from temporalio.service import RPCError, RPCStatusCode
@@ -56,6 +57,8 @@ class TemporalNamespaceActivity(Activity):
                 RegisterNamespaceRequest(
                     namespace=activity_input.namespace,
                     workflow_execution_retention_period=Duration(seconds=30 * 24 * 60 * 60),  # 30 days
+                    history_archival_state=ArchivalState.ARCHIVAL_STATE_ENABLED,
+                    visibility_archival_state=ArchivalState.ARCHIVAL_STATE_ENABLED,
                 ),
             )
         except RPCError as rpc_err:

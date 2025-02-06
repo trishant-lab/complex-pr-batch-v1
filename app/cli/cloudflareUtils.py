@@ -253,7 +253,9 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
             },
         )
         if response.status != 200:
-            raise RuntimeError(f"Failed to create Cloudflare bucket credentials for {bucket_name}")
+            raise RuntimeError(
+                f"Failed to create Cloudflare bucket credentials for {bucket_name} status code: {response.status}"
+            )
         else:
             response_json = await response.json()
             access_key = response_json["result"]["id"]
