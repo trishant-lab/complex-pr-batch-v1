@@ -10,7 +10,6 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
 
 from app.core.log import setup_logging
-from functools import cache
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
@@ -170,6 +169,10 @@ class CloudflareSettings(BaseModel):
     r2_secret_key: str = ""
     r2_access_key: str = ""
     api_url: str = "https://api.cloudflare.com/client/v4/"
+    bucket_read_permission_group_id: str = ""
+    bucket_read_permission_group_name: str = "Workers R2 Storage Bucket Item Read"
+    bucket_write_permission_group_id: str = ""
+    bucket_write_permission_group_name: str = "Workers R2 Storage Bucket Item Write"
 
 
 class VeritableSettings(BaseModel):
@@ -478,43 +481,7 @@ def get_settings() -> AppSettings:
 
     import pydash as py_
 
-    default_settings_dict = default_settings.dict()
-    default_settings_dict_partial = partial(py_.set_, default_settings_dict)
-
-    for key, val in combined_config.items():
-        default_settings_dict_partial(key, val)
-
-    setup_logging(default_settings.log_path, default_settings.log_file_path)
-    return default_settings.model_validate(default_settings_dict)
-
-
-@cache
-def get_settings_zsegment() -> AppSettings:
-    """
-    This function initializes the settings object based on environment DEPLOYMENT. The order in which
-    the settings are applied is as follows:
-
-    DEPLOYMENT environment creates right settings object.  This is the default base object.
-    If APP_CONFIG_FILE is specified it loads all the data defined from the file
-    """
-    deployment: str = os.getenv("DEPLOYMENT", "integration").lower()
-    config_dir = os.getenv("APP_CONFIG_DIR", "/")
-    default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
-
-    combined_config = dict()
-    for file in CONFIG_FILE_NAMES:
-        if file in PRODUCT_FILE_NAMES:
-            product = file.split(".")[0]
-            try:
-                combined_config[product] = orjson.loads(open(os.path.join(config_dir, file)).read())
-            except Exception as e:
-                loguru.logger.error(f"Error while loading config for {product}: {e}")
-        else:
-            combined_config.update(orjson.loads(open(os.path.join(config_dir, file)).read()))
-
-    import pydash as py_
-
-    default_settings_dict = default_settings.dict()
+    default_settings_dict = default_settings.model_dump()
     default_settings_dict_partial = partial(py_.set_, default_settings_dict)
 
     for key, val in combined_config.items():
