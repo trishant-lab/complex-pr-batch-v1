@@ -484,7 +484,7 @@ class JeevesOnboardingWorkflow(Workflow):
                                     "x-highlight-request",
                                 ],
                             },
-                            "expose_headers": ["ETag", "Location"],
+                            "exposeHeaders": ["ETag", "Location"],
                         }
                     ],
                 ),
