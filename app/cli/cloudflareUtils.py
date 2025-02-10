@@ -211,7 +211,7 @@ async def update_cors_for_bucket(config: AppSettings, bucket_name: str, rules: l
             "origins": ["*"],
             "headers": ["Authorization", "content-type", "x-amz-*", "traceparent"],
         },
-        "expose_headers": ["ETag", "Location"],
+        "exposeHeaders": ["ETag", "Location"],
     }]
     """
     async with await get_async_cloudflare_client() as client:
