@@ -424,12 +424,14 @@ async def get_latest_run_id_by_workflow_id(workflow_id: str) -> str | None:
     request = ListWorkflowExecutionsRequest(
         namespace=config.temporal.namespace,
         query=f'WorkflowId = "{workflow_id}"',
-        page_size=1,  # Get only the latest execution
     )
     response = await temporal_client.workflow_service.list_workflow_executions(request)
 
     if response.executions:
-        execution = response.executions[0]
+        max_close_time = max(execution.close_time.ToDatetime() for execution in response.executions)
+        execution = [  # noqa: RUF015
+            execution for execution in response.executions if execution.close_time.ToDatetime() == max_close_time
+        ][0]
         logger.info(
             f"Found in active workflows: {execution.execution.workflow_id}, Run ID: {execution.execution.run_id}"
         )
@@ -440,12 +442,16 @@ async def get_latest_run_id_by_workflow_id(workflow_id: str) -> str | None:
     archive_request = ListArchivedWorkflowExecutionsRequest(
         namespace=config.temporal.namespace,
         query=f'WorkflowId = "{workflow_id}"',
-        page_size=1,  # Get only the latest archived execution
     )
     archive_response = await temporal_client.workflow_service.list_archived_workflow_executions(archive_request)
 
     if archive_response.executions:
-        execution = archive_response.executions[0]
+        max_close_time = max(execution.close_time.ToDatetime() for execution in archive_response.executions)
+        execution = [  # noqa: RUF015
+            execution
+            for execution in archive_response.executions
+            if execution.close_time.ToDatetime() == max_close_time
+        ][0]
         logger.info(f"Found in archives: {execution.execution.workflow_id}, Run ID: {execution.execution.run_id}")
         return execution.execution.run_id
 

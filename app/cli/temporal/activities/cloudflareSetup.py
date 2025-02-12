@@ -10,6 +10,7 @@ from datetime import timedelta
 from app.cli.temporal.core.base import Activity
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 from app.cli.cloudflareUtils import (
+    create_cloudflare_bucket_credentials,
     get_temporary_credentials,
     create_bucket,
     create_dns_record,
@@ -706,3 +707,43 @@ class UpdateCORSForBucketActivity(Activity):
         """
         config: AppSettings = get_settings()
         await update_cors_for_bucket(config=config, bucket_name=activity_input.bucket_name, rules=activity_input.rules)
+
+
+class CreateCloudflareBucketCredentialsActivityModel(LaunchpadCLIBaseModel):
+    """
+    CreateCloudflareBucketCredentialsActivityModel
+    """
+
+    bucket_name: str
+    read_only: bool = False
+
+
+class CreateCloudflareBucketCredentialsActivity(Activity):
+    """
+    CreateCloudflareBucketCredentialsActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="CreateCloudflareBucketCredentialsActivity")
+    async def defn(activity_input: CreateCloudflareBucketCredentialsActivityModel) -> dict:
+        """
+        Create Cloudflare bucket credentials
+        """
+        config: AppSettings = get_settings()
+        return await create_cloudflare_bucket_credentials(
+            bucket_name=activity_input.bucket_name, config=config, read_only=activity_input.read_only
+        )
