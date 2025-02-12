@@ -679,19 +679,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    secret_name="s3_ui_bucket_secret_key",
-                    secret_value=credentials["secret_key"],
-                ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
-            )
-
             # additional required onepassword configs
             await workflow.execute_activity(
                 activity=OnePasswordCreateOrUpdateActivity.defn,
