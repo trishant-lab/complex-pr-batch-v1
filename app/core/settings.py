@@ -236,6 +236,15 @@ class JeevesSettings(BaseModel):
 
     reporting_site_id: str = "1"
 
+    pg_dsn_template: str = "postgresql://jeeves_{tenant}.jeeves_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/jeeves"
+    atlas_pg_dsn_template: str = (
+        "postgresql://jeeves_{tenant}:{password}@db-cluster-ha.postgresql.svc.cluster.local/jeeves"
+    )
+    redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
+    base_ui_url: str = "https://{tenant}.okjeeves.tech"
+    s3_mpd_api: str = "https://{tenant}.api.okjeeves.app/public/api/v1/recording/getMPDFile"
+    mpd_api: str = "https://{tenant}.api.okjeeves.app/api/v1/asset"
+
 
 class HDPSettings(BaseModel):
     """

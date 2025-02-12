@@ -1,0 +1,3 @@
+[[IgnoredVulns]]
+id = "GHSA-79v4-65xg-pq4g"
+reason = "vulnerability related to cryptography"
