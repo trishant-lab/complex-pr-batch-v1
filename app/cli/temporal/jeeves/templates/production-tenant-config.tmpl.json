@@ -81,7 +81,7 @@
   "mpd_api": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/mpd_api }}",
   "s3_mpd_api": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/s3_mpd_api }}",
   "assemblyai_api_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/assemblyai_api_key }}",
-  "cloudflare_purge_cache_api_token":  "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/cloudflare_purge_cache_api_token }}",
+  "cloudflare_purge_cache_api_token": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/cloudflare_purge_cache_api_token }}",
   "cloudflare_zone_id": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/cloudflare_zone_id }}",
   "s3_ui_bucket_name": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/s3_ui_bucket_name }}",
   "s3_ui_bucket_access_key": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/s3_ui_bucket_access_key }}",
