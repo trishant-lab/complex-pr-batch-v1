@@ -244,6 +244,7 @@ class JeevesSettings(BaseModel):
     base_ui_url: str = "https://{tenant}.okjeeves.tech"
     s3_mpd_api: str = "https://{tenant}.api.okjeeves.app/public/api/v1/recording/getMPDFile"
     mpd_api: str = "https://{tenant}.api.okjeeves.app/api/v1/asset"
+    auth_secret: str = ""
 
 
 class HDPSettings(BaseModel):

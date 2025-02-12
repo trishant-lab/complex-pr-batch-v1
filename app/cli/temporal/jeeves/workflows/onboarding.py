@@ -232,6 +232,19 @@ class JeevesOnboardingWorkflow(Workflow):
             postgres_password = generate_password(length=20)
 
             await workflow.execute_activity(
+                activity=OnePasswordCreateOrUpdateActivity.defn,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="auth_secret",
+                    secret_value=jeeves_config.auth,
+                ),
+                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
                 activity=PostgresUserCreationActivity.defn,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
