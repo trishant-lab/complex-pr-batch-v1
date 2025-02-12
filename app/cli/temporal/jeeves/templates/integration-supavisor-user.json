@@ -11,10 +11,12 @@
       {
         "db_password": "<<DB_PASSWORD>>",
         "db_user": "<<DB_USER>>",
-        "max_clients": 50,
+        "db_user_alias": "<<DB_USER>>",
+        "is_manager": false,
+        "max_clients": 10000,
         "mode_type": "transaction",
-        "pool_checkout_timeout": 120,
-        "pool_size": 40
+        "pool_checkout_timeout": 10000,
+        "pool_size": 200
       }
     ]
   }
