@@ -301,10 +301,9 @@ class NovuSetup:
                 if response.status >= 300:
                     raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
+                result = await response.json()
                 api_keys: list = [
-                    env.get("apiKeys")[0].get("key")
-                    for env in response.json()["data"]
-                    if env.get("name") == "Development"
+                    env.get("apiKeys")[0].get("key") for env in result["data"] if env.get("name") == "Development"
                 ]
                 if api_keys and api_keys[0]:
                     return api_keys[0]
