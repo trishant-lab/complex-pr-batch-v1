@@ -1518,8 +1518,8 @@
       "config": {
         "hideOnLoginPage": "true",
         "acceptsPromptNoneForwardFromClient": "true",
-        "tokenUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>/api/v1/epicintegration/epicToken",
-        "authorizationUrl": "https://<<tenant>>.dexit.314ecorp.<<domain>>/api/v1/epicintegration/epicToken",
+        "tokenUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
+        "authorizationUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
         "clientAuthMethod": "client_secret_basic",
         "disableUserInfo": "true",
         "syncMode": "IMPORT",
