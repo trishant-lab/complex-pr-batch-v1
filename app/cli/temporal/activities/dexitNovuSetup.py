@@ -289,7 +289,7 @@ class NovuSetup:
         """
         Get the API keys for the organization
         """
-        url = f"{self.config.dexit.novu_url}/v1/environments/api-keys"
+        url = f"{self.config.dexit.novu_url}/v1/environments"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(
@@ -302,7 +302,13 @@ class NovuSetup:
                     raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
                 result = await response.json()
-                return result["data"][0]["key"]
+                api_keys: list = [
+                    env.get("apiKeys")[0].get("key") for env in result["data"] if env.get("name") == "Development"
+                ]
+                if api_keys and api_keys[0]:
+                    return api_keys[0]
+                else:
+                    raise RuntimeError(f"Failed to get API keys for organization status_code:{response.status}")
 
     async def switch_organization(self: "NovuSetup", organization_id: str, token: str) -> str:
         """

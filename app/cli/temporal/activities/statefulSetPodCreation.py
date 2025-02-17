@@ -322,7 +322,7 @@ class CheckPodRunningStatusActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(seconds=120)
+        return timedelta(minutes=10)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
