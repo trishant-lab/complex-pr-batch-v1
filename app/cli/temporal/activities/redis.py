@@ -24,6 +24,8 @@ from kubernetes.client import (
     V1Volume,
     V1VolumeMount,
 )
+
+from kubernetes.dynamic.exceptions import ConflictError
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
@@ -36,7 +38,7 @@ from app.cli.k8s_util import (
 )
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+from app.cli.temporal.core.log import log_info, log_error
 
 CACHE_HOST = "cache.{tenant}.svc.cluster.local"
 CACHE_PORT = 6379
@@ -323,9 +325,17 @@ class RedisSetupActivity(Activity):
         )
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        k8s_dynamic_client.server_side_apply(
-            resource=redis_resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
-        )
+        try:
+            k8s_dynamic_client.server_side_apply(
+                resource=redis_resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+            )
+        except ConflictError as e:
+            log_error(
+                f"StatefulSet {CACHE_SERVICE_NAME} already exists in namespace"
+                f" {activity_model.namespace} and cannot be updated due to conflict"
+                f" {e}"
+            )
+
         await restart_cache_statefulset(activity_model.namespace)
         RedisService(activity_model.namespace).put()
         log_info(f"Redis {CACHE_SERVICE_NAME} created successfully")
@@ -439,11 +449,18 @@ class RedisSetupFromSecretActivity(Activity):
         )
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        k8s_dynamic_client.server_side_apply(
-            resource=redis_resource,
-            body=payload,
-            field_manager="kubectl-client-side-apply",
-        )
+        try:
+            k8s_dynamic_client.server_side_apply(
+                resource=redis_resource,
+                body=payload,
+                field_manager="kubectl-client-side-apply",
+            )
+        except ConflictError as e:
+            log_error(
+                f"StatefulSet {CACHE_SERVICE_NAME} already exists in namespace"
+                f" {activity_model.namespace} and cannot be updated due to conflict"
+                f" {e}"
+            )
         RedisService(activity_model.namespace).put()
         log_info(f"Redis {CACHE_SERVICE_NAME} created successfully")
 
