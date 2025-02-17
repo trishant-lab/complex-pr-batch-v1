@@ -1,6 +1,6 @@
 from temporalio import activity
 from temporalio.common import RetryPolicy
-from kubernetes.dynamic.exceptions import NotFoundError
+from kubernetes.dynamic.exceptions import NotFoundError, ConflictError
 
 from app.cli.temporal.core.log import log_error
 
@@ -64,9 +64,18 @@ class K8sSecretCreationActivity(Activity):
         )
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        k8s_dynamic_client.server_side_apply(
-            resource=k8s_secret_resource, body=payload, field_manager="kubectl-client-side-apply"
-        )
+
+        try:
+            k8s_dynamic_client.server_side_apply(
+                resource=k8s_secret_resource, body=payload, field_manager="kubectl-client-side-apply"
+            )
+
+        except ConflictError as e:
+            log_error(
+                f"Secret {activity_model.name} already exists in"
+                f" namespace {activity_model.namespace} and cannot be updated due to conflict"
+                f" {e}"
+            )
 
         log_info(f"Secret {activity_model.name} created successfully")
 
