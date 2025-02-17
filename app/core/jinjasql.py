@@ -99,7 +99,7 @@ def sql_safe(value):
     """Filter to mark the value of an expression as safe for inserting
     in a SQL statement
     """
-    return Markup(value)
+    return Markup(value)  # nosec: B704
 
 
 def bind(value, name):
