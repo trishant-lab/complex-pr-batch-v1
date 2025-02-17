@@ -165,11 +165,6 @@ lint.ignore = [
   "D403", # ignore first letter of docstring should be Capital,
 ]
 
-[tool.bandit]
-skips = [
-  "B704",
-]
-
 
 # (optional) list skipped tests for each files here:
 [tool.ruff.lint.per-file-ignores]
