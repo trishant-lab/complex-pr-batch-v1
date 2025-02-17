@@ -163,7 +163,11 @@ lint.ignore = [
   "RET506", # ignore using `else` after `return`
   "ANN401",
   "D403", # ignore first letter of docstring should be Capital,
-  "B704"
+]
+
+[tool.bandit]
+skips = [
+  "B704",
 ]
 
 
