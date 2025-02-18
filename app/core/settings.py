@@ -419,7 +419,7 @@ class AppSettings(BaseSettings):
     digitalocean: DigitalOceanSettings = DigitalOceanSettings()
 
     grafana_url: str = "https://monitor.314ecorp.tech"
-    grafana_datasource_uid: str = "e4hhV8CGk"
+    grafana_datasource_uid: str = ""
     grafana_token: str = ""
 
     supavisor_url: str = "http://supavisor-cluster-ha.supavisor.svc.cluster.local:4000"  # NOSONAR
