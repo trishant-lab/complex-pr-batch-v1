@@ -19,7 +19,6 @@ from app.cli.temporal.activities.cloudflareSetup import (
     UpdateCORSForBucketActivity,
     UpdateCORSForBucketActivityModel,
 )
-from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
 from app.cli.temporal.activities.deploymentPodCreation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
@@ -161,7 +160,6 @@ class JeevesOnboardingWorkflow(Workflow):
             PropagateDNSRecordActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
             OnePasswordGetActivity.defn,
-            DeploymentDeletionActivity.defn,
             CheckPodRunningStatusActivity.defn,
             SlackNotificationActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
@@ -1126,15 +1124,15 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # delete deployment if exists (for update)
-            await workflow.execute_activity(
-                activity=DeploymentDeletionActivity.defn,
-                arg=DeploymentDeletionActivityModel(
-                    namespace=tenant,
-                    name="jeeves",
-                ),
-                retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-                start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=DeploymentDeletionActivity.defn,
+            #     arg=DeploymentDeletionActivityModel(
+            #         namespace=tenant,
+            #         name="jeeves",
+            #     ),
+            #     retry_policy=DeploymentDeletionActivity.get_retry_policy(),
+            #     start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
+            # )
 
             # await workflow.execute_activity(
             #     activity=DeploymentDeletionActivity.defn,
