@@ -1136,15 +1136,15 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=DeploymentDeletionActivity.defn,
-                arg=DeploymentDeletionActivityModel(
-                    namespace=tenant,
-                    name="jeeves-worker",
-                ),
-                retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-                start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=DeploymentDeletionActivity.defn,
+            #     arg=DeploymentDeletionActivityModel(
+            #         namespace=tenant,
+            #         name="jeeves-worker",
+            #     ),
+            #     retry_policy=DeploymentDeletionActivity.get_retry_policy(),
+            #     start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
+            # )
 
             # vm pod scraper
             await workflow.execute_activity(
