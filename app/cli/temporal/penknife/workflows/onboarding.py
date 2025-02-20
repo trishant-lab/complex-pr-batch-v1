@@ -70,9 +70,13 @@ from app.cli.temporal.activities.sendMail import (
 from app.cli.temporal.activities.statefulSetPodCreation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
 )
+
+from app.cli.temporal.activities.deploymentPodCreation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
+)
+
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
@@ -136,7 +140,7 @@ class PenknifeOnboardingWorkflow(Workflow):
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
             DatabaseMigrationJobActivity.defn,
-            KubernetesStatefulSetActivity.defn,
+            KubernetesDeploymentActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             PenknifeUserSetupActivity.defn,
@@ -788,8 +792,8 @@ class PenknifeOnboardingWorkflow(Workflow):
 
             # statefulset pod creation for server
             await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="penknife",
                     docker_image=docker_image,
@@ -836,16 +840,16 @@ class PenknifeOnboardingWorkflow(Workflow):
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # statefulset pod creation for server
 
             # statefulset pod creation for cli
             await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="penknife-cli",
                     docker_image=docker_image,
@@ -904,8 +908,8 @@ class PenknifeOnboardingWorkflow(Workflow):
                         {"name": "VECTOR_LOG", "value": "off"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             await workflow.execute_activity(

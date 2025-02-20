@@ -23,6 +23,9 @@ from kubernetes.client import (
     V1StatefulSetSpec,
     V1Volume,
     V1VolumeMount,
+    V1PodList,
+    V1Pod,
+    V1PodStatus,
 )
 
 from kubernetes.dynamic.exceptions import ConflictError
@@ -222,6 +225,25 @@ class RedisService(K8sResourceBaseClass):
         pass
 
 
+def check_if_redis_is_running(namespace: str) -> bool:
+    """
+    Check if Redis is running
+    """
+    core_v1_api_client = get_k8s_core_v1_api_client()
+    pods: V1PodList = core_v1_api_client.list_namespaced_pod(
+        namespace=namespace,
+        label_selector=f"app={CACHE_SERVICE_NAME}",
+    )
+    if pods.items:
+        pod: V1Pod = pods.items[0]
+        v1_pod_status: V1PodStatus = pod.status
+        if v1_pod_status.phase == "Running":
+            return True
+        elif v1_pod_status.phase == "Failed":
+            return False
+    return False
+
+
 class RedisSetupActivityModel(LaunchpadCLIBaseModel):
     """
     RedisSetupActivityModel
@@ -271,70 +293,74 @@ class RedisSetupActivity(Activity):
             redis_tenant_password=activity_model.redis_tenant_password,
         )
 
-        body = V1StatefulSet(
-            api_version=K8S_RESOURCE_VERSION,
-            kind=ResourceKindEnum.StatefulSet.value,
-            metadata=V1ObjectMeta(namespace=activity_model.namespace, name=CACHE_SERVICE_NAME),
-            spec=V1StatefulSetSpec(
-                replicas=1,
-                selector={"matchLabels": {"app": CACHE_SERVICE_NAME, "kind": "redis"}},
-                service_name=f"{CACHE_SERVICE_NAME}-service",
-                template=V1PodTemplateSpec(
-                    metadata=V1ObjectMeta(labels={"app": CACHE_SERVICE_NAME, "kind": "redis"}),
-                    spec=V1PodSpec(
-                        image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-                        node_selector={"app": "314e"},
-                        containers=[
-                            V1Container(
-                                name=CACHE_SERVICE_NAME,
-                                image="apache/kvrocks:2.5.1",
-                                args=["--requirepass", "$(REDIS_PASSWORD)", "--config", CONFIG_VOLUME_MOUNT_PATH],
-                                ports=[V1ContainerPort(container_port=CACHE_PORT, protocol="TCP")],
-                                image_pull_policy="Always",
-                                env=[
-                                    V1EnvVar(
-                                        name="REDIS_PASSWORD",
-                                        value_from=V1EnvVarSource(
-                                            secret_key_ref=V1SecretKeySelector(
-                                                key="REDIS_PASSWORD", name=CACHE_SECRET_NAME
-                                            )
-                                        ),
-                                    )
-                                ],
-                                volume_mounts=[
-                                    V1VolumeMount(
-                                        name=CONFIG_VOLUME_NAME,
-                                        mount_path=CONFIG_VOLUME_MOUNT_PATH,
-                                        sub_path=CONFIGMAP_KEY,
-                                    )
-                                ],
-                            )
-                        ],
-                        volumes=[
-                            V1Volume(
-                                name=CONFIG_VOLUME_NAME,
-                                config_map=V1ConfigMapVolumeSource(
-                                    name=CONFIGMAP_NAME,
-                                    items=[V1KeyToPath(key=CONFIGMAP_KEY, path=CONFIGMAP_KEY)],
-                                ),
-                            )
-                        ],
+        if not check_if_redis_is_running(activity_model.namespace):
+            body = V1StatefulSet(
+                api_version=K8S_RESOURCE_VERSION,
+                kind=ResourceKindEnum.StatefulSet.value,
+                metadata=V1ObjectMeta(namespace=activity_model.namespace, name=CACHE_SERVICE_NAME),
+                spec=V1StatefulSetSpec(
+                    replicas=1,
+                    selector={"matchLabels": {"app": CACHE_SERVICE_NAME, "kind": "redis"}},
+                    service_name=f"{CACHE_SERVICE_NAME}-service",
+                    template=V1PodTemplateSpec(
+                        metadata=V1ObjectMeta(labels={"app": CACHE_SERVICE_NAME, "kind": "redis"}),
+                        spec=V1PodSpec(
+                            image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                            node_selector={"app": "314e"},
+                            containers=[
+                                V1Container(
+                                    name=CACHE_SERVICE_NAME,
+                                    image="apache/kvrocks:2.5.1",
+                                    args=["--requirepass", "$(REDIS_PASSWORD)", "--config", CONFIG_VOLUME_MOUNT_PATH],
+                                    ports=[V1ContainerPort(container_port=CACHE_PORT, protocol="TCP")],
+                                    image_pull_policy="Always",
+                                    env=[
+                                        V1EnvVar(
+                                            name="REDIS_PASSWORD",
+                                            value_from=V1EnvVarSource(
+                                                secret_key_ref=V1SecretKeySelector(
+                                                    key="REDIS_PASSWORD", name=CACHE_SECRET_NAME
+                                                )
+                                            ),
+                                        )
+                                    ],
+                                    volume_mounts=[
+                                        V1VolumeMount(
+                                            name=CONFIG_VOLUME_NAME,
+                                            mount_path=CONFIG_VOLUME_MOUNT_PATH,
+                                            sub_path=CONFIGMAP_KEY,
+                                        )
+                                    ],
+                                )
+                            ],
+                            volumes=[
+                                V1Volume(
+                                    name=CONFIG_VOLUME_NAME,
+                                    config_map=V1ConfigMapVolumeSource(
+                                        name=CONFIGMAP_NAME,
+                                        items=[V1KeyToPath(key=CONFIGMAP_KEY, path=CONFIGMAP_KEY)],
+                                    ),
+                                )
+                            ],
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
 
-        payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        try:
-            k8s_dynamic_client.server_side_apply(
-                resource=redis_resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
-            )
-        except ConflictError as e:
-            log_error(
-                f"StatefulSet {CACHE_SERVICE_NAME} already exists in namespace"
-                f" {activity_model.namespace} and cannot be updated due to conflict"
-                f" {e}"
-            )
+            payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
+            try:
+                k8s_dynamic_client.server_side_apply(
+                    resource=redis_resource,
+                    body=payload,
+                    field_manager="kubectl-client-side-apply",
+                    force_conflicts=True,
+                )
+            except ConflictError as e:
+                log_error(
+                    f"StatefulSet {CACHE_SERVICE_NAME} already exists in namespace"
+                    f" {activity_model.namespace} and cannot be updated due to conflict"
+                    f" {e}"
+                )
 
         await restart_cache_statefulset(activity_model.namespace)
         RedisService(activity_model.namespace).put()
@@ -394,6 +420,8 @@ class RedisSetupFromSecretActivity(Activity):
                 secret_key=activity_model.password_key,
             ),
         )
+
+        #
 
         body = V1StatefulSet(
             api_version=K8S_RESOURCE_VERSION,
