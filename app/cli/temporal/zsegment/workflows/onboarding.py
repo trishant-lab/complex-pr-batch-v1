@@ -73,8 +73,11 @@ from app.cli.temporal.activities.postgresSetup import (
 from app.cli.temporal.activities.statefulSetPodCreation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
+)
+
+from app.cli.temporal.activities.deploymentPodCreation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
 )
 
 from app.cli.temporal.zsegment import TemplatePath
@@ -154,7 +157,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             PostgresUserCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
             PostgresGrantAllPrivilegesOnTableActivity.defn,
-            KubernetesStatefulSetActivity.defn,
+            KubernetesDeploymentActivity.defn,
             K8sConfigMapCreationActivity.defn,
             K8sSecretCreationActivity.defn,
             RedisSetupActivity.defn,
@@ -735,8 +738,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
 
             # statefulset pod creation for server
             await workflow.execute_activity(  # yha htao
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="zsegment-api",
                     docker_image=api_docker_image,
@@ -783,13 +786,13 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="zsegment-engine",
                     docker_image=engine_docker_image,
@@ -836,8 +839,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # create droplet
