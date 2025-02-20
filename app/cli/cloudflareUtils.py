@@ -229,14 +229,28 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
     """
     Create a Cloudflare bucket credentials
     """
-    if read_only:
-        permission_group_id = config.cloudflare.bucket_read_permission_group_id
-        permission_group_name = config.cloudflare.bucket_read_permission_group_name
-    else:
-        permission_group_id = config.cloudflare.bucket_write_permission_group_id
-        permission_group_name = config.cloudflare.bucket_write_permission_group_name
-
     async with await get_async_cloudflare_client() as client:
+        token_list_response = await client.get("user/tokens")
+
+        if token_list_response.status != 200:
+            raise RuntimeError(f"Failed to fetch Cloudflare tokens. Status code: {token_list_response.status}")
+
+        token_list = await token_list_response.json()
+
+        for token in token_list["result"]:
+            if token["name"] == f"{bucket_name}-app-token":
+                return {
+                    "access_key": token["id"],
+                    "secret_key": hashlib.sha256(token["value"].encode()).hexdigest(),
+                }
+
+        if read_only:
+            permission_group_id = config.cloudflare.bucket_read_permission_group_id
+            permission_group_name = config.cloudflare.bucket_read_permission_group_name
+        else:
+            permission_group_id = config.cloudflare.bucket_write_permission_group_id
+            permission_group_name = config.cloudflare.bucket_write_permission_group_name
+
         response = await client.post(
             url="user/tokens",
             json={
@@ -252,15 +266,15 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
                 ],
             },
         )
+
         if response.status != 200:
             raise RuntimeError(
-                f"Failed to create Cloudflare bucket credentials for {bucket_name} status code: {response.status}"
+                f"Failed to create Cloudflare bucket credentials for {bucket_name}. Status code: {response.status}"
             )
-        else:
-            response_json = await response.json()
-            access_key = response_json["result"]["id"]
 
-            # Secret Access Key: The SHA-256 hash of the API token value
-            secret_sha_key = response_json["result"]["value"]
-            secret_key = hashlib.sha256(secret_sha_key.encode()).hexdigest()
-            return {"access_key": access_key, "secret_key": secret_key}
+        response_json = await response.json()
+        access_key = response_json["result"]["id"]
+        secret_sha_key = response_json["result"]["value"]
+        secret_key = hashlib.sha256(secret_sha_key.encode()).hexdigest()
+
+        return {"access_key": access_key, "secret_key": secret_key}
