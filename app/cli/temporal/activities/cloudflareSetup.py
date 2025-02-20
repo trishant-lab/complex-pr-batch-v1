@@ -244,15 +244,15 @@ class CopyArtifactsToBucketActivity(Activity):
                 )
 
                 prefix = activity_input.dest_dir.split("/")[-1]
-
-                delete_files_from_cloudflare(
-                    tenant=activity_input.tenant,
-                    input_path=f"{activity_input.bucket_name}/{prefix}",
-                    endpoint=config.cloudflare.r2_endpoint,
-                    access_key=bucket_access_key,
-                    secret_key=bucket_secret_key,
-                    session_token=bucket_session_token,
-                )
+                if prefix:
+                    delete_files_from_cloudflare(
+                        tenant=activity_input.tenant,
+                        input_path=f"{activity_input.bucket_name}/{prefix}",
+                        endpoint=config.cloudflare.r2_endpoint,
+                        access_key=bucket_access_key,
+                        secret_key=bucket_secret_key,
+                        session_token=bucket_session_token,
+                    )
 
                 sync_and_verify_files(
                     op=storage_client,

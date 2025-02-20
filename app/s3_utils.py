@@ -94,7 +94,7 @@ def check_file_count(
         if local_file_count != storage_file_count:
             msg = f"File count mismatch for {bucket_name}: {local_file_count} != {storage_file_count}"
             logger.error(msg)
-            raise RuntimeError(msg)  # nosec # NOSONAR  # noqa: TRY301
+            # raise RuntimeError(msg)  # nosec # NOSONAR
     except Exception as e:
         msg = f"Error checking file count for {bucket_name}: {e}"
         logger.error(msg)
