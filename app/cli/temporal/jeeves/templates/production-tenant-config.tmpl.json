@@ -17,6 +17,7 @@
   "dynamic_url_hash_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/dynamic_url_hash_key }}",
   "dynamic_url_enabled": true,
   "tika_server_url": "http://tika-server.tika.svc.cluster.local:9998",
+  "ehr_encode_token_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/epic_encode_token_key }}",
   "ehr_encode_token_algorithm": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/ehr_encode_token_algorithm }}",
   "ehr_client_id_kc_idp_mapping": {
     "71d1247e-f516-43ca-947c-23a21462af68": "cernerprod",
