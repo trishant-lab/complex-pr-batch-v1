@@ -606,7 +606,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="base_url_cdn",
-                    key_value=f"{tenant}.{jeeves_config.domain_name}",
+                    key_value=f"https://{tenant}.{jeeves_config.domain_name}",
                 ),
                 retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
