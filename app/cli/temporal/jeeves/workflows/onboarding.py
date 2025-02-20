@@ -19,7 +19,10 @@ from app.cli.temporal.activities.cloudflareSetup import (
     UpdateCORSForBucketActivity,
     UpdateCORSForBucketActivityModel,
 )
-from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
+from app.cli.temporal.activities.deploymentPodCreation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
+)
 from app.cli.temporal.activities.slackNotificationActivity import (
     SlackNotificationActivity,
     SlackNotificationActivityModel,
@@ -68,8 +71,6 @@ from app.cli.temporal.activities.sendMail import (
 from app.cli.temporal.activities.statefulSetPodCreation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
 )
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
@@ -146,7 +147,7 @@ class JeevesOnboardingWorkflow(Workflow):
             PreloadAssetsJobActivity.defn,
             VespaJobActivity.defn,
             AiVoiceSetupActivity.defn,
-            KubernetesStatefulSetActivity.defn,
+            KubernetesDeploymentActivity.defn,
             VMPodScrapperActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             KubernetesServiceActivity.defn,
@@ -159,7 +160,6 @@ class JeevesOnboardingWorkflow(Workflow):
             PropagateDNSRecordActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
             OnePasswordGetActivity.defn,
-            DeploymentDeletionActivity.defn,
             CheckPodRunningStatusActivity.defn,
             SlackNotificationActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
@@ -985,10 +985,10 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
             )
 
-            # statefulset pod creation for server
+            # deployment pod creation for server
             await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="jeeves",
                     docker_image=docker_image,
@@ -1047,14 +1047,14 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
-            # statefulset pod creation for cli
+            # deployment pod creation for cli
             await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="jeeves-worker",
                     docker_image=docker_image,
@@ -1119,30 +1119,30 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # delete deployment if exists (for update)
-            await workflow.execute_activity(
-                activity=DeploymentDeletionActivity.defn,
-                arg=DeploymentDeletionActivityModel(
-                    namespace=tenant,
-                    name="jeeves",
-                ),
-                retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-                start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=DeploymentDeletionActivity.defn,
+            #     arg=DeploymentDeletionActivityModel(
+            #         namespace=tenant,
+            #         name="jeeves",
+            #     ),
+            #     retry_policy=DeploymentDeletionActivity.get_retry_policy(),
+            #     start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
+            # )
 
-            await workflow.execute_activity(
-                activity=DeploymentDeletionActivity.defn,
-                arg=DeploymentDeletionActivityModel(
-                    namespace=tenant,
-                    name="jeeves-worker",
-                ),
-                retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-                start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=DeploymentDeletionActivity.defn,
+            #     arg=DeploymentDeletionActivityModel(
+            #         namespace=tenant,
+            #         name="jeeves-worker",
+            #     ),
+            #     retry_policy=DeploymentDeletionActivity.get_retry_policy(),
+            #     start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
+            # )
 
             # vm pod scraper
             await workflow.execute_activity(
