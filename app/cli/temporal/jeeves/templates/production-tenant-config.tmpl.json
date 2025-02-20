@@ -63,7 +63,7 @@
   "chatwoot_bot_token": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/chatwoot_bot_token }}",
   "livekit_url": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_url }}",
   "livekit_api_key": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_key }}",
-  "livekit_api_secret": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_secret }}",
+  "livekit_api_secrete": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/livekit_api_secret }}",
   "atlas_token": "{{ op://Jeeves/application-config/PRODUCTION_COMMON_CONFIG/atlas_token }}",
   "atlas_pg_dsn": "{{ op://Jeeves/application-config/JEEVES_<<tenant>>/atlas_pg_dsn }}",
   "base_url_314e": "https://media.314e.com",
