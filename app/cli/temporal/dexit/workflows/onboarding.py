@@ -70,8 +70,10 @@ from app.cli.temporal.activities.sendMail import (
 from app.cli.temporal.activities.statefulSetPodCreation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
+)
+from app.cli.temporal.activities.deploymentPodCreation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
 )
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.temporalSearchAtrributesCreation import (
@@ -123,7 +125,7 @@ class DexitOnboardingWorkflow(Workflow):
             KeycloakClientSetupActivity.defn,
             KeycloakCreateClientRolesActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
-            KubernetesStatefulSetActivity.defn,
+            KubernetesDeploymentActivity.defn,
             VMPodScrapperActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             KubernetesServiceActivity.defn,
@@ -676,8 +678,8 @@ class DexitOnboardingWorkflow(Workflow):
 
             # statefulset pod creation for server
             await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="dexit",
                     docker_image=docker_image,
@@ -728,14 +730,14 @@ class DexitOnboardingWorkflow(Workflow):
                         {"name": "CLI", "value": "FALSE"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # statefulset pod creation for cli
             await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="dexit-worker",
                     docker_image=docker_image,
@@ -792,14 +794,14 @@ class DexitOnboardingWorkflow(Workflow):
                         {"name": "CLI", "value": "TRUE"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # statefulset pod creation for dicom
             await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity.defn,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="dexit-dicom",
                     docker_image="orthancteam/orthanc:24.8.1",
@@ -835,8 +837,8 @@ class DexitOnboardingWorkflow(Workflow):
                         {"name": "RELEASE_VERSION", "value": image_tag},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
+                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # kubernetes service for dicom
