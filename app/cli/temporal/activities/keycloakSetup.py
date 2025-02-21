@@ -269,7 +269,6 @@ def create_jeeves_idp_flow(
     except Exception as e:
         log_error(f"Failed to create Keycloak idp and flows for {tenant} with error: {e}")
         return
-
     log_info(f"Keycloak idp and flows for {tenant} created successfully.")
 
 

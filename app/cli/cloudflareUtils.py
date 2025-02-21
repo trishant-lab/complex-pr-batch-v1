@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+from datetime import datetime
 
 import aiohttp
 from cloudflare import AsyncCloudflare
@@ -229,6 +230,13 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
     """
     Create a Cloudflare bucket credentials
     """
+    if read_only:
+        permission_group_id = config.cloudflare.bucket_read_permission_group_id
+        permission_group_name = config.cloudflare.bucket_read_permission_group_name
+
+    else:
+        permission_group_id = config.cloudflare.bucket_write_permission_group_id
+        permission_group_name = config.cloudflare.bucket_write_permission_group_name
     async with await get_async_cloudflare_client() as client:
         token_list_response = await client.get("user/tokens")
 
@@ -237,19 +245,21 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
 
         token_list = await token_list_response.json()
 
+        selected_token = {}
         for token in token_list["result"]:
-            if token["name"] == f"{bucket_name}-app-token":
+            if token["name"] == f"{bucket_name}-app-token" and token["status"] == "active":
+                token_issued_on = datetime.fromisoformat(token["issued_on"].replace("Z", "+00:00"))
+                if selected_token is None:
+                    selected_token = token
+                    continue
+                selected_token_issued_on = datetime.fromisoformat(selected_token["issued_on"].replace("Z", "+00:00"))
+                if token_issued_on > selected_token_issued_on:
+                    selected_token = token
+            if selected_token:
                 return {
-                    "access_key": token["id"],
-                    "secret_key": hashlib.sha256(token["value"].encode()).hexdigest(),
+                    "access_key": selected_token["id"],
+                    "secret_key": hashlib.sha256(selected_token["id"].encode()).hexdigest(),
                 }
-
-        if read_only:
-            permission_group_id = config.cloudflare.bucket_read_permission_group_id
-            permission_group_name = config.cloudflare.bucket_read_permission_group_name
-        else:
-            permission_group_id = config.cloudflare.bucket_write_permission_group_id
-            permission_group_name = config.cloudflare.bucket_write_permission_group_name
 
         response = await client.post(
             url="user/tokens",
