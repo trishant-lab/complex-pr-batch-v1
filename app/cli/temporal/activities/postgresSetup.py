@@ -61,7 +61,7 @@ class PostgresSchemaCreationActivity(Activity):
         db: DBManager = await get_db_manager(dsn=dsn)
 
         await db.execute_raw_sql(
-            f"CREATE SCHEMA IF NOT EXISTS {activity_model.schema_name} AUTHORIZATION {activity_model.username};",
+            f'CREATE SCHEMA IF NOT EXISTS "{activity_model.schema_name}" AUTHORIZATION {activity_model.username};',
         )
 
         log_info(f"Created schema {activity_model.schema_name} for user {activity_model.username}")
