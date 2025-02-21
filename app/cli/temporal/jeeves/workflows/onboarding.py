@@ -39,6 +39,8 @@ from app.cli.temporal.activities.onePassword import (
     OnePasswordCreateOrUpdateActivityModel,
     OnePasswordGetActivity,
     OnePasswordGetActivityModel,
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
 )
 from app.cli.temporal.activities.jeevesNovuSetup import JeevesNovuSetupActivity
 from app.cli.temporal.activities.k8sIstioVirtualService import (
@@ -166,6 +168,7 @@ class JeevesOnboardingWorkflow(Workflow):
             JeevesSendAfterProvisioningMailActivity.defn,
             UpdateCORSForBucketActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
         ]
 
     @classmethod
@@ -483,16 +486,16 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="org_domains",
-                    secret_value=" ",
+                    key="org_domains",
+                    key_value="",
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # dns setup for api
@@ -597,71 +600,71 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # cdn base url added to onepassword
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="base_url_cdn",
-                    secret_value=f"{tenant}.{jeeves_config.domain_name}",
+                    key="base_url_cdn",
+                    key_value=f"https://{tenant}.{jeeves_config.domain_name}",
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # s3 media bucket name added to onepassword
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="s3_media_bucket_name",
-                    secret_value=bucket_name,
+                    key="s3_media_bucket_name",
+                    key_value=bucket_name,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # s3 access key added to onepassword
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="s3_access_key",
-                    secret_value=credentials["access_key"],
+                    key="s3_access_key",
+                    key_value=credentials["access_key"],
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # s3 secret key added to onepassword
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="s3_secret_key",
-                    secret_value=credentials["secret_key"],
+                    key="s3_secret_key",
+                    key_value=credentials["secret_key"],
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="s3_ui_bucket_name",
-                    secret_value=bucket_name,
+                    key="s3_ui_bucket_name",
+                    key_value=bucket_name,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # s3 access key added to onepassword
@@ -694,42 +697,42 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # additional required onepassword configs
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="base_ui_url",
-                    secret_value=jeeves_config.base_ui_url.format(tenant=tenant),
+                    key="base_ui_url",
+                    key_value=jeeves_config.base_ui_url.format(tenant=tenant),
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="mpd_api",
-                    secret_value=jeeves_config.mpd_api.format(tenant=tenant),
+                    key="mpd_api",
+                    key_value=jeeves_config.mpd_api.format(tenant=tenant),
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="s3_mpd_api",
-                    secret_value=jeeves_config.s3_mpd_api.format(tenant=tenant),
+                    key="s3_mpd_api",
+                    key_value=jeeves_config.s3_mpd_api.format(tenant=tenant),
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # setup configmaps
