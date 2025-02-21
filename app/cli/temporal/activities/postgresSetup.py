@@ -61,7 +61,7 @@ class PostgresSchemaCreationActivity(Activity):
         db: DBManager = await get_db_manager(dsn=dsn)
 
         await db.execute_raw_sql(
-            f"CREATE SCHEMA IF NOT EXISTS {activity_model.schema_name} AUTHORIZATION {activity_model.username};",
+            f'CREATE SCHEMA IF NOT EXISTS "{activity_model.schema_name}" AUTHORIZATION {activity_model.username};',
         )
 
         log_info(f"Created schema {activity_model.schema_name} for user {activity_model.username}")
@@ -315,7 +315,7 @@ class PostgresGrantAccessToUserActivity(Activity):
         for schema in ["public", activity_model.schema_name]:
             if schema:
                 await db.execute_raw_sql(
-                    query=f"GRANT ALL ON SCHEMA {schema} TO {activity_model.username};",
+                    query=f'GRANT ALL ON SCHEMA "{schema}" TO {activity_model.username};',
                 )
 
                 log_info(f"Granted user {activity_model.username} all privileges on schema {schema}")

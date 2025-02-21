@@ -239,7 +239,8 @@ async def suggest_tenant_names(organization: str, product: ProductEnum = Path(..
 )
 async def verify_tenant_name(
     product: ProductEnum,
-    tenant_name: str = Path(min_length=3, max_length=20, regex="^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$"),
+    tenant_name: str = Path(min_length=3, max_length=20),
+    # , regex="^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$"),
 ) -> None:
     """
     @param product:
