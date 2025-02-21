@@ -255,18 +255,21 @@ def create_jeeves_idp_flow(
 
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
     identity_providers = keycloak_client.get_identity_providers(realm_name=realm_name)
-    for idp_config in idp_configs["identityProviders"]:
-        if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
-            keycloak_client.create_identity_provider(idp_config, realm_name)
-            for idp_mapper_config in idp_configs["identityProviderMappers"]:
-                if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
-                    keycloak_client.add_mapper_to_idp(
-                        idp_alias=idp_mapper_config["identityProviderAlias"],
-                        mapper_config=idp_mapper_config,
-                        realm_name=realm_name,
-                    )
-
-        log_info(f"Keycloak idp and flows for {tenant} created successfully.")
+    try:
+        for idp_config in idp_configs["identityProviders"]:
+            if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
+                keycloak_client.create_identity_provider(idp_config, realm_name)
+                for idp_mapper_config in idp_configs["identityProviderMappers"]:
+                    if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
+                        keycloak_client.add_mapper_to_idp(
+                            idp_alias=idp_mapper_config["identityProviderAlias"],
+                            mapper_config=idp_mapper_config,
+                            realm_name=realm_name,
+                        )
+    except Exception as e:
+        log_error(f"Failed to create Keycloak idp and flows for {tenant} with error: {e}")
+        return
+    log_info(f"Keycloak idp and flows for {tenant} created successfully.")
 
 
 class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
