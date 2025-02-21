@@ -144,10 +144,12 @@ async def prepare_schema(product: ProductEnum, schema: dict) -> dict:
             detail="An active free trial exists for your organization. Please contact the admin to gain access.",
         )
 
-    if not company_domain[0].isdigit():
-        tenant_name = company_domain
-    else:
-        tenant_name = f"{prefix}{company_domain}"
+    # if not company_domain[0].isdigit():
+    #     tenant_name = company_domain
+    # else:
+    #     tenant_name = f"{prefix}{company_domain}"
+
+    tenant_name = company_domain
 
     schema["tenant"] = tenant_name if schema.get("tenant") is None else schema.get("tenant")
 
