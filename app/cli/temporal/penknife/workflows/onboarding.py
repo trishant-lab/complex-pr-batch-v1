@@ -26,7 +26,9 @@ from app.cli.temporal.activities.k8sIstioVirtualService import (
 )
 from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
 from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity
+
+# K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.keycloakSetup import (
     KeycloakClientSetupActivity,
@@ -333,6 +335,20 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
+            # secret setup for postgres password
+            await workflow.execute_activity(
+                activity=K8sSecretCreationActivity.defn,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="postgres-password",
+                    data={
+                        "POSTGRES_PASSWORD": postgres_password,
+                    },
+                ),
+                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+            )
+
             # secret setup for redis password
             await workflow.execute_activity(
                 activity=K8sSecretCreationActivity.defn,
@@ -545,41 +561,41 @@ class PenknifeOnboardingWorkflow(Workflow):
             vector_config = "vector-config.toml"
             statestore_config = "statestore.yaml"
 
-            # setup tenant configmap
-            for config_map in [
-                {
-                    "name": "penknife-tenant-config",
-                    "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
-                },
-                {
-                    "name": "penknife-cli-vector-config",
-                    "key": vector_config,
-                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
-                },
-                {
-                    "name": "penknife-statestore-config",
-                    "key": statestore_config,
-                    "template_file_name": f"{config.env}-statestore.tmpl.yaml",
-                },
-            ]:
-                await workflow.execute_activity(
-                    activity=K8sConfigMapCreationActivity.defn,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
-                        destination_file_name=config_map["key"],
-                        bucket_name="penknife-config",
-                        template_payload={
-                            "tenant": tenant,
-                            "tenant_type": tenant_type,
-                            "domain": penknife_config.domain_name,
-                        },
-                    ),
-                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
-                )
+            # # setup tenant configmap
+            # for config_map in [
+            #     {
+            #         "name": "penknife-tenant-config",
+            #         "key": tenant_config,
+            #         "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+            #     },
+            #     {
+            #         "name": "penknife-cli-vector-config",
+            #         "key": vector_config,
+            #         "template_file_name": f"{config.env}-vector-config.tmpl.toml",
+            #     },
+            #     {
+            #         "name": "penknife-statestore-config",
+            #         "key": statestore_config,
+            #         "template_file_name": f"{config.env}-statestore.tmpl.yaml",
+            #     },
+            # ]:
+            #     await workflow.execute_activity(
+            #         activity=K8sConfigMapCreationActivity.defn,
+            #         arg=K8sConfigMapCreationActivityModel(
+            #             namespace=tenant,
+            #             name=config_map["name"],
+            #             template_file_name=config_map["template_file_name"],
+            #             destination_file_name=config_map["key"],
+            #             bucket_name="penknife-config",
+            #             template_payload={
+            #                 "tenant": tenant,
+            #                 "tenant_type": tenant_type,
+            #                 "domain": penknife_config.domain_name,
+            #             },
+            #         ),
+            #         retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
+            #         start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
+            #     )
 
             # dns setup for api
             await workflow.execute_activity(
