@@ -630,14 +630,14 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                 bucket_access_key = bucket_temporary_credentials.access_key_id
                 bucket_secret_key = bucket_temporary_credentials.secret_access_key
 
-                delete_files_from_cloudflare(
-                    tenant=activity_input.tenant,
-                    input_path=f"{activity_input.careerportal_bucket_name}/",
-                    endpoint=config.cloudflare.r2_endpoint,
-                    access_key=bucket_access_key,
-                    secret_key=bucket_secret_key,
-                    session_token=bucket_temporary_credentials.session_token,
-                )
+                # delete_files_from_cloudflare(
+                #     tenant=activity_input.tenant,
+                #     input_path=f"{activity_input.careerportal_bucket_name}/",
+                #     endpoint=config.cloudflare.r2_endpoint,
+                #     access_key=bucket_access_key,
+                #     secret_key=bucket_secret_key,
+                #     session_token=bucket_temporary_credentials.session_token,
+                # )
 
                 storage_client = get_opendal_operator_with_session_token(
                     access_key=bucket_access_key,
