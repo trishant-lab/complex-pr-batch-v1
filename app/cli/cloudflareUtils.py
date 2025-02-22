@@ -238,7 +238,7 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
         permission_group_id = config.cloudflare.bucket_write_permission_group_id
         permission_group_name = config.cloudflare.bucket_write_permission_group_name
     async with await get_async_cloudflare_client() as client:
-        token_list_response = await client.get("user/tokens")
+        token_list_response = await client.get("user/tokens", params={"per_page": "1000"})
 
         if token_list_response.status != 200:
             raise RuntimeError(f"Failed to fetch Cloudflare tokens. Status code: {token_list_response.status}")
