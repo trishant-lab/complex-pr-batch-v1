@@ -6,18 +6,36 @@ from datetime import timedelta
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 from app.core.settings import JeevesSettings
+from app.onepasswordutil import OnePasswordUtil
 
 
 def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:
     """
     Add AI voices to storage
     """
+    ui_bucket_name = OnePasswordUtil(
+        tenant=tenant,
+        server_item="s3_ui_bucket_name",
+        vault="application-config",
+    ).get_key(key=f"jeeves_{tenant}")
+    ui_access_key = OnePasswordUtil(
+        tenant=tenant,
+        server_item="s3_ui_bucket_access_key",
+        vault="application-config",
+    ).get_key(key=f"jeeves_{tenant}")
+    ui_secret_key = OnePasswordUtil(
+        tenant=tenant,
+        server_item="s3_ui_bucket_secret_key",
+        vault="application-config",
+    ).get_key(key=f"jeeves_{tenant}")
     source_folder_path: str = f"r2/{config.r2_bucket}/jeeves/ai_voices/"
     dest_folder_path: str = f"r2/{config.r2_bucket}/jeeves/{tenant}/voices/"
+    ui_bucket_dest_folder_path: str = f"r2_ui_bucket/{ui_bucket_name}/jeeves/{tenant}/voices/"
 
     os.system(f"mc alias set r2 {config.r2_url} {config.r2_access_key} {config.r2_secret}")  # nosec
     os.system(f"mc cp -r {source_folder_path} {dest_folder_path}")  # nosec
-
+    os.system(f"mc alias set r2_ui_bucket {config.r2_url} {ui_access_key} {ui_secret_key}")  # nosec
+    os.system(f"mc cp -r {source_folder_path} {ui_bucket_dest_folder_path}")  # nosec
     log_info("AI voices are added successfully.")
 
 
