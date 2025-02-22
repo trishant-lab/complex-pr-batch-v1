@@ -361,12 +361,12 @@ class PenknifeOnboardingWorkflow(Workflow):
                 start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PenknifeNovuSetupActivity.defn,
-                arg=penknife,
-                retry_policy=PenknifeNovuSetupActivity.get_retry_policy(),
-                start_to_close_timeout=PenknifeNovuSetupActivity.get_timeout(),
-            )
+            # await workflow.execute_activity(
+            #     activity=PenknifeNovuSetupActivity.defn,
+            #     arg=penknife,
+            #     retry_policy=PenknifeNovuSetupActivity.get_retry_policy(),
+            #     start_to_close_timeout=PenknifeNovuSetupActivity.get_timeout(),
+            # )
 
             redis_tenant_password = generate_password(length=20)
 
