@@ -325,17 +325,6 @@ class CheckPodRunningStatusActivity(Activity):
         return timedelta(minutes=10)
 
     @staticmethod
-    def get_retry_policy() -> RetryPolicy:
-        """
-        RetryPolicy for the activity
-        """
-        return RetryPolicy(
-            initial_interval=timedelta(seconds=10),
-            backoff_coefficient=3,
-            maximum_attempts=5,
-        )
-
-    @staticmethod
     @activity.defn(name="CheckPodRunningStatusActivity")
     async def defn(activity_model: CheckPodRunningStatusActivityModel) -> None:
         """

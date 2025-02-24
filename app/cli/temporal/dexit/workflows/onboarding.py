@@ -22,6 +22,7 @@ from app.cli.temporal.activities.databaseMigrationJob import (
     DatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.dexitNovuSetup import DexitNovuSetupActivity
+from app.cli.temporal.activities.dexitZsegmentCreation import ZSegmentSetupActivity
 from app.cli.temporal.activities.faxSetup import FaxSetupActivity
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     KubernetesIstioVirtualServiceActivity,
@@ -85,6 +86,7 @@ from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMP
 from app.cli.temporal.dexit import TemplatePath
 from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 from app.common import generate_password
 from app.core.settings import AppSettings, get_settings, DexitSettings
 from app.template_env import get_env
@@ -411,6 +413,7 @@ class DexitOnboardingWorkflow(Workflow):
                 "_reports",
                 "_document-review",
                 "_manage-workflow",
+                "_internal-admin",
             ]
 
             # keycloak client roles setup
@@ -895,9 +898,15 @@ class DexitOnboardingWorkflow(Workflow):
                         namespace=tenant,
                         name=pod,
                     ),
-                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
                     start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
+
+            # zsegment onboarding
+            await workflow.execute_activity(
+                activity=ZSegmentSetupActivity.defn,
+                arg=ZSegmentSpec(tenant=tenant, email=email, firstName=first_name, lastName=last_name),
+                start_to_close_timeout=ZSegmentSetupActivity.get_timeout(),
+            )
 
             # update tenant status
             await workflow.execute_activity(
