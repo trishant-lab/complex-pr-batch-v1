@@ -1,5 +1,6 @@
 from datetime import timedelta
 import asyncio
+from typing import Any
 
 from temporalio import activity
 from temporalio.api.enums.v1 import WorkflowExecutionStatus
@@ -23,7 +24,19 @@ class ZSegmentSetupActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(minutes=5)
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> dict[str, Any]:
+        """
+        Retry policy for the activity
+        """
+        return {
+            "initial_interval": timedelta(seconds=1),
+            "maximum_interval": timedelta(seconds=60),
+            "maximum_attempts": 1,
+            "non_retryable_error_types": [],
+        }
 
     @activity.run
     async def run(self, model: ZSegmentSpec) -> None:
@@ -58,10 +71,9 @@ class ZSegmentSetupActivity(Activity):
 
         while status != "COMPLETED":
             if status in ["FAILED", "TERMINATED"]:
-                raise Exception(f"ZSegment onboarding failed with status {status}")
+                raise Exception(f"ZSegment onboarding {status}")
             handle_describe = await handle.describe()
             status = WorkflowExecutionStatus.Name(handle_describe.status)
-            print(status)
             await asyncio.sleep(60)
 
         log_info(f"ZSegment onboarding completed successfully for tenant {model.tenant}")
