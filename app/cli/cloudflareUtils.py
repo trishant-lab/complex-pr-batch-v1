@@ -249,7 +249,7 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
         for token in token_list["result"]:
             if token["name"] == f"{bucket_name}-app-token" and token["status"] == "active":
                 token_issued_on = datetime.fromisoformat(token["issued_on"].replace("Z", "+00:00"))
-                if selected_token is None:
+                if not selected_token:
                     selected_token = token
                     continue
                 selected_token_issued_on = datetime.fromisoformat(selected_token["issued_on"].replace("Z", "+00:00"))
