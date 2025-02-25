@@ -4,6 +4,7 @@ from datetime import timedelta
 import orjson
 import pydash
 from temporalio import workflow
+from temporalio.common import RetryPolicy
 
 from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivity,
@@ -898,7 +899,7 @@ class DexitOnboardingWorkflow(Workflow):
                         namespace=tenant,
                         name=pod,
                     ),
-                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    retry_policy=RetryPolicy(maximum_attempts=1),
                     start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
 
@@ -906,7 +907,7 @@ class DexitOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=ZSegmentSetupActivity.defn,
                 arg=ZSegmentSpec(tenant=tenant, email=email, firstName=first_name, lastName=last_name),
-                retry_policy=ZSegmentSetupActivity.get_retry_policy(),
+                retry_policy=RetryPolicy(maximum_attempts=1),
                 start_to_close_timeout=ZSegmentSetupActivity.get_timeout(),
             )
 
