@@ -823,7 +823,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_allow-view-assets",
                 "_JEEVESALL",
                 "_allow-conversion-tools",
-                "_developer",
                 "_access-screen-recorder",
                 "_allow-standalone-launch",
                 "_allow-publish-assets",
