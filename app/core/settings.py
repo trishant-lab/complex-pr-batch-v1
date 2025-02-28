@@ -101,6 +101,12 @@ class TemporalSettings(BaseModel):
         return f"{self.host}:{self.port}"
 
 
+class GitSettings(BaseModel):
+    """Git Settings"""
+
+    access_token: str = os.getenv("GITHUB_ACCESS_TOKEN", "")
+
+
 class S3Settings(BaseModel):
     """
     S3 Settings
@@ -396,6 +402,7 @@ class AppSettings(BaseSettings):
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
     cloudflare: CloudflareSettings = CloudflareSettings()
+    gitsettings: GitSettings = GitSettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
