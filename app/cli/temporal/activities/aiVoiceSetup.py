@@ -14,20 +14,20 @@ def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:
     Add AI voices to storage
     """
     ui_bucket_name = OnePasswordUtil(
-        tenant=tenant,
-        server_item="s3_ui_bucket_name",
-        vault="application-config",
-    ).get_key(key=f"jeeves_{tenant}")
+        tenant=f"jeeves_{tenant}",
+        server_item="application-config",
+        vault="Jeeves",
+    ).get_key(key="s3_ui_bucket_name")
     ui_access_key = OnePasswordUtil(
-        tenant=tenant,
-        server_item="s3_ui_bucket_access_key",
-        vault="application-config",
-    ).get_key(key=f"jeeves_{tenant}")
+        tenant=f"jeeves_{tenant}",
+        server_item="application-config",
+        vault="Jeeves",
+    ).get_key(key="s3_ui_bucket_access_key")
     ui_secret_key = OnePasswordUtil(
-        tenant=tenant,
-        server_item="s3_ui_bucket_secret_key",
-        vault="application-config",
-    ).get_key(key=f"jeeves_{tenant}")
+        tenant=f"jeeves_{tenant}",
+        server_item="application-config",
+        vault="Jeeves",
+    ).get_key(key="s3_ui_bucket_secret_key")
     source_folder_path: str = f"r2/{config.r2_bucket}/jeeves/ai_voices/"
     dest_folder_path: str = f"r2/{config.r2_bucket}/jeeves/{tenant}/voices/"
     ui_bucket_dest_folder_path: str = f"r2_ui_bucket/{ui_bucket_name}/jeeves/{tenant}/voices/"

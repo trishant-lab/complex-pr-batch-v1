@@ -23,6 +23,10 @@ from app.cli.temporal.activities.deploymentPodCreation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
 )
+from app.cli.temporal.activities.jeevesFetchLatestTag import (
+    JeevesFetchLatestTagActivityModel,
+    JeevesFetchLatestTagActivity,
+)
 from app.cli.temporal.activities.slackNotificationActivity import (
     SlackNotificationActivity,
     SlackNotificationActivityModel,
@@ -63,7 +67,6 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivityModel,
     JeevesKeycloakCreateIDPFlowActivity,
 )
-from app.cli.temporal.activities.preLoadAssetsJob import PreloadAssetsJobActivity
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
     SendBeforeProvisioningMailActivity,
@@ -146,7 +149,6 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakCreateClientRolesActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
-            PreloadAssetsJobActivity.defn,
             VespaJobActivity.defn,
             AiVoiceSetupActivity.defn,
             KubernetesDeploymentActivity.defn,
@@ -169,6 +171,7 @@ class JeevesOnboardingWorkflow(Workflow):
             UpdateCORSForBucketActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            JeevesFetchLatestTagActivity.defn,
         ]
 
     @classmethod
@@ -561,13 +564,28 @@ class JeevesOnboardingWorkflow(Workflow):
 
             repo_name = "jeeves-ui"
             if config.env == "production":
-                image_tag = jeeves_config.prod_image_tag
+                image_tag = await workflow.execute_activity(
+                    activity=JeevesFetchLatestTagActivity.defn,
+                    arg=JeevesFetchLatestTagActivityModel(
+                        repo_url="https://{access_token}@github.com/softwareartistry/jeeves-ui.git"
+                    ),
+                    retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
+                    start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
+                )
+                server_image_tag = await workflow.execute_activity(
+                    activity=JeevesFetchLatestTagActivity.defn,
+                    arg=JeevesFetchLatestTagActivityModel(
+                        repo_url="https://{access_token}@github.com/softwareartistry/jeeves-app.git"
+                    ),
+                    retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
+                    start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
+                )
                 dest_dir = f"{bucket_name}/"
             else:
-                image_tag = "sprint"
+                image_tag = server_image_tag = "sprint"
                 dest_dir = f"{bucket_name}/{image_tag}"
 
-            docker_image = f"registry.314ecorp.tech/jeeves-app:{image_tag}"
+            docker_image = f"registry.314ecorp.tech/jeeves-app:{server_image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -823,7 +841,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_allow-view-assets",
                 "_JEEVESALL",
                 "_allow-conversion-tools",
-                "_developer",
                 "_access-screen-recorder",
                 "_allow-standalone-launch",
                 "_allow-publish-assets",
