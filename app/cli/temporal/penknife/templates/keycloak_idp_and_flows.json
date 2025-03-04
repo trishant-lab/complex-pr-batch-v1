@@ -1,7 +1,7 @@
 {
     "identityProviders": [
         {
-            "alias": "penknife-basic",
+            "alias": "penknife-google-basic",
             "displayName": "Penknife Basic",
             "providerId": "oidc",
             "enabled": true,
@@ -30,8 +30,8 @@
             }
         },
         {
-            "alias": "googlepenknife",
-            "displayName": "Penknife Google",
+            "alias": "penknife-google-email",
+            "displayName": "Penknife Email",
             "providerId": "oidc",
             "enabled": true,
             "updateProfileFirstLoginMode": "on",
