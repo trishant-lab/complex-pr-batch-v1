@@ -606,7 +606,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            credentials = await workflow.execute_activity(
+            credentials, is_existing = await workflow.execute_activity(
                 activity=CreateCloudflareBucketCredentialsActivity.defn,
                 arg=CreateCloudflareBucketCredentialsActivityModel(
                     bucket_name=bucket_name,
@@ -652,7 +652,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_access_key",
-                    key_value=credentials["access_key"],
+                    key_value=credentials.get("access_key"),
                 ),
                 retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
@@ -666,52 +666,51 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_secret_key",
-                    key_value=credentials["secret_key"],
+                    key_value=credentials.get("secret_key"),
                 ),
                 retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
+            if not is_existing:
+                await workflow.execute_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity.defn,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item="application-config",
+                        key="s3_ui_bucket_name",
+                        key_value=bucket_name,
+                    ),
+                    retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                    start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+                )
+                # s3 access key added to onepassword
+                await workflow.execute_activity(
+                    activity=OnePasswordCreateOrUpdateActivity.defn,
+                    arg=OnePasswordCreateOrUpdateActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item="application-config",
+                        secret_name="s3_ui_bucket_access_key",
+                        secret_value=credentials.get("access_key"),
+                    ),
+                    retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                    start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                )
 
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_ui_bucket_name",
-                    key_value=bucket_name,
-                ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
-            )
-
-            # s3 access key added to onepassword
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    secret_name="s3_ui_bucket_access_key",
-                    secret_value=credentials["access_key"],
-                ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
-            )
-
-            # s3 secret key added to onepassword
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    secret_name="s3_ui_bucket_secret_key",
-                    secret_value=credentials["secret_key"],
-                ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
-            )
+                # s3 secret key added to onepassword
+                await workflow.execute_activity(
+                    activity=OnePasswordCreateOrUpdateActivity.defn,
+                    arg=OnePasswordCreateOrUpdateActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item="application-config",
+                        secret_name="s3_ui_bucket_secret_key",
+                        secret_value=credentials.get("secret_key"),
+                    ),
+                    retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
+                    start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
+                )
 
             # additional required onepassword configs
             await workflow.execute_activity(

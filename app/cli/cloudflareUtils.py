@@ -226,7 +226,9 @@ async def update_cors_for_bucket(config: AppSettings, bucket_name: str, rules: l
             raise RuntimeError(f"Failed to update CORS for bucket {bucket_name}")
 
 
-async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSettings, read_only: bool = False) -> dict:
+async def create_cloudflare_bucket_credentials(
+    bucket_name: str, config: AppSettings, read_only: bool = False
+) -> tuple[dict, bool]:
     """
     Create a Cloudflare bucket credentials
     """
@@ -256,11 +258,7 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
                 if token_issued_on > selected_token_issued_on:
                     selected_token = token
             if selected_token:
-                return {
-                    "access_key": selected_token["id"],
-                    "secret_key": hashlib.sha256(selected_token["id"].encode()).hexdigest(),
-                }
-
+                return {}, True
         response = await client.post(
             url="user/tokens",
             json={
@@ -287,4 +285,4 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
         secret_sha_key = response_json["result"]["value"]
         secret_key = hashlib.sha256(secret_sha_key.encode()).hexdigest()
 
-        return {"access_key": access_key, "secret_key": secret_key}
+        return {"access_key": access_key, "secret_key": secret_key}, False
