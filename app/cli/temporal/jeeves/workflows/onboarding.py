@@ -66,6 +66,7 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
     JeevesKeycloakCreateIDPFlowActivity,
+    get_ehr_based_idp_template,
 )
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
@@ -194,6 +195,7 @@ class JeevesOnboardingWorkflow(Workflow):
         email = pydash.get(jeeves, "email")
         tenant = pydash.get(jeeves, "tenant")
         is_deployment = pydash.get(jeeves, "is_deployment")
+        ehr_used = pydash.get(jeeves, "whichEhrDoesYourCompanyUse")
 
         try:
             if not pydash.get(jeeves, "emailSent") and not is_deployment:
@@ -869,8 +871,22 @@ class JeevesOnboardingWorkflow(Workflow):
                     realm_name=realm_name,
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
-                    template_name="keycloak_idp_and_flows.json",
+                    template_name=get_ehr_based_idp_template(ehr=ehr_used),
                     template_payload={"idp_config": jeeves_config.idp_config},
+                ),
+                retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
+                start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=JeevesKeycloakCreateIDPFlowActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name="help",
+                    domain=jeeves_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="help_instance_idp_flow.json",
+                    template_payload={"idp_config": jeeves_config.idp_config, "auth_url": config.keycloak.auth_url},
                 ),
                 retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
                 start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),

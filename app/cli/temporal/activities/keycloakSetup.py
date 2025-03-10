@@ -27,6 +27,19 @@ def template_render(
     return template.render(**(template_payload if template_payload else {}))
 
 
+def get_ehr_based_idp_template(ehr: str) -> str:
+    """
+    Return IDP template based on EHR
+    """
+    match ehr.lower():
+        case "cerner":
+            return "keycloak_cerner_ehr_idp_flows.json"
+        case "epic":
+            return "keycloak_epic_ehr_idp_flows.json"
+        case _:
+            return "keycloak_idp_and_flows.json"
+
+
 def create_keycloak_realm(
     realm_name: str,
     domain: str,
@@ -267,7 +280,7 @@ def create_jeeves_idp_flow(
                             realm_name=realm_name,
                         )
     except Exception as e:
-        log_error(f"Failed to create Keycloak idp and flows for {tenant} with error: {e}")
+        log_error(f"Failed to create Keycloak idp and flows for {tenant=} with error: {e=}")
         return
     log_info(f"Keycloak idp and flows for {tenant} created successfully.")
 
@@ -693,7 +706,7 @@ class JeevesKeycloakCreateIDPFlowActivity(Activity):
         return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
-    @activity.defn(name="KeycloakCreateIDPFlowActivity")
+    @activity.defn(name="JeevesKeycloakCreateIDPFlowActivity")
     async def defn(activity_model: KeycloakClientSetupActivityModel) -> None:
         """
         Create keycloak client
