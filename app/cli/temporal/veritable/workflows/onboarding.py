@@ -6,10 +6,13 @@ from cryptography.fernet import Fernet
 from temporalio import workflow
 
 from app.cli.temporal.activities.cloudflareSetup import (
+    CloudflareBucketCredentials,
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivity,
     CreateCloudflareBucketActivityModel,
+    CreateCloudflareBucketCredentialsActivity,
+    CreateCloudflareBucketCredentialsActivityModel,
     CreateCloudflareDNSRecordActivity,
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
@@ -69,22 +72,20 @@ from app.cli.temporal.activities.temporalNamespace import (
     TemporalNamespaceActivityModel,
 )
 from app.cli.temporal.activities.tenantCrd import (
-    TenantCrdExistsActivity,
-    TenantCrdExistsActivityModel,
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
+    TenantCrdExistsActivity,
+    TenantCrdExistsActivityModel,
 )
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.veritableNovuSetup import VeritableNovuOnboardingActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable import TemplatePath
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
-
-
 from app.common import generate_password
 from app.core.settings import AppSettings, VeritableSettings, get_settings
 from app.template_env import get_env
-
 
 ProductName = "veritable"
 OnePasswordVaultName = "practifly"
@@ -131,6 +132,7 @@ class VeritableOnboardingWorkflow(Workflow):
             TenantCrdCreationActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            VeritableNovuOnboardingActivity.defn,
         ]
 
     @classmethod
@@ -271,6 +273,98 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
                 start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
+            )
+
+            novu_api_key = await workflow.execute_activity(
+                activity=VeritableNovuOnboardingActivity.defn,
+                arg=veritable,
+                retry_policy=VeritableNovuOnboardingActivity.get_retry_policy(),
+                start_to_close_timeout=VeritableNovuOnboardingActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=K8sSecretCreationActivity.defn,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="veritable-novu",
+                    string_data={"api-key": novu_api_key},
+                ),
+                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+            )
+
+            data_bucket = veritable.cloudflare_r2_data_bucket
+
+            await workflow.execute_activity(
+                activity=CreateCloudflareBucketActivity.defn,
+                arg=CreateCloudflareBucketActivityModel(
+                    bucket_name=data_bucket,
+                ),
+                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
+            )
+
+            credentials: CloudflareBucketCredentials = await workflow.execute_activity(
+                activity=CreateCloudflareBucketCredentialsActivity.defn,
+                arg=CreateCloudflareBucketCredentialsActivityModel(
+                    bucket_name=data_bucket,
+                    read_only=False,
+                ),
+                retry_policy=CreateCloudflareBucketCredentialsActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareBucketCredentialsActivity.get_timeout(),
+            )
+
+            cloudflare_r2_data_bucket_access_key: str = credentials.access_key
+            cloudflare_r2_data_bucket_secret_key: str = credentials.secret_key
+
+            # s3 access key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_access_key",
+                    key_value=cloudflare_r2_data_bucket_access_key,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
+            # s3 secret key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_secret_key",
+                    key_value=cloudflare_r2_data_bucket_secret_key,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=K8sSecretCreationActivity.defn,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="veritable-cloudflare-r2",
+                    string_data={"access-key": cloudflare_r2_data_bucket_access_key},
+                ),
+                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
+            )
+
+            await workflow.execute_activity(
+                activity=K8sSecretCreationActivity.defn,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="veritable-cloudflare-r2",
+                    string_data={"secret-key": cloudflare_r2_data_bucket_secret_key},
+                ),
+                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
+                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for docker registry
@@ -417,12 +511,11 @@ class VeritableOnboardingWorkflow(Workflow):
             )
 
             # create bucket
-            bucket_name = f"{tenant}.{veritable_config.domain_name}"
-            bucket_name = bucket_name.replace(".", "-")
+            ui_bucket = veritable.cloudflare_r2_ui_bucket
             await workflow.execute_activity(
                 activity=CreateCloudflareBucketActivity.defn,
                 arg=CreateCloudflareBucketActivityModel(
-                    bucket_name=bucket_name,
+                    bucket_name=ui_bucket,
                 ),
                 retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
                 start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
@@ -432,7 +525,7 @@ class VeritableOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=LinkBucketToDomainActivity.defn,
                 arg=LinkBucketToDomainActivityModel(
-                    bucket_name=bucket_name,
+                    bucket_name=ui_bucket,
                     domain_name=f"{tenant}.{veritable_config.domain_name}",
                     zone_id=veritable_config.zone_id,
                 ),
@@ -454,9 +547,9 @@ class VeritableOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
 
             if config.env == "production":
-                dest_dir = bucket_name
+                dest_dir = ui_bucket
             else:
-                dest_dir = f"{bucket_name}/{image_tag}"
+                dest_dir = f"{ui_bucket}/{image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -466,7 +559,7 @@ class VeritableOnboardingWorkflow(Workflow):
             await workflow.execute_activity(
                 activity=CopyArtifactsToBucketActivity.defn,
                 arg=CopyArtifactsToBucketActivityModel(
-                    bucket_name=bucket_name,
+                    bucket_name=ui_bucket,
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
@@ -539,6 +632,8 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
+                        {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        {"name": "APP_CONFIG_DIR", "value": "/config"},
                     ],
                     argument=(
                         "cd /app && python3 /app/provisioning/provisioning_.py "
@@ -652,6 +747,9 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "IS_CLI", "value": "FALSE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "orgName")},
                         {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
+                        {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
+                        {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
                     ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
@@ -745,6 +843,9 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "IS_CLI", "value": "TRUE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "orgName")},
                         {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
+                        {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
+                        {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
                     ],
                 ),
                 retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),

@@ -1,9 +1,13 @@
 from collections.abc import Callable
-import orjson
-from temporalio import workflow
-import pydash
 
+import orjson
+import pydash
+from temporalio import workflow
+
+from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
+from app.cli.temporal.activities.chatwootSetup import ChatwootSetupActivity, ChatwootSetupActivityModel
 from app.cli.temporal.activities.cloudflareSetup import (
+    CloudflareBucketCredentials,
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivity,
@@ -19,42 +23,29 @@ from app.cli.temporal.activities.cloudflareSetup import (
     UpdateCORSForBucketActivity,
     UpdateCORSForBucketActivityModel,
 )
+from app.cli.temporal.activities.databaseMigrationJob import (
+    DatabaseMigrationJobActivity,
+    DatabaseMigrationJobActivityModel,
+)
 from app.cli.temporal.activities.deploymentPodCreation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
 )
 from app.cli.temporal.activities.jeevesFetchLatestTag import (
-    JeevesFetchLatestTagActivityModel,
     JeevesFetchLatestTagActivity,
-)
-from app.cli.temporal.activities.slackNotificationActivity import (
-    SlackNotificationActivity,
-    SlackNotificationActivityModel,
-)
-from app.cli.temporal.activities.vespaJob import VespaJobActivity
-from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
-from app.cli.temporal.activities.chatwootSetup import ChatwootSetupActivity, ChatwootSetupActivityModel
-from app.cli.temporal.activities.databaseMigrationJob import (
-    DatabaseMigrationJobActivity,
-    DatabaseMigrationJobActivityModel,
-)
-from app.cli.temporal.activities.onePassword import (
-    OnePasswordCreateOrUpdateActivity,
-    OnePasswordCreateOrUpdateActivityModel,
-    OnePasswordGetActivity,
-    OnePasswordGetActivityModel,
-    OnePasswordInsertIfNotExistsActivity,
-    OnePasswordInsertIfNotExistsActivityModel,
+    JeevesFetchLatestTagActivityModel,
 )
 from app.cli.temporal.activities.jeevesNovuSetup import JeevesNovuSetupActivity
+from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
+from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
 from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.keycloakSetup import (
+    JeevesKeycloakCreateIDPFlowActivity,
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
@@ -65,14 +56,41 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
-    JeevesKeycloakCreateIDPFlowActivity,
     get_ehr_based_idp_template,
+)
+from app.cli.temporal.activities.onePassword import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordGetActivity,
+    OnePasswordGetActivityModel,
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
+)
+from app.cli.temporal.activities.postgresSetup import (
+    KeycloakUserMappingActivity,
+    KeycloakUserMappingActivityModel,
+    MatomoUserMappingActivity,
+    MatomoUserMappingActivityModel,
+    PostgresGrantAccessToUserActivity,
+    PostgresGrantAccessToUserActivityModel,
+    PostgresGrantAllPrivilegesOnTableActivity,
+    PostgresGrantAllPrivilegesOnTableActivityModel,
+    PostgresSchemaCreationActivity,
+    PostgresSchemaCreationActivityModel,
+    PostgresSupavisorPollUserActivity,
+    PostgresSupavisorPollUserActivityModel,
+    PostgresUserCreationActivity,
+    PostgresUserCreationActivityModel,
 )
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.sendMail import (
+    JeevesSendAfterProvisioningMailActivity,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
-    JeevesSendAfterProvisioningMailActivity,
+)
+from app.cli.temporal.activities.slackNotificationActivity import (
+    SlackNotificationActivity,
+    SlackNotificationActivityModel,
 )
 from app.cli.temporal.activities.statefulSetPodCreation import (
     CheckPodRunningStatusActivity,
@@ -80,35 +98,14 @@ from app.cli.temporal.activities.statefulSetPodCreation import (
 )
 from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.vespaJob import VespaJobActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
-
-from app.cli.temporal.activities.postgresSetup import (
-    KeycloakUserMappingActivity,
-    KeycloakUserMappingActivityModel,
-    MatomoUserMappingActivity,
-    MatomoUserMappingActivityModel,
-    PostgresSchemaCreationActivityModel,
-    PostgresSchemaCreationActivity,
-    PostgresUserCreationActivity,
-    PostgresGrantAccessToUserActivityModel,
-    PostgresGrantAccessToUserActivity,
-    PostgresGrantAllPrivilegesOnTableActivityModel,
-    PostgresGrantAllPrivilegesOnTableActivity,
-    PostgresUserCreationActivityModel,
-    PostgresSupavisorPollUserActivity,
-    PostgresSupavisorPollUserActivityModel,
-)
-
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.jeeves import TemplatePath
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
-
-
 from app.common import generate_password
 from app.core.settings import AppSettings, JeevesSettings, get_settings
 from app.template_env import get_env
-
 
 ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
@@ -608,7 +605,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            credentials, is_existing = await workflow.execute_activity(
+            credentials: CloudflareBucketCredentials = await workflow.execute_activity(
                 activity=CreateCloudflareBucketCredentialsActivity.defn,
                 arg=CreateCloudflareBucketCredentialsActivityModel(
                     bucket_name=bucket_name,
@@ -654,7 +651,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_access_key",
-                    key_value=credentials.get("access_key"),
+                    key_value=credentials.access_key,
                 ),
                 retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
@@ -668,12 +665,13 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_secret_key",
-                    key_value=credentials.get("secret_key"),
+                    key_value=credentials.secret_key,
                 ),
                 retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
                 start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
-            if not is_existing:
+
+            if not credentials.exists:
                 await workflow.execute_activity(
                     activity=OnePasswordInsertIfNotExistsActivity.defn,
                     arg=OnePasswordInsertIfNotExistsActivityModel(
@@ -694,7 +692,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         vault=OnePasswordVaultName,
                         server_item="application-config",
                         secret_name="s3_ui_bucket_access_key",
-                        secret_value=credentials.get("access_key"),
+                        secret_value=credentials.access_key,
                     ),
                     retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
                     start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
@@ -708,7 +706,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         vault=OnePasswordVaultName,
                         server_item="application-config",
                         secret_name="s3_ui_bucket_secret_key",
-                        secret_value=credentials.get("secret_key"),
+                        secret_value=credentials.secret_key,
                     ),
                     retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
                     start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),

@@ -188,10 +188,16 @@ class VeritableSettings(BaseModel):
 
     zone_id: str = ""
     domain_name: str = "veritable.tech"
+
     sender_name: str = ""
     sender_email: str = ""
+
     temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
     temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech/"
+    novu_admin_user: str = "support@veritable.app"
+    novu_admin_password: str = ""
 
 
 class JeevesSettings(BaseModel):
