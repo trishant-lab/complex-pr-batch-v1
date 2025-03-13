@@ -566,7 +566,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 image_tag = await workflow.execute_activity(
                     activity=JeevesFetchLatestTagActivity.defn,
                     arg=JeevesFetchLatestTagActivityModel(
-                        repo_url="https://{access_token}@github.com/softwareartistry/jeeves-ui.git"
+                        tag_type="ui", repo_url="https://{access_token}@github.com/softwareartistry/jeeves-ui.git"
                     ),
                     retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
                     start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
@@ -574,7 +574,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 server_image_tag = await workflow.execute_activity(
                     activity=JeevesFetchLatestTagActivity.defn,
                     arg=JeevesFetchLatestTagActivityModel(
-                        repo_url="https://{access_token}@github.com/softwareartistry/jeeves-app.git"
+                        tag_type="server",
                     ),
                     retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
                     start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
@@ -1115,27 +1115,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
-
-            # delete deployment if exists (for update)
-            # await workflow.execute_activity(
-            #     activity=DeploymentDeletionActivity.defn,
-            #     arg=DeploymentDeletionActivityModel(
-            #         namespace=tenant,
-            #         name="jeeves",
-            #     ),
-            #     retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-            #     start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
-            # )
-
-            # await workflow.execute_activity(
-            #     activity=DeploymentDeletionActivity.defn,
-            #     arg=DeploymentDeletionActivityModel(
-            #         namespace=tenant,
-            #         name="jeeves-worker",
-            #     ),
-            #     retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-            #     start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
-            # )
 
             # vm pod scraper
             await workflow.execute_activity(
