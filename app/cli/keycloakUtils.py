@@ -72,7 +72,7 @@ class KeycloakAdminClient:
         # check if realm exists
         realms = [row["realm"] for row in self.get_all_realms()]
         if realm_name in realms:
-            clients: set = {client.get("clientId") for client in self.kc_client.get_clients()}
+            clients: set = set(self.get_all_clients(realm_name=realm_name))
             if len(clients.difference(IGNORED_CLIENT_LIST)) == 1 and clients.difference(IGNORED_CLIENT_LIST) == {
                 client_name
             }:

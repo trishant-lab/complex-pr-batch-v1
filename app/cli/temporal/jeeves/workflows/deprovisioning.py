@@ -23,8 +23,8 @@ from app.cli.temporal.activities.k8sIstioVirtualService import (
 from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
 from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.keycloakSetup import (
-    DeleteHelpInstanceActivity,
-    DeleteHelpInstanceActivityModel,
+    DeleteHelpInstanceIdpActivity,
+    DeleteHelpInstanceIdpActivityModel,
     DeleteKeycloakClientActivity,
     DeleteKeycloakClientActivityModel,
     DeleteKeycloakRealmActivity,
@@ -81,7 +81,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
             DeleteChatwootAccountActivity.defn,
             DeleteKeycloakClientActivity.defn,
             DeleteKeycloakRealmActivity.defn,
-            DeleteHelpInstanceActivity.defn,
+            DeleteHelpInstanceIdpActivity.defn,
         ]
 
     @classmethod
@@ -106,6 +106,77 @@ class JeevesDeProvisioningWorkflow(Workflow):
             return
 
         tenant = pydash.get(jeeves, "tenant")
+
+        # delete k8s service
+        await workflow.execute_activity(
+            DeleteKubernetesServiceActivity.defn,
+            arg=DeleteKubernetesServiceActivityModel(
+                namespace=tenant,
+                service_name="jeeves",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteKubernetesServiceActivity.get_retry_policy(),
+        )
+
+        # delete k8s virtual service
+        await workflow.execute_activity(
+            DeleteKubernetesIstioVirtualServiceActivity.defn,
+            arg=DeleteKubernetesIstioVirtualServiceActivityModel(
+                namespace=tenant,
+                service_name="jeeves-vs",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteKubernetesIstioVirtualServiceActivity.get_retry_policy(),
+        )
+
+        # delete deployment
+        await workflow.execute_activity(
+            DeploymentDeletionActivity.defn,
+            arg=DeploymentDeletionActivityModel(
+                namespace=tenant,
+                name="jeeves",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeploymentDeletionActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            DeploymentDeletionActivity.defn,
+            arg=DeploymentDeletionActivityModel(
+                namespace=tenant,
+                name="jeeves-worker",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeploymentDeletionActivity.get_retry_policy(),
+        )
+
+        # delete vm pod scrapper
+        await workflow.execute_activity(
+            VMPodScrapperDeletionActivity.defn,
+            arg=VMPodScrapperDeletionActivityModel(
+                namespace=tenant,
+                name="jeeves-metrics",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=VMPodScrapperDeletionActivity.get_retry_policy(),
+        )
+
+        # delete config map
+        for config_map in [
+            "jeeves-tenant-config",
+            "jeeves-rclone-config",
+            "jeeves-cli-vector-config",
+            "jeeves-statestore-config",
+        ]:
+            await workflow.execute_activity(
+                DeleteK8sConfigMapActivity.defn,
+                arg=DeleteK8sConfigMapActivityModel(
+                    namespace=tenant,
+                    name=config_map,
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+                retry_policy=DeleteK8sConfigMapActivity.get_retry_policy(),
+            )
 
         await workflow.execute_activity(
             DeleteTemporalNamespaceActivity.defn,
@@ -197,85 +268,14 @@ class JeevesDeProvisioningWorkflow(Workflow):
         )
 
         await workflow.execute_activity(
-            DeleteHelpInstanceActivity.defn,
-            arg=DeleteHelpInstanceActivityModel(
+            DeleteHelpInstanceIdpActivity.defn,
+            arg=DeleteHelpInstanceIdpActivityModel(
                 tenant=tenant,
                 is_prod=True,
             ),
             start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeleteHelpInstanceActivity.get_retry_policy(),
+            retry_policy=DeleteHelpInstanceIdpActivity.get_retry_policy(),
         )
-
-        # delete k8s service
-        await workflow.execute_activity(
-            DeleteKubernetesServiceActivity.defn,
-            arg=DeleteKubernetesServiceActivityModel(
-                namespace=tenant,
-                service_name="jeeves",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeleteKubernetesServiceActivity.get_retry_policy(),
-        )
-
-        # delete k8s virtual service
-        await workflow.execute_activity(
-            DeleteKubernetesIstioVirtualServiceActivity.defn,
-            arg=DeleteKubernetesIstioVirtualServiceActivityModel(
-                namespace=tenant,
-                service_name="jeeves-vs",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeleteKubernetesIstioVirtualServiceActivity.get_retry_policy(),
-        )
-
-        # delete deployment
-        await workflow.execute_activity(
-            DeploymentDeletionActivity.defn,
-            arg=DeploymentDeletionActivityModel(
-                namespace=tenant,
-                name="jeeves",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-        )
-
-        await workflow.execute_activity(
-            DeploymentDeletionActivity.defn,
-            arg=DeploymentDeletionActivityModel(
-                namespace=tenant,
-                name="jeeves-worker",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-        )
-
-        # delete vm pod scrapper
-        await workflow.execute_activity(
-            VMPodScrapperDeletionActivity.defn,
-            arg=VMPodScrapperDeletionActivityModel(
-                namespace=tenant,
-                name="jeeves-metrics",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=VMPodScrapperDeletionActivity.get_retry_policy(),
-        )
-
-        # delete config map
-        for config_map in [
-            "jeeves-tenant-config",
-            "jeeves-rclone-config",
-            "jeeves-cli-vector-config",
-            "jeeves-statestore-config",
-        ]:
-            await workflow.execute_activity(
-                DeleteK8sConfigMapActivity.defn,
-                arg=DeleteK8sConfigMapActivityModel(
-                    namespace=tenant,
-                    name=config_map,
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-                retry_policy=DeleteK8sConfigMapActivity.get_retry_policy(),
-            )
 
         # delete bucket
         bucket_name = f"{tenant}-{jeeves_config.domain_name.replace('.', '-')}"
