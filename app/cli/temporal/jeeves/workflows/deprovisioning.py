@@ -4,6 +4,7 @@ from datetime import timedelta
 import pydash
 from temporalio import workflow
 
+from app.cli.temporal.activities.chatwootSetup import DeleteChatwootAccountActivity, DeleteChatwootAccountActivityModel
 from app.cli.temporal.activities.cloudflareSetup import (
     DeleteCloudflareBucketActivity,
     DeleteCloudflareBucketActivityModel,
@@ -14,17 +15,35 @@ from app.cli.temporal.activities.databaseMigrationJob import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     DeleteKubernetesIstioVirtualServiceActivity,
     DeleteKubernetesIstioVirtualServiceActivityModel,
 )
 from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
 from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
-from app.cli.temporal.activities.statefulSetPodCreation import (
-    StatefulSetPodDeletionActivity,
-    StatefulSetPodDeletionActivityModel,
+from app.cli.temporal.activities.keycloakSetup import (
+    DeleteHelpInstanceActivity,
+    DeleteHelpInstanceActivityModel,
+    DeleteKeycloakClientActivity,
+    DeleteKeycloakClientActivityModel,
+    DeleteKeycloakRealmActivity,
+    DeleteKeycloakRealmActivityModel,
+)
+from app.cli.temporal.activities.postgresSetup import (
+    DeletePostgresSchemaActivity,
+    DeletePostgresSchemaActivityModel,
+    DeletePostgresUserActivity,
+    DeletePostgresUserActivityModel,
+    DeleteSupavisorTenantActivity,
+    DeleteSupavisorTenantActivityModel,
+)
+from app.cli.temporal.activities.temporalNamespace import (
+    DeleteTemporalNamespaceActivity,
+    DeleteTemporalNamespaceActivityModel,
 )
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.vespaJob import VespaDeleteActivity, VespaDeleteActivityModel
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
 from app.cli.temporal.core.base import Workflow
 
@@ -46,8 +65,9 @@ class JeevesDeProvisioningWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
+            VespaDeleteActivity.defn,
+            DeleteTemporalNamespaceActivity.defn,
             DeleteKubernetesServiceActivity.defn,
-            StatefulSetPodDeletionActivity.defn,
             VMPodScrapperDeletionActivity.defn,
             DeleteK8sConfigMapActivity.defn,
             DeleteCloudflareBucketActivity.defn,
@@ -55,6 +75,13 @@ class JeevesDeProvisioningWorkflow(Workflow):
             UpdateTenantStatusActivity.defn,
             DeleteKubernetesIstioVirtualServiceActivity.defn,
             DeleteDatabaseMigrationJobActivity.defn,
+            DeleteSupavisorTenantActivity.defn,
+            DeletePostgresUserActivity.defn,
+            DeletePostgresSchemaActivity.defn,
+            DeleteChatwootAccountActivity.defn,
+            DeleteKeycloakClientActivity.defn,
+            DeleteKeycloakRealmActivity.defn,
+            DeleteHelpInstanceActivity.defn,
         ]
 
     @classmethod
@@ -80,6 +107,105 @@ class JeevesDeProvisioningWorkflow(Workflow):
 
         tenant = pydash.get(jeeves, "tenant")
 
+        await workflow.execute_activity(
+            DeleteTemporalNamespaceActivity.defn,
+            arg=DeleteTemporalNamespaceActivityModel(
+                namespace=f"jeeves_{tenant}",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteTemporalNamespaceActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            VespaDeleteActivity.defn,
+            arg=VespaDeleteActivityModel(
+                schema_name=f"jeeves_{tenant}",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=VespaDeleteActivity.get_retry_policy(),
+        )
+
+        # delete database migration job
+        await workflow.execute_activity(
+            DeleteDatabaseMigrationJobActivity.defn,
+            arg=DeleteDatabaseMigrationJobActivityModel(
+                namespace=tenant,
+                job_name="jeeves-db-schema-migration-job",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteDatabaseMigrationJobActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            DeleteSupavisorTenantActivity.defn,
+            arg=DeleteSupavisorTenantActivityModel(
+                supavisor_tenant_name=f"jeeves_{tenant}",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteSupavisorTenantActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            DeletePostgresUserActivity.defn,
+            arg=DeletePostgresUserActivityModel(
+                username=f"jeeves_{tenant}",
+                database_name="jeeves",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeletePostgresUserActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            DeletePostgresSchemaActivity.defn,
+            arg=DeletePostgresSchemaActivityModel(
+                schema_name=f"jeeves_{tenant}",
+                database_name="jeeves",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeletePostgresSchemaActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            DeleteChatwootAccountActivity.defn,
+            arg=DeleteChatwootAccountActivityModel(
+                tenant=tenant,
+                product="jeeves",
+                vault="Jeeves",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteChatwootAccountActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            DeleteKeycloakClientActivity.defn,
+            arg=DeleteKeycloakClientActivityModel(
+                client_name="jeeves",
+                realm_name=tenant,
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteKeycloakClientActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            DeleteKeycloakRealmActivity.defn,
+            arg=DeleteKeycloakRealmActivityModel(
+                client_name="jeeves",
+                realm_name=tenant,
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteKeycloakRealmActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            DeleteHelpInstanceActivity.defn,
+            arg=DeleteHelpInstanceActivityModel(
+                tenant=tenant,
+                is_prod=True,
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=DeleteHelpInstanceActivity.get_retry_policy(),
+        )
+
         # delete k8s service
         await workflow.execute_activity(
             DeleteKubernetesServiceActivity.defn,
@@ -102,36 +228,25 @@ class JeevesDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteKubernetesIstioVirtualServiceActivity.get_retry_policy(),
         )
 
-        # delete database migration job
+        # delete deployment
         await workflow.execute_activity(
-            DeleteDatabaseMigrationJobActivity.defn,
-            arg=DeleteDatabaseMigrationJobActivityModel(
-                namespace=tenant,
-                job_name="jeeves-db-schema-migration-job",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeleteDatabaseMigrationJobActivity.get_retry_policy(),
-        )
-
-        # delete stateful set
-        await workflow.execute_activity(
-            StatefulSetPodDeletionActivity.defn,
-            arg=StatefulSetPodDeletionActivityModel(
+            DeploymentDeletionActivity.defn,
+            arg=DeploymentDeletionActivityModel(
                 namespace=tenant,
                 name="jeeves",
             ),
             start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=StatefulSetPodDeletionActivity.get_retry_policy(),
+            retry_policy=DeploymentDeletionActivity.get_retry_policy(),
         )
 
         await workflow.execute_activity(
-            StatefulSetPodDeletionActivity.defn,
-            arg=StatefulSetPodDeletionActivityModel(
+            DeploymentDeletionActivity.defn,
+            arg=DeploymentDeletionActivityModel(
                 namespace=tenant,
                 name="jeeves-worker",
             ),
             start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=StatefulSetPodDeletionActivity.get_retry_policy(),
+            retry_policy=DeploymentDeletionActivity.get_retry_policy(),
         )
 
         # delete vm pod scrapper
@@ -188,7 +303,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
         await workflow.execute_activity(
             UpdateTenantStatusActivity.defn,
             arg=TenantStatus(
-                tenant=tenant,
+                tenant_name=tenant,
                 status="DeProvisioned",
             ),
             start_to_close_timeout=timedelta(seconds=120),
