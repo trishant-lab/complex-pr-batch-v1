@@ -22,6 +22,7 @@ class JeevesSpec(LaunchpadCLIBaseModel):
     lastName: str
     email: str
     companyNameProvidersOrPayersOnly: str
+    whichEhrDoesYourCompanyUse: str
     organization: None | str = None
     emailSent: bool = False
     serverSpec: None | ResourceSpec = ResourceSpec()

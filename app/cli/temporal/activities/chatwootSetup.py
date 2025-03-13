@@ -10,7 +10,7 @@ import orjson
 from loguru import logger
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
-from app.core.settings import JeevesSettings
+from app.core.settings import JeevesSettings, get_settings
 from app.onepasswordutil import OnePasswordUtil
 from datetime import timedelta
 
@@ -421,3 +421,64 @@ class ChatwootSetupActivity(Activity):
             tenant=activity_model.tenant, product=activity_model.product, config=activity_model.config
         )
         await chatwoot_setup.setup()
+
+
+class DeleteChatwootAccountActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteChatwootAccountActivityModel
+    """
+
+    tenant: str
+    product: str
+    vault: str
+
+
+class DeleteChatwootAccountActivity(Activity):
+    """
+    DeleteChatwootAccountActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=1), backoff_coefficient=2, maximum_attempts=3)
+
+    @staticmethod
+    @activity.defn(name="DeleteChatwootAccountActivity")
+    async def defn(activity_model: DeleteChatwootAccountActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        config = get_settings()
+        onepassword_util = OnePasswordUtil(
+            tenant=f"{activity_model.product.lower()}_{activity_model.tenant}",
+            server_item="application-config",
+            vault=activity_model.vault,
+        )
+        account_id = onepassword_util.get_key("chatwoot_account_id")
+        if not account_id:
+            logger.error(f"chatwoot account not found : {activity_model.tenant}")
+            raise RuntimeError(f"chatwoot account not found : {activity_model.tenant}")
+        headers = {
+            "api_access_token": config.jeeves.chatwoot_platform_api_token,
+            "Content-Type": CONTENT_TYPE,
+        }
+
+        url = f"{config.jeeves.chatwoot_base_url}/platform/api/v1/accounts/{account_id}"
+        async with aiohttp.ClientSession() as session:
+            response = await session.delete(url=url, headers=headers, timeout=aiohttp.ClientTimeout(total=20))
+            response_json: dict = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to delete account in chatwoot : {response_json}")
+                raise RuntimeError(f"Failed to delete account in chatwoot : {response_json}")
+
+            logger.info(f"chatwoot account deleted successfully : {activity_model.tenant}")

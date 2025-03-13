@@ -188,10 +188,16 @@ class VeritableSettings(BaseModel):
 
     zone_id: str = ""
     domain_name: str = "veritable.tech"
+
     sender_name: str = ""
     sender_email: str = ""
+
     temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
     temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
+
+    novu_url: str = "https://alerting.314ecorp.tech/"
+    novu_admin_user: str = "support@veritable.app"
+    novu_admin_password: str = ""
 
 
 class JeevesSettings(BaseModel):
@@ -224,6 +230,11 @@ class JeevesSettings(BaseModel):
     server_url: str = ""
 
     keycloak_smtp_password: str = ""
+
+    vespa_host: str = ""
+    vespa_deploy_port_address: str = ""
+    vespa_user_index_suffix: str = "_user"
+    vespa_application_path: str = "/vespa/jeeves/application"
 
     prod_image_tag: str = ""
     idp_config: dict = {}
@@ -398,6 +409,7 @@ class AppSettings(BaseSettings):
     client_code: str = "launchpad"
 
     keycloak: KeycloakSettings = KeycloakSettings()
+    keycloak_prod: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()

@@ -7,7 +7,8 @@ from cloudflare import AsyncCloudflare
 from cloudflare.types.r2 import TemporaryCredentialCreateResponse
 from loguru import logger
 
-from app.core.settings import AppSettings, get_settings, APP_CONFIG
+from app.cli.temporal.activities.cloudflareSetup import CloudflareBucketCredentials
+from app.core.settings import APP_CONFIG, AppSettings, get_settings
 
 
 def get_cloudflare_sdk_client(config: AppSettings) -> AsyncCloudflare:
@@ -226,7 +227,9 @@ async def update_cors_for_bucket(config: AppSettings, bucket_name: str, rules: l
             raise RuntimeError(f"Failed to update CORS for bucket {bucket_name}")
 
 
-async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSettings, read_only: bool = False) -> dict:
+async def create_cloudflare_bucket_credentials(
+    bucket_name: str, config: AppSettings, read_only: bool = False
+) -> CloudflareBucketCredentials:
     """
     Create a Cloudflare bucket credentials
     """
@@ -256,11 +259,8 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
                 if token_issued_on > selected_token_issued_on:
                     selected_token = token
             if selected_token:
-                return {
-                    "access_key": selected_token["id"],
-                    "secret_key": hashlib.sha256(selected_token["id"].encode()).hexdigest(),
-                }
-
+                # need to do manually incase credentials are not found in OnePassword
+                return CloudflareBucketCredentials(exists=True)
         response = await client.post(
             url="user/tokens",
             json={
@@ -287,4 +287,4 @@ async def create_cloudflare_bucket_credentials(bucket_name: str, config: AppSett
         secret_sha_key = response_json["result"]["value"]
         secret_key = hashlib.sha256(secret_sha_key.encode()).hexdigest()
 
-        return {"access_key": access_key, "secret_key": secret_key}
+        return CloudflareBucketCredentials(access_key=access_key, secret_key=secret_key, exists=False)
