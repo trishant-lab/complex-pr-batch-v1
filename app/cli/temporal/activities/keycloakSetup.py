@@ -737,18 +737,18 @@ class JeevesKeycloakCreateIDPFlowActivity(Activity):
         )
 
 
-class DeleteHelpInstanceIdpActivityModel(LaunchpadCLIBaseModel):
+class DeleteIdpFromHelpinstanceActivityModel(LaunchpadCLIBaseModel):
     """
-    DeleteHelpInstanceIdpActivityModel
+    DeleteIdpFromHelpinstanceActivityModel
     """
 
     tenant: str
     is_prod: bool = False
 
 
-class DeleteHelpInstanceIdpActivity(Activity):
+class DeleteIdpFromHelpinstanceActivity(Activity):
     """
-    DeleteHelpInstanceIdpActivity
+    DeleteIdpFromHelpinstanceActivity
     """
 
     @staticmethod
@@ -766,8 +766,8 @@ class DeleteHelpInstanceIdpActivity(Activity):
         return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
-    @activity.defn(name="DeleteHelpInstanceIdpActivity")
-    async def defn(activity_model: DeleteHelpInstanceIdpActivityModel) -> None:
+    @activity.defn(name="DeleteIdpFromHelpinstanceActivity")
+    async def defn(activity_model: DeleteIdpFromHelpinstanceActivityModel) -> None:
         """
         Delete keycloak client
         """

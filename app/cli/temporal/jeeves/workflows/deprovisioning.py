@@ -23,8 +23,8 @@ from app.cli.temporal.activities.k8sIstioVirtualService import (
 from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
 from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.keycloakSetup import (
-    DeleteHelpInstanceIdpActivity,
-    DeleteHelpInstanceIdpActivityModel,
+    DeleteIdpFromHelpinstanceActivity,
+    DeleteIdpFromHelpinstanceActivityModel,
     DeleteKeycloakClientActivity,
     DeleteKeycloakClientActivityModel,
     DeleteKeycloakRealmActivity,
@@ -81,7 +81,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
             DeleteChatwootAccountActivity.defn,
             DeleteKeycloakClientActivity.defn,
             DeleteKeycloakRealmActivity.defn,
-            DeleteHelpInstanceIdpActivity.defn,
+            DeleteIdpFromHelpinstanceActivity.defn,
         ]
 
     @classmethod
@@ -268,13 +268,13 @@ class JeevesDeProvisioningWorkflow(Workflow):
         )
 
         await workflow.execute_activity(
-            DeleteHelpInstanceIdpActivity.defn,
-            arg=DeleteHelpInstanceIdpActivityModel(
+            DeleteIdpFromHelpinstanceActivity.defn,
+            arg=DeleteIdpFromHelpinstanceActivityModel(
                 tenant=tenant,
                 is_prod=True,
             ),
             start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=DeleteHelpInstanceIdpActivity.get_retry_policy(),
+            retry_policy=DeleteIdpFromHelpinstanceActivity.get_retry_policy(),
         )
 
         # delete bucket
