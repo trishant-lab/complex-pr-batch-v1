@@ -885,6 +885,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="help_instance_idp_flow.json",
                     template_payload={"idp_config": jeeves_config.idp_config, "auth_url": config.keycloak.auth_url},
+                    is_prod=True,
                 ),
                 retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
                 start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),

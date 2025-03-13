@@ -1,8 +1,14 @@
+from pathlib import Path
+import shutil
+import tempfile
+import aiohttp
+from lxml import etree
+
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from kubernetes.client import (
     V1Job,
     V1ObjectMeta,
@@ -19,7 +25,7 @@ from kubernetes.client import (
 )
 from kubernetes.dynamic.exceptions import NotFoundError
 
-from app.cli.temporal.core.base import Activity
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
 from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.k8s_util import get_dynamic_client, get_resource, ResourceKindEnum
@@ -28,6 +34,95 @@ from app.core.settings import get_settings
 
 
 TENANT_CONFIG_FILE = "tenant-config.json"
+
+
+class VespaDeleteActivityModel(LaunchpadCLIBaseModel):
+    schema_name: str
+
+
+class VespaDeleteActivity(Activity):
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=240)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            backoff_coefficient=2,
+            maximum_interval=timedelta(seconds=10),
+            maximum_attempts=3,
+        )
+
+    @staticmethod
+    @activity.defn(name="VespaDeleteActivity")
+    async def defn(activity_input: VespaDeleteActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        config = get_settings()
+        user_schema_name: str = f"{activity_input.schema_name}{config.jeeves.vespa_user_index_suffix}"
+        tree = etree.parse(f"{config.jeeves.vespa_application_path}/services.xml")  # nosec
+        root = tree.getroot()
+        docs = root.find("content").find("documents")
+        [
+            docs.remove(doc)
+            for doc in docs.findall("document")
+            if doc.get("type") == activity_input.schema_name or doc.get("type") == user_schema_name
+        ]
+        tree = etree.ElementTree(root)
+        etree.indent(tree, " ")
+        tree.write(f"{config.jeeves.vespa_application_path}/services.xml")
+
+        validation_tree = etree.parse(f"{config.jeeves.vespa_application_path}/validation-overrides.xml")  # nosec
+        validation_root = validation_tree.getroot()
+        docs = validation_root.findall("allow")
+        [docs.remove(doc) for doc in docs if doc.text == "schema-removal"]
+        new_allow_element = etree.Element("allow")
+        new_allow_element.text = "schema-removal"
+        new_allow_element.set("until", (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d"))
+        validation_root.append(new_allow_element)
+        validation_tree = etree.ElementTree(validation_root)
+        etree.indent(validation_tree, " ")
+        validation_tree.write(f"{config.jeeves.vespa_application_path}/validation-overrides.xml")
+
+        try:
+            Path(f"{config.jeeves.vespa_application_path}/schemas/" + activity_input.schema_name + ".sd").unlink()
+            Path(f"{config.jeeves.vespa_application_path}/schemas/" + user_schema_name + ".sd").unlink()
+            zip_path: Path = Path(config.jeeves.vespa_application_path, "application.zip")
+            if zip_path.exists():
+                zip_path.unlink()
+                with tempfile.TemporaryDirectory() as temp_directory:
+                    temp_application_path: Path = Path(temp_directory, "application")
+                    shutil.copytree(config.jeeves.vespa_application_path, temp_application_path)
+                    shutil.make_archive(
+                        str(zip_path.with_suffix("")),
+                        "zip",
+                        temp_application_path,
+                    )
+                deploy_url: str = (
+                    f"{config.jeeves.vespa_host}:{config.jeeves.vespa_deploy_port_address}"
+                    f"/application/v2/tenant/default/prepareandactivate"
+                )
+                async with aiohttp.ClientSession() as session:
+                    with open(zip_path, "rb") as zip_file:
+                        file_content = zip_file.read()
+                        response = await session.post(
+                            deploy_url,
+                            headers={"Content-Type": "application/zip"},
+                            data=file_content,
+                            timeout=aiohttp.ClientTimeout(total=120),
+                        )
+                        if response.status != 200:
+                            log_error("Could not delete index")
+        except Exception:
+            log_error("Could not delete index")
 
 
 class VespaJob(K8sResourceBaseClass):
