@@ -174,12 +174,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
         )
 
         # delete config map
-        for config_map in [
-            "jeeves-tenant-config",
-            "jeeves-rclone-config",
-            "jeeves-cli-vector-config",
-            "jeeves-statestore-config",
-        ]:
+        for config_map in ["jeeves-tenant-config", "jeeves-rclone-config"]:
             await workflow.execute_activity(
                 DeleteK8sConfigMapActivity.defn,
                 arg=DeleteK8sConfigMapActivityModel(
