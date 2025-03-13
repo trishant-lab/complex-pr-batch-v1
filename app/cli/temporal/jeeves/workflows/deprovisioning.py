@@ -38,6 +38,7 @@ from app.cli.temporal.activities.postgresSetup import (
     DeleteSupavisorTenantActivity,
     DeleteSupavisorTenantActivityModel,
 )
+from app.cli.temporal.activities.redis import RedisDeleteNamespaceActivity, RedisDeleteNamespaceActivityModel
 from app.cli.temporal.activities.temporalNamespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
@@ -82,6 +83,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
             DeleteKeycloakClientActivity.defn,
             DeleteKeycloakRealmActivity.defn,
             DeleteIdpFromHelpinstanceActivity.defn,
+            RedisDeleteNamespaceActivity.defn,
         ]
 
     @classmethod
@@ -129,6 +131,27 @@ class JeevesDeProvisioningWorkflow(Workflow):
             retry_policy=DeleteKubernetesIstioVirtualServiceActivity.get_retry_policy(),
         )
 
+        # delete vm pod scrapper
+        await workflow.execute_activity(
+            VMPodScrapperDeletionActivity.defn,
+            arg=VMPodScrapperDeletionActivityModel(
+                namespace=tenant,
+                name="jeeves-metrics",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=VMPodScrapperDeletionActivity.get_retry_policy(),
+        )
+
+        await workflow.execute_activity(
+            VMPodScrapperDeletionActivity.defn,
+            arg=VMPodScrapperDeletionActivityModel(
+                namespace=tenant,
+                name="jeeves-worker-metrics",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=VMPodScrapperDeletionActivity.get_retry_policy(),
+        )
+
         # delete deployment
         await workflow.execute_activity(
             DeploymentDeletionActivity.defn,
@@ -150,17 +173,6 @@ class JeevesDeProvisioningWorkflow(Workflow):
             retry_policy=DeploymentDeletionActivity.get_retry_policy(),
         )
 
-        # delete vm pod scrapper
-        await workflow.execute_activity(
-            VMPodScrapperDeletionActivity.defn,
-            arg=VMPodScrapperDeletionActivityModel(
-                namespace=tenant,
-                name="jeeves-metrics",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-            retry_policy=VMPodScrapperDeletionActivity.get_retry_policy(),
-        )
-
         # delete config map
         for config_map in [
             "jeeves-tenant-config",
@@ -177,6 +189,16 @@ class JeevesDeProvisioningWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
                 retry_policy=DeleteK8sConfigMapActivity.get_retry_policy(),
             )
+
+        await workflow.execute_activity(
+            RedisDeleteNamespaceActivity.defn,
+            arg=RedisDeleteNamespaceActivityModel(
+                namespace=f"jeeves_{tenant}",
+                product="jeeves",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+            retry_policy=RedisDeleteNamespaceActivity.get_retry_policy(),
+        )
 
         await workflow.execute_activity(
             DeleteTemporalNamespaceActivity.defn,
