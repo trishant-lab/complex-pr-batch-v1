@@ -755,8 +755,6 @@ class JeevesOnboardingWorkflow(Workflow):
             # setup configmaps
             tenant_config = "tenant-config.json"
             rclone_config = "rclone.conf"
-            vector_config = "vector-config.toml"
-            statestore_config = "statestore.yaml"
             config_dir = "config"
 
             # setup tenant configmap
@@ -770,16 +768,6 @@ class JeevesOnboardingWorkflow(Workflow):
                     "name": "jeeves-rclone-config",
                     "key": rclone_config,
                     "template_file_name": f"{config.env}-rclone.tmpl.conf",
-                },
-                {
-                    "name": "jeeves-cli-vector-config",
-                    "key": vector_config,
-                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
-                },
-                {
-                    "name": "jeeves-statestore-config",
-                    "key": statestore_config,
-                    "template_file_name": f"{config.env}-statestore.tmpl.yaml",
                 },
             ]:
                 await workflow.execute_activity(
@@ -1042,11 +1030,6 @@ class JeevesOnboardingWorkflow(Workflow):
                             "sub_path": tenant_config,
                         },
                         {"name": "rclone-volume", "mount_path": "/root/.config/rclone/", "read_only": True},
-                        {
-                            "name": "statestore-volume",
-                            "mount_path": f"/root/.dapr/components/{statestore_config}",
-                            "sub_path": statestore_config,
-                        },
                     ],
                     volumes=[
                         {
@@ -1060,12 +1043,6 @@ class JeevesOnboardingWorkflow(Workflow):
                             "config_map_name": "jeeves-rclone-config",
                             "key": rclone_config,
                             "path": rclone_config,
-                        },
-                        {
-                            "name": "statestore-volume",
-                            "config_map_name": "jeeves-statestore-config",
-                            "key": statestore_config,
-                            "path": statestore_config,
                         },
                     ],
                     container_envs=[
@@ -1108,12 +1085,6 @@ class JeevesOnboardingWorkflow(Workflow):
                             "sub_path": tenant_config,
                         },
                         {"name": "rclone-volume", "mount_path": "/root/.config/rclone/", "read_only": True},
-                        {
-                            "name": "statestore-volume",
-                            "mount_path": f"/root/.dapr/components/{statestore_config}",
-                            "sub_path": statestore_config,
-                        },
-                        {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
                     ],
                     volumes=[
                         {
@@ -1127,18 +1098,6 @@ class JeevesOnboardingWorkflow(Workflow):
                             "config_map_name": "jeeves-rclone-config",
                             "key": rclone_config,
                             "path": rclone_config,
-                        },
-                        {
-                            "name": "statestore-volume",
-                            "config_map_name": "jeeves-statestore-config",
-                            "key": statestore_config,
-                            "path": statestore_config,
-                        },
-                        {
-                            "name": "vector-volume",
-                            "config_map_name": "jeeves-cli-vector-config",
-                            "key": vector_config,
-                            "path": vector_config,
                         },
                     ],
                     container_envs=[
