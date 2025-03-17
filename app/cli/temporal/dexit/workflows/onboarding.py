@@ -11,12 +11,16 @@ from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivity,
     CreateCloudflareBucketActivityModel,
+    CreateCloudflareBucketCredentialsActivity,
+    CreateCloudflareBucketCredentialsActivityModel,
     CreateCloudflareDNSRecordActivity,
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivity,
+    UpdateCORSForBucketActivityModel,
 )
 from app.cli.temporal.activities.databaseMigrationJob import (
     DatabaseMigrationJobActivity,
@@ -44,10 +48,13 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakServiceAccountSetupActivity,
     KeycloakServiceAccountSetupActivityModel,
+    DexitKeycloakCreateIDPFlowActivity,
 )
 from app.cli.temporal.activities.onePassword import (
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
 )
 from app.cli.temporal.activities.postgresSetup import (
     PostgresUserCreationActivity,
@@ -459,6 +466,22 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakServiceAccountSetupActivity.get_timeout(),
             )
 
+            # Create IDP mappers
+            await workflow.execute_activity(
+                activity=DexitKeycloakCreateIDPFlowActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name="dexithelp",
+                    domain=dexit_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="dexithelp_instance_idp_flow.json",
+                    template_payload={"idp_config": dexit_config.idp_config, "auth_url": config.keycloak.auth_url},
+                    is_prod=True,
+                ),
+                retry_policy=DexitKeycloakCreateIDPFlowActivity.get_retry_policy(),
+                start_to_close_timeout=DexitKeycloakCreateIDPFlowActivity.get_timeout(),
+            )
+
             # keycloak tenant customer admin user setup
             await workflow.execute_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
@@ -554,6 +577,32 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
+            # update cors for bucket
+            await workflow.execute_activity(
+                activity=UpdateCORSForBucketActivity.defn,
+                arg=UpdateCORSForBucketActivityModel(
+                    bucket_name=bucket_name,
+                    rules=[
+                        {
+                            "allowed": {
+                                "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                "origins": ["*"],
+                                "headers": [
+                                    "Authorization",
+                                    "content-type",
+                                    "x-amz-*",
+                                    "traceparent",
+                                    "x-highlight-request",
+                                ],
+                            },
+                            "exposeHeaders": ["ETag", "Location", "Content-Disposition"],
+                        }
+                    ],
+                ),
+                retry_policy=UpdateCORSForBucketActivity.get_retry_policy(),
+                start_to_close_timeout=UpdateCORSForBucketActivity.get_timeout(),
+            )
+
             # propagate the dns record
             await workflow.execute_activity(
                 activity=PropagateDNSRecordActivity.defn,
@@ -590,6 +639,58 @@ class DexitOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
+            )
+
+            credentials = await workflow.execute_activity(
+                activity=CreateCloudflareBucketCredentialsActivity.defn,
+                arg=CreateCloudflareBucketCredentialsActivityModel(
+                    bucket_name=bucket_name,
+                    read_only=False,
+                ),
+                retry_policy=CreateCloudflareBucketCredentialsActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareBucketCredentialsActivity.get_timeout(),
+            )
+
+            # s3 bucket name added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_bucket_name",
+                    key_value=bucket_name,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
+            # s3 access key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_access_key",
+                    key_value=credentials["access_key"],
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
+            # s3 secret key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_secret_key",
+                    key_value=credentials["secret_key"],
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # atlas job

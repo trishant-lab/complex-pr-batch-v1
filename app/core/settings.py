@@ -333,6 +333,8 @@ class DexitSettings(BaseModel):
     keycloak_db_password: str = ""
     matomo_db_password: str = ""
 
+    idp_config: dict = {}
+
     slack_application_id: str = ""
     slack_client_id: str = ""
     slack_channel_secret_key: str = ""
