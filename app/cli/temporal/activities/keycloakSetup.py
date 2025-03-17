@@ -27,6 +27,19 @@ def template_render(
     return template.render(**(template_payload if template_payload else {}))
 
 
+def get_ehr_based_idp_template(ehr: str) -> str:
+    """
+    Return IDP template based on EHR
+    """
+    match ehr.lower():
+        case "cerner":
+            return "keycloak_cerner_ehr_idp_flows.json"
+        case "epic":
+            return "keycloak_epic_ehr_idp_flows.json"
+        case _:
+            return "keycloak_idp_and_flows.json"
+
+
 def create_keycloak_realm(
     realm_name: str,
     domain: str,
@@ -220,14 +233,27 @@ def delete_keycloak_client(
     Delete keycloak client
     """
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-
-    client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
     try:
-        keycloak_client.delete_client(client_id=client_id, realm_name=realm_name)
+        keycloak_client.delete_client(client_name=client_name, realm_name=realm_name)
     except Exception as e:
         log_error(f"Keycloak client {client_name} not found in realm {realm_name} {e}")
 
     log_info(f"Keycloak client {client_name} deleted successfully")
+
+
+def delete_keycloak_realm(
+    client_name: str,
+    realm_name: str,
+) -> None:
+    """
+    Delete keycloak realm
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    try:
+        keycloak_client.delete_realm(realm_name=realm_name, client_name=client_name)
+    except Exception as e:
+        log_error(f"Failed to delete realm {realm_name}: {e}")
+    log_info(f"Keycloak realm {realm_name} deleted successfully")
 
 
 def create_jeeves_idp_flow(
@@ -236,6 +262,7 @@ def create_jeeves_idp_flow(
     template_path: str,
     template_name: str,
     domain: str,
+    is_prod: bool,
     template_payload: dict | None = None,
 ) -> None:
     """
@@ -253,7 +280,7 @@ def create_jeeves_idp_flow(
 
     idp_configs = orjson.loads(idp_configs)
 
-    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager(is_prod=is_prod)
     identity_providers = keycloak_client.get_identity_providers(realm_name=realm_name)
     try:
         for idp_config in idp_configs["identityProviders"]:
@@ -267,7 +294,7 @@ def create_jeeves_idp_flow(
                             realm_name=realm_name,
                         )
     except Exception as e:
-        log_error(f"Failed to create Keycloak idp and flows for {tenant} with error: {e}")
+        log_error(f"Failed to create Keycloak idp and flows for {tenant=} with error: {e=}")
         return
     log_info(f"Keycloak idp and flows for {tenant} created successfully.")
 
@@ -332,6 +359,7 @@ class KeycloakClientSetupActivityModel(LaunchpadCLIBaseModel):
     domain: str
     template_path: str
     template_name: str
+    is_prod: bool = False
     template_payload: dict | None = None
     auth_credential: str | None = None
 
@@ -693,7 +721,7 @@ class JeevesKeycloakCreateIDPFlowActivity(Activity):
         return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
-    @activity.defn(name="KeycloakCreateIDPFlowActivity")
+    @activity.defn(name="JeevesKeycloakCreateIDPFlowActivity")
     async def defn(activity_model: KeycloakClientSetupActivityModel) -> None:
         """
         Create keycloak client
@@ -705,4 +733,86 @@ class JeevesKeycloakCreateIDPFlowActivity(Activity):
             template_name=activity_model.template_name,
             domain=activity_model.domain,
             template_payload=activity_model.template_payload,
+            is_prod=activity_model.is_prod,
+        )
+
+
+class DeleteIdpFromHelpinstanceActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteIdpFromHelpinstanceActivityModel
+    """
+
+    tenant: str
+    is_prod: bool = False
+
+
+class DeleteIdpFromHelpinstanceActivity(Activity):
+    """
+    DeleteIdpFromHelpinstanceActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="DeleteIdpFromHelpinstanceActivity")
+    async def defn(activity_model: DeleteIdpFromHelpinstanceActivityModel) -> None:
+        """
+        Delete keycloak client
+        """
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager(is_prod=True)
+        try:
+            keycloak_client.delete_idp(idp_alias=f"jeeves-{activity_model.tenant}", realm_name="help")
+        except Exception as e:
+            log_error(f"Failed to delete identity provider {e}")
+
+
+class DeleteKeycloakRealmActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteKeycloakRealmActivityModel
+    """
+
+    client_name: str
+    realm_name: str
+
+
+class DeleteKeycloakRealmActivity(Activity):
+    """
+    DeleteKeycloakRealmActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="DeleteKeycloakRealmActivity")
+    async def defn(activity_model: DeleteKeycloakRealmActivityModel) -> None:
+        """
+        Delete keycloak client
+        """
+        delete_keycloak_realm(
+            client_name=activity_model.client_name,
+            realm_name=activity_model.realm_name,
         )

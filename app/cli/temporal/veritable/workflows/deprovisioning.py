@@ -30,11 +30,10 @@ from app.cli.temporal.activities.temporalNamespace import (
     DeleteTemporalNamespaceActivityModel,
 )
 from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.veritableNovuSetup import VeritableNovuDeProvisionActivity
 from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
-
-
 from app.core.settings import VeritableSettings, get_settings
 
 ProductName = "veritable"
@@ -68,6 +67,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             UpdateTenantStatusActivity.defn,
             DeleteKubernetesIstioVirtualServiceActivity.defn,
             DeleteDatabaseMigrationJobActivity.defn,
+            VeritableNovuDeProvisionActivity.defn,
         ]
 
     @workflow.run
@@ -161,7 +161,11 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 )
 
             # delete secrets
-            secrets = ["registrycred", "cache-secret", "tenant-cache-secret", "postgres-secret"]
+            secrets = [
+                "tenant-cache-secret",
+                "veritable-novu",
+                "veritable-cloudflare-r2",
+            ]
             for secret in secrets:
                 await workflow.execute_activity(
                     K8sSecretDeletionActivity.defn,
@@ -174,12 +178,10 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 )
 
             # delete bucket
-            bucket_name = f"{tenant}.{veritable_config.domain_name}"
-            bucket_name = bucket_name.replace(".", "-")
             await workflow.execute_activity(
                 DeleteCloudflareBucketActivity.defn,
                 arg=DeleteCloudflareBucketActivityModel(
-                    bucket_name=bucket_name,
+                    bucket_name=veritable.cloudflare_r2_data_bucket,
                 ),
                 start_to_close_timeout=DeleteCloudflareBucketActivity.get_timeout(),
                 retry_policy=DeleteCloudflareBucketActivity.get_retry_policy(),
@@ -216,6 +218,22 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 ),
                 start_to_close_timeout=DeleteTemporalNamespaceActivity.get_timeout(),
                 retry_policy=DeleteTemporalNamespaceActivity.get_retry_policy(),
+            )
+
+            await workflow.execute_activity(
+                activity=VeritableNovuDeProvisionActivity.defn,
+                arg=veritable,
+                start_to_close_timeout=VeritableNovuDeProvisionActivity.get_timeout(),
+                retry_policy=VeritableNovuDeProvisionActivity.get_retry_policy(),
+            )
+
+            await workflow.execute_activity(
+                DeleteCloudflareBucketActivity.defn,
+                arg=DeleteCloudflareBucketActivityModel(
+                    bucket_name=veritable.cloudflare_r2_ui_bucket,
+                ),
+                start_to_close_timeout=DeleteCloudflareBucketActivity.get_timeout(),
+                retry_policy=DeleteCloudflareBucketActivity.get_retry_policy(),
             )
 
             # update tenant status

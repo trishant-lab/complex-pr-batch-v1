@@ -1,7 +1,10 @@
 import subprocess
 import tempfile
+import re
 from datetime import timedelta
+from typing import Literal
 
+import httpx
 from loguru import logger
 from temporalio import activity
 from temporalio.common import RetryPolicy
@@ -16,7 +19,8 @@ class JeevesFetchLatestTagActivityModel(LaunchpadCLIBaseModel):
     JeevesFetchLatestTagActivityModel
     """
 
-    repo_url: str
+    tag_type: Literal["server", "ui"]
+    repo_url: str | None = None
 
 
 class JeevesFetchLatestTagActivity(Activity):
@@ -45,24 +49,39 @@ class JeevesFetchLatestTagActivity(Activity):
         Fetch latest tags
         """
         config: AppSettings = get_settings()
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            try:
-                subprocess.check_call(
-                    ["git", "clone", activity_input.repo_url.format(config.gitsettings.access_token), tmp_dir],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+        match activity_input.tag_type:
+            case "server":
+                url = f"{config.docker_registry.registry_url}/v2/jeeves-app/tags/list"
+                response = httpx.get(
+                    url, auth=(config.docker_registry.registry_username, config.docker_registry.registry_password)
                 )
-                subprocess.check_call(["git", "fetch", "--tags"], cwd=tmp_dir)
-                tags = subprocess.check_output(["git", "tag"], cwd=tmp_dir, text=True).strip()
-                if not tags:
-                    return ""
-                subprocess.check_call(["git", "checkout", "production"], cwd=tmp_dir)
-                tag = subprocess.check_output(
-                    ["git", "describe", "--tags", "--abbrev=0"], cwd=tmp_dir, text=True
-                ).strip()
-                # TODO: removeb this tag once verified
-                logger.debug(f"Latest tag : {tag=}")
-                return tag
-            except subprocess.CalledProcessError as e:
-                log_error(f"Failed to fetch latest tag with exception: {e=}")
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("tags"):
+                        pattern = r"^jeeves-[\d\.]+$"
+                        filtered_tags = sorted([tag for tag in data["tags"] if re.match(pattern, tag)])
+                        return filtered_tags[-1] if filtered_tags else "production"
+                log_error("No tags found.")
                 return "production"
+            case "ui":
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    try:
+                        subprocess.check_call(
+                            ["git", "clone", activity_input.repo_url.format(config.gitsettings.access_token), tmp_dir],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        subprocess.check_call(["git", "fetch", "--tags"], cwd=tmp_dir)
+                        tags = subprocess.check_output(["git", "tag"], cwd=tmp_dir, text=True).strip()
+                        if not tags:
+                            return ""
+                        subprocess.check_call(["git", "checkout", "production"], cwd=tmp_dir)
+                        tag = subprocess.check_output(
+                            ["git", "describe", "--tags", "--abbrev=0"], cwd=tmp_dir, text=True
+                        ).strip()
+                        # TODO: removeb this tag once verified
+                        logger.debug(f"Latest tag : {tag=}")
+                        return tag
+                    except subprocess.CalledProcessError as e:
+                        log_error(f"Failed to fetch latest tag with exception: {e=}")
+                        return "production"

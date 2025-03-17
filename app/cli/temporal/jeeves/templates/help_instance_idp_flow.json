@@ -1,0 +1,60 @@
+{
+    "identityProviders": [
+        {
+            "alias": "jeeves-<<tenant>>",
+            "displayName": "",
+            "providerId": "oidc",
+            "enabled": true,
+            "updateProfileFirstLoginMode": "on",
+            "trustEmail": true,
+            "storeToken": false,
+            "addReadTokenRoleOnCreate": false,
+            "authenticateByDefault": false,
+            "linkOnly": false,
+            "hideOnLogin": true,
+            "firstBrokerLoginFlowAlias": "314e first broker login",
+            "config": {
+                "tokenUrl": "<< auth_url >>/auth/realms/<<tenant>>/protocol/openid-connect/token",
+                "acceptsPromptNoneForwardFromClient": "false",
+                "jwksUrl": "<< auth_url >>/auth/realms/<<tenant>>/protocol/openid-connect/certs",
+                "isAccessTokenJWT": "false",
+                "filteredByClaim": "false",
+                "jwtX509HeadersEnabled": "false",
+                "backchannelSupported": "false",
+                "caseSensitiveOriginalUsername": "false",
+                "issuer": "<< auth_url >>/auth/realms/<<tenant>>",
+                "loginHint": "false",
+                "clientAuthMethod": "private_key_jwt",
+                "clientAssertionSigningAlg": "RS256",
+                "syncMode": "IMPORT",
+                "clientSecret": "<< idp_config['default']['client_secret'] >>",
+                "allowedClockSkew": "0",
+                "userInfoUrl": "<< auth_url >>/auth/realms/<<tenant>>/protocol/openid-connect/userinfo",
+                "validateSignature": "true",
+                "clientId": "jeeves",
+                "uiLocales": "false",
+                "disableNonce": "false",
+                "useJwksUrl": "true",
+                "sendClientIdOnLogout": "false",
+                "pkceEnabled": "false",
+                "metadataDescriptorUrl": "<< auth_url >>/auth/realms/<<tenant>>/.well-known/openid-configuration",
+                "authorizationUrl": "<< auth_url >>/auth/realms/<<tenant>>/protocol/openid-connect/auth",
+                "disableUserInfo": "false",
+                "logoutUrl": "https://<<tenant>>.<<domain>>",
+                "sendIdTokenOnLogout": "true",
+                "passMaxAge": "false"
+            }
+        }
+    ],
+    "identityProviderMappers": [
+        {
+            "name": "standalone_launch_access",
+            "identityProviderAlias": "jeeves-<<tenant>>",
+            "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
+            "config": {
+                "syncMode": "FORCE",
+                "role": "jeeves._allow-standalone-launch"
+            }
+        }
+    ]
+}

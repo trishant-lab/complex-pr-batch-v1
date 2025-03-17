@@ -605,3 +605,171 @@ class PostgresSupavisorPollUserActivity(Activity):
                     message=f"Supavisor user creation failed with status code: {response.status}",
                 )
         log_info(f"Supervisor poll user created: {activity_model.username}")
+
+
+class DeleteSupavisorTenantActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteSupavisorTenantActivityModel
+    """
+
+    supavisor_tenant_name: str
+
+
+class DeleteSupavisorTenantActivity(Activity):
+    """
+    DeleteSupavisorTenantActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="DeleteSupavisorTenantActivity")
+    async def defn(activity_model: DeleteSupavisorTenantActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        config: AppSettings = get_settings()
+
+        async with aiohttp.ClientSession() as session:
+            response = await session.delete(
+                url=f"{config.supavisor_url}/api/tenants/{activity_model.supavisor_tenant_name}",
+                headers={
+                    "Authorization": f"Bearer {config.supavisor_token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                timeout=aiohttp.ClientTimeout(total=120),
+            )
+
+            if response.status < 200 or response.status >= 299:
+                response_json = await response.json()
+                log_error(
+                    f"Supavisor user deletion failed with status code: {response.status} and response: {response_json}"
+                )
+                raise aiohttp.ClientResponseError(
+                    request_info=aiohttp.RequestInfo(
+                        url=f"{config.supavisor_url}/api/tenants/{activity_model.username}",
+                        method="DELETE",
+                        headers={"Authorization": f"Bearer {config.supavisor_token}"},
+                    ),
+                    history=(),
+                    status=response.status,
+                    message=f"Supavisor user creation failed with status code: {response.status}",
+                )
+        log_info(f"Supervisor poll user created: {activity_model.username}")
+
+
+class DeletePostgresUserActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeletePostgresUserActivityModel
+    """
+
+    username: str
+    database_name: str
+
+
+class DeletePostgresUserActivity(Activity):
+    """
+    DeletePostgresUserActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="DeletePostgresUserActivity")
+    async def defn(activity_model: DeletePostgresUserActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        config: AppSettings = get_settings()
+
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
+
+        await db.execute_raw_sql(
+            query=f"DROP USER IF EXISTS {activity_model.username};",
+        )
+        log_info(f"Deleted user {activity_model.username} successfully.")
+
+
+class DeletePostgresSchemaActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeletePostgresSchemaActivityModel
+    """
+
+    schema_name: str
+    database_name: str
+
+
+class DeletePostgresSchemaActivity(Activity):
+    """
+    DeletePostgresSchemaActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="DeletePostgresSchemaActivity")
+    async def defn(activity_model: DeletePostgresSchemaActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        config: AppSettings = get_settings()
+
+        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
+
+        db: DBManager = await get_db_manager(dsn=dsn)
+
+        await db.execute_raw_sql(
+            query=f"DROP SCHEMA IF EXISTS {activity_model.schema_name} CASCADE;",
+        )
+        log_info(f"Deleted schema {activity_model.schema_name} successfully.")

@@ -1,33 +1,32 @@
 import asyncio
 import socket
+import tempfile
+import zipfile
+from datetime import timedelta
+
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-
-import zipfile
-import tempfile
-from datetime import timedelta
-from app.cli.temporal.core.base import Activity
-from app.cli.temporal.core.base import LaunchpadCLIBaseModel
 from app.cli.cloudflareUtils import (
-    create_cloudflare_bucket_credentials,
-    get_temporary_credentials,
     create_bucket,
+    create_cloudflare_bucket_credentials,
     create_dns_record,
-    link_bucket_to_custom_domain,
     delete_bucket,
     delete_dns_record,
+    get_temporary_credentials,
+    link_bucket_to_custom_domain,
     update_cors_for_bucket,
 )
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import (
+    copy_files_to_cloudflare,
+    copy_files_to_cloudflare_with_exclude,
+    delete_files_from_cloudflare,
     download_file_from_storage,
     get_opendal_operator,
     get_opendal_operator_with_session_token,
-    delete_files_from_cloudflare,
-    copy_files_to_cloudflare,
-    copy_files_to_cloudflare_with_exclude,
     sync_and_verify_files,
 )
 
@@ -718,6 +717,16 @@ class CreateCloudflareBucketCredentialsActivityModel(LaunchpadCLIBaseModel):
     read_only: bool = False
 
 
+class CloudflareBucketCredentials(LaunchpadCLIBaseModel):
+    """
+    CloudflareBucketCredentials
+    """
+
+    access_key: str | None = None
+    secret_key: str | None = None
+    exists: bool
+
+
 class CreateCloudflareBucketCredentialsActivity(Activity):
     """
     CreateCloudflareBucketCredentialsActivity
@@ -739,7 +748,7 @@ class CreateCloudflareBucketCredentialsActivity(Activity):
 
     @staticmethod
     @activity.defn(name="CreateCloudflareBucketCredentialsActivity")
-    async def defn(activity_input: CreateCloudflareBucketCredentialsActivityModel) -> dict:
+    async def defn(activity_input: CreateCloudflareBucketCredentialsActivityModel) -> CloudflareBucketCredentials:
         """
         Create Cloudflare bucket credentials
         """
