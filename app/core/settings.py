@@ -107,6 +107,14 @@ class GitSettings(BaseModel):
     access_token: str = os.getenv("GITHUB_ACCESS_TOKEN", "")
 
 
+class DockerRegistrySettings(BaseModel):
+    """Docker Registry Settings"""
+
+    registry_url: str = "https://registry.314ecorp.tech"
+    registry_username: str = ""
+    registry_password: str = ""
+
+
 class S3Settings(BaseModel):
     """
     S3 Settings
@@ -415,6 +423,7 @@ class AppSettings(BaseSettings):
     sendgrid: SendGridSettings = SendGridSettings()
     cloudflare: CloudflareSettings = CloudflareSettings()
     gitsettings: GitSettings = GitSettings()
+    docker_registry: DockerRegistrySettings = DockerRegistrySettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
