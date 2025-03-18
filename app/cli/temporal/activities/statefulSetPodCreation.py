@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 from datetime import timedelta
-from typing import Any
 
 from kubernetes.client import (
     V1ConfigMapKeySelector,
@@ -326,16 +325,16 @@ class CheckPodRunningStatusActivity(Activity):
         return timedelta(minutes=10)
 
     @staticmethod
-    def get_retry_policy() -> dict[str, Any]:
+    def get_retry_policy() -> RetryPolicy:
         """
         Retry policy for the activity
         """
-        return {
-            "initial_interval": timedelta(seconds=1),
-            "maximum_interval": timedelta(seconds=60),
-            "maximum_attempts": 1,
-            "non_retryable_error_types": [],
-        }
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            maximum_interval=timedelta(seconds=60),
+            backoff_coefficient=3,
+            maximum_attempts=1,
+        )
 
     @staticmethod
     @activity.defn(name="CheckPodRunningStatusActivity")

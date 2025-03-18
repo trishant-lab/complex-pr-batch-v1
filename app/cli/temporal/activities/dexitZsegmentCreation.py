@@ -66,6 +66,10 @@ class ZSegmentSetupActivity(Activity):
             ),
             workflow=ZSegmentOnboardingWorkflow,
         )
+
+        # Manually approve the workflow by sending a signal
+        await handle.signal(ZSegmentOnboardingWorkflow.approve)
+
         handle_describe = await handle.describe()
         status = WorkflowExecutionStatus.Name(handle_describe.status)
 
