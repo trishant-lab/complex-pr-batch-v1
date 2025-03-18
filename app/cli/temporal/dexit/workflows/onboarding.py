@@ -500,6 +500,7 @@ class DexitOnboardingWorkflow(Workflow):
             )
 
             tenant_config = "tenant-config.json"
+            mlops_config = "mlops-config.json"
             env_config = "env-config.json"
             dicom_config = "dicom-config.json"
             vector_config = "vector-config.toml"
@@ -511,6 +512,11 @@ class DexitOnboardingWorkflow(Workflow):
                     "name": "dexit-tenant-config",
                     "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-mlops-config",
+                    "key": mlops_config,
+                    "template_file_name": f"{config.env}-mlops-config.tmpl.json",
                 },
                 {
                     "name": "dexit-env-config",
@@ -711,6 +717,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "dexit-mlops-config",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                     ],
                     volumes=[
                         {
@@ -724,6 +735,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "config_map_name": "dexit-tenant-config",
                             "key": tenant_config,
                             "path": tenant_config,
+                        },
+                        {
+                            "name": "dexit-mlops-config",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
                         },
                     ],
                     container_envs=[
@@ -808,6 +825,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "mlops-volume",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                     ],
                     volumes=[
                         {
@@ -821,6 +843,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "config_map_name": "dexit-tenant-config",
                             "key": tenant_config,
                             "path": tenant_config,
+                        },
+                        {
+                            "name": "mlops-volume",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
                         },
                     ],
                     container_envs=[
@@ -866,6 +894,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "mlops-volume",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                         {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
                     ],
                     volumes=[
@@ -880,6 +913,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "config_map_name": "dexit-tenant-config",
                             "key": tenant_config,
                             "path": tenant_config,
+                        },
+                        {
+                            "name": "mlops-volume",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
                         },
                         {
                             "name": "vector-volume",
