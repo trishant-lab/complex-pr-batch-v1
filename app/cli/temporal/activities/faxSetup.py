@@ -23,6 +23,29 @@ class FaxSetup:
         self.account_sid = self.config.dexit.FaxAccountId
         self.auth_token = self.config.dexit.FaxApiToken
 
+    async def get_signalwire_subaccount(self) -> dict | None:
+        """
+        Checks if a SignalWire subaccount exists for the tenant.
+        Returns the subaccount details if found, None otherwise.
+        """
+        async with aiohttp.ClientSession() as session:
+            url = f"{self.signalwire_url}/Accounts"
+            response = await session.get(url=url, auth=aiohttp.BasicAuth(self.account_sid, self.auth_token))
+
+            if response.status == 404:
+                raise aiohttp.ClientError(f"API endpoint not found. URL: {url}")
+
+            content = await response.json()
+            if response.status != 200:
+                raise aiohttp.ClientError(f"Failed to fetch SignalWire subaccounts: {content}")
+
+            # Look for a subaccount with the tenant's name
+            for account in content.get("accounts", []):
+                if account.get("friendly_name") == self.dexit.tenant:
+                    return account
+
+            return None
+
     async def create_signalwire_subaccount(self) -> dict:
         """
         Creates a new SignalWire subaccount for the tenant.
@@ -86,6 +109,11 @@ class FaxSetup:
         """
         Setup fax API.
         """
+        existing_account = await self.get_signalwire_subaccount()
+        if existing_account:
+            log_info(f"SignalWire subaccount for tenant {self.dexit.tenant} already exists, using existing account")
+            return existing_account
+
         # Create SignalWire subaccount
         subaccount = await self.create_signalwire_subaccount()
         subaccount_token = await self.create_sub_account_token(subaccount["sid"])

@@ -10,7 +10,8 @@
   "clientAuthenticatorType": "client-secret",
   "redirectUris": [
     "https://<<tenant>>.<<domain>>/*",
-    "http://<<tenant>>.<<domain>>/*"
+    "http://<<tenant>>.<<domain>>/*",
+    "https://auth.314ecorp.com/auth/realms/help/broker/dexit-<<tenant>>/endpoint"
   ],
   "webOrigins": [
     "http://<<tenant>>.<<domain>>",
