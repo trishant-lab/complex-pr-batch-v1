@@ -1,9 +1,9 @@
 from datetime import timedelta
 import asyncio
-from typing import Any
 
 from temporalio import activity
 from temporalio.api.enums.v1 import WorkflowExecutionStatus
+from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
 from app.cli.temporal.core.log import log_info
@@ -27,16 +27,16 @@ class ZSegmentSetupActivity(Activity):
         return timedelta(minutes=10)
 
     @staticmethod
-    def get_retry_policy() -> dict[str, Any]:
+    def get_retry_policy() -> RetryPolicy:
         """
         Retry policy for the activity
         """
-        return {
-            "initial_interval": timedelta(seconds=1),
-            "maximum_interval": timedelta(seconds=60),
-            "maximum_attempts": 1,
-            "non_retryable_error_types": [],
-        }
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=1),
+            maximum_interval=timedelta(seconds=60),
+            backoff_coefficient=3,
+            maximum_attempts=1,
+        )
 
     @activity.run
     async def run(self, model: ZSegmentSpec) -> None:
