@@ -248,7 +248,7 @@ async def create_cloudflare_bucket_credentials(
 
         token_list = await token_list_response.json()
 
-        selected_token = {}
+        selected_token: dict = {}
         for token in token_list["result"]:
             if token["name"] == f"{bucket_name}-app-token" and token["status"] == "active":
                 token_issued_on = datetime.fromisoformat(token["issued_on"].replace("Z", "+00:00"))
@@ -260,7 +260,7 @@ async def create_cloudflare_bucket_credentials(
                     selected_token = token
             if selected_token:
                 # need to do manually incase credentials are not found in OnePassword
-                return CloudflareBucketCredentials(exists=True)
+                return CloudflareBucketCredentials()
         response = await client.post(
             url="user/tokens",
             json={
@@ -287,4 +287,4 @@ async def create_cloudflare_bucket_credentials(
         secret_sha_key = response_json["result"]["value"]
         secret_key = hashlib.sha256(secret_sha_key.encode()).hexdigest()
 
-        return CloudflareBucketCredentials(access_key=access_key, secret_key=secret_key, exists=False)
+        return CloudflareBucketCredentials(access_key=access_key, secret_key=secret_key)
