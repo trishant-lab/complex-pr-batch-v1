@@ -724,7 +724,6 @@ class CloudflareBucketCredentials(LaunchpadCLIBaseModel):
 
     access_key: str | None = None
     secret_key: str | None = None
-    exists: bool
 
 
 class CreateCloudflareBucketCredentialsActivity(Activity):

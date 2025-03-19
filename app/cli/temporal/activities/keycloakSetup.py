@@ -225,6 +225,38 @@ def create_internal_users(
             )
 
 
+def create_keycloak_group(
+    realm_name: str,
+    client_name: str,
+    template_path: str,
+    template_name: str,
+) -> None:
+    """
+    Create keycloak group
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+
+    with open(f"{template_path}/{template_name}") as f:
+        user_groups = orjson.loads(f.read())
+
+    for group_name, roles in user_groups.items():
+        keycloak_client.create_group(payload={"name": group_name}, realm_name=realm_name)
+        client_roles = {
+            role["id"]: role["name"]
+            for role in keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
+        }
+        group_id = keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_name)
+        if client_roles and set(roles).issubset(set(client_roles.values())):
+            keycloak_client.assign_role_to_group(
+                group_id=group_id,
+                client_id=client_id,
+                realm_name=realm_name,
+                roles=[{"id": id, "name": name} for id, name in client_roles.items() if name in roles],
+            )
+
+
 def delete_keycloak_client(
     client_name: str,
     realm_name: str,
