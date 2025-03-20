@@ -1,0 +1,26 @@
+[
+  {
+    "name": "pricedx-api",
+    "route": [
+      {
+        "destination": {
+          "host": "pricedx.<<tenant>>.svc.cluster.local",
+          "port": { "number": 8000 }
+        },
+        "headers": {
+          "response": {
+            "add": {
+              "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+            }
+          }
+        }
+      }
+    ],
+    "match": [
+      { "uri": { "regex": "^/api/v1/.*" } },
+      { "uri": { "prefix": "/docs" } },
+      { "uri": { "prefix": "/redoc" } },
+      { "uri": { "regex": "^/patient/.*" } }
+    ]
+  }
+]

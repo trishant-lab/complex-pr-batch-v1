@@ -1,0 +1,6 @@
+{
+  "zone_id": "{{op://launchpad/PRICEDX/INTEGRATION/dns_zone_id}}",
+  "domain_name": "pricedx.tech",
+  "sender_name": "pricedx",
+  "sender_email": "pricedx-engg@pricedx.com"
+}
