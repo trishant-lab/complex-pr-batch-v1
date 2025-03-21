@@ -327,12 +327,13 @@ class CheckPodRunningStatusActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
         """
-        RetryPolicy for the activity
+        Retry policy for the activity
         """
         return RetryPolicy(
-            initial_interval=timedelta(seconds=10),
+            initial_interval=timedelta(seconds=1),
+            maximum_interval=timedelta(seconds=60),
             backoff_coefficient=3,
-            maximum_attempts=5,
+            maximum_attempts=1,
         )
 
     @staticmethod

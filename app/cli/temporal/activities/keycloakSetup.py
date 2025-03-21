@@ -225,6 +225,38 @@ def create_internal_users(
             )
 
 
+def create_keycloak_group(
+    realm_name: str,
+    client_name: str,
+    template_path: str,
+    template_name: str,
+) -> None:
+    """
+    Create keycloak group
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+
+    with open(f"{template_path}/{template_name}") as f:
+        user_groups = orjson.loads(f.read())
+
+    for group_name, roles in user_groups.items():
+        keycloak_client.create_group(payload={"name": group_name}, realm_name=realm_name)
+        client_roles = {
+            role["id"]: role["name"]
+            for role in keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
+        }
+        group_id = keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_name)
+        if client_roles and set(roles).issubset(set(client_roles.values())):
+            keycloak_client.assign_role_to_group(
+                group_id=group_id,
+                client_id=client_id,
+                realm_name=realm_name,
+                roles=[{"id": id, "name": name} for id, name in client_roles.items() if name in roles],
+            )
+
+
 def delete_keycloak_client(
     client_name: str,
     realm_name: str,
@@ -297,6 +329,49 @@ def create_jeeves_idp_flow(
         log_error(f"Failed to create Keycloak idp and flows for {tenant=} with error: {e=}")
         return
     log_info(f"Keycloak idp and flows for {tenant} created successfully.")
+
+
+def create_dexit_idp_flow(
+    tenant: str,
+    realm_name: str,
+    template_path: str,
+    template_name: str,
+    domain: str,
+    is_prod: bool,
+    template_payload: dict | None = None,
+) -> None:
+    """
+    Create dexit idp flow
+    """
+    idp_configs = template_render(
+        template_path=template_path,
+        template_name=template_name,
+        template_payload={
+            "tenant": tenant,
+            "domain": domain,
+            **(template_payload if template_payload else {}),
+        },
+    )
+
+    idp_configs = orjson.loads(idp_configs)
+
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager(is_prod=is_prod)
+    identity_providers = keycloak_client.get_identity_providers(realm_name=realm_name)
+    try:
+        for idp_config in idp_configs["identityProviders"]:
+            if not py_.find(identity_providers, {"alias": idp_config["alias"]}):
+                keycloak_client.create_identity_provider(idp_config, realm_name)
+                for idp_mapper_config in idp_configs["identityProviderMappers"]:
+                    if idp_mapper_config["identityProviderAlias"] == idp_config["alias"]:
+                        keycloak_client.add_mapper_to_idp(
+                            idp_alias=idp_mapper_config["identityProviderAlias"],
+                            mapper_config=idp_mapper_config,
+                            realm_name=realm_name,
+                        )
+    except Exception as e:
+        log_error(f"Failed to create Keycloak idp and flows for {tenant=} in {realm_name} realm with error: {e=}")
+        return
+    log_info(f"Keycloak idp and flows for {tenant} created successfully in {realm_name} realm.")
 
 
 class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
@@ -816,3 +891,80 @@ class DeleteKeycloakRealmActivity(Activity):
             client_name=activity_model.client_name,
             realm_name=activity_model.realm_name,
         )
+
+
+class DexitKeycloakCreateIDPFlowActivity(Activity):
+    """
+    DexitKeycloakCreateIDPFlowActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="DexitKeycloakCreateIDPFlowActivity")
+    async def defn(activity_model: KeycloakClientSetupActivityModel) -> None:
+        """
+        Create keycloak IDP in {realm_name} realm
+        """
+        create_dexit_idp_flow(
+            tenant=activity_model.tenant,
+            realm_name=activity_model.realm_name,
+            template_path=activity_model.template_path,
+            template_name=activity_model.template_name,
+            domain=activity_model.domain,
+            template_payload=activity_model.template_payload,
+            is_prod=activity_model.is_prod,
+        )
+
+
+class DeleteIdpFromDexithelpActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteIdpFromDexithelpActivityModel
+    """
+
+    tenant: str
+    is_prod: bool = False
+
+
+class DeleteIdpFromDexithelpActivity(Activity):
+    """
+    DeleteIdpFromDexithelpActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="DeleteIdpFromDexithelpActivity")
+    async def defn(activity_model: DeleteIdpFromDexithelpActivityModel) -> None:
+        """
+        Delete IDP from dexithelp realm
+        """
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager(is_prod=activity_model.is_prod)
+        try:
+            keycloak_client.delete_idp(idp_alias=f"{activity_model.tenant}", realm_name="dexithelp")
+        except Exception as e:
+            log_error(f"Failed to delete identity provider from dexithelp realm: {e}")

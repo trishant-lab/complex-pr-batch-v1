@@ -587,7 +587,8 @@
         "https://<<tenant>>.<<domain>>/*",
         "https://<<tenant>>.dexitadmin.314ecorp.<<domain>>/*",
         "http://<<tenant>>.<<domain>>/*",
-        "http://<<tenant>>.dexitadmin.314ecorp.<<domain>>/*"
+        "http://<<tenant>>.dexitadmin.314ecorp.<<domain>>/*",
+        "https://auth.314ecorp.com/auth/realms/help/broker/dexit-<<tenant>>/endpoint"
       ],
       "webOrigins": [
         "http://<<tenant>>.<<domain>>",
@@ -799,7 +800,8 @@
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
         "https://<<tenant>>.<<domain>>/*",
-        "http://<<tenant>>.<<domain>>/*"
+        "http://<<tenant>>.<<domain>>/*",
+        "https://auth.314ecorp.com/auth/realms/help/broker/dexit-<<tenant>>/endpoint"
       ],
       "webOrigins": [
         "http://<<tenant>>.<<domain>>",

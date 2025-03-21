@@ -4,24 +4,30 @@ from datetime import timedelta
 import orjson
 import pydash
 from temporalio import workflow
+from temporalio.common import RetryPolicy
 
 from app.cli.temporal.activities.cloudflareSetup import (
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivity,
     CreateCloudflareBucketActivityModel,
+    CreateCloudflareBucketCredentialsActivity,
+    CreateCloudflareBucketCredentialsActivityModel,
     CreateCloudflareDNSRecordActivity,
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivity,
+    UpdateCORSForBucketActivityModel,
 )
 from app.cli.temporal.activities.databaseMigrationJob import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.dexitNovuSetup import DexitNovuSetupActivity
+from app.cli.temporal.activities.dexitZsegmentCreation import ZSegmentSetupActivity
 from app.cli.temporal.activities.faxSetup import FaxSetupActivity
 from app.cli.temporal.activities.k8sIstioVirtualService import (
     KubernetesIstioVirtualServiceActivity,
@@ -42,10 +48,13 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakServiceAccountSetupActivity,
     KeycloakServiceAccountSetupActivityModel,
+    DexitKeycloakCreateIDPFlowActivity,
 )
 from app.cli.temporal.activities.onePassword import (
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
 )
 from app.cli.temporal.activities.postgresSetup import (
     PostgresUserCreationActivity,
@@ -85,6 +94,7 @@ from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMP
 from app.cli.temporal.dexit import TemplatePath
 from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
 from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
 from app.common import generate_password
 from app.core.settings import AppSettings, get_settings, DexitSettings
 from app.template_env import get_env
@@ -411,6 +421,7 @@ class DexitOnboardingWorkflow(Workflow):
                 "_reports",
                 "_document-review",
                 "_manage-workflow",
+                "_internal-admin",
             ]
 
             # keycloak client roles setup
@@ -455,6 +466,22 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakServiceAccountSetupActivity.get_timeout(),
             )
 
+            # Create IDP mappers
+            await workflow.execute_activity(
+                activity=DexitKeycloakCreateIDPFlowActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name="dexithelp",
+                    domain=dexit_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="dexithelp_instance_idp_flow.json",
+                    template_payload={"idp_config": dexit_config.idp_config, "auth_url": config.keycloak.auth_url},
+                    is_prod=True,
+                ),
+                retry_policy=DexitKeycloakCreateIDPFlowActivity.get_retry_policy(),
+                start_to_close_timeout=DexitKeycloakCreateIDPFlowActivity.get_timeout(),
+            )
+
             # keycloak tenant customer admin user setup
             await workflow.execute_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
@@ -473,6 +500,7 @@ class DexitOnboardingWorkflow(Workflow):
             )
 
             tenant_config = "tenant-config.json"
+            mlops_config = "mlops-config.json"
             env_config = "env-config.json"
             dicom_config = "dicom-config.json"
             vector_config = "vector-config.toml"
@@ -484,6 +512,11 @@ class DexitOnboardingWorkflow(Workflow):
                     "name": "dexit-tenant-config",
                     "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-mlops-config",
+                    "key": mlops_config,
+                    "template_file_name": f"{config.env}-mlops-config.tmpl.json",
                 },
                 {
                     "name": "dexit-env-config",
@@ -550,6 +583,32 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
+            # update cors for bucket
+            await workflow.execute_activity(
+                activity=UpdateCORSForBucketActivity.defn,
+                arg=UpdateCORSForBucketActivityModel(
+                    bucket_name=bucket_name,
+                    rules=[
+                        {
+                            "allowed": {
+                                "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                "origins": ["*"],
+                                "headers": [
+                                    "Authorization",
+                                    "content-type",
+                                    "x-amz-*",
+                                    "traceparent",
+                                    "x-highlight-request",
+                                ],
+                            },
+                            "exposeHeaders": ["ETag", "Location", "Content-Disposition"],
+                        }
+                    ],
+                ),
+                retry_policy=UpdateCORSForBucketActivity.get_retry_policy(),
+                start_to_close_timeout=UpdateCORSForBucketActivity.get_timeout(),
+            )
+
             # propagate the dns record
             await workflow.execute_activity(
                 activity=PropagateDNSRecordActivity.defn,
@@ -588,6 +647,58 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
+            credentials = await workflow.execute_activity(
+                activity=CreateCloudflareBucketCredentialsActivity.defn,
+                arg=CreateCloudflareBucketCredentialsActivityModel(
+                    bucket_name=bucket_name,
+                    read_only=False,
+                ),
+                retry_policy=CreateCloudflareBucketCredentialsActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareBucketCredentialsActivity.get_timeout(),
+            )
+
+            # s3 bucket name added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_bucket_name",
+                    key_value=bucket_name,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
+            # s3 access key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_access_key",
+                    key_value=credentials["access_key"],
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
+            # s3 secret key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_secret_key",
+                    key_value=credentials["secret_key"],
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+
             # atlas job
             await workflow.execute_activity(
                 activity=DatabaseMigrationJobActivity.defn,
@@ -606,6 +717,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "dexit-mlops-config",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                     ],
                     volumes=[
                         {
@@ -619,6 +735,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "config_map_name": "dexit-tenant-config",
                             "key": tenant_config,
                             "path": tenant_config,
+                        },
+                        {
+                            "name": "dexit-mlops-config",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
                         },
                     ],
                     container_envs=[
@@ -703,6 +825,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "mlops-volume",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                     ],
                     volumes=[
                         {
@@ -716,6 +843,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "config_map_name": "dexit-tenant-config",
                             "key": tenant_config,
                             "path": tenant_config,
+                        },
+                        {
+                            "name": "mlops-volume",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
                         },
                     ],
                     container_envs=[
@@ -761,6 +894,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "mlops-volume",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                         {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
                     ],
                     volumes=[
@@ -775,6 +913,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "config_map_name": "dexit-tenant-config",
                             "key": tenant_config,
                             "path": tenant_config,
+                        },
+                        {
+                            "name": "mlops-volume",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
                         },
                         {
                             "name": "vector-volume",
@@ -895,9 +1039,17 @@ class DexitOnboardingWorkflow(Workflow):
                         namespace=tenant,
                         name=pod,
                     ),
-                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    retry_policy=RetryPolicy(maximum_attempts=1),
                     start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
+
+            # zsegment onboarding
+            await workflow.execute_activity(
+                activity=ZSegmentSetupActivity.defn,
+                arg=ZSegmentSpec(tenant=tenant, email=email, firstName=first_name, lastName=last_name),
+                retry_policy=RetryPolicy(maximum_attempts=1),
+                start_to_close_timeout=ZSegmentSetupActivity.get_timeout(),
+            )
 
             # update tenant status
             await workflow.execute_activity(

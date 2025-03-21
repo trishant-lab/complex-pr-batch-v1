@@ -101,12 +101,6 @@ class TemporalSettings(BaseModel):
         return f"{self.host}:{self.port}"
 
 
-class GitSettings(BaseModel):
-    """Git Settings"""
-
-    access_token: str = os.getenv("GITHUB_ACCESS_TOKEN", "")
-
-
 class DockerRegistrySettings(BaseModel):
     """Docker Registry Settings"""
 
@@ -341,6 +335,8 @@ class DexitSettings(BaseModel):
     keycloak_db_password: str = ""
     matomo_db_password: str = ""
 
+    idp_config: dict = {}
+
     slack_application_id: str = ""
     slack_client_id: str = ""
     slack_channel_secret_key: str = ""
@@ -422,7 +418,6 @@ class AppSettings(BaseSettings):
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
     cloudflare: CloudflareSettings = CloudflareSettings()
-    gitsettings: GitSettings = GitSettings()
     docker_registry: DockerRegistrySettings = DockerRegistrySettings()
 
     veritable: VeritableSettings = VeritableSettings()
