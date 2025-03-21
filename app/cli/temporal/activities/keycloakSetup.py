@@ -968,3 +968,49 @@ class DeleteIdpFromDexithelpActivity(Activity):
             keycloak_client.delete_idp(idp_alias=f"{activity_model.tenant}", realm_name="dexithelp")
         except Exception as e:
             log_error(f"Failed to delete identity provider from dexithelp realm: {e}")
+
+
+class KeycloakCreateGroupActivityModel(LaunchpadCLIBaseModel):
+    """
+    KeycloakCreateGroupActivity
+    """
+
+    realm_name: str
+    client_name: str | None = None
+    template_path: str
+    template_name: str
+
+
+class KeycloakCreateGroupActivity(Activity):
+    """
+    KeycloakCreateInternalUsersActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakCreateGroupActivity")
+    async def defn(activity_model: KeycloakCreateGroupActivityModel) -> None:
+        """
+        Create keycloak internal users
+        """
+        create_keycloak_group(
+            realm_name=activity_model.realm_name,
+            client_name=activity_model.client_name,
+            template_path=activity_model.template_path,
+            template_name=activity_model.template_name,
+        )
+
+        log_info("Created keycloak Groups successfully")
