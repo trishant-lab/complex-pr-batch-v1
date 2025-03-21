@@ -38,8 +38,9 @@ class ZSegmentSetupActivity(Activity):
             maximum_attempts=1,
         )
 
-    @activity.run
-    async def run(self, model: ZSegmentSpec) -> None:
+    @staticmethod
+    @activity.defn(name="ZSegmentSetupActivity")
+    async def defn(model: ZSegmentSpec) -> None:
         """
         Setup ZSegment for a tenant
         """
