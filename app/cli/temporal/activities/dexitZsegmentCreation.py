@@ -1,5 +1,5 @@
-import asyncio
 from datetime import timedelta
+import asyncio
 
 from temporalio import activity
 from temporalio.api.enums.v1 import WorkflowExecutionStatus
@@ -37,8 +37,9 @@ class ZSegmentSetupActivity(Activity):
             maximum_attempts=1,
         )
 
+    @staticmethod
     @activity.defn(name="ZSegmentSetupActivity")
-    async def run(self, model: ZSegmentSpec) -> None:
+    async def defn(model: ZSegmentSpec) -> None:
         """
         Setup ZSegment for a tenant
         """
