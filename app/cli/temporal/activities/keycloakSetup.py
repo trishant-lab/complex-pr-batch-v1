@@ -983,7 +983,7 @@ class KeycloakCreateGroupActivityModel(LaunchpadCLIBaseModel):
 
 class KeycloakCreateGroupActivity(Activity):
     """
-    KeycloakCreateInternalUsersActivity
+    KeycloakCreateGroupActivity
     """
 
     @staticmethod
@@ -1004,7 +1004,7 @@ class KeycloakCreateGroupActivity(Activity):
     @activity.defn(name="KeycloakCreateGroupActivity")
     async def defn(activity_model: KeycloakCreateGroupActivityModel) -> None:
         """
-        Create keycloak internal users
+        Create keycloak groups
         """
         create_keycloak_group(
             realm_name=activity_model.realm_name,
