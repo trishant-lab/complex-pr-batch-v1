@@ -1,3 +1,0 @@
-"""
-Veritable Workers
-"""

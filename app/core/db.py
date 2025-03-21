@@ -8,7 +8,6 @@ from os import path
 import asyncpg
 import jinja2
 from asyncpg import Record
-from loguru import logger
 from pydantic import PostgresDsn
 
 from .jinjasql import JinjaSql
@@ -40,7 +39,6 @@ class DBManager:
         constructor sets up the jinjasql context with jinja2 environment
         """
         self.pool: asyncpg.pool.Pool = pool
-        logger.info("Loading sql templates from: {}", sqldir)
         env: jinja2.Environment = self.get_env(sqldir)
         self.jsql: JinjaSql = JinjaSql(env=env, param_style="pyformat")
 
@@ -89,7 +87,6 @@ class DBManager:
         :param kwargs:
         :return:
         """
-        logger.info(f"Executing Query: {sqlfile}")
         template = self.jsql.env.get_template(sqlfile)
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
@@ -116,7 +113,6 @@ class DBManager:
         :param kwargs:
         :return:
         """
-        logger.info(f"Executing Query: {sqlfile}")
         template = self.jsql.env.get_template(sqlfile)
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
@@ -144,7 +140,6 @@ class DBManager:
         :param kwargs:
         :return:
         """
-        logger.info(f"Executing Query: {sqlfile}")
         template = self.jsql.env.get_template(sqlfile)
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
@@ -154,6 +149,56 @@ class DBManager:
                 await conn.execute(f'SET SEARCH_PATH TO "{db_schema_name}", public;')
                 await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
                 await conn.execute(query % mapping, *values.values())
+
+    def _prepare_execute_many_queries(self: "DBManager", queries: list[tuple[str, dict]]) -> list:
+        """
+        function to preapare a list of queires
+        """
+        _queries = []
+        for sqlfile, params in queries:
+            template = self.jsql.env.get_template(sqlfile)
+            assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
+            query, values = self.jsql.prepare_query(template, data=params)
+            mapping = {key: f"${i!s}" for i, key in enumerate(values.keys(), start=1)}
+            _queries.append((sqlfile, query, mapping, values))
+        return _queries
+
+    async def execute_many(
+        self: "DBManager",
+        queries: list[tuple[str, dict]],
+        db_schema_name: str = config.schema_name,
+        trigger_parameters: dict | None = None,
+    ) -> None:
+        """
+        executes multiple queries in a transaction
+        """
+        _queries = self._prepare_execute_many_queries(queries)
+
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(f'SET SEARCH_PATH TO "{db_schema_name}", public;')
+                await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
+                for sqlfile, query, mapping, values in _queries:
+                    await conn.execute(query % mapping, *values.values())
+
+    async def fetch_many(
+        self: "DBManager",
+        queries: list[tuple[str, dict]],
+        db_schema_name: str = config.schema_name,
+        trigger_parameters: dict | None = None,
+    ) -> list[Record | list[Record] | None]:
+        """
+        fetches results for multiple queries
+        """
+        _queries = self._prepare_execute_many_queries(queries)
+        results = []
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(f'SET SEARCH_PATH TO "{db_schema_name}", public;')
+                await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
+                for sqlfile, query, mapping, values in _queries:
+                    results.append(await conn.fetch(query % mapping, *values.values()))
+        return results
 
     async def create_database(self: "DBManager", db_name: str) -> None:
         """
@@ -166,7 +211,7 @@ class DBManager:
             # await conn.execute('SET autocommit = off;')
 
 
-async def get_db_manager(dsn: PostgresDsn) -> DBManager:
+async def get_db_manager(dsn: PostgresDsn = config.dsn) -> DBManager:
     """
     creates database manager object which will act as a singleton
     """
@@ -180,3 +225,12 @@ async def get_db(pg_dsn: str) -> asyncpg.pool.Pool:
     """
     # config: AppSettings = get_settings()
     return await asyncpg.create_pool(str(pg_dsn), min_size=1, max_size=5)
+
+
+async def database() -> DBManager:
+    """
+    Dependency to get Database manager
+    """
+    from .db import get_db_manager
+
+    return await get_db_manager(config.dsn)

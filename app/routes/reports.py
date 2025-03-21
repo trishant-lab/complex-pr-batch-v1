@@ -1,4 +1,5 @@
 from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
@@ -16,7 +17,7 @@ JEEVES_REPORTS_PER_USER_SQL = "jeevesReportsPerUser.sql"
 REPORT_NAMES: dict = {
     "jeeves": {
         "assetsViewedSummary": {
-            "query": "assetViewedPerUser.sql",
+            "query": "asset_viewed_per_user.sql",
             "response_model": {
                 "total_assets_viewed": SUM_RESULT,
                 "assets_viewed_per_user": RESULT_PER_USER,
@@ -39,28 +40,28 @@ REPORT_NAMES: dict = {
             },
         },
         "queriesSearched": {
-            "query": "queriesPerUser.sql",
+            "query": "queries_per_user.sql",
             "response_model": {
                 "total_searches": SUM_RESULT,
                 "searches_per_user": RESULT_PER_USER,
             },
         },
         "users": {
-            "query": "getTotalUsers.sql",
+            "query": "get_total_users.sql",
             "response_model": {
                 "total_users": "'{result[0][total_users]}'",
                 "users_per_session": "'{result[0][session_per_user]}'",
             },
         },
         "totalSessionsAndAvgDuration": {
-            "query": "totalSessionsAndAvgDuration.sql",
+            "query": "total_sessions_and_avg_duration.sql",
             "response_model": {
                 "total_sessions": "'{result[0][total_sessions]}'",
                 "avg_duration": "'{result[0][average_session_duration]}'",
             },
         },
         "assignmentsCreatedPerUser": {
-            "query": "jeevesReportsPerUser.sql",
+            "query": "jeeves_reports_per_user.sql",
             "input_params": {"event_category": "Assignments", "event_action": "Create"},
             "response_model": {
                 "total_assignments_created": SUM_RESULT,
@@ -84,7 +85,7 @@ REPORT_NAMES: dict = {
             },
         },
         "assetsTipSheetCreatedPerUser": {
-            "query": "jeevesTipSheetReportsPerUser.sql",
+            "query": "jeeves_tip_sheet_reports_per_user.sql",
             "response_model": {
                 "total_assets_tip_sheet": SUM_RESULT,
                 "tipsheet_created_per_user": RESULT_PER_USER,

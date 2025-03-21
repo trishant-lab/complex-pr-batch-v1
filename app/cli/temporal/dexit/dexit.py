@@ -1,7 +1,7 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
-from app.cli.workflowbase import ProductWorkflow
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.dexit.models.dexit_spec import DexitSpec
 from app.core.cli_settings import WorkerQueues
 
 ProductName = "dexit"
@@ -9,7 +9,7 @@ ProductName = "dexit"
 
 class DexitWorkflow(ProductWorkflow):
     """
-    VeritableWorkflow class
+    DexitWorkflow class
     """
 
     @staticmethod
@@ -31,8 +31,8 @@ class DexitWorkflow(ProductWorkflow):
         """
         deprovision method
         """
-        from app.cli.temporal.starter import trigger_workflow
         from app.cli.temporal.dexit.workflows.deprovisioning import DexitDeProvisioningWorkflow
+        from app.cli.temporal.starter import trigger_workflow
 
         await trigger_workflow(
             workflow_input=DexitSpec(**schema),
@@ -45,8 +45,8 @@ class DexitWorkflow(ProductWorkflow):
         """
         approve method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
 
@@ -57,8 +57,8 @@ class DexitWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
 
@@ -69,8 +69,8 @@ class DexitWorkflow(ProductWorkflow):
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         return await get_workflow_handle(workflow_input=DexitSpec(**schema), workflow=DexitOnboardingWorkflow)
 

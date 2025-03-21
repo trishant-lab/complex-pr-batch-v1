@@ -2,12 +2,10 @@ import os
 import subprocess
 import tempfile
 
-import orjson
-
 from app.core.db import DBManager, get_db_manager
-from app.core.settings import AppSettings, get_settings
+from app.core.ijson import ijson_loads
 
-SCRIPT_PATH: str = os.path.join(os.path.join(os.path.dirname(__file__), "../formrender/formRender.js"))
+SCRIPT_PATH: str = os.path.join(os.path.join(os.path.dirname(__file__), "../form_render/form_render.js"))
 
 
 def render_form(tmp_dir: str) -> dict:
@@ -24,17 +22,16 @@ def render_form(tmp_dir: str) -> dict:
     subprocess.run(args_, check=True)
 
     with open(os.path.join(html_render_path, "form.json")) as f:
-        return orjson.loads(f.read())
+        return ijson_loads(f.read())
 
 
 async def form_render_for_product(product: str) -> dict:
     """
     :return:
     """
-    config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager(config.postgres.dsn)
+    db: DBManager = await get_db_manager()
 
-    response = await db.fetch_one("getProductSchema.sql", product=product)
+    response = await db.fetch_one("get_product_schema.sql", product=product)
 
     tmp_dir: str = tempfile.gettempdir()
 

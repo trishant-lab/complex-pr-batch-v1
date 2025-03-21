@@ -1,15 +1,16 @@
-from jinja2 import Environment
-from jinja2 import Template
+from collections import OrderedDict
+from copy import deepcopy
+from random import Random
+from threading import local
+from uuid import UUID
+
+from jinja2 import Environment, Template
 from jinja2.ext import Extension
 from jinja2.lexer import Token
 from markupsafe import Markup
-from collections import OrderedDict
-from threading import local
-from random import Random
-import json
-from uuid import UUID
-from copy import deepcopy
 from six import string_types
+
+from app.core.ijson import ijson_dumps
 
 _thread_local = local()
 
@@ -127,7 +128,7 @@ def bind_in_clause(value):
     for v in values:
         if isinstance(v, dict):
             is_dict = True
-            results.append(_bind_param(_thread_local.bind_params, "inclause", json.dumps(v)))
+            results.append(_bind_param(_thread_local.bind_params, "inclause", ijson_dumps(v)))
         elif isinstance(v, UUID):
             is_uuid = True
             results.append(_bind_param(_thread_local.bind_params, "inclause", str(v)))

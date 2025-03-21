@@ -1,6 +1,7 @@
-import json
 import multiprocessing
 import os
+
+from app.core.ijson import ijson_dumps
 
 workers_per_core_str = os.getenv("WORKERS_PER_CORE", "1")
 web_concurrency_str = os.getenv("WEB_CONCURRENCY", 5)
@@ -40,4 +41,4 @@ log_data = {
     "host": host,
     "port": port,
 }
-print(json.dumps(log_data))
+print(ijson_dumps(log_data))

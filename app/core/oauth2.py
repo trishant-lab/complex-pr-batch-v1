@@ -1,14 +1,15 @@
-from fastapi import HTTPException
-import aiohttp
 import logging
 from functools import lru_cache
 
+import aiohttp
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.security import OAuth2
 from fastapi.security.utils import get_authorization_scheme_param
 from requests import Response
 from starlette.requests import Request
-from starlette.status import HTTP_401_UNAUTHORIZED
+
+from app.exceptions import errors
+
 from .settings import get_security_config
 
 security_config = get_security_config()
@@ -33,7 +34,7 @@ def get_token(request: Request, error: bool = True) -> str | None:
     scheme, param = get_authorization_scheme_param(authorization)
     if not authorization or scheme.lower() != "bearer":
         if error:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+            raise errors.NOT_AUTHENTICATED.exc()
         return None
     return param
 
@@ -43,9 +44,9 @@ async def get_keycloak_key() -> str:
     """
     Retrieves the certificate from keycloak jwks_uri. Parses the certificate and returns the public key from it
     """
-    from cryptography.x509 import load_pem_x509_certificate
     from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import serialization
+    from cryptography.x509 import load_pem_x509_certificate
 
     r: Response = await request_client().get(security_config["jwks_uri"])
     rsa256_key: dict = filter(lambda x: x["alg"] == "RS256", r.json()["keys"]).__next__()

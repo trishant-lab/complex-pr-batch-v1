@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends
 from loguru import logger
 from pydantic.fields import PydanticUndefined
@@ -10,7 +11,7 @@ de_provisioning_router = APIRouter()
 
 
 if TYPE_CHECKING:
-    from ..cli.workflowbase import ProductWorkflow
+    from ..cli.base_workflow import ProductWorkflow
 
 
 @de_provisioning_router.post(

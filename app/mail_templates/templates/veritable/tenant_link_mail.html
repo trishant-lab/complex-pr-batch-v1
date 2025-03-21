@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+  <span>Dear User,</span>
+  {% if tenant_links|length == 1 %}
+    <p>Here is the link to your dedicated Veritable portal: <a href="{{tenant_links[0][0]}}">{{tenant_links[0][0]}}</a>. Click on this link and enter your credentials to log in.</p>
+  {% else %}
+    <p>Here is a list of dedicated Veritable portal links associated with your email address.</p>
+    <ul>
+        {% for tenant_link in tenant_links %}
+        <li><a href="{{tenant_link[0]}}">{{tenant_link[0] | safe }}</a></li>
+        {% endfor %}
+    </ul>
+    <p>Click on the link and enter your credentials to log in.</p>
+  {% endif %}
+  <p>For ease of access, kindly bookmark the same on your web browser.</p>
+  <p>For any assistance, reach out to our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+<br>
+    <p>Thanks,</p>
+    <p>Team Veritable</p>
+    <p>E: <a href="mailto:support@veritable.app">support@veritable.app</a></p>
+    <p>W: <a href="https://www.veritable.app/">https://www.veritable.app/</a></p>
+</body>
+</html>

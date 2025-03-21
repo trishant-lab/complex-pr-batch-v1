@@ -17,6 +17,11 @@ class WorkerQueues(str, Enum):
     practifly_deboarding = "practifly_deboarding"
     zsegment_onboarding = "zsegment_onboarding"
     zsegment_deboarding = "zsegment_deboarding"
+    veritable_onboarding = "veritable_onboarding"
+    veritable_deboarding = "veritable_deboarding"
+    verify_payment = "verify_payment"
+    webhooks = "webhooks"
+    onboard = "onboard"
 
 
 class WorkerConfig(BaseModel):
@@ -53,15 +58,19 @@ def get_workers_config() -> dict[str, WorkerConfig]:
     """
     Get the workers configuration
     """
-    from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
     from app.cli.temporal.dexit.workflows.deprovisioning import DexitDeProvisioningWorkflow
-    from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
-    from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
+    from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
     from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
-    from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
+    from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
+    from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
     from app.cli.temporal.penknife.workflows.deprovisioning import PenknifeDeProvisioningWorkflow
-    from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
+    from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
     from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
+    from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
+    from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
+    from app.cli.temporal.workflows.onboard import OnboardWorkflow
+    from app.cli.temporal.workflows.payments.verify import OnboardPaymentVerifyWorkflow
+    from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEventWorkflow
     from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
     workers_config = {
@@ -73,6 +82,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
                 WorkerQueues.penknife_onboarding: {PenknifeOnboardingWorkflow},
                 WorkerQueues.practifly_onboarding: {PractiflyOnboardingWorkflow},
                 WorkerQueues.zsegment_onboarding: {ZSegmentOnboardingWorkflow},
+                WorkerQueues.veritable_onboarding: {VeritableOnboardingWorkflow},
             },
             "count": 1,
         },
@@ -82,6 +92,24 @@ def get_workers_config() -> dict[str, WorkerConfig]:
                 WorkerQueues.jeeves_deboarding: {JeevesDeProvisioningWorkflow},
                 WorkerQueues.penknife_deboarding: {PenknifeDeProvisioningWorkflow},
                 WorkerQueues.practifly_deboarding: {PractiflyDeProvisioningWorkflow},
+            },
+            "count": 1,
+        },
+        "WORKER_3_PROCESS": {
+            "workers": {
+                WorkerQueues.onboard: {OnboardWorkflow},
+            },
+            "count": 2,
+        },
+        "WORKER_4_PROCESS": {
+            "workers": {
+                WorkerQueues.verify_payment: {OnboardPaymentVerifyWorkflow},
+            },
+            "count": 2,
+        },
+        "WORKER_5_PROCESS": {
+            "workers": {
+                WorkerQueues.webhooks: {InvoiceWebhookEventWorkflow},
             },
             "count": 1,
         },

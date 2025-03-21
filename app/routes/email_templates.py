@@ -1,13 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Depends
-from loguru import logger
-from starlette.exceptions import HTTPException
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from fastapi import APIRouter, Depends, Path
 
 from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
-from app.core.settings import AppSettings, get_settings
 from app.models.product import ProductEnum
 
 email_template_router = APIRouter()
@@ -20,15 +16,9 @@ async def get_email_template(
     """
     Get email template
     """
-    config: AppSettings = get_settings()
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        parameters = {"product": product.value, "template_id": str(template_id) if template_id else None}
-        response = await db.fetch_all("getEmailTemplate.sql", **parameters)
-    except Exception as e:
-        logger.error(f"Error fetching template: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching email template")
-
+    db: DBManager = await get_db_manager()
+    parameters = {"product": product.value, "template_id": str(template_id) if template_id else None}
+    response = await db.fetch_all("get_email_template.sql", **parameters)
     return [dict(row) for row in response]
 
 
@@ -43,18 +33,12 @@ async def update_email_template(
     """
     Update email template
     """
-    config: AppSettings = get_settings()
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        parameters = {
-            "product": product.value,
-            "template_id": str(template_id) if template_id else None,
-            "template": template,
-            "subject": subject,
-        }
-        await db.fetch_one("updateEmailTemplate.sql", **parameters)
-    except Exception as e:
-        logger.error(f"Error updating template: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating email template")
-
+    db: DBManager = await get_db_manager()
+    parameters = {
+        "product": product.value,
+        "template_id": str(template_id),
+        "template": template,
+        "subject": subject,
+    }
+    await db.fetch_one("update_email_template.sql", **parameters)
     return {"message": f"Email template updated successfully for product: {product.value}"}

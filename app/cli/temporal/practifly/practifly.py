@@ -1,7 +1,7 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.temporal.practifly.models.practiflySpec import PractiflySpec
-from app.cli.workflowbase import ProductWorkflow
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.practifly.models.practifly_spec import PractiflySpec
 from app.core.cli_settings import WorkerQueues
 
 ProductName = "practifly"
@@ -45,8 +45,8 @@ class PractiflyWorkflow(ProductWorkflow):
         """
         approve method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=PractiflySpec(**schema), workflow=PractiflyOnboardingWorkflow)
 
@@ -57,8 +57,8 @@ class PractiflyWorkflow(ProductWorkflow):
         """
         approve_deprovisioning method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(
             workflow_input=PractiflySpec(**schema), workflow=PractiflyDeProvisioningWorkflow
@@ -71,8 +71,8 @@ class PractiflyWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=PractiflySpec(**schema), workflow=PractiflyOnboardingWorkflow)
 
@@ -83,8 +83,8 @@ class PractiflyWorkflow(ProductWorkflow):
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         return await get_workflow_handle(workflow_input=PractiflySpec(**schema), workflow=PractiflyOnboardingWorkflow)
 

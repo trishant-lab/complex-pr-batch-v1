@@ -5,23 +5,24 @@ from uuid import UUID
 
 import aiohttp
 import jwt
-import orjson
 from fastapi import APIRouter, Depends
 from keycloak import urls_patterns
 from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_204_NO_CONTENT
 
-from app.cli.keycloakUtils import KeycloakAdminClient
+from app.cli.keycloak_utils import KeycloakAdminClient
+from app.core.ijson import ijson_dumps
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
+from app.exceptions import errors
 from app.models.users import (
-    RoleResponseModel,
-    UserResponseModel,
     CreateUserRequestModel,
-    UpdateUserRequestModel,
     GSuiteUser,
+    RoleResponseModel,
+    UpdateUserRequestModel,
+    UserResponseModel,
 )
 
 user_router = APIRouter()
@@ -50,7 +51,7 @@ def get_roles(kc_agent: KeycloakAdminClient, user_id: UUID, config: AppSettings)
     summary="Returns all users in the keycloak realm",
 )
 async def get_keycloak_users(
-    user_id: None | str = None, _: dict = Depends(get_oauth_scheme())
+    user_id: str | None = None, _: dict = Depends(get_oauth_scheme())
 ) -> list[UserResponseModel]:
     """
     Returns all users in the keycloak realm
@@ -164,15 +165,15 @@ def update_roles(
     added_roles = (get_roles_data(kc_agent=kc_agent, config=config, roles_data=added_roles)) if added_roles else None
 
     if deleted_roles:
-        response = kc_agent.kc_client.connection.raw_delete(url, data=orjson.dumps(deleted_roles))
+        response = kc_agent.kc_client.connection.raw_delete(url, data=ijson_dumps(deleted_roles))
         if response.status_code != HTTP_204_NO_CONTENT:
             logger.error("Error while Updating Role")
-            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error while Updating Role")
+            raise errors.UPDATE_ROLE_ERROR.exc()
     if added_roles:
-        response = kc_agent.kc_client.connection.raw_post(url, data=orjson.dumps(added_roles))
+        response = kc_agent.kc_client.connection.raw_post(url, data=ijson_dumps(added_roles))
         if response.status_code != HTTP_204_NO_CONTENT:
             logger.error("Error while Adding Role")
-            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error while Adding Role")
+            raise errors.ADD_ROLE_ERROR.exc()
 
 
 @user_router.post(

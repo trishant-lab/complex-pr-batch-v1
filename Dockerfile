@@ -6,6 +6,8 @@ FROM registry.314ecorp.tech/launchpad-app-base:${BASE_IMAGE_TAG} AS requirements
 
 ENV DEBIAN_FRONTEND noninteractive
 
+RUN curl -sSf https://atlasgo.sh | sh -s -- -y
+
 WORKDIR /tmp
 
 # COPY UV script
@@ -38,9 +40,11 @@ RUN uv pip install --upgrade pip --system && \
 # Expose port and set entrypoint
 EXPOSE 8000
 
-WORKDIR /app/formrender
+WORKDIR /app/form_render
 RUN npm i
 
 WORKDIR /app
+
+RUN python app/pre_commit_checks.py
 
 ENTRYPOINT [ "/init" ]

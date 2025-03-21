@@ -1,8 +1,9 @@
 from collections.abc import Callable
-from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
-from app.cli.temporal.core.base import Workflow
 
 from temporalio import workflow
+
+from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.penknife.models.penknife_spec import PenknifeSpec
 
 
 @workflow.defn
@@ -33,89 +34,78 @@ class PenknifeDeProvisioningWorkflow(Workflow):
         """
         pass
         # delete k8s service
-        # await workflow.execute_activity(
-        #     DeleteKubernetesServiceActivity.defn,
+        # await run_activity(
+        #     DeleteKubernetesServiceActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteKubernetesServiceActivity.get_retry_policy(),
         # )
 
         # # delete k8s virtual service
-        # await workflow.execute_activity(
-        #     DeleteKubernetesVirtualServiceActivity.defn,
+        # await run_activity(
+        #     DeleteKubernetesVirtualServiceActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteKubernetesVirtualServiceActivity.get_retry_policy(),
         # )
 
         # # delete provisioning job
-        # await workflow.execute_activity(
-        #     DeleteProvisioningJobActivity.defn,
+        # await run_activity(
+        #     DeleteProvisioningJobActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteProvisioningJobActivity.get_retry_policy(),
         # )
 
         # # delete deployment
-        # await workflow.execute_activity(
-        #     DeleteDeploymentActivity.defn,
+        # await run_activity(
+        #     DeleteDeploymentActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteDeploymentActivity.get_retry_policy(),
         # )
 
         # # delete config map
-        # await workflow.execute_activity(
-        #     DeleteConfigMapActivity.defn,
+        # await run_activity(
+        #     DeleteConfigMapActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteConfigMapActivity.get_retry_policy(),
         # )
 
         # # drop ui bundles
-        # await workflow.execute_activity(
-        #     DropUIBundlesActivity.defn,
+        # await run_activity(
+        #     DropUIBundlesActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DropUIBundlesActivity.get_retry_policy(),
         # )
 
         # # delete dns
-        # await workflow.execute_activity(
-        #     DeleteDNSActivity.defn,
+        # await run_activity(
+        #     DeleteDNSActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteDNSActivity.get_retry_policy(),
         # )
 
         # # delete vm scraper
-        # await workflow.execute_activity(
-        #     DeleteVMScraperActivity.defn,
+        # await run_activity(
+        #     DeleteVMScraperActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteVMScraperActivity.get_retry_policy(),
         # )
 
         # # delete redis namespace
-        # await workflow.execute_activity(
-        #     DeleteRedisNamespace.defn,
+        # await run_activity(
+        #     DeleteRedisNamespace,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteRedisNamespace.get_retry_policy(),
         # )
 
         # # # delete stateful set
-        # # await workflow.execute_activity(
-        # #     DeleteStatefulSetActivity.defn,
+        # # await run_activity(
+        # #     DeleteStatefulSetActivity,
         # #     arg=workflow_input,
         # #     start_to_close_timeout=timedelta(seconds=120),
-        # #     retry_policy=DeleteStatefulSetActivity.get_retry_policy(),
         # # )
 
         # # delete keycloak client or realm
-        # await workflow.execute_activity(
-        #     DeleteKeycloakRealmActivity.defn,
+        # await run_activity(
+        #     DeleteKeycloakRealmActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteKeycloakRealmActivity.get_retry_policy(),
         # )

@@ -1,56 +1,61 @@
-import uuid
 from datetime import datetime
-from enum import Enum
+from enum import IntEnum
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+
+from app.core.ijson import ijson_loads
+from app.models.product import ProductEnum
 
 
-class TenantStatusEnum(str, Enum):
-    PendingApproval = "PendingApproval"
-    Approved = "Approved"
-    Declined = "Declined"
-    Provisioning = "Provisioning"
-    Completed = "Completed"
-    Failed = "Failed"
-    DeProvisioning = "DeProvisioning"
-    DeProvisioned = "DeProvisioned"
-    DeploymentFailed = "DeploymentFailed"
+class TenantStatusEnum(IntEnum):
+    DeploymentFailed = -4
+    Declined = -3
+    NotApplicable = -2
+    Failed = -1
+    Stale = 0
+    Provisioning = 1
+    Provisioned = 2
+    Approved = 3
+    DeProvisioning = 4
+    DeProvisioned = 5
+    PendingApproval = 6
 
 
 class TenantCreateRequestModel(BaseModel):
-    name: str
-    product: uuid.UUID
+    tenantname: str
+    email: EmailStr
+    product: ProductEnum
+    product_schema: str
     status: TenantStatusEnum
-    source: None | str = None
-    requestor: dict
-    approvedBy: None | str = None
+    orgname: str | None = None
+    source: str | None = None
+    approvedBy: str | None = None
     schema_: str
 
 
-class RequestorModel(BaseModel):
-    id: str
-    username: str
-    email: str
-    organization: str
-
-
 class TenantResponseModel(BaseModel):
-    id: uuid.UUID
+    id: UUID
     name: str
     status: TenantStatusEnum
-    source: None | str = None
-    requestor: None | dict = None
-    product_schema: None | dict = None
-    approvedBy: None | str = None
+    source: str | None = None
+    product_schema: dict | None = None
+    approvedBy: UUID | None = None
     created: datetime
-    provisionedDateTime: None | datetime = None
+    provisionedDateTime: datetime | None = None
 
+    @classmethod
+    def json_to_model(cls, value: dict) -> "TenantResponseModel":
+        """
+        Convert db response to model
+        """
+        if value.get("data"):
+            value["product_schema"] = ijson_loads(value["data"])
+            if value["product_schema"].get("tenant"):
+                value["product_schema"].pop("tenant")
 
-class UpdateRequestorModel(BaseModel):
-    tenant_id: uuid.UUID
-    username: str
-    email: str
-    organization: str
+        value["name"] = value.get("tenantname")
+        return cls(**value)
 
 
 class SuggestTenantNamesResponseModel(BaseModel):

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+  <span>Hello {{user_name}},</span>
+  <p>Your Veritable account has been created. Here are your login credentials:</p>
+
+  <p> Website: <a href="{{ environment_link }}">{{ environment_link }}</a> <br>
+      Email: {{email}}<br>
+      Temporary Password: {{password}}</p>
+  <p>Important: Upon first login, you will be prompted to set a new password.</p>
+  <p>To help you get started, we've created a brief guide with key steps. This will ensure a smooth onboarding experience
+      <a href="https://res.cloudinary.com/abegerho/image/upload/v1710317907/Veritable%20Onboarding%20Doc/Veritable_Onboarding_Help.docx_tip3di.pdf"> Veritable Onboarding Guide.</a></p>
+  <p>Should you require any assistance or have any questions, please don't hesitate to contact our dedicated support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+  <br>
+    <p>Warm Regards,</p>
+    <p>Team Veritable</p>
+    <p>E: <a href="mailto:support@veritable.app">support@veritable.app</a></p>
+    <p>W: <a href="https://www.veritable.app/">https://www.veritable.app/</a></p>
+</body>
+</html>

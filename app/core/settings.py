@@ -3,13 +3,21 @@ import tempfile
 from functools import lru_cache, partial
 from typing import Final
 
-import loguru
-import orjson
 import requests
+from loguru import logger
 from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
 
+from app.core.ijson import ijson_loads
 from app.core.log import setup_logging
+from app.core.product_settings.common import PostgresSettings, Redis, SlackSettings
+from app.core.product_settings.dexit import DexitSettings
+from app.core.product_settings.hdp import HDPSettings
+from app.core.product_settings.jeeves import JeevesSettings
+from app.core.product_settings.penknife import PenknifeSettings
+from app.core.product_settings.practifly import PractiflySettings
+from app.core.product_settings.veritable import VeritableSettings
+from app.core.product_settings.zsegment import ZSegmentSettings
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
@@ -55,26 +63,6 @@ class KeycloakSettings(BaseModel):
     def wellknown_url(self: "KeycloakSettings") -> str:
         """Returns keycloak well-known url"""
         return f"{self.auth_url}/auth/realms/{self.realm}/.well-known/openid-configuration"
-
-
-class PostgresSettings(BaseModel):
-    """
-    Postgres Settings
-    """
-
-    db: str = ""
-    user: str = ""
-    password: str = ""
-    port: int = 5432
-    host: str = ""
-
-    @property
-    def dsn(self: "PostgresSettings") -> str:
-        """Returns Postgres DSN"""
-        return f"postgres://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
-
-    timezone: str = "Asia/Kolkata"
-    schema_name: str = ""
 
 
 class GrafanaSettings(BaseModel):
@@ -123,21 +111,12 @@ class S3Settings(BaseModel):
     bucket: str = ""
 
 
-class SlackSettings(BaseModel):
-    """
-    Slack Settings
-    """
-
-    channel_id: str = "C076N2B1FD4"
-    bot_token: str = ""
-    bot_username: str = "Launchpad"
-
-
 class SendGridSettings(BaseModel):
     """SendGrid Settings"""
 
     api_key: str = ""
     email_from: str = ""
+    support_mail: str = ""
     category: str = "provisioning"
 
 
@@ -183,214 +162,6 @@ class CloudflareSettings(BaseModel):
     bucket_write_permission_group_name: str = "Workers R2 Storage Bucket Item Write"
 
 
-class VeritableSettings(BaseModel):
-    """
-    Veritable Settings
-    """
-
-    zone_id: str = ""
-    domain_name: str = "veritable.tech"
-
-    sender_name: str = ""
-    sender_email: str = ""
-
-    temporal_veritable_onboarding_task_queue: str = "temporal_veritable_onboarding_task_queue"
-    temporal_veritable_deboarding_task_queue: str = "temporal_veritable_deboarding_task_queue"
-
-    novu_url: str = "https://alerting.314ecorp.tech/"
-    novu_admin_user: str = "support@veritable.app"
-    novu_admin_password: str = ""
-
-
-class JeevesSettings(BaseModel):
-    """
-    Jeeves Settings
-    """
-
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "okjeeves.tech"
-    # zone_name: str = "e314ecorptech"
-    zone_id: str = ""
-    # grafana: GrafanaSettings = GrafanaSettings()
-
-    sender_email: str = "support@okjeeves.com"
-    sender_name: str = "Jeeves Support"
-
-    temporal_jeeves_onboarding_task_queue: str = "temporal_jeeves_onboarding_task_queue"
-    temporal_jeeves_deboarding_task_queue: str = "temporal_jeeves_deboarding_task_queue"
-
-    novu_url: str = ""
-    novu_admin_user: str = "jeeves.assistant@314ecorp.com"
-    novu_admin_password: str = ""
-    novu_sendgrid_sender_email: str = "noreply@okjeeves.com"
-    novu_sendgrid_sender_name: str = "Jeeves Support"
-
-    chatwoot_base_url: str = "http://chatwoot.chatwoot.svc.cluster.local:3000"  # NOSONAR
-    chatwoot_platform_api_token: str = ""
-    chatwoot_default_user_password: str = ""
-    chatwoot_domain: str = "314ecorp.tech"
-    server_url: str = ""
-
-    keycloak_smtp_password: str = ""
-
-    vespa_host: str = ""
-    vespa_deploy_port_address: str = ""
-    vespa_user_index_suffix: str = "_user"
-    vespa_application_path: str = "/vespa/jeeves/application"
-
-    prod_image_tag: str = ""
-    idp_config: dict = {}
-
-    keycloak_db_password: str = ""
-    matomo_db_password: str = ""
-
-    location_hint: str = "enam"
-
-    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
-
-    r2_url: str = ""
-    r2_access_key: str = ""
-    r2_secret: str = ""
-    r2_bucket: str = ""
-
-    reporting_site_id: str = "1"
-
-    pg_dsn_template: str = "postgresql://jeeves_{tenant}.jeeves_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/jeeves"
-    atlas_pg_dsn_template: str = (
-        "postgresql://jeeves_{tenant}:{password}@db-cluster-ha.postgresql.svc.cluster.local/jeeves"
-    )
-    redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
-    base_ui_url: str = "https://{tenant}.okjeeves.tech"
-    s3_mpd_api: str = "https://{tenant}.api.okjeeves.app/public/api/v1/recording/getMPDFile"
-    mpd_api: str = "https://{tenant}.api.okjeeves.app/api/v1/asset"
-    auth_secret: str = ""
-
-
-class HDPSettings(BaseModel):
-    """
-    Jeeves Settings
-    """
-
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "hdp.314ecorp.tech"
-    zone_name: str = "e314ecorptech"
-
-    sender_email: str = ""
-    sender_name: str = ""
-
-    # grafana: GrafanaSettings = GrafanaSettings()
-
-    temporal_hdp_onboarding_task_queue: str = "temporal_hdp_onboarding_task_queue1"
-    temporal_hdp_deboarding_task_queue: str = "temporal_hdp_deboarding_task_queue1"
-
-    kestra_username: str = "kestra.user@314ecorp.com"
-
-    reporting_site_id: str = "1"
-
-
-class PenknifeSettings(BaseModel):
-    """
-    Penknife Settings
-    """
-
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "penknife.tech"
-    zone_id: str = ""
-    zone_name: str = "e314ecorptech"
-
-    sender_email: str = "developer@314ecorp.com"
-    sender_name: str = "314e Support"
-
-    temporal_penknife_onboarding_task_queue: str = "temporal_penknife_onboarding_task_queue"
-    temporal_penknife_deboarding_task_queue: str = "temporal_penknife_deboarding_task_queue"
-
-    novu_url: str = "https://alerting.314ecorp.tech"
-    novu_admin_user: str = ""
-    novu_admin_password: str = ""
-
-    keycloak_db_password: str = ""
-
-
-class DexitSettings(BaseModel):
-    """
-    Dexit Settings
-    """
-
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = "dexit.tech"
-    zone_name: str = "e314ecorptech"
-    zone_id: str = ""
-    # grafana: GrafanaSettings = GrafanaSettings()
-
-    sender_email: str = "developer@314ecorp.com"
-    sender_name: str = "314e Support"
-
-    temporal_dexit_onboarding_task_queue: str = "temporal_dexit_onboarding_task_queue"
-    temporal_dexit_deboarding_task_queue: str = "temporal_dexit_deboarding_task_queue"
-
-    novu_url: str = "https://alerting.314ecorp.tech"
-    novu_admin_user: str = "dexit.assistant@314ecorp.com"
-    novu_admin_password: str = ""
-
-    keycloak_db_password: str = ""
-    matomo_db_password: str = ""
-
-    idp_config: dict = {}
-
-    slack_application_id: str = ""
-    slack_client_id: str = ""
-    slack_channel_secret_key: str = ""
-
-    FaxAccountId: str = ""
-    FaxApiToken: str = ""
-
-    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
-
-
-class ZSegmentSettings(BaseModel):
-    """
-    ZSegment Settings with environment-based configuration.
-    """
-
-    postgres: PostgresSettings = PostgresSettings()
-    domain_name: str = ""
-    zone_name: str = ""
-    zone_id: str = ""
-    redpanda_broker: str = ""
-    redpanda_admin_username: str = ""
-    redpanda_admin_password: str = ""
-    redpanda_admin_api_base_url: str = ""
-    keycloak_auth_server_url: str = ""
-    gitea_base_url: str = ""
-    gitea_admin_username: str = ""
-    gitea_admin_password: str = ""
-    gitea_template_owner: str = ""
-    lago_api_url: str = ""
-    lago_plan_code: str = ""
-    lago_api_key: str = ""
-    postgres_url: str = ""
-    matomo_auth_token: str = ""
-    sender_name: str = ""
-    sender_email: str = ""
-    victoria_metrics_url: str = ""
-    temporal_zsegment_onboarding_task_queue: str = ""
-
-    deb_url: str = ""
-
-
-class PractiflySettings(BaseModel):
-    """
-    Practifly Settings
-    """
-
-    zone_id: str = ""
-    domain_name: str = "practifly.tech"
-    sender_name: str = ""
-    sender_email: str = ""
-    temporal_practifly_onboarding_task_queue: str = "temporal_practifly_onboarding_task_queue"
-    temporal_practifly_deboarding_task_queue: str = "temporal_practifly_deboarding_task_queue"
-
-
 class DigitalOceanSettings(BaseModel):
     """
     DigitalOcean Settings
@@ -401,6 +172,11 @@ class DigitalOceanSettings(BaseModel):
     size: str = "s-1vcpu-1gb"
     image: str = "ubuntu-24-04-x64"
     ssh_key_name: str = "314e"
+
+
+class Recaptcha(BaseSettings):
+    api_url: str = ""
+    secret_key: str = ""
 
 
 class AppSettings(BaseSettings):
@@ -432,6 +208,7 @@ class AppSettings(BaseSettings):
     s3_int: S3Settings = S3Settings()
     s3: S3Settings = S3Settings()
     r2: S3Settings = S3Settings()
+    redis: Redis = Redis()
 
     matomo_db_password: str = ""
 
@@ -458,6 +235,14 @@ class AppSettings(BaseSettings):
     gsuite: GSuiteModel = GSuiteModel()
 
     model_config = ConfigDict(extra="ignore")
+
+    @property
+    def is_env_integration(self: "AppSettings") -> bool:
+        """
+        Returns true if env is integration
+        @return:
+        """
+        return self.env == "integration"
 
 
 class IntegrationSettings(AppSettings):
@@ -506,11 +291,15 @@ def get_settings() -> AppSettings:
         if file in PRODUCT_FILE_NAMES:
             product = file.split(".")[0]
             try:
-                combined_config[product] = orjson.loads(open(os.path.join(config_dir, file)).read())
+                combined_config[product] = ijson_loads(open(os.path.join(config_dir, file)).read())
             except Exception as e:
-                loguru.logger.error(f"Error while loading config for {product}: {e}")
+                logger.error(f"Error while loading config for {product}: {e}")
         else:
-            combined_config.update(orjson.loads(open(os.path.join(config_dir, file)).read()))
+            try:
+                combined_config.update(ijson_loads(open(os.path.join(config_dir, file)).read()))
+            except Exception:
+                logger.error(f"found inadequate config file - {file}, returning default settings!")
+                return default_settings
 
     import pydash as py_
 
