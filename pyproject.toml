@@ -48,7 +48,7 @@ psycopg2-binary = "^2.9.10"
 python-digitalocean = "^1.17.0"
 cffi = "^1.17.1"
 setuptools = "^75.7.0"
-opendal = "^0.45.14"
+opendal = "^0.45.16"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
