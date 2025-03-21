@@ -7,16 +7,6 @@ from datetime import timedelta
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.cloudflareUtils import (
-    create_bucket,
-    create_cloudflare_bucket_credentials,
-    create_dns_record,
-    delete_bucket,
-    delete_dns_record,
-    get_temporary_credentials,
-    link_bucket_to_custom_domain,
-    update_cors_for_bucket,
-)
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
@@ -65,6 +55,8 @@ class CreateCloudflareBucketActivity(Activity):
         """
         Create a Cloudflare bucket
         """
+        from app.cli.cloudflareUtils import create_bucket
+
         config: AppSettings = get_settings()
 
         await create_bucket(
@@ -111,6 +103,8 @@ class CreateCloudflareDNSRecordActivity(Activity):
         """
         Create a Cloudflare DNS record
         """
+        from app.cli.cloudflareUtils import create_dns_record
+
         config: AppSettings = get_settings()
         await create_dns_record(
             config=config,
@@ -155,6 +149,8 @@ class LinkBucketToDomainActivity(Activity):
         """
         Link a bucket to a domain
         """
+        from app.cli.cloudflareUtils import link_bucket_to_custom_domain
+
         config: AppSettings = get_settings()
 
         await link_bucket_to_custom_domain(
@@ -205,6 +201,8 @@ class CopyArtifactsToBucketActivity(Activity):
         """
         Copy artifacts to a bucket
         """
+        from app.cli.cloudflareUtils import get_temporary_credentials
+
         config: AppSettings = get_settings()
 
         artifacts_access_key = config.cloudflare.r2_access_key
@@ -314,6 +312,8 @@ class CopyWebCoreToBucketActivity(Activity):
         """
         Copy webcore to a bucket
         """
+        from app.cli.cloudflareUtils import get_temporary_credentials
+
         config: AppSettings = get_settings()
 
         bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
@@ -386,6 +386,8 @@ class DeleteCloudflareBucketActivity(Activity):
         """
         Delete a Cloudflare bucket
         """
+        from app.cli.cloudflareUtils import delete_bucket
+
         config: AppSettings = get_settings()
 
         try:
@@ -428,6 +430,8 @@ class DeleteFilesFromCloudflareActivity(Activity):
         """
         Delete files from Cloudflare
         """
+        from app.cli.cloudflareUtils import get_temporary_credentials
+
         config: AppSettings = get_settings()
         bucket_temporary_credentials = await get_temporary_credentials(config, activity_input.bucket_name)
         bucket_access_key = bucket_temporary_credentials.access_key_id
@@ -480,6 +484,8 @@ class DeleteCloudflareDNSRecordActivity(Activity):
         """
         Delete a Cloudflare DNS record
         """
+        from app.cli.cloudflareUtils import delete_dns_record
+
         config: AppSettings = get_settings()
 
         try:
@@ -571,6 +577,8 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
         """
         Copy artifacts to a bucket
         """
+        from app.cli.cloudflareUtils import get_temporary_credentials
+
         config: AppSettings = get_settings()
 
         environment: str = config.env
@@ -704,6 +712,8 @@ class UpdateCORSForBucketActivity(Activity):
         """
         Update CORS for a bucket
         """
+        from app.cli.cloudflareUtils import update_cors_for_bucket
+
         config: AppSettings = get_settings()
         await update_cors_for_bucket(config=config, bucket_name=activity_input.bucket_name, rules=activity_input.rules)
 
@@ -724,7 +734,6 @@ class CloudflareBucketCredentials(LaunchpadCLIBaseModel):
 
     access_key: str | None = None
     secret_key: str | None = None
-    exists: bool
 
 
 class CreateCloudflareBucketCredentialsActivity(Activity):
@@ -752,6 +761,8 @@ class CreateCloudflareBucketCredentialsActivity(Activity):
         """
         Create Cloudflare bucket credentials
         """
+        from app.cli.cloudflareUtils import create_cloudflare_bucket_credentials
+
         config: AppSettings = get_settings()
         return await create_cloudflare_bucket_credentials(
             bucket_name=activity_input.bucket_name, config=config, read_only=activity_input.read_only

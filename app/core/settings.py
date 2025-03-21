@@ -101,10 +101,12 @@ class TemporalSettings(BaseModel):
         return f"{self.host}:{self.port}"
 
 
-class GitSettings(BaseModel):
-    """Git Settings"""
+class DockerRegistrySettings(BaseModel):
+    """Docker Registry Settings"""
 
-    access_token: str = os.getenv("GITHUB_ACCESS_TOKEN", "")
+    registry_url: str = "https://registry.314ecorp.tech"
+    registry_username: str = ""
+    registry_password: str = ""
 
 
 class S3Settings(BaseModel):
@@ -416,7 +418,7 @@ class AppSettings(BaseSettings):
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
     cloudflare: CloudflareSettings = CloudflareSettings()
-    gitsettings: GitSettings = GitSettings()
+    docker_registry: DockerRegistrySettings = DockerRegistrySettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()

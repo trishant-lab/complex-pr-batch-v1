@@ -33,7 +33,6 @@ from app.cli.temporal.activities.deploymentPodCreation import (
 )
 from app.cli.temporal.activities.jeevesFetchLatestTag import (
     JeevesFetchLatestTagActivity,
-    JeevesFetchLatestTagActivityModel,
 )
 from app.cli.temporal.activities.jeevesNovuSetup import JeevesNovuSetupActivity
 from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
@@ -50,6 +49,8 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
     KeycloakCreateClientRolesActivityModel,
+    KeycloakCreateGroupActivity,
+    KeycloakCreateGroupActivityModel,
     KeycloakCreateInternalUsersActivity,
     KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
@@ -170,6 +171,7 @@ class JeevesOnboardingWorkflow(Workflow):
             CreateCloudflareBucketCredentialsActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
             JeevesFetchLatestTagActivity.defn,
+            KeycloakCreateGroupActivity.defn,
         ]
 
     @classmethod
@@ -562,27 +564,16 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             repo_name = "jeeves-ui"
+            image_tag = server_image_tag = "sprint"
+            dest_dir = f"{bucket_name}/{image_tag}"
             if config.env == "production":
-                image_tag = await workflow.execute_activity(
-                    activity=JeevesFetchLatestTagActivity.defn,
-                    arg=JeevesFetchLatestTagActivityModel(
-                        repo_url="https://{access_token}@github.com/softwareartistry/jeeves-ui.git"
-                    ),
-                    retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
-                    start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
-                )
+                image_tag = "production"
                 server_image_tag = await workflow.execute_activity(
                     activity=JeevesFetchLatestTagActivity.defn,
-                    arg=JeevesFetchLatestTagActivityModel(
-                        repo_url="https://{access_token}@github.com/softwareartistry/jeeves-app.git"
-                    ),
                     retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
                     start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
                 )
                 dest_dir = f"{bucket_name}/"
-            else:
-                image_tag = server_image_tag = "sprint"
-                dest_dir = f"{bucket_name}/{image_tag}"
 
             docker_image = f"registry.314ecorp.tech/jeeves-app:{server_image_tag}"
 
@@ -671,46 +662,45 @@ class JeevesOnboardingWorkflow(Workflow):
                 start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
-            if not credentials.exists:
-                await workflow.execute_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity.defn,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item="application-config",
-                        key="s3_ui_bucket_name",
-                        key_value=bucket_name,
-                    ),
-                    retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                    start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
-                )
-                # s3 access key added to onepassword
-                await workflow.execute_activity(
-                    activity=OnePasswordCreateOrUpdateActivity.defn,
-                    arg=OnePasswordCreateOrUpdateActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item="application-config",
-                        secret_name="s3_ui_bucket_access_key",
-                        secret_value=credentials.access_key,
-                    ),
-                    retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                    start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
-                )
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_ui_bucket_name",
+                    key_value=bucket_name,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+            # s3 access key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_ui_bucket_access_key",
+                    key_value=credentials.access_key,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
 
-                # s3 secret key added to onepassword
-                await workflow.execute_activity(
-                    activity=OnePasswordCreateOrUpdateActivity.defn,
-                    arg=OnePasswordCreateOrUpdateActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item="application-config",
-                        secret_name="s3_ui_bucket_secret_key",
-                        secret_value=credentials.secret_key,
-                    ),
-                    retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                    start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
-                )
+            # s3 secret key added to onepassword
+            await workflow.execute_activity(
+                activity=OnePasswordInsertIfNotExistsActivity.defn,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_ui_bucket_secret_key",
+                    key_value=credentials.secret_key,
+                ),
+                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
+                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
 
             # additional required onepassword configs
             await workflow.execute_activity(
@@ -836,6 +826,10 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_allow-delete-courses",
                 "_allow-enroll-courses",
                 "_allow-view-all-courses",
+                "_can-manage-users",
+                "_access-users",
+                "_developer",
+                "_can-manage-groups",
             ]
             # keycloak client roles setup
             await workflow.execute_activity(
@@ -847,6 +841,19 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
                 retry_policy=KeycloakCreateClientRolesActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
+            )
+
+            # keycloak user group setup
+            await workflow.execute_activity(
+                activity=KeycloakCreateGroupActivity.defn,
+                arg=KeycloakCreateGroupActivityModel(
+                    realm_name=realm_name,
+                    client_name="jeeves",
+                    template_path=TemplatePath,
+                    template_name="keycloak_user_group.json",
+                ),
+                retry_policy=KeycloakCreateGroupActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateGroupActivity.get_timeout(),
             )
 
             # Create IDP mappers
@@ -891,6 +898,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     lastname=last_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
+                    roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                 ),
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
@@ -905,6 +913,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
                     users=orjson.loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
+                    roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                 ),
                 retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
                 start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
@@ -1115,27 +1124,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
                 start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
-
-            # delete deployment if exists (for update)
-            # await workflow.execute_activity(
-            #     activity=DeploymentDeletionActivity.defn,
-            #     arg=DeploymentDeletionActivityModel(
-            #         namespace=tenant,
-            #         name="jeeves",
-            #     ),
-            #     retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-            #     start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
-            # )
-
-            # await workflow.execute_activity(
-            #     activity=DeploymentDeletionActivity.defn,
-            #     arg=DeploymentDeletionActivityModel(
-            #         namespace=tenant,
-            #         name="jeeves-worker",
-            #     ),
-            #     retry_policy=DeploymentDeletionActivity.get_retry_policy(),
-            #     start_to_close_timeout=DeploymentDeletionActivity.get_timeout(),
-            # )
 
             # vm pod scraper
             await workflow.execute_activity(
