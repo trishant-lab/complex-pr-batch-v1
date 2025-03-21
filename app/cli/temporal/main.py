@@ -9,6 +9,9 @@ from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWor
 from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
 from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
 from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
+from app.cli.temporal.workflows.onboard import OnboardWorkflow
+from app.cli.temporal.workflows.payments.verify import OnboardPaymentVerifyWorkflow
+from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEventWorkflow
 from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
 WORKFLOW_MAPPER: dict[str, type[Workflow | ScheduleWorkflow]] = {
@@ -25,5 +28,8 @@ WORKFLOW_MAPPER: dict[str, type[Workflow | ScheduleWorkflow]] = {
         PractiflyDeProvisioningWorkflow,
         ZSegmentOnboardingWorkflow,
         VeritableOnboardingWorkflow,
+        OnboardWorkflow,
+        OnboardPaymentVerifyWorkflow,
+        InvoiceWebhookEventWorkflow,
     ]
 }
