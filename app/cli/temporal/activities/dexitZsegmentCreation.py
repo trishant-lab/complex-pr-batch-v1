@@ -1,5 +1,5 @@
-from datetime import timedelta
 import asyncio
+from datetime import timedelta
 
 from temporalio import activity
 from temporalio.api.enums.v1 import WorkflowExecutionStatus
@@ -13,7 +13,6 @@ from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWor
 from app.core.cli_settings import WorkerQueues
 
 
-@activity.defn
 class ZSegmentSetupActivity(Activity):
     """
     Activity to setup ZSegment for a tenant
@@ -38,7 +37,7 @@ class ZSegmentSetupActivity(Activity):
             maximum_attempts=1,
         )
 
-    @activity.run
+    @activity.defn(name="ZSegmentSetupActivity")
     async def run(self, model: ZSegmentSpec) -> None:
         """
         Setup ZSegment for a tenant
@@ -47,8 +46,8 @@ class ZSegmentSetupActivity(Activity):
             workflow_input=ZSegmentSpec(
                 tenant=model.tenant,
                 email=model.email,
-                firstName=model.first_name,
-                lastName=model.last_name,
+                firstName=model.firstName,
+                lastName=model.lastName,
                 organization=model.organization,
             ),
             workflow=ZSegmentOnboardingWorkflow,
@@ -61,8 +60,8 @@ class ZSegmentSetupActivity(Activity):
             workflow_input=ZSegmentSpec(
                 tenant=model.tenant,
                 email=model.email,
-                firstName=model.first_name,
-                lastName=model.last_name,
+                firstName=model.firstName,
+                lastName=model.lastName,
             ),
             workflow=ZSegmentOnboardingWorkflow,
         )
