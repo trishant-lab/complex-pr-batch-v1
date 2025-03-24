@@ -1,31 +1,13 @@
-from app.cli.temporal.core.base import LaunchpadCLIBaseModel
+from app.cli.temporal.models.base_spec import BaseResourceSpec, BaseSpec
 
-
-class ResourceSpec(LaunchpadCLIBaseModel):
-    """
-    ResourceSpec dataclass
-    """
-
-    request_memory: str = "500Mi"
-    request_cpu: str = "100m"
-    limit_memory: str = "3000Mi"
-    limit_cpu: str = "3000m"
-
-
-class PricedxSpec(LaunchpadCLIBaseModel):
+class PricedxSpec(BaseSpec):
     """
     PricedxSpec dataclass
     """
 
-    tenant: str
-    customerId: str
-    firstName: str
-    lastName: str
-    email: str
-    orgName: str
+    customerId: str | None = None
     emailSent: bool = False
-    serverSpec: None | ResourceSpec = ResourceSpec()
-    cliSpec: None | ResourceSpec = ResourceSpec()
+    cliSpec: None | BaseResourceSpec = BaseResourceSpec()
 
     @property
     def cloudflare_r2_ui_bucket(self: "PricedxSpec") -> str:

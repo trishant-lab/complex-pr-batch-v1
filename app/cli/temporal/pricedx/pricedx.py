@@ -1,7 +1,7 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.temporal.pricedx.models.pricedxSpec import PricedxSpec
-from app.cli.workflowbase import ProductWorkflow
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 from app.core.cli_settings import WorkerQueues
 
 ProductName = "pricedx"

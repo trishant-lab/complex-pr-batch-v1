@@ -19,7 +19,7 @@ from app.core.product_settings.common import SelfSignupSettings
 from app.models.add_ons.veritable import VeritableAddOn, VeritableFeature
 from app.models.enums import AddOn, Feature
 from app.cli.temporal.pricedx.pricedx import PricedxWorkflow
-from app.cli.temporal.pricedx.models.pricedxSpec import PricedxSpec
+from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 
 
 class ProductEnum(str, Enum):

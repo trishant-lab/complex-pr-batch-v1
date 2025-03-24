@@ -1,4 +1,0 @@
-"""
-Pricedx Workers
-"""
-    

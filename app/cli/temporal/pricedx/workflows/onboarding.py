@@ -1,11 +1,13 @@
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-import orjson
+from app.core.ijson import ijson_dumps, ijson_loads
 import pydash
 from cryptography.fernet import Fernet
 from temporalio import workflow
 
-from app.cli.temporal.activities.cloudflareSetup import (
+from app.cli.activity_util import run_activity
+from app.cli.temporal.activities.cloudflare_setup import (
     CloudflareBucketCredentials,
     CopyArtifactsToBucketActivity,
     CopyArtifactsToBucketActivityModel,
@@ -20,29 +22,29 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivity,
     PropagateDNSRecordActivityModel,
 )
-from app.cli.temporal.activities.databaseMigrationJob import (
+from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
-from app.cli.temporal.activities.k8sIstioVirtualService import (
+from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.keycloakSetup import (
+from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
+from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
+from app.cli.temporal.activities.keycloak_setup import (
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
-from app.cli.temporal.activities.onePassword import (
+from app.cli.temporal.activities.one_password import (
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
 )
-from app.cli.temporal.activities.postgresSetup import (
+from app.cli.temporal.activities.postgres_setup import (
     PostgresDatabaseCreationActivity,
     PostgresDatabaseCreationActivityModel,
     PostgresGrantAccessToUserActivity,
@@ -55,36 +57,41 @@ from app.cli.temporal.activities.postgresSetup import (
     PostgresUserCreationActivityModel,
 )
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
-from app.cli.temporal.activities.sendMail import (
+from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.statefulSetPodCreation import (
+from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
-from app.cli.temporal.activities.temporalNamespace import (
+from app.cli.temporal.activities.temporal_namespace import (
     TemporalNamespaceActivity,
     TemporalNamespaceActivityModel,
 )
-from app.cli.temporal.activities.tenantCrd import (
+from app.cli.temporal.activities.tenant_crd import (
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
     TenantCrdExistsActivity,
     TenantCrdExistsActivityModel,
 )
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.pricedx import TemplatePath
-from app.cli.temporal.pricedx.models.pricedxSpec import PricedxSpec
+from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 from app.common import generate_password
 from app.core.settings import AppSettings, PricedxSettings, get_settings
+from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
+
+if TYPE_CHECKING:
+    from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 
 ProductName = "pricedx"
 OnePasswordVaultName = "pricedx"
@@ -155,23 +162,21 @@ class PricedxOnboardingWorkflow(Workflow):
 
         try:
             # get tenant crd
-            tenant_crd_exists: bool = await workflow.execute_activity(
-                activity=TenantCrdExistsActivity.defn,
+            tenant_crd_exists: bool = await run_activity(
+                activity=TenantCrdExistsActivity,
                 arg=TenantCrdExistsActivityModel(
                     tenant=tenant,
                     kind="PricedxTenant",
                     product=ProductName,
                 ),
-                retry_policy=TenantCrdExistsActivity.get_retry_policy(),
-                start_to_close_timeout=TenantCrdExistsActivity.get_timeout(),
             )
 
             if tenant_crd_exists:
                 raise RuntimeError(f"Tenant {tenant} already exists")  # noqa: TRY301
 
             if not pydash.get(pricedx, "emailSent"):
-                await workflow.execute_activity(
-                    activity=SendBeforeProvisioningMailActivity.defn,
+                await run_activity(
+                    activity=SendBeforeProvisioningMailActivity,
                     arg=SendBeforeProvisioningMailActivityModel(
                         user_details={
                             "firstName": first_name,
@@ -182,8 +187,6 @@ class PricedxOnboardingWorkflow(Workflow):
                         from_name=pricedx_config.sender_name,
                         email_from=pricedx_config.sender_email,
                     ),
-                    retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
                 )
 
             postgres_schema_name = f"{ProductName}_{tenant}"
@@ -196,7 +199,7 @@ class PricedxOnboardingWorkflow(Workflow):
             template_env = get_env(template_path=TemplatePath)
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag)
-            http_list = orjson.loads(output)
+            http_list = ijson_loads(output)
             if config.env != "production":
                 http_list.append(
                     {
@@ -207,99 +210,83 @@ class PricedxOnboardingWorkflow(Workflow):
                 )
 
             # create namespace in k8s
-            await workflow.execute_activity(
-                activity=K8sNamespaceCreationActivity.defn,
+            await run_activity(
+                activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(
                     namespace=tenant,
                 ),
-                retry_policy=K8sNamespaceCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
             )
 
             # create postgres database
-            await workflow.execute_activity(
-                activity=PostgresDatabaseCreationActivity.defn,
+            await run_activity(
+                activity=PostgresDatabaseCreationActivity,
                 arg=PostgresDatabaseCreationActivityModel(
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresDatabaseCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresDatabaseCreationActivity.get_timeout(),
             )
 
             # create postgres user for pricedx
-            await workflow.execute_activity(
-                activity=PostgresUserCreationActivity.defn,
+            await run_activity(
+                activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     password=postgres_password,
                 ),
-                retry_policy=PostgresUserCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresSupavisorPollUserActivity.defn,
+            await run_activity(
+                activity=PostgresSupavisorPollUserActivity,
                 arg=PostgresSupavisorPollUserActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     db_password=postgres_password,
                     template_path=TemplatePath,
                 ),
-                retry_policy=PostgresSupavisorPollUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSupavisorPollUserActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresSchemaCreationActivity.defn,
+            await run_activity(
+                activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresSchemaCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSchemaCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
 
             data_bucket = pricedx_config.cloudflare_r2_data_bucket
 
-            await workflow.execute_activity(
-                activity=CreateCloudflareBucketActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareBucketActivity,
                 arg=CreateCloudflareBucketActivityModel(
                     bucket_name=data_bucket,
                 ),
-                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
             )
 
-            credentials: CloudflareBucketCredentials = await workflow.execute_activity(
-                activity=CreateCloudflareBucketCredentialsActivity.defn,
+            credentials: CloudflareBucketCredentials = await run_activity(
+                activity=CreateCloudflareBucketCredentialsActivity,
                 arg=CreateCloudflareBucketCredentialsActivityModel(
                     bucket_name=data_bucket,
                     read_only=False,
                 ),
-                retry_policy=CreateCloudflareBucketCredentialsActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareBucketCredentialsActivity.get_timeout(),
             )
 
             cloudflare_r2_data_bucket_access_key: str = credentials.access_key
             cloudflare_r2_data_bucket_secret_key: str = credentials.secret_key
 
             # s3 access key added to onepassword
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -307,13 +294,11 @@ class PricedxOnboardingWorkflow(Workflow):
                     key="s3_access_key",
                     key_value=cloudflare_r2_data_bucket_access_key,
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # s3 secret key added to onepassword
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -321,35 +306,29 @@ class PricedxOnboardingWorkflow(Workflow):
                     key="s3_secret_key",
                     key_value=cloudflare_r2_data_bucket_secret_key,
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="pricedx-cloudflare-r2",
                     string_data={"access-key": cloudflare_r2_data_bucket_access_key},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="pricedx-cloudflare-r2",
                     string_data={"secret-key": cloudflare_r2_data_bucket_secret_key},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for docker registry
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="registrycred",
@@ -358,50 +337,42 @@ class PricedxOnboardingWorkflow(Workflow):
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for redis password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="cache-secret",
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for postgres password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="postgres-secret",
                     string_data={"POSTGRES_PASSWORD": postgres_password},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # setup redis
-            await workflow.execute_activity(
-                activity=RedisSetupActivity.defn,
+            await run_activity(
+                activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
                     namespace=tenant,
                     product=ProductName,
                     redis_tenant_password=redis_tenant_password,
                 ),
-                retry_policy=RedisSetupActivity.get_retry_policy(),
-                start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
             # insert fernet key into 1Password if it doesn't exist
             fernet_key = Fernet.generate_key().decode()
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=tenant,
                     vault=OnePasswordVaultName,
@@ -409,8 +380,6 @@ class PricedxOnboardingWorkflow(Workflow):
                     key="fernet_key",
                     key_value=fernet_key,
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             custom_config = "custom-config.json"
@@ -447,8 +416,8 @@ class PricedxOnboardingWorkflow(Workflow):
                     "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
                 },
             ]:
-                await workflow.execute_activity(
-                    activity=K8sConfigMapCreationActivity.defn,
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
@@ -462,53 +431,43 @@ class PricedxOnboardingWorkflow(Workflow):
                         },
                         destination_file_name=config_map["key"],
                     ),
-                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
                 )
 
             # dns setup
-            await workflow.execute_activity(
-                activity=CreateCloudflareDNSRecordActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.{pricedx_config.domain_name}",
                     zone_id=pricedx_config.zone_id,
                     content=config.k8s_cname,
                 ),
-                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
             # create bucket
             ui_bucket = pricedx_config.cloudflare_r2_ui_bucket
-            await workflow.execute_activity(
-                activity=CreateCloudflareBucketActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareBucketActivity,
                 arg=CreateCloudflareBucketActivityModel(
                     bucket_name=ui_bucket,
                 ),
-                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
             )
 
             # link bucket to custom domain
-            await workflow.execute_activity(
-                activity=LinkBucketToDomainActivity.defn,
+            await run_activity(
+                activity=LinkBucketToDomainActivity,
                 arg=LinkBucketToDomainActivityModel(
                     bucket_name=ui_bucket,
                     domain_name=f"{tenant}.{pricedx_config.domain_name}",
                     zone_id=pricedx_config.zone_id,
                 ),
-                retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
-                start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
             # propagate the dns record
-            await workflow.execute_activity(
-                activity=PropagateDNSRecordActivity.defn,
+            await run_activity(
+                activity=PropagateDNSRecordActivity,
                 arg=PropagateDNSRecordActivityModel(
                     domain_name=f"{tenant}.{pricedx_config.domain_name}",
                 ),
-                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             repo_name = "pricedx-ui"
@@ -524,8 +483,8 @@ class PricedxOnboardingWorkflow(Workflow):
             bundle_path = "bundle/dist"
 
             # copy artifacts to bucket
-            await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
+            await run_activity(
+                activity=CopyArtifactsToBucketActivity,
                 arg=CopyArtifactsToBucketActivityModel(
                     bucket_name=ui_bucket,
                     src_object_name=src_object_name,
@@ -534,14 +493,12 @@ class PricedxOnboardingWorkflow(Workflow):
                     bundle_name="bundle.zip",
                     tenant=tenant,
                 ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
             # keycloak realm setup
             realm_name = f"pricedx_{tenant}"
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
                     realm_name=realm_name,
                     domain=pricedx_config.domain_name,
@@ -551,13 +508,11 @@ class PricedxOnboardingWorkflow(Workflow):
                         "domain_org": pricedx_config.domain_name,
                     },
                 ),
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
             # keycloak tenant customer admin user setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
                     client_name=ProductName,
@@ -568,13 +523,11 @@ class PricedxOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_admin.json",
                 ),
-                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
             # provisioning job
-            await workflow.execute_activity(
-                activity=DatabaseMigrationJobActivity.defn,
+            await run_activity(
+                activity=DatabaseMigrationJobActivity,
                 arg=DatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="pricedx-tenant-provisioning-job",
@@ -608,38 +561,32 @@ class PricedxOnboardingWorkflow(Workflow):
                     job_type="provisioning",
                     product=ProductName,
                 ),
-                retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
-                start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
             )
 
             # kubernetes service
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="pricedx",
                     ports={"http": 8000},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
             # kubernetes virtual service
-            await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.{pricedx_config.domain_name}",
                     service_name="pricedx-vs",
                     payload=http_list,
                 ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
             # statefulset pod creation for server
-            await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
+            await run_activity(
+                activity=KubernetesStatefulSetActivity,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
                     name="pricedx",
@@ -647,7 +594,7 @@ class PricedxOnboardingWorkflow(Workflow):
                     request_resource={
                         "cpu": pydash.get(pricedx, "serverSpec.request_cpu"),
                         "memory": pydash.get(pricedx, "serverSpec.request_memory"),
-                    },  
+                    },
                     limit_resource={
                         "cpu": pydash.get(pricedx, "serverSpec.limit_cpu"),
                         "memory": pydash.get(pricedx, "serverSpec.limit_memory"),
@@ -718,13 +665,11 @@ class PricedxOnboardingWorkflow(Workflow):
                         {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
             # statefulset pod creation for cli
-            await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
+            await run_activity(
+                activity=KubernetesStatefulSetActivity,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
                     name="pricedx-cli",
@@ -813,23 +758,19 @@ class PricedxOnboardingWorkflow(Workflow):
                         {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
             # temporal namespace creation
-            await workflow.execute_activity(
-                activity=TemporalNamespaceActivity.defn,
+            await run_activity(
+                activity=TemporalNamespaceActivity,
                 arg=TemporalNamespaceActivityModel(
                     namespace=f"pricedx_{tenant}",
                 ),
-                retry_policy=TemporalNamespaceActivity.get_retry_policy(),
-                start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
             )
 
             # vm pod scraper for server
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="pricedx-metrics",
@@ -837,13 +778,11 @@ class PricedxOnboardingWorkflow(Workflow):
                     path="/metrics/",
                     interval="5s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # vm pod scraper
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="pricedx-cli-metrics",
@@ -851,25 +790,21 @@ class PricedxOnboardingWorkflow(Workflow):
                     path="/metrics/",
                     interval="5s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # update tenant status
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status="Completed",
-                    product=ProductName,
+                    status=TenantStatusEnum.Provisioned,
+                    product=ProductEnum.pricedx,
                 ),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
 
             # send mail
-            await workflow.execute_activity(
-                activity=SendAfterProvisioningMailActivity.defn,
+            await run_activity(
+                activity=SendAfterProvisioningMailActivity,
                 arg=SendAfterProvisioningMailActivityModel(
                     realm_name=realm_name,
                     tenant=tenant,
@@ -883,46 +818,38 @@ class PricedxOnboardingWorkflow(Workflow):
                     from_name=pricedx_config.sender_name,
                     email_from=pricedx_config.sender_email,
                 ),
-                retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
             )
 
             # check pod running status
             for pod in ["pricedx", "pricedx-cli"]:
-                await workflow.execute_activity(
-                    activity=CheckPodRunningStatusActivity.defn,
+                await run_activity(
+                    activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(
                         namespace=tenant,
                         name=pod,
                     ),
-                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
-                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
 
             # create tenant crd
-            await workflow.execute_activity(
-                activity=TenantCrdCreationActivity.defn,
+            await run_activity(
+                activity=TenantCrdCreationActivity,
                 arg=TenantCrdCreationActivityModel(
                     tenant=tenant,
                     kind="PricedxTenant",
                     product=ProductName,
-                    data=orjson.dumps(pricedx),
+                    data=ijson_dumps(pricedx),
                 ),
-                retry_policy=TenantCrdCreationActivity.get_retry_policy(),
-                start_to_close_timeout=TenantCrdCreationActivity.get_timeout(),
             )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status="Failed",
+                    status=TenantStatusEnum.Failed,
                     error_msg=str(e),
-                    product=ProductName,
+                    product=ProductEnum.pricedx,
                 ),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
