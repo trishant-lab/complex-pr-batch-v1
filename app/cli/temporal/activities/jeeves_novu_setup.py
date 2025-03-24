@@ -613,9 +613,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             inapp_content=assignment_assigned_inapp_content,
             config=config,
             digest=False,
-            in_app_redirect_url=(
-                "/sprint/my-assignments/{{todo_id}}" if config.env == "integration" else "/my-assignments/{{todo_id}}"
-            ),
+            in_app_redirect_url="/my-assignments/{{todo_id}}",
             novu_api_key=novu_api_key,
         )
 
