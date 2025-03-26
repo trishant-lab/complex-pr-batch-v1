@@ -9,9 +9,7 @@
   "enabled": true,
   "alwaysDisplayInConsole": false,
   "clientAuthenticatorType": "client-secret",
-  "redirectUris": [
-    "https://auth.314ecorp.com/auth/realms/help/broker/pricedx-<<tenant>>/endpoint"
-  ],
+  "redirectUris": ["https://<<tenant>>.<<domain>>/*"],
   "webOrigins": ["https://<<tenant>>.<<domain>>"],
   "notBefore": 0,
   "bearerOnly": false,

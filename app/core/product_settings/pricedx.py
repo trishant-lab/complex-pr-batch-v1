@@ -33,9 +33,6 @@ class PricedxSettings(BaseModel):
     reporting_site_id: str = "1"
 
     pg_dsn_template: str = "postgresql://pricedx_{tenant}.pricedx_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/pricedx"
-    atlas_pg_dsn_template: str = (
-        "postgresql://pricedx_{tenant}:{password}@db-cluster-ha.postgresql.svc.cluster.local/pricedx"
-    )
     redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
     base_ui_url: str = "https://{tenant}.pricedx.tech"
 

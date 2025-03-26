@@ -67,8 +67,6 @@ from app.cli.temporal.activities.one_password import (
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
-    MatomoUserMappingActivity,
-    MatomoUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
@@ -157,7 +155,6 @@ class PricedxOnboardingWorkflow(Workflow):
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
             KeycloakUserMappingActivity.defn,
-            MatomoUserMappingActivity.defn,
             PostgresGrantAllPrivilegesOnTableActivity.defn,
             K8sNamespaceCreationActivity.defn,
             K8sSecretCreationActivity.defn,
@@ -315,7 +312,7 @@ class PricedxOnboardingWorkflow(Workflow):
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
-                    secret_name="db_schema_name",
+                    secret_name="pg_schema_name",
                     secret_value=postgres_schema_name,
                 ),
             )
@@ -332,14 +329,6 @@ class PricedxOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=KeycloakUserMappingActivity,
                 arg=KeycloakUserMappingActivityModel(
-                    username=postgres_username,
-                    database_name=postgres_database_name,
-                ),
-            )
-
-            await run_activity(
-                activity=MatomoUserMappingActivity,
-                arg=MatomoUserMappingActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
@@ -408,17 +397,6 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="org_domains",
-                    key_value="",
-                ),
-            )
-
             # dns setup for api
             await run_activity(
                 activity=CreateCloudflareDNSRecordActivity,
@@ -484,7 +462,7 @@ class PricedxOnboardingWorkflow(Workflow):
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
-            bundle_path = "bundle/dist/admin"
+            bundle_path = "bundle/dist"
 
             # copy artifacts to bucket
             await run_activity(
@@ -649,7 +627,6 @@ class PricedxOnboardingWorkflow(Workflow):
                     domain=pricedx_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_pricedx_client.json",
-                    template_payload={"chatwoot_domain": pricedx_config.chatwoot_domain},
                 ),
             )
 
@@ -683,7 +660,7 @@ class PricedxOnboardingWorkflow(Workflow):
                     lastname=last_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_admin.json",
-                    roles=[role for role in roles],
+                    roles=roles,
                 ),
             )
 
@@ -696,44 +673,10 @@ class PricedxOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
                     users=ijson_loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
-                    roles=[role for role in roles],
+                    roles=roles,
                 ),
             )
 
-            # atlas job
-            await run_activity(
-                activity=DatabaseMigrationJobActivity,
-                arg=DatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="pricedx-db-schema-migration-job",
-                    docker_image=docker_image,
-                    volume_mounts=[
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "pricedx-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
-                        },
-                    ],
-                    container_envs=[
-                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
-                    ],
-                    argument="python3 /app/provisioning/atlas_migration.py",
-                    job_type="atlas",
-                    product=ProductName,
-                ),
-            )
 
             # kubernetes service
             await run_activity(
@@ -751,6 +694,8 @@ class PricedxOnboardingWorkflow(Workflow):
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
             http_list = ijson_loads(output)
+
+            # Redirect to the sprint on integration
             if config.env != "production":
                 http_list.append(
                     {
@@ -771,15 +716,6 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            dynamic_url_hash_key = await run_activity(
-                activity=OnePasswordGetActivity,
-                arg=OnePasswordGetActivityModel(
-                    tenant="INTEGRATION_COMMON_CONFIG" if config.env != "production" else "PRODUCTION_COMMON_CONFIG",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    secret_name="dynamic_url_hash_key",
-                ),
-            )
 
             # deployment pod creation for server
             await run_activity(
@@ -820,8 +756,6 @@ class PricedxOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
-                        {"name": "DYNAMIC_URL_HASH_KEY", "value": dynamic_url_hash_key},
-                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
             )
@@ -864,8 +798,6 @@ class PricedxOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},
-                        {"name": "DYNAMIC_URL_HASH_KEY", "value": dynamic_url_hash_key},
-                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
             )

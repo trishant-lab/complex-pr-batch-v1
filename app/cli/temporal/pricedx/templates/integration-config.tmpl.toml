@@ -20,7 +20,7 @@ password = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/redis_password
 
 [pg]
 dsn = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/pg_dsn }}"
-schema_name = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/db_schema_name }}"
+schema_name = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/pg_schema_name }}"
 
 [starrocks]
 catalog = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/starrocks_catalog }}"

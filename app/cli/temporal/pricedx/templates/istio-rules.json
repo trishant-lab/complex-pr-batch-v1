@@ -1,6 +1,6 @@
 [
   {
-    "name": "pricedx-api",
+    "name": "pricedx-<<tenant>>",
     "route": [
       {
         "destination": {
@@ -19,8 +19,7 @@
     "match": [
       { "uri": { "regex": "^/api/v1/.*" } },
       { "uri": { "regex": "^/public/api/v1/.*" } },
-      { "uri": { "prefix": "/docs" } },
-      { "uri": { "prefix": "/redoc" } }
+      { "uri": { "prefix": "/docs" } }
     ],
     "retries": { "attempts": 2, "retryOn": "reset" }
   },
