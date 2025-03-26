@@ -1,25 +1,41 @@
-from app.core.product_settings.common import SelfSignupSettings, SendGridSettings
+from pydantic import BaseModel
 
-SUPPORT_MAIL: str = "support@pricedx.app"
-PRICEDX_ENGG_MAIL: str = "pricedx-engg@pricedx.app"
+from app.core.product_settings.common import PostgresSettings
 
-class PricedxSettings(SelfSignupSettings):
+
+class PricedxSettings(BaseModel):
     """
     Pricedx Settings
     """
 
-    zone_id: str = ""
+    postgres: PostgresSettings = PostgresSettings()
     domain_name: str = "pricedx.tech"
-    sender_name: str = ""
-    sender_email: str = ""
-    lago_api_url: str = ""
-    lago_plan_code: str = ""
-    lago_api_key: str = ""
 
-    domain_org: str = "app"
-    signup_url: str = "https://pricedx.tech"
-    tenant_fqdn: str = "pricedx.tech"
-    sendgrid: SendGridSettings = SendGridSettings(
-        email_from=PRICEDX_ENGG_MAIL,
-        support_mail=PRICEDX_ENGG_MAIL,
+    zone_id: str = ""
+
+    sender_email: str = "support@priced.com"
+    sender_name: str = "Pricedx Support"
+
+    keycloak_smtp_password: str = ""
+
+    prod_image_tag: str = ""
+
+    keycloak_db_password: str = ""
+    matomo_db_password: str = ""
+
+    location_hint: str = "enam"
+
+    r2_url: str = ""
+    r2_access_key: str = ""
+    r2_secret: str = ""
+    r2_bucket: str = ""
+
+    reporting_site_id: str = "1"
+
+    pg_dsn_template: str = "postgresql://pricedx_{tenant}.pricedx_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/pricedx"
+    atlas_pg_dsn_template: str = (
+        "postgresql://pricedx_{tenant}:{password}@db-cluster-ha.postgresql.svc.cluster.local/pricedx"
     )
+    redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
+    base_ui_url: str = "https://{tenant}.pricedx.tech"
+

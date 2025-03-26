@@ -1,0 +1,33 @@
+[app]
+name = "pricedx"
+tenant = "<<tenant>>"
+
+[server]
+parallelism_factor = 10
+temp_path = "/tmp"
+allowed_origin = [
+    "https://<<tenant>>.pricedx.tech",
+]
+
+[keycloak]
+realm = "pricedx_<<tenant>>"
+auth_url = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/keycloak_auth_url }}"
+client_id = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/keycloak_client_id }}"
+
+[redis]
+dsn = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/redis_dsn }}"
+password = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/redis_password }}"
+
+[pg]
+dsn = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/pg_dsn }}"
+schema_name = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/db_schema_name }}"
+
+[starrocks]
+catalog = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/starrocks_catalog }}"
+conn_string = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/starrocks_conn_string }}"
+
+[s3]
+bucket_name = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/s3_media_bucket_name }}"
+access_key = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/s3_access_key }}"
+secret_key = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/s3_secret_key }}"
+endpoint = "{{ op://Pricedx/application-config/pricedx_<<tenant>>/s3_endpoint }}"

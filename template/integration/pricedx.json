@@ -1,5 +1,11 @@
 {
-  "zone_id": "{{op://launchpad/PRICEDX/INTEGRATION/dns_zone_id}}",
+  "postgres": {
+    "host": "db-cluster-ha.postgres16.svc.cluster.local",
+    "port": 5432,
+    "db": "pricedx",
+    "user": "launchpad",
+    "password": "{{op://launchpad/APPLICATION_CONFIG/INTEGRATION/postgres_password}}"
+  },
   "domain_name": "pricedx.tech",
   "sender_name": "pricedx",
   "sender_email": "pricedx-engg@pricedx.com"

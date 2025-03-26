@@ -283,6 +283,60 @@ class PenknifeSchema(BaseFormSchema):
         },
     )
 
+class PricedxSchema(BaseFormSchema):
+    organization: str | None = Field(
+        default=None,
+        json_schema_extra={
+            "name": "organizationName",
+            "label": "Organization Name",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. ZZZ Medical",
+            "mapTo": "organization",
+            "order": 4,
+        },
+    )
+    emailSent: bool = Field(
+        default=False,
+        json_schema_extra={
+            "name": "emailSent",
+            "label": "Email Sent",
+            "type": "checkbox-group",
+            "className": "form-control",
+            "toggle": False,
+            "inline": False,
+            "other": False,
+            "mapTo": "emailSent",
+            "order": 6,
+        },
+    )
+    companyName: str = Field(
+        json_schema_extra={
+            "name": "companyName",
+            "label": "Company Name",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. AETNA",
+            "mapTo": "companyName",
+            "order": 7,
+        },
+    )
+   
+    is_deployment: bool = Field(
+        default=False,
+        json_schema_extra={
+            "name": "isDeployment",
+            "label": "Is Deployment",
+            "type": "checkbox-group",
+            "className": "form-control",
+            "toggle": False,
+            "inline": False,
+            "other": False,
+            "mapTo": "is_deployment",
+            "order": 9,
+        },
+    )
+
 
 ProductSchemaDataType = TypeVar(
     "ProductSchemaDataType",

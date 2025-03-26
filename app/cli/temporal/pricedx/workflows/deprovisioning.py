@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import timedelta
 
 import pydash
 from temporalio import workflow
@@ -6,70 +7,96 @@ from temporalio import workflow
 from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.cloudflare_setup import (
     DeleteCloudflareBucketActivity,
-    DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivity,
-    DeleteCloudflareDNSRecordActivityModel,
-    DeleteFilesFromCloudflareActivity,
 )
 from app.cli.temporal.activities.database_migration_job import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
 from app.cli.temporal.activities.k8s_config_map import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     DeleteKubernetesIstioVirtualServiceActivity,
     DeleteKubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8s_secret import K8sSecretDeletionActivity, K8sSecretDeletionActivityModel
-from app.cli.temporal.activities.k8s_service import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
-from app.cli.temporal.activities.stateful_set_pod_creation import (
-    StatefulSetPodDeletionActivity,
-    StatefulSetPodDeletionActivityModel,
+from app.cli.temporal.activities.k8s_service import (
+    DeleteKubernetesServiceActivity,
+    DeleteKubernetesServiceActivityModel,
 )
+from app.cli.temporal.activities.keycloak_setup import (
+    DeleteIdpFromHelpinstanceActivity,
+    DeleteIdpFromHelpinstanceActivityModel,
+    DeleteKeycloakClientActivity,
+    DeleteKeycloakClientActivityModel,
+    DeleteKeycloakRealmActivity,
+    DeleteKeycloakRealmActivityModel,
+)
+from app.cli.temporal.activities.postgres_setup import (
+    DeletePostgresSchemaActivity,
+    DeletePostgresSchemaActivityModel,
+    DeletePostgresUserActivity,
+    DeletePostgresUserActivityModel,
+    DeleteSupavisorTenantActivity,
+    DeleteSupavisorTenantActivityModel,
+)
+from app.cli.temporal.activities.redis import RedisDeleteNamespaceActivity, RedisDeleteNamespaceActivityModel
 from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
 )
-from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, TenantStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
+from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.vespa_job import VespaDeleteActivity, VespaDeleteActivityModel
+from app.cli.temporal.activities.vm_pod_scrapper import (
+    VMPodScrapperDeletionActivity,
+    VMPodScrapperDeletionActivityModel,
+)
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
+from app.cli.temporal.pricedx.pricedx import PricedxSpec
+from app.cli.temporal.models.cloudflare import (
+    DeleteCloudflareBucketActivityModel,
+    DeleteCloudflareDNSRecordActivityModel,
+)
 from app.core.settings import PricedxSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 
-ProductName = "pricedx"
 
-
-@workflow.defn(sandboxed=False)
+@workflow.defn(name="PricedxDeProvisioningWorkflow")
 class PricedxDeProvisioningWorkflow(Workflow):
     """
-    Pricedx DeProvisioning Workflow
+    Pricedx DeBoarding Workflow
     """
 
-    def __init__(self: "Workflow") -> None:
-        self.approved: bool = False
-        self.deny: bool = False
-
     @staticmethod
-    def get_activities() -> list[type[Callable]]:  # type: ignore
+    def get_activities() -> list[type[Callable]]:
         """
         Return list of activities used in the workflow
         """
         return [
-            DeleteKubernetesServiceActivity.defn,
-            StatefulSetPodDeletionActivity.defn,
-            VMPodScrapperDeletionActivity.defn,
             DeleteTemporalNamespaceActivity.defn,
+            DeleteKubernetesServiceActivity.defn,
+            VMPodScrapperDeletionActivity.defn,
             DeleteK8sConfigMapActivity.defn,
-            K8sSecretDeletionActivity.defn,
             DeleteCloudflareBucketActivity.defn,
             DeleteCloudflareDNSRecordActivity.defn,
-            DeleteFilesFromCloudflareActivity.defn,
             UpdateTenantStatusActivity.defn,
             DeleteKubernetesIstioVirtualServiceActivity.defn,
             DeleteDatabaseMigrationJobActivity.defn,
+            DeleteSupavisorTenantActivity.defn,
+            DeletePostgresUserActivity.defn,
+            DeletePostgresSchemaActivity.defn,
+            DeleteKeycloakClientActivity.defn,
+            DeleteKeycloakRealmActivity.defn,
+            RedisDeleteNamespaceActivity.defn,
         ]
+
+    @classmethod
+    def get_workflow_id(cls: "Workflow", workflow_input: PricedxSpec) -> str | None:
+        """
+        Return unique workflow id from workflow input, guarantees exactly one execution of workflow
+        - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
+        """
+        return f"de_provisioning_{workflow_input.tenant}"
 
     @workflow.run
     async def run(self: "Workflow", pricedx: PricedxSpec) -> None:
@@ -77,7 +104,6 @@ class PricedxDeProvisioningWorkflow(Workflow):
         Entry point for workflow
         """
         pricedx_config: PricedxSettings = get_settings().pricedx
-        tenant = pydash.get(pricedx, "tenant")
 
         # Wait for approval or denial
         await workflow.wait_condition(lambda: self.approved or self.deny)
@@ -85,160 +111,174 @@ class PricedxDeProvisioningWorkflow(Workflow):
         if self.deny:
             return
 
-        try:
-            # delete k8s service
+        tenant = pydash.get(pricedx, "tenant")
+
+        # delete k8s service
+        await run_activity(
+            activity=DeleteKubernetesServiceActivity,
+            arg=DeleteKubernetesServiceActivityModel(
+                namespace=tenant,
+                service_name="pricedx",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
+
+        # delete k8s virtual service
+        await run_activity(
+            activity=DeleteKubernetesIstioVirtualServiceActivity,
+            arg=DeleteKubernetesIstioVirtualServiceActivityModel(
+                namespace=tenant,
+                service_name="pricedx-vs",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
+
+        # delete vm pod scrapper
+        await run_activity(
+            activity=VMPodScrapperDeletionActivity,
+            arg=VMPodScrapperDeletionActivityModel(
+                namespace=tenant,
+                name="pricedx-metrics",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
+
+        await run_activity(
+            activity=VMPodScrapperDeletionActivity,
+            arg=VMPodScrapperDeletionActivityModel(
+                namespace=tenant,
+                name="pricedx-worker-metrics",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
+
+        # delete deployment
+        await run_activity(
+            activity=DeploymentDeletionActivity,
+            arg=DeploymentDeletionActivityModel(
+                namespace=tenant,
+                name="pricedx",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
+
+        await run_activity(
+            activity=DeploymentDeletionActivity,
+            arg=DeploymentDeletionActivityModel(
+                namespace=tenant,
+                name="pricedx-worker",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
+
+        # delete config map
+        for config_map in ["pricedx-tenant-config"]:
             await run_activity(
-                activity=DeleteKubernetesServiceActivity,
-                arg=DeleteKubernetesServiceActivityModel(
+                activity=DeleteK8sConfigMapActivity,
+                arg=DeleteK8sConfigMapActivityModel(
                     namespace=tenant,
-                    service_name="pricedx",
+                    name=config_map,
                 ),
+                start_to_close_timeout=timedelta(seconds=120),
             )
 
-            # delete k8s virtual service
-            await run_activity(
-                activity=DeleteKubernetesIstioVirtualServiceActivity,
-                arg=DeleteKubernetesIstioVirtualServiceActivityModel(
-                    namespace=tenant,
-                    service_name="pricedx-vs",
-                ),
-            )
+        await run_activity(
+            activity=RedisDeleteNamespaceActivity,
+            arg=RedisDeleteNamespaceActivityModel(
+                namespace=f"pricedx_{tenant}",
+                product="pricedx",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
 
-            # delete provisioning job
-            await run_activity(
-                activity=DeleteDatabaseMigrationJobActivity,
-                arg=DeleteDatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="pricedx-tenant-provisioning-job",
-                ),
-            )
+        # delete database migration job
+        await run_activity(
+            activity=DeleteDatabaseMigrationJobActivity,
+            arg=DeleteDatabaseMigrationJobActivityModel(
+                namespace=tenant,
+                job_name="pricedx-db-schema-migration-job",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
 
-            # delete alembic job
-            await run_activity(
-                activity=DeleteDatabaseMigrationJobActivity,
-                arg=DeleteDatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="pricedx-tenant-alembic-job",
-                ),
-            )
+        await run_activity(
+            activity=DeleteSupavisorTenantActivity,
+            arg=DeleteSupavisorTenantActivityModel(
+                supavisor_tenant_name=f"pricedx_{tenant}",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
 
-            # delete stateful sets
-            for stateful_set in ["pricedx", "pricedx-cli"]:
-                await run_activity(
-                    activity=StatefulSetPodDeletionActivity,
-                    arg=StatefulSetPodDeletionActivityModel(
-                        namespace=tenant,
-                        name=stateful_set,
-                    ),
-                )
+        await run_activity(
+            activity=DeletePostgresUserActivity,
+            arg=DeletePostgresUserActivityModel(
+                username=f"pricedx_{tenant}",
+                database_name="pricedx",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
 
-            # delete config maps
-            config_maps = [
-                "pricedx-custom-config",
-                "pricedx-env-config",
-                "pricedx-tenant-config",
-                "pricedx-cli-vector-config",
-                "pricedx-provisioning-config",
-            ]
-            for config_map in config_maps:
-                await run_activity(
-                    activity=DeleteK8sConfigMapActivity,
-                    arg=DeleteK8sConfigMapActivityModel(
-                        namespace=tenant,
-                        name=config_map,
-                    ),
-                )
+        await run_activity(
+            activity=DeletePostgresSchemaActivity,
+            arg=DeletePostgresSchemaActivityModel(
+                schema_name=f"{tenant}",
+                database_name="pricedx",
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
 
-            # delete secrets
-            secrets = [
-                "tenant-cache-secret",
-                "pricedx-cloudflare-r2",
-            ]
-            for secret in secrets:
-                await workflow.execute_activity(
-                    activity=K8sSecretDeletionActivity,
-                    arg=K8sSecretDeletionActivityModel(
-                        namespace=tenant,
-                        name=secret,
-                    ),
-                )
+        await run_activity(
+            activity=DeleteKeycloakClientActivity,
+            arg=DeleteKeycloakClientActivityModel(
+                client_name="pricedx",
+                realm_name=tenant,
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
 
-            # delete bucket
-            await run_activity(
-                activity=DeleteCloudflareBucketActivity,
-                arg=DeleteCloudflareBucketActivityModel(
-                    bucket_name=pricedx.cloudflare_r2_data_bucket,
-                ),
-            )
+        await run_activity(
+            activity=DeleteKeycloakRealmActivity,
+            arg=DeleteKeycloakRealmActivityModel(
+                client_name="pricedx",
+                realm_name=tenant,
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
 
-            # delete dns record
-            await run_activity(
-                activity=DeleteCloudflareDNSRecordActivity,
-                arg=DeleteCloudflareDNSRecordActivityModel(
-                    domain_name=f"{tenant}.{pricedx_config.domain_name}",
-                    zone_id=pricedx_config.zone_id,
-                ),
-            )
+        await run_activity(
+            activity=DeleteIdpFromHelpinstanceActivity,
+            arg=DeleteIdpFromHelpinstanceActivityModel(
+                tenant=tenant,
+                is_prod=True,
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )
 
-            # delete vm pod scrappers
-            for scrapper in ["pricedx-metrics", "pricedx-cli-metrics"]:
-                await run_activity(
-                    activity=VMPodScrapperDeletionActivity,
-                    arg=VMPodScrapperDeletionActivityModel(
-                        namespace=tenant,
-                        name=scrapper,
-                    ),
-                )
+        # delete bucket
+        bucket_name = f"{tenant}-{pricedx_config.domain_name.replace('.', '-')}"
+        await run_activity(
+            activity=DeleteCloudflareBucketActivity,
+            arg=DeleteCloudflareBucketActivityModel(
+                bucket_name=bucket_name,
+            ),
+        )
 
-            # delete temporal namespace
-            await run_activity(
-                activity=DeleteTemporalNamespaceActivity,
-                arg=DeleteTemporalNamespaceActivityModel(
-                    namespace=f"pricedx_{tenant}",
-                ),
-            )
+        # delete dns record
+        await run_activity(
+            activity=DeleteCloudflareDNSRecordActivity,
+            arg=DeleteCloudflareDNSRecordActivityModel(
+                domain_name=f"{tenant}.api.{pricedx_config.domain_name}",
+                zone_id=pricedx_config.zone_id,
+            ),
+        )
 
-
-            await run_activity(
-                activity=DeleteCloudflareBucketActivity,
-                arg=DeleteCloudflareBucketActivityModel(
-                    bucket_name=pricedx.cloudflare_r2_ui_bucket,
-                ),
-            )
-
-            # update tenant status
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantStatus(
-                    tenant_name=tenant,
-                    status="DeProvisioned",
-                    product=ProductName,
-                ),
-            )
-
-        except Exception as e:
-            workflow.logger.error(f"Error in deprovisioning workflow: {e}")
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(
-                    tenant_name=tenant,
-                    status=TenantStatusEnum.Failed,
-                    error_msg=str(e),
-                    product=ProductEnum.pricedx,
-                ),
-            )
-            raise e
-
-    @workflow.signal
-    async def approve(self: "Workflow") -> None:
-        """
-        Approve the workflow
-        """
-        self.approved = True
-
-    @workflow.signal
-    async def deny(self: "Workflow") -> None:
-        """
-        Deny the workflow
-        """
-        self.deny = True
+        # update tenant status
+        await run_activity(
+            activity=UpdateTenantStatusActivity,
+            arg=TenantCliStatus(
+                tenant_name=tenant,
+                status=TenantStatusEnum.DeProvisioned,
+                product=ProductEnum.pricedx,
+            ),
+            start_to_close_timeout=timedelta(seconds=120),
+        )

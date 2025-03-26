@@ -1,54 +1,77 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from app.core.ijson import ijson_dumps, ijson_loads
 import pydash
-from cryptography.fernet import Fernet
 from temporalio import workflow
 
 from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.cloudflare_setup import (
-    CloudflareBucketCredentials,
     CopyArtifactsToBucketActivity,
-    CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivity,
-    CreateCloudflareBucketActivityModel,
     CreateCloudflareBucketCredentialsActivity,
-    CreateCloudflareBucketCredentialsActivityModel,
     CreateCloudflareDNSRecordActivity,
-    CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
-    LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivity,
-    PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivity,
 )
 from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
-from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.deployment_pod_creation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
+)
+
+from app.cli.temporal.activities.k8s_config_map import (
+    K8sConfigMapCreationActivity,
+    K8sConfigMapCreationActivityModel,
+)
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
-from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
+from app.cli.temporal.activities.k8s_namespace import (
+    K8sNamespaceCreationActivity,
+    K8sNamespaceCreationActivityModel,
+)
+from app.cli.temporal.activities.k8s_secret import (
+    K8sSecretCreationActivity,
+    K8sSecretCreationActivityModel,
+)
+from app.cli.temporal.activities.k8s_service import (
+    KubernetesServiceActivity,
+    KubernetesServiceActivityModel,
+)
 from app.cli.temporal.activities.keycloak_setup import (
+    KeycloakClientSetupActivity,
+    KeycloakClientSetupActivityModel,
+    KeycloakCreateClientRolesActivity,
+    KeycloakCreateClientRolesActivityModel,
+    KeycloakCreateGroupActivity,
+    KeycloakCreateInternalUsersActivity,
+    KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
 from app.cli.temporal.activities.one_password import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordGetActivity,
+    OnePasswordGetActivityModel,
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
 )
 from app.cli.temporal.activities.postgres_setup import (
-    PostgresDatabaseCreationActivity,
-    PostgresDatabaseCreationActivityModel,
+    KeycloakUserMappingActivity,
+    KeycloakUserMappingActivityModel,
+    MatomoUserMappingActivity,
+    MatomoUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
+    PostgresGrantAllPrivilegesOnTableActivity,
     PostgresSchemaCreationActivity,
     PostgresSchemaCreationActivityModel,
     PostgresSupavisorPollUserActivity,
@@ -56,35 +79,49 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
 )
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.redis import (
+    RedisSetupActivity,
+    RedisSetupActivityModel,
+)
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
 )
+from app.cli.temporal.activities.slack_notification_activity import (
+    SlackNotificationActivity,
+    SlackNotificationActivityModel,
+)
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
 )
 from app.cli.temporal.activities.temporal_namespace import (
     TemporalNamespaceActivity,
-    TemporalNamespaceActivityModel,
 )
-from app.cli.temporal.activities.tenant_crd import (
-    TenantCrdCreationActivity,
-    TenantCrdCreationActivityModel,
-    TenantCrdExistsActivity,
-    TenantCrdExistsActivityModel,
+from app.cli.temporal.activities.update_tenant_status import (
+    TenantCliStatus,
+    UpdateTenantStatusActivity,
 )
-from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.activities.vm_pod_scrapper import (
+    VMPodScrapperActivity,
+    VMPodScrapperActivityModel,
+)
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.pricedx import TemplatePath
 from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
+from app.cli.temporal.models.cloudflare import (
+    CopyArtifactsToBucketActivityModel,
+    CreateCloudflareBucketActivityModel,
+    CreateCloudflareBucketCredentialsActivityModel,
+    CreateCloudflareDNSRecordActivityModel,
+    LinkBucketToDomainActivityModel,
+    PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivityModel,
+)
 from app.common import generate_password
+from app.core.ijson import ijson_loads
 from app.core.settings import AppSettings, PricedxSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
@@ -94,13 +131,18 @@ if TYPE_CHECKING:
     from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 
 ProductName = "pricedx"
-OnePasswordVaultName = "pricedx"
+OnePasswordVaultName = "Pricedx"
 
-@workflow.defn(sandboxed=False)
+
+@workflow.defn(name="PricedxOnboardingWorkflow", sandboxed=False)
 class PricedxOnboardingWorkflow(Workflow):
     """
     Pricedx Onboarding Workflow
     """
+
+    def __init__(self: "Workflow") -> None:
+        self.approved: bool = False
+        self.deny: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -108,73 +150,68 @@ class PricedxOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            TenantCrdExistsActivity.defn,
             SendBeforeProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
-            K8sNamespaceCreationActivity.defn,
-            PostgresDatabaseCreationActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
+            KeycloakUserMappingActivity.defn,
+            MatomoUserMappingActivity.defn,
+            PostgresGrantAllPrivilegesOnTableActivity.defn,
+            K8sNamespaceCreationActivity.defn,
             K8sSecretCreationActivity.defn,
+            DatabaseMigrationJobActivity.defn,
             RedisSetupActivity.defn,
+            KeycloakRealmSetupActivity.defn,
+            KeycloakClientSetupActivity.defn,
+            KeycloakCreateClientRolesActivity.defn,
+            KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            KeycloakCreateInternalUsersActivity.defn,
+            KubernetesDeploymentActivity.defn,
+            VMPodScrapperActivity.defn,
+            KubernetesIstioVirtualServiceActivity.defn,
+            KubernetesServiceActivity.defn,
             K8sConfigMapCreationActivity.defn,
+            TemporalNamespaceActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
             CreateCloudflareBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
-            PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
-            KeycloakRealmSetupActivity.defn,
-            KeycloakCreateTenantCustomerAdminUserActivity.defn,
-            DatabaseMigrationJobActivity.defn,
-            KubernetesServiceActivity.defn,
-            KubernetesIstioVirtualServiceActivity.defn,
-            KubernetesStatefulSetActivity.defn,
-            TemporalNamespaceActivity.defn,
-            VMPodScrapperActivity.defn,
-            SendAfterProvisioningMailActivity.defn,
-            TenantCrdCreationActivity.defn,
-            OnePasswordInsertIfNotExistsActivity.defn,
+            PropagateDNSRecordActivity.defn,
+            OnePasswordCreateOrUpdateActivity.defn,
+            OnePasswordGetActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            SlackNotificationActivity.defn,
+            UpdateCORSForBucketActivity.defn,
+            CreateCloudflareBucketCredentialsActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
+            KeycloakCreateGroupActivity.defn,
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", pricedx: PricedxSpec) -> str | None:
+    def get_workflow_id(cls: "Workflow", pricedx: PricedxSpec) -> str:
         """
-        Return unique workflow id from workflow input, guarantees exactly one execution of workflow
-        - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
+        Return workflow id
         """
         return f"pricedx_onboarding_workflow_{pydash.get(pricedx, 'tenant')}"
 
     @workflow.run
     async def run(self: "Workflow", pricedx: PricedxSpec) -> None:
         """
-        Entry point for workflow
+        Run the workflow
         """
         config: AppSettings = get_settings()
         pricedx_config: PricedxSettings = config.pricedx
+
         first_name = pydash.get(pricedx, "firstName")
         last_name = pydash.get(pricedx, "lastName")
         email = pydash.get(pricedx, "email")
-
         tenant = pydash.get(pricedx, "tenant")
+        is_deployment = pydash.get(pricedx, "is_deployment")
 
         try:
-            # get tenant crd
-            tenant_crd_exists: bool = await run_activity(
-                activity=TenantCrdExistsActivity,
-                arg=TenantCrdExistsActivityModel(
-                    tenant=tenant,
-                    kind="PricedxTenant",
-                    product=ProductName,
-                ),
-            )
-
-            if tenant_crd_exists:
-                raise RuntimeError(f"Tenant {tenant} already exists")  # noqa: TRY301
-
-            if not pydash.get(pricedx, "emailSent"):
+            if not pydash.get(pricedx, "emailSent") and not is_deployment:
                 await run_activity(
                     activity=SendBeforeProvisioningMailActivity,
                     arg=SendBeforeProvisioningMailActivityModel(
@@ -189,49 +226,56 @@ class PricedxOnboardingWorkflow(Workflow):
                     ),
                 )
 
-            postgres_schema_name = f"{ProductName}_{tenant}"
-            postgres_database_name = f"{ProductName}-{config.env}"
+            # Wait for approval or denial
+            if not is_deployment:
+                await workflow.wait_condition(lambda: self.approved or self.deny)
+
+            # Update tenant status if request is declined
+            if self.deny:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
+                        tenant_name=tenant,
+                        status=TenantStatusEnum.Declined,
+                        error_msg="Request Declined",
+                        product=ProductEnum.pricedx,
+                    ),
+                )
+                return
+
+            postgres_schema_name = tenant
+            postgres_database_name = "pricedx"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
-            redis_tenant_password = generate_password(length=20)
-            image_tag = "production" if config.env == "production" else "sprint"
-            docker_image = f"registry.314ecorp.tech/pricedx-server:{image_tag}"
-            template_env = get_env(template_path=TemplatePath)
-            template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=tenant, image_tag=image_tag)
-            http_list = ijson_loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
 
-            # create namespace in k8s
             await run_activity(
-                activity=K8sNamespaceCreationActivity,
-                arg=K8sNamespaceCreationActivityModel(
-                    namespace=tenant,
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="auth_secret",
+                    secret_value=pricedx_config.auth_secret,
                 ),
             )
 
-            # create postgres database
-            await run_activity(
-                activity=PostgresDatabaseCreationActivity,
-                arg=PostgresDatabaseCreationActivityModel(
-                    database_name=postgres_database_name,
-                ),
-            )
-
-            # create postgres user for pricedx
             await run_activity(
                 activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     password=postgres_password,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="pg_password",
+                    secret_value=postgres_password,
                 ),
             )
 
@@ -246,11 +290,33 @@ class PricedxOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="pg_dsn",
+                    secret_value=pricedx_config.pg_dsn_template.format(tenant=tenant, password=postgres_password),
+                ),
+            )
+
+            await run_activity(
                 activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="db_schema_name",
+                    secret_value=postgres_schema_name,
                 ),
             )
 
@@ -263,67 +329,26 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-
-            data_bucket = pricedx_config.cloudflare_r2_data_bucket
-
             await run_activity(
-                activity=CreateCloudflareBucketActivity,
-                arg=CreateCloudflareBucketActivityModel(
-                    bucket_name=data_bucket,
-                ),
-            )
-
-            credentials: CloudflareBucketCredentials = await run_activity(
-                activity=CreateCloudflareBucketCredentialsActivity,
-                arg=CreateCloudflareBucketCredentialsActivityModel(
-                    bucket_name=data_bucket,
-                    read_only=False,
-                ),
-            )
-
-            cloudflare_r2_data_bucket_access_key: str = credentials.access_key
-            cloudflare_r2_data_bucket_secret_key: str = credentials.secret_key
-
-            # s3 access key added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_access_key",
-                    key_value=cloudflare_r2_data_bucket_access_key,
-                ),
-            )
-
-            # s3 secret key added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_secret_key",
-                    key_value=cloudflare_r2_data_bucket_secret_key,
+                activity=KeycloakUserMappingActivity,
+                arg=KeycloakUserMappingActivityModel(
+                    username=postgres_username,
+                    database_name=postgres_database_name,
                 ),
             )
 
             await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="pricedx-cloudflare-r2",
-                    string_data={"access-key": cloudflare_r2_data_bucket_access_key},
+                activity=MatomoUserMappingActivity,
+                arg=MatomoUserMappingActivityModel(
+                    username=postgres_username,
+                    database_name=postgres_database_name,
                 ),
             )
 
+
             await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="pricedx-cloudflare-r2",
-                    string_data={"secret-key": cloudflare_r2_data_bucket_secret_key},
-                ),
+                activity=K8sNamespaceCreationActivity,
+                arg=K8sNamespaceCreationActivityModel(namespace=tenant),
             )
 
             # secret setup for docker registry
@@ -349,17 +374,9 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # secret setup for postgres password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="postgres-secret",
-                    string_data={"POSTGRES_PASSWORD": postgres_password},
-                ),
-            )
 
             # setup redis
+            redis_tenant_password = generate_password(length=20)
             await run_activity(
                 activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
@@ -369,86 +386,55 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # insert fernet key into 1Password if it doesn't exist
-            fernet_key = Fernet.generate_key().decode()
             await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=tenant,
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
-                    server_item=f"pricedx-tenant-config-{config.env.lower().strip()}",
-                    key="fernet_key",
-                    key_value=fernet_key,
+                    server_item="application-config",
+                    secret_name="redis_password",
+                    secret_value=redis_tenant_password,
                 ),
             )
 
-            custom_config = "custom-config.json"
-            env_config = "env-config.json"
-            tenant_config = "tenant-config.json"
-            vector_config = "vector-config.toml"
-            provisioning_config = "provisioning-config.json"
-            config_dir = "config"
-            # kubernetes config map creation
-            for config_map in [
-                {
-                    "name": "pricedx-custom-config",
-                    "key": custom_config,
-                    "data": "{}",
-                },
-                {
-                    "name": "pricedx-env-config",
-                    "key": env_config,
-                    "template_file_name": f"{config.env}-env-config.tmpl.json",
-                },
-                {
-                    "name": "pricedx-tenant-config",
-                    "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
-                },
-                {
-                    "name": "pricedx-cli-vector-config",
-                    "key": vector_config,
-                    "template_file_name": "vector-config.tmpl.toml",
-                },
-                {
-                    "name": "pricedx-provisioning-config",
-                    "key": provisioning_config,
-                    "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
-                },
-            ]:
-                await run_activity(
-                    activity=K8sConfigMapCreationActivity,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map.get("template_file_name", None),
-                        data=config_map.get("data", None),
-                        cloudflare_r2_folder_path="pricedx-config",
-                        template_payload={
-                            "tenant": tenant,
-                            "customerId": pydash.get(pricedx, "customerId"),
-                            "orgName": pydash.get(pricedx, "orgName"),
-                        },
-                        destination_file_name=config_map["key"],
-                    ),
-                )
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="redis_dsn",
+                    secret_value=pricedx_config.redis_dsn_template.format(tenant=tenant),
+                ),
+            )
 
-            # dns setup
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="org_domains",
+                    key_value="",
+                ),
+            )
+
+            # dns setup for api
             await run_activity(
                 activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
-                    domain_name=f"{tenant}.{pricedx_config.domain_name}",
+                    domain_name=f"{tenant}.api.{pricedx_config.domain_name}",
                     zone_id=pricedx_config.zone_id,
                     content=config.k8s_cname,
                 ),
             )
 
             # create bucket
-            ui_bucket = pricedx_config.cloudflare_r2_ui_bucket
+            bucket_name = f"{tenant}-{pricedx_config.domain_name.replace('.', '-')}"
             await run_activity(
                 activity=CreateCloudflareBucketActivity,
                 arg=CreateCloudflareBucketActivityModel(
-                    bucket_name=ui_bucket,
+                    bucket_name=bucket_name, location_hint=pricedx_config.location_hint
                 ),
             )
 
@@ -456,37 +442,55 @@ class PricedxOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=LinkBucketToDomainActivity,
                 arg=LinkBucketToDomainActivityModel(
-                    bucket_name=ui_bucket,
+                    bucket_name=bucket_name,
                     domain_name=f"{tenant}.{pricedx_config.domain_name}",
                     zone_id=pricedx_config.zone_id,
                 ),
             )
 
-            # propagate the dns record
+            # update cors for bucket
             await run_activity(
-                activity=PropagateDNSRecordActivity,
-                arg=PropagateDNSRecordActivityModel(
-                    domain_name=f"{tenant}.{pricedx_config.domain_name}",
+                activity=UpdateCORSForBucketActivity,
+                arg=UpdateCORSForBucketActivityModel(
+                    bucket_name=bucket_name,
+                    rules=[
+                        {
+                            "allowed": {
+                                "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                "origins": ["*"],
+                                "headers": [
+                                    "Authorization",
+                                    "content-type",
+                                    "x-amz-*",
+                                    "traceparent",
+                                    "x-highlight-request",
+                                ],
+                            },
+                            "exposeHeaders": ["ETag", "Location"],
+                        }
+                    ],
                 ),
             )
 
             repo_name = "pricedx-ui"
-            image_tag = "production" if config.env == "production" else "sprint"
-
+            image_tag = server_image_tag = "sprint"
+            dest_dir = f"{bucket_name}/{image_tag}"
             if config.env == "production":
-                dest_dir = ui_bucket
-            else:
-                dest_dir = f"{ui_bucket}/{image_tag}"
+                image_tag = "production"
+                server_image_tag = "production"
+                dest_dir = f"{bucket_name}/"
+
+            docker_image = f"registry.314ecorp.tech/pricedx-app:{server_image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
-            bundle_path = "bundle/dist"
+            bundle_path = "bundle/dist/admin"
 
             # copy artifacts to bucket
             await run_activity(
                 activity=CopyArtifactsToBucketActivity,
                 arg=CopyArtifactsToBucketActivityModel(
-                    bucket_name=ui_bucket,
+                    bucket_name=bucket_name,
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
@@ -495,8 +499,133 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
+            credentials: CloudflareBucketCredentials = await run_activity(
+                activity=CreateCloudflareBucketCredentialsActivity,
+                arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=bucket_name, read_only=False),
+            )
+
+            # cdn base url added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="base_url_cdn",
+                    key_value=f"https://{tenant}.{pricedx_config.domain_name}",
+                ),
+            )
+
+            # s3 media bucket name added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_media_bucket_name",
+                    key_value=bucket_name,
+                ),
+            )
+
+            # s3 access key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_access_key",
+                    key_value=credentials.access_key,
+                ),
+            )
+
+            # s3 secret key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_secret_key",
+                    key_value=credentials.secret_key,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_ui_bucket_name",
+                    key_value=bucket_name,
+                ),
+            )
+            # s3 access key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_ui_bucket_access_key",
+                    key_value=credentials.access_key,
+                ),
+            )
+
+            # s3 secret key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_ui_bucket_secret_key",
+                    key_value=credentials.secret_key,
+                ),
+            )
+
+            # additional required onepassword configs
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="base_ui_url",
+                    key_value=pricedx_config.base_ui_url.format(tenant=tenant),
+                ),
+            )
+
+
+            # setup configmaps
+            tenant_config = "config.toml"
+            config_dir = "config"
+
+            # setup tenant configmap
+            for config_map in [
+                {
+                    "name": "pricedx-tenant-config",
+                    "key": tenant_config,
+                    "template_file_name": f"{config.env}-config.tmpl.toml",
+                },
+            ]:
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
+                    arg=K8sConfigMapCreationActivityModel(
+                        namespace=tenant,
+                        name=config_map["name"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
+                        cloudflare_r2_folder_path="pricedx-config",
+                        template_payload={"tenant": tenant},
+                    ),
+                )
+
             # keycloak realm setup
             realm_name = f"pricedx_{tenant}"
+
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
@@ -505,10 +634,42 @@ class PricedxOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                     template_payload={
-                        "domain_org": pricedx_config.domain_name,
+                        "company_name": pydash.get(pricedx, "companyName"),
+                        "smtp_password": pricedx_config.keycloak_smtp_password,
                     },
                 ),
             )
+
+            # keycloak client setup
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=pricedx_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_pricedx_client.json",
+                    template_payload={"chatwoot_domain": pricedx_config.chatwoot_domain},
+                ),
+            )
+
+            roles = [
+                "admin",
+                "user",
+                "super_admin",
+            ]
+            # keycloak client roles setup
+            await run_activity(
+                activity=KeycloakCreateClientRolesActivity,
+                arg=KeycloakCreateClientRolesActivityModel(
+                    client_name="pricedx",
+                    realm_name=realm_name,
+                    roles=roles,
+                ),
+            )
+
+
+
 
             # keycloak tenant customer admin user setup
             await run_activity(
@@ -516,49 +677,60 @@ class PricedxOnboardingWorkflow(Workflow):
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
                     client_name=ProductName,
-                    username="admin",
-                    email="support@pricedx.com",
+                    username=email,
+                    email=email,
                     firstname=first_name,
                     lastname=last_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_admin.json",
+                    roles=[role for role in roles],
                 ),
             )
 
-            # provisioning job
+            # keycloak internal users setup
+            await run_activity(
+                activity=KeycloakCreateInternalUsersActivity,
+                arg=KeycloakCreateInternalUsersActivityModel(
+                    realm_name=realm_name,
+                    client_name="pricedx",
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_internal_user.json",
+                    users=ijson_loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
+                    roles=[role for role in roles],
+                ),
+            )
+
+            # atlas job
             await run_activity(
                 activity=DatabaseMigrationJobActivity,
                 arg=DatabaseMigrationJobActivityModel(
                     namespace=tenant,
-                    job_name="pricedx-tenant-provisioning-job",
+                    job_name="pricedx-db-schema-migration-job",
                     docker_image=docker_image,
                     volume_mounts=[
                         {
-                            "name": "pricedx-provisioning-config",
-                            "mount_path": "/provisioningConfig",
-                            "read_only": True,
+                            "name": "tenant-volume",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
                         },
                     ],
                     volumes=[
                         {
-                            "name": "pricedx-provisioning-config",
-                            "config_map_name": "pricedx-provisioning-config",
-                            "key": provisioning_config,
-                            "path": provisioning_config,
+                            "name": "tenant-volume",
+                            "config_map_name": "pricedx-tenant-config",
+                            "key": tenant_config,
+                            "path": tenant_config,
                         },
                     ],
                     container_envs=[
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
+                        {"name": "DEPLOYMENT", "value": config.env},
+                        {"name": "CLIENT_CODE", "value": tenant},
+                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
+                        {"name": "POSTGRES_USER", "value": postgres_username},
                     ],
-                    argument=(
-                        "cd /app && python3 /app/provisioning/provisioning_.py "
-                        "--config /provisioningConfig/provisioning-config.json"
-                    ),
-                    job_type="provisioning",
+                    argument="python3 /app/provisioning/atlas_migration.py",
+                    job_type="atlas",
                     product=ProductName,
                 ),
             )
@@ -573,21 +745,46 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
+            template_env = get_env(template_path=TemplatePath)
+
+            template = template_env.get_template("istio-rules.json")
+            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
+
+            http_list = ijson_loads(output)
+            if config.env != "production":
+                http_list.append(
+                    {
+                        "name": "redirect",
+                        "match": [{"uri": {"exact": "/"}}],
+                        "redirect": {"uri": f"/{image_tag}/"},
+                    }
+                )
+
             # kubernetes virtual service
             await run_activity(
                 activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
-                    host=f"{tenant}.{pricedx_config.domain_name}",
+                    host=f"{tenant}.api.{pricedx_config.domain_name}",
                     service_name="pricedx-vs",
                     payload=http_list,
                 ),
             )
 
-            # statefulset pod creation for server
+            dynamic_url_hash_key = await run_activity(
+                activity=OnePasswordGetActivity,
+                arg=OnePasswordGetActivityModel(
+                    tenant="INTEGRATION_COMMON_CONFIG" if config.env != "production" else "PRODUCTION_COMMON_CONFIG",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="dynamic_url_hash_key",
+                ),
+            )
+
+            # deployment pod creation for server
             await run_activity(
-                activity=KubernetesStatefulSetActivity,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="pricedx",
                     docker_image=docker_image,
@@ -602,24 +799,9 @@ class PricedxOnboardingWorkflow(Workflow):
                     container_ports={"http": 8000},
                     volume_mounts=[
                         {
-                            "name": "custom-volume",
-                            "mount_path": f"/{config_dir}/{custom_config}",
-                            "sub_path": custom_config,
-                        },
-                        {
-                            "name": "env-volume",
-                            "mount_path": f"/{config_dir}/{env_config}",
-                            "sub_path": env_config,
-                        },
-                        {
                             "name": "tenant-volume",
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "mount_path": f"/{config_dir}/{provisioning_config}",
-                            "sub_path": provisioning_config,
                         },
                     ],
                     volumes=[
@@ -629,50 +811,27 @@ class PricedxOnboardingWorkflow(Workflow):
                             "key": tenant_config,
                             "path": tenant_config,
                         },
-                        {
-                            "name": "custom-volume",
-                            "config_map_name": "pricedx-custom-config",
-                            "key": custom_config,
-                            "path": custom_config,
-                        },
-                        {
-                            "name": "env-volume",
-                            "config_map_name": "pricedx-env-config",
-                            "key": env_config,
-                            "path": env_config,
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "config_map_name": "pricedx-provisioning-config",
-                            "key": provisioning_config,
-                            "path": provisioning_config,
-                        },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
-                        {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
+                        {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "IS_CLI", "value": "FALSE"},
-                        {"name": "ORG_NAME", "value": pydash.get(pricedx, "orgName")},
-                        {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        {"name": "NOVU__API_KEY", "value": novu_api_key},
-                        {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
-                        {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
+                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
+                        {"name": "POSTGRES_USER", "value": postgres_username},
+                        {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
+                        {"name": "DYNAMIC_URL_HASH_KEY", "value": dynamic_url_hash_key},
+                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
             )
 
-            # statefulset pod creation for cli
+            # deployment pod creation for cli
             await run_activity(
-                activity=KubernetesStatefulSetActivity,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
-                    name="pricedx-cli",
+                    name="pricedx-worker",
                     docker_image=docker_image,
                     request_resource={
                         "cpu": pydash.get(pricedx, "cliSpec.request_cpu"),
@@ -685,29 +844,9 @@ class PricedxOnboardingWorkflow(Workflow):
                     container_ports={"http": 8000},
                     volume_mounts=[
                         {
-                            "name": "custom-volume",
-                            "mount_path": f"/{config_dir}/{custom_config}",
-                            "sub_path": custom_config,
-                        },
-                        {
-                            "name": "env-volume",
-                            "mount_path": f"/{config_dir}/{env_config}",
-                            "sub_path": env_config,
-                        },
-                        {
                             "name": "tenant-volume",
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
-                        },
-                        {
-                            "name": "vector-volume",
-                            "mount_path": "/vector",
-                            "read_only": True,
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "mount_path": f"/{config_dir}/{provisioning_config}",
-                            "sub_path": provisioning_config,
                         },
                     ],
                     volumes=[
@@ -717,66 +856,17 @@ class PricedxOnboardingWorkflow(Workflow):
                             "key": tenant_config,
                             "path": tenant_config,
                         },
-                        {
-                            "name": "custom-volume",
-                            "config_map_name": "pricedx-custom-config",
-                            "key": custom_config,
-                            "path": custom_config,
-                        },
-                        {
-                            "name": "env-volume",
-                            "config_map_name": "pricedx-env-config",
-                            "key": env_config,
-                            "path": env_config,
-                        },
-                        {
-                            "name": "vector-volume",
-                            "config_map_name": "pricedx-cli-vector-config",
-                            "key": vector_config,
-                            "path": vector_config,
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "config_map_name": "pricedx-provisioning-config",
-                            "key": provisioning_config,
-                            "path": provisioning_config,
-                        },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
-                        {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "IS_CLI", "value": "TRUE"},
-                        {"name": "ORG_NAME", "value": pydash.get(pricedx, "orgName")},
-                        {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
-                        {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
+                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
+                        {"name": "POSTGRES_USER", "value": postgres_username},
+                        {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},
+                        {"name": "DYNAMIC_URL_HASH_KEY", "value": dynamic_url_hash_key},
+                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
-                ),
-            )
-
-            # temporal namespace creation
-            await run_activity(
-                activity=TemporalNamespaceActivity,
-                arg=TemporalNamespaceActivityModel(
-                    namespace=f"pricedx_{tenant}",
-                ),
-            )
-
-            # vm pod scraper for server
-            await run_activity(
-                activity=VMPodScrapperActivity,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="pricedx-metrics",
-                    app="pricedx",
-                    path="/metrics/",
-                    interval="5s",
                 ),
             )
 
@@ -785,30 +875,57 @@ class PricedxOnboardingWorkflow(Workflow):
                 activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
-                    name="pricedx-cli-metrics",
-                    app="pricedx-cli",
+                    name="pricedx-metrics",
+                    app="pricedx",
                     path="/metrics/",
-                    interval="5s",
+                    interval="15s",
                 ),
             )
+
+            await run_activity(
+                activity=VMPodScrapperActivity,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="pricedx-worker-metrics",
+                    app="pricedx",
+                    path="/metrics/",
+                    interval="15s",
+                ),
+            )
+
+            # propagate the dns record
+            await run_activity(
+                activity=PropagateDNSRecordActivity,
+                arg=PropagateDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{pricedx_config.domain_name}",
+                ),
+            )
+
+            # check pod running status
+            for pod in ["pricedx", "pricedx-worker"]:
+                await run_activity(
+                    activity=CheckPodRunningStatusActivity,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                )
 
             # update tenant status
             await run_activity(
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
-                    tenant_name=tenant,
-                    status=TenantStatusEnum.Provisioned,
-                    product=ProductEnum.pricedx,
+                    tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.pricedx
                 ),
             )
-
-            # send mail
-            await run_activity(
-                activity=SendAfterProvisioningMailActivity,
-                arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=realm_name,
-                    tenant=tenant,
-                    user_details={
+            # Send after provisioning mail
+            if not is_deployment:
+                await run_activity(
+                        activity=SendAfterProvisioningMailActivity,
+                    arg=SendAfterProvisioningMailActivityModel(
+                        realm_name=realm_name,
+                        tenant=tenant,
+                        user_details={
                         "firstName": first_name,
                         "lastName": last_name,
                         "email": email,
@@ -820,36 +937,36 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # check pod running status
-            for pod in ["pricedx", "pricedx-cli"]:
-                await run_activity(
-                    activity=CheckPodRunningStatusActivity,
-                    arg=CheckPodRunningStatusActivityModel(
-                        namespace=tenant,
-                        name=pod,
-                    ),
-                )
-
-            # create tenant crd
-            await run_activity(
-                activity=TenantCrdCreationActivity,
-                arg=TenantCrdCreationActivityModel(
-                    tenant=tenant,
-                    kind="PricedxTenant",
-                    product=ProductName,
-                    data=ijson_dumps(pricedx),
-                ),
-            )
-
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
             await run_activity(
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed,
+                    status=TenantStatusEnum.Failed if not is_deployment else TenantStatusEnum.DeploymentFailed,
                     error_msg=str(e),
                     product=ProductEnum.pricedx,
                 ),
             )
+            await run_activity(
+                activity=SlackNotificationActivity,
+                arg=SlackNotificationActivityModel(
+                    product=ProductName,
+                    error_message=str(e),
+                ),
+            )
             raise e
+
+    @workflow.signal
+    async def approve(self: "Workflow") -> None:
+        """
+        Signal to approve the workflow
+        """
+        self.approved = True
+
+    @workflow.signal
+    async def deny(self: "Workflow") -> None:
+        """
+        Signal to reject the workflow
+        """
+        self.deny = True

@@ -18,9 +18,23 @@
     ],
     "match": [
       { "uri": { "regex": "^/api/v1/.*" } },
+      { "uri": { "regex": "^/public/api/v1/.*" } },
       { "uri": { "prefix": "/docs" } },
-      { "uri": { "prefix": "/redoc" } },
-      { "uri": { "regex": "^/patient/.*" } }
-    ]
+      { "uri": { "prefix": "/redoc" } }
+    ],
+    "retries": { "attempts": 2, "retryOn": "reset" }
+  },
+  {
+    "name": "pricedx-log-collect",
+    "route": [
+      {
+        "destination": {
+          "host": "grafana-agent.monitoring-system.svc.cluster.local",
+          "port": { "number": 12347 }
+        }
+      }
+    ],
+    "match": [{ "uri": { "prefix": "/logcollect" } }],
+    "rewrite": { "uri": "/collect" }
   }
 ]
