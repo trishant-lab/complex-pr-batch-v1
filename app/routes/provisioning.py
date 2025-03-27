@@ -139,14 +139,14 @@ async def provisioning(
             email=provisioning_model.email,
             orgname=provisioning_model.organization,
             product=product,
-            product_schema=ijson_dumps(product_details["product_schema"]),
+            schema=ijson_dumps(product_details["product_schema"]),
             status=(
                 TenantStatusEnum.Provisioning
                 if product_details["approvalRequired"] and skip_approval
                 else TenantStatusEnum.PendingApproval
             ),
             approvedBy=user_id if skip_approval else None,
-            schema_=ijson_dumps(provisioning_details),
+            data=ijson_dumps(provisioning_details),
         ),
     )
 
