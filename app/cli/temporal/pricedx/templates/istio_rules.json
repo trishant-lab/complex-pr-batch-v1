@@ -1,0 +1,39 @@
+[
+  {
+    "name": "pricedx-<<tenant>>",
+    "route": [
+      {
+        "destination": {
+          "host": "pricedx.<<tenant>>.svc.cluster.local",
+          "port": { "number": 8000 }
+        },
+        "headers": {
+          "response": {
+            "add": {
+              "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+            }
+          }
+        }
+      }
+    ],
+    "match": [
+      { "uri": { "regex": "^/api/v1/.*" } },
+      { "uri": { "regex": "^/public/api/v1/.*" } },
+      { "uri": { "prefix": "/docs" } }
+    ],
+    "retries": { "attempts": 2, "retryOn": "reset" }
+  },
+  {
+    "name": "pricedx-log-collect",
+    "route": [
+      {
+        "destination": {
+          "host": "grafana-agent.monitoring-system.svc.cluster.local",
+          "port": { "number": 12347 }
+        }
+      }
+    ],
+    "match": [{ "uri": { "prefix": "/logcollect" } }],
+    "rewrite": { "uri": "/collect" }
+  }
+]

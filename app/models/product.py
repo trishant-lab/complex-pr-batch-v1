@@ -18,6 +18,8 @@ from app.cli.temporal.zsegment.zsegment import ZSegmentWorkflow
 from app.core.product_settings.common import SelfSignupSettings
 from app.models.add_ons.veritable import VeritableAddOn, VeritableFeature
 from app.models.enums import AddOn, Feature
+from app.cli.temporal.pricedx.pricedx import PricedxWorkflow
+from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 
 
 class ProductEnum(str, Enum):
@@ -28,6 +30,7 @@ class ProductEnum(str, Enum):
     hdp = "Hdp"
     zsegment = "Zsegment"
     practifly = "Practifly"
+    pricedx = "Pricedx"
 
     @classmethod
     def _missing_(cls, value: Any) -> "ProductEnum":
@@ -62,6 +65,8 @@ class ProductEnum(str, Enum):
                 return ZSegmentWorkflow
             case cls.practifly:
                 return PractiflyWorkflow
+            case cls.pricedx:
+                return PricedxWorkflow
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -85,6 +90,8 @@ class ProductEnum(str, Enum):
                 return ZSegmentSpec
             case cls.practifly:
                 return PractiflySpec
+            case cls.pricedx:
+                return PricedxSpec
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -112,6 +119,8 @@ class ProductEnum(str, Enum):
                 return settings.zsegment
             case cls.practifly:
                 return settings.practifly
+            case cls.pricedx:
+                return settings.pricedx
             case _:
                 raise ValueError(f"Product {enum_value} not found")
 

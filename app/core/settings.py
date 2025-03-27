@@ -18,6 +18,7 @@ from app.core.product_settings.penknife import PenknifeSettings
 from app.core.product_settings.practifly import PractiflySettings
 from app.core.product_settings.veritable import VeritableSettings
 from app.core.product_settings.zsegment import ZSegmentSettings
+from app.core.product_settings.pricedx import PricedxSettings
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
@@ -27,6 +28,7 @@ CONFIG_FILE_NAMES: Final[list[str]] = [
     "zsegment.json",
     "practifly.json",
     "veritable.json",
+    "pricedx.json",
 ]
 PRODUCT_FILE_NAMES: Final[list[str]] = [
     "veritable.json",
@@ -35,8 +37,8 @@ PRODUCT_FILE_NAMES: Final[list[str]] = [
     "penknife.json",
     "zsegment.json",
     "practifly.json",
+    "pricedx.json",
 ]
-
 
 class KeycloakSettings(BaseModel):
     """
@@ -203,6 +205,7 @@ class AppSettings(BaseSettings):
     hdp: HDPSettings = HDPSettings()
     zsegment: ZSegmentSettings = ZSegmentSettings()
     practifly: PractiflySettings = PractiflySettings()
+    pricedx: PricedxSettings = PricedxSettings()
 
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()

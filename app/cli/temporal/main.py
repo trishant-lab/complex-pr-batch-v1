@@ -14,6 +14,8 @@ from app.cli.temporal.workflows.onboard import OnboardWorkflow
 from app.cli.temporal.workflows.payments.verify import OnboardPaymentVerifyWorkflow
 from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEventWorkflow
 from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
+from app.cli.temporal.pricedx.workflows.onboarding import PricedxOnboardingWorkflow
+from app.cli.temporal.pricedx.workflows.deprovisioning import PricedxDeProvisioningWorkflow
 
 WORKFLOW_MAPPER: dict[str, type[Workflow | ScheduleWorkflow]] = {
     _workflow.__name__: _workflow
@@ -33,6 +35,8 @@ WORKFLOW_MAPPER: dict[str, type[Workflow | ScheduleWorkflow]] = {
         OnboardPaymentVerifyWorkflow,
         InvoiceWebhookEventWorkflow,
         KubeConfigCertExpiryWorkflow,
+        PricedxOnboardingWorkflow,
+        PricedxDeProvisioningWorkflow,
     ]
 }
 

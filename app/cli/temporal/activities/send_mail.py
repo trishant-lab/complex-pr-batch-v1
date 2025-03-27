@@ -149,7 +149,7 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
         content = template.render(
             user_name=f"{user_details.get('firstName')} {user_details.get('lastName')}",
         )
-        if product == "jeeves":
+        if product == "jeeves" or product == "pricedx":
             theme_template_env = get_env(
                 template_path=os.path.join(
                     os.path.dirname(os.path.realpath(__file__)),

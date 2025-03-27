@@ -284,6 +284,60 @@ class PenknifeSchema(BaseFormSchema):
     )
 
 
+class PricedxSchema(BaseFormSchema):
+    organization: str | None = Field(
+        default=None,
+        json_schema_extra={
+            "name": "organizationName",
+            "label": "Organization Name",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. ZZZ Medical",
+            "mapTo": "organization",
+            "order": 4,
+        },
+    )
+    companyName: str = Field(
+        json_schema_extra={
+            "name": "companyName",
+            "label": "Company Name",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. AETNA",
+            "mapTo": "companyName",
+            "order": 7,
+        },
+    )
+    isDeployment: bool = Field(
+        default=False,
+        json_schema_extra={
+            "name": "isDeployment",
+            "label": "Is Deployment",
+            "type": "checkbox-group",
+            "className": "form-control",
+            "toggle": False,
+            "inline": False,
+            "other": False,
+            "mapTo": "isDeployment",
+            "order": 9,
+        },
+    )
+    isConsole: bool = Field(
+        default=False,
+        json_schema_extra={
+            "name": "isConsole",
+            "label": "Is Pricedx Console Application",
+            "type": "checkbox-group",
+            "className": "form-control",
+            "toggle": False,
+            "inline": False,
+            "other": False,
+            "mapTo": "isConsole",
+            "order": 10,
+        },
+    )
+
+
 ProductSchemaDataType = TypeVar(
     "ProductSchemaDataType",
     VeritableSchema,
@@ -293,6 +347,7 @@ ProductSchemaDataType = TypeVar(
     HDPSchema,
     ZsegmentSchema,
     PenknifeSchema,
+    PricedxSchema,
 )
 
 PRODUCT_SCHEMA_MAP = {
@@ -303,4 +358,5 @@ PRODUCT_SCHEMA_MAP = {
     ProductEnum.hdp: HDPSchema,
     ProductEnum.zsegment: ZsegmentSchema,
     ProductEnum.penknife: PenknifeSchema,
+    ProductEnum.pricedx: PricedxSchema,
 }

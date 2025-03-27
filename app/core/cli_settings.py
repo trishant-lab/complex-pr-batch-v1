@@ -19,6 +19,8 @@ class WorkerQueues(str, Enum):
     zsegment_deboarding = "zsegment_deboarding"
     veritable_onboarding = "veritable_onboarding"
     veritable_deboarding = "veritable_deboarding"
+    pricedx_onboarding = "pricedx_onboarding"
+    pricedx_deboarding = "pricedx_deboarding"
     verify_payment = "verify_payment"
     webhooks = "webhooks"
     onboard = "onboard"
@@ -74,6 +76,8 @@ def get_workers_config() -> dict[str, WorkerConfig]:
     from app.cli.temporal.workflows.payments.verify import OnboardPaymentVerifyWorkflow
     from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEventWorkflow
     from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
+    from app.cli.temporal.pricedx.workflows.onboarding import PricedxOnboardingWorkflow
+    from app.cli.temporal.pricedx.workflows.deprovisioning import PricedxDeProvisioningWorkflow
 
     workers_config = {
         "WORKER_1_PROCESS": {
@@ -85,6 +89,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
                 WorkerQueues.practifly_onboarding: {PractiflyOnboardingWorkflow},
                 WorkerQueues.zsegment_onboarding: {ZSegmentOnboardingWorkflow},
                 WorkerQueues.veritable_onboarding: {VeritableOnboardingWorkflow},
+                WorkerQueues.pricedx_onboarding: {PricedxOnboardingWorkflow},
             },
             "count": 1,
         },
@@ -94,6 +99,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
                 WorkerQueues.jeeves_deboarding: {JeevesDeProvisioningWorkflow},
                 WorkerQueues.penknife_deboarding: {PenknifeDeProvisioningWorkflow},
                 WorkerQueues.practifly_deboarding: {PractiflyDeProvisioningWorkflow},
+                WorkerQueues.pricedx_deboarding: {PricedxDeProvisioningWorkflow},
             },
             "count": 1,
         },
