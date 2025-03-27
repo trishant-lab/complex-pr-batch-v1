@@ -20,7 +20,6 @@ class PricedxSettings(BaseModel):
 
     pg_dsn_template: str = "postgresql://pricedx_{tenant}.pricedx_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/pricedx"
     redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
-    base_ui_url: str = "https://{tenant}.pricedx.tech"
 
     lago_api_url: str = ""
     lago_plan_code: str = ""

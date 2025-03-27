@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing import TYPE_CHECKING
 
 import pydash
 from temporalio import workflow
@@ -110,7 +109,6 @@ from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 from app.cli.temporal.models.cloudflare import (
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivityModel,
-    CreateCloudflareBucketCredentialsActivityModel,
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivityModel,
@@ -123,8 +121,6 @@ from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
-if TYPE_CHECKING:
-    from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 
 ProductName = "pricedx"
 OnePasswordVaultName = "Pricedx"
@@ -464,11 +460,6 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            credentials: CloudflareBucketCredentials = await run_activity(
-                activity=CreateCloudflareBucketCredentialsActivity,
-                arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=bucket_name, read_only=False),
-            )
-
             # cdn base url added to onepassword
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
@@ -478,88 +469,6 @@ class PricedxOnboardingWorkflow(Workflow):
                     server_item="application-config",
                     key="base_url_cdn",
                     key_value=f"https://{tenant}.{pricedx_config.domain_name}",
-                ),
-            )
-
-            # s3 media bucket name added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_media_bucket_name",
-                    key_value=bucket_name,
-                ),
-            )
-
-            # s3 access key added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_access_key",
-                    key_value=credentials.access_key,
-                ),
-            )
-
-            # s3 secret key added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_secret_key",
-                    key_value=credentials.secret_key,
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_ui_bucket_name",
-                    key_value=bucket_name,
-                ),
-            )
-            # s3 access key added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_ui_bucket_access_key",
-                    key_value=credentials.access_key,
-                ),
-            )
-
-            # s3 secret key added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="s3_ui_bucket_secret_key",
-                    key_value=credentials.secret_key,
-                ),
-            )
-
-            # additional required onepassword configs
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    key="base_ui_url",
-                    key_value=pricedx_config.base_ui_url.format(tenant=tenant),
                 ),
             )
 
@@ -745,65 +654,12 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # deployment pod creation for cli
-            await run_activity(
-                activity=KubernetesDeploymentActivity,
-                arg=KubernetesDeploymentActivityModel(
-                    namespace=tenant,
-                    name="pricedx-worker",
-                    docker_image=docker_image,
-                    request_resource={
-                        "cpu": pydash.get(pricedx, "cliSpec.request_cpu"),
-                        "memory": pydash.get(pricedx, "cliSpec.request_memory"),
-                    },
-                    limit_resource={
-                        "cpu": pydash.get(pricedx, "cliSpec.limit_cpu"),
-                        "memory": pydash.get(pricedx, "cliSpec.limit_memory"),
-                    },
-                    container_ports={"http": 8000},
-                    volume_mounts=[
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "pricedx-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
-                        },
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
-                        {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},
-                    ],
-                ),
-            )
-
             # vm pod scraper
             await run_activity(
                 activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="pricedx-metrics",
-                    app="pricedx",
-                    path="/metrics/",
-                    interval="15s",
-                ),
-            )
-
-            await run_activity(
-                activity=VMPodScrapperActivity,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="pricedx-worker-metrics",
                     app="pricedx",
                     path="/metrics/",
                     interval="15s",
@@ -819,14 +675,13 @@ class PricedxOnboardingWorkflow(Workflow):
             )
 
             # check pod running status
-            for pod in ["pricedx", "pricedx-worker"]:
-                await run_activity(
-                    activity=CheckPodRunningStatusActivity,
-                    arg=CheckPodRunningStatusActivityModel(
-                        namespace=tenant,
-                        name=pod,
-                    ),
-                )
+            await run_activity(
+                activity=CheckPodRunningStatusActivity,
+                arg=CheckPodRunningStatusActivityModel(
+                    namespace=tenant,
+                    name="pricedx",
+                ),
+            )
 
             # update tenant status
             await run_activity(
