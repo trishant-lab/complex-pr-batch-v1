@@ -24,3 +24,4 @@ class PricedxSettings(BaseModel):
     lago_api_url: str = ""
     lago_plan_code: str = ""
     lago_api_key: str = ""
+    email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
