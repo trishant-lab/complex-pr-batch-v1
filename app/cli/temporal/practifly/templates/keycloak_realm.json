@@ -625,23 +625,23 @@
     {
       "clientId": "app",
       "name": "practifly application client",
-      "rootUrl": "https://<<tenant>>.practifly.<<domain_org>>",
-      "adminUrl": "https://<<tenant>>.practifly.<<domain_org>>",
+      "rootUrl": "https://<<tenant>>.<<domain>>",
+      "adminUrl": "https://<<tenant>>.<<domain>>",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://<<tenant>>.api.practifly.<<domain_org>>/*",
-        "https://<<tenant>>.api.practifly.<<domain_org>>/*",
-        "http://<<tenant>>.practifly.<<domain_org>>/*",
-        "https://<<tenant>>.practifly.<<domain_org>>/*"
+        "http://<<tenant>>.api.<<domain>>/*",
+        "https://<<tenant>>.api.<<domain>>/*",
+        "http://<<tenant>>.<<domain>>/*",
+        "https://<<tenant>>.<<domain>>/*"
       ],
       "webOrigins": [
-        "http://<<tenant>>.api.practifly.<<domain_org>>",
-        "https://<<tenant>>.api.practifly.<<domain_org>>",
-        "https://<<tenant>>.practifly.<<domain_org>>",
-        "http://<<tenant>>.practifly.<<domain_org>>"
+        "http://<<tenant>>.api.<<domain>>",
+        "https://<<tenant>>.api.<<domain>>",
+        "https://<<tenant>>.<<domain>>",
+        "http://<<tenant>>.<<domain>>"
       ],
       "notBefore": 0,
       "bearerOnly": false,

@@ -178,5 +178,5 @@ def validate_email_domain(product: ProductEnum, email: EmailStr) -> None:
     """
     settings = ProductEnum.get_product_settings(product)
     email_domain = email.split("@")[-1]
-    if email_domain in (settings.email_domains_exclusions or []):
+    if email_domain in (getattr(settings, "email_domains_exclusions", None) or []):
         raise errors.INVALID_EMAIL.exc(email=email)
