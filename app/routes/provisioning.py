@@ -117,10 +117,8 @@ async def provisioning(
     if not product_details:
         raise errors.PRODUCT_NOT_FOUND.exc()
 
-    product_details = dict(product_details)
-
     provisioning_model = await validate_provisioning_details(
-        product=product, data=provisioning_details, schema=product_details["product_schema"]
+        product=product, data=provisioning_details, schema=product_details.formSchema
     )
 
     validate_email_domain(product=product, email=provisioning_model.email)
@@ -139,14 +137,14 @@ async def provisioning(
             email=provisioning_model.email,
             orgname=provisioning_model.organization,
             product=product,
-            schema=ijson_dumps(product_details["product_schema"]),
+            formSchema=ijson_dumps(product_details.formSchema),
             status=(
                 TenantStatusEnum.Provisioning
-                if product_details["approvalRequired"] and skip_approval
+                if product_details.approvalRequired and skip_approval
                 else TenantStatusEnum.PendingApproval
             ),
             approvedBy=user_id if skip_approval else None,
-            data=ijson_dumps(provisioning_details),
+            formData=ijson_dumps(provisioning_details),
         ),
     )
 
@@ -160,11 +158,11 @@ async def provisioning(
         send_slack_notification,
         product=product,
         schema=onboard_schema,
-        approval_required=True if product_details["approvalRequired"] and not skip_approval else False,
+        approval_required=True if product_details.approvalRequired and not skip_approval else False,
         tenant_id=tenant_details.get("id"),
     )
 
-    if product_details["approvalRequired"] and skip_approval:
+    if product_details.approvalRequired and skip_approval:
         logger.info(f"Skipping approval for product: {product.value}")
         await product_workflow.approve(onboard_schema)
 
@@ -260,12 +258,11 @@ async def retry_provisioning(
         onboard_schema = provisioning_model.model_dump()
 
         onboard_schema["emailSent"] = True
-        product_details = dict(product_details)
 
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(onboard_schema)
 
-        if product_details["approvalRequired"]:
+        if product_details.approvalRequired:
             await product_workflow.approve(onboard_schema)
 
         # await product_workflow.approve(schema)

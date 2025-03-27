@@ -4,9 +4,9 @@ WITH customer_insert AS (
         {{ orgname }}, 
         {{ tenantname }}, 
         {{ email }}, 
-        {{ data }}, 
+        {{ formData }}, 
         LOWER({{product}}),
-        {{schema}},
+        {{formSchema}},
         {{source}},
         {{approvedBy}}
     )

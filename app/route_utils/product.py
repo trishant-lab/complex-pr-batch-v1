@@ -17,7 +17,7 @@ from app.models.product import ProductEnum
 
 class ProductResponseModel(BaseModel):
     name: ProductEnum
-    schema: list[dict]
+    formSchema: list[dict]
     created: datetime
     lastmodified: datetime
     approvalRequired: bool
@@ -28,7 +28,7 @@ class ProductResponseModel(BaseModel):
         """
         Convert db response to model
         """
-        data["schema"] = ijson_loads(data["schema"])
+        data["formSchema"] = ijson_loads(data["schema"])
         data["lastmodified"] = data["lastupdated"]
         product = ProductEnum(data["name"])
         data["mapping"] = PRODUCT_SCHEMA_MAP[product].get_mapping_dict()
@@ -71,7 +71,7 @@ async def validate_provisioning_details(
 
     if not schema:
         resp = await get_product(product=product)
-        schema = resp.schema
+        schema = resp.formSchema
 
     model_data = {}
     missing_required_fields = []

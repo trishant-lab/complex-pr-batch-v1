@@ -33,12 +33,12 @@ class TenantCreateRequestModel(BaseModel):
     tenantname: str
     email: EmailStr
     product: ProductEnum
-    schema: str
+    formSchema: str
     status: TenantStatusEnum
     orgname: str | None = None
     source: str | None = None
     approvedBy: str | None = None
-    data: str
+    formData: str
 
 
 class TenantResponseModel(BaseModel):
@@ -46,10 +46,10 @@ class TenantResponseModel(BaseModel):
     name: str
     status: TenantStatusEnum
     orgname: str | None = None
-    email: EmailStr
+    email: EmailStr | None = None
     source: str | None = None
-    schema: dict | None = None
-    data: dict | None = None
+    formSchema: list[dict] | None = None
+    formData: dict | None = None
     approvedBy: UUID | None = None
     created: datetime
     provisionedDateTime: datetime | None = None
@@ -59,8 +59,8 @@ class TenantResponseModel(BaseModel):
         """
         Convert db response to model
         """
-        value["data"] = ijson_loads(value["data"]) if value.get("data") else None
-        value["schema"] = ijson_loads(value["schema"]) if value.get("schema") else None
+        value["formData"] = ijson_loads(value["data"]) if value.get("data") else None
+        value["formSchema"] = ijson_loads(value["schema"]) if value.get("schema") else None
         value["name"] = value.get("tenantname")
         return cls(**value)
 
