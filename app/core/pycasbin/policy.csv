@@ -15,14 +15,6 @@ p, MUSPELL_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 
-p, JEEVES_VIEW_GROUP, /api/v1/product/Jeeves, GET
-p, DEXIT_VIEW_GROUP, /api/v1/product/Dexit, GET
-p, PENKNIFE_VIEW_GROUP, /api/v1/product/Penknife, GET
-p, ZSEGMENT_VIEW_GROUP, /api/v1/product/Zsegment, GET
-p, MUSPELL_VIEW_GROUP, /api/v1/product/Muspell, GET
-p, VERITABLE_VIEW_GROUP, /api/v1/product/Veritable, GET
-p, PRACTIFLY_VIEW_GROUP, /api/v1/product/Practifly, GET
-
 p, ADMINS, /api/v1/product/getProductByName/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/product/getProductByName/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/product/getProductByName/Dexit, GET
@@ -105,7 +97,6 @@ p, MUSPELL_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Muspell, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Veritable, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/provisioning/approveOrDecline/Practifly, POST
 
-
 p, ADMINS, /api/v1/provisioning/retryProvisioning/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/provisioning/retryProvisioning/Dexit, POST
@@ -124,8 +115,7 @@ p, MUSPELL_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Muspell, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Veritable, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/provisioning/workflowSteps/Practifly, GET
 
-p, ADMINS, /api/v1/deprovisioning, POST
-
+p, ADMINS, /api/v1/deprovisioning/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/deprovisioning/Jeeves, POST
 p, DEXIT_EDIT_GROUP, /api/v1/deprovisioning/Dexit, POST
 p, PENKNIFE_EDIT_GROUP, /api/v1/deprovisioning/Penknife, POST

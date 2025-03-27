@@ -33,7 +33,7 @@ async def onboard_failure(onboard_info: OnboardInfo) -> None:
     @return:
     """
     db: DBManager = await get_db_manager()
-    errors = await db.fetch_one("get.sql", table="operatorstatus", where=f"customerid='{onboard_info.customer_id}'")
+    errors = await db.fetch_one("get.sql", table="provisioningstatus", where=f"customerid='{onboard_info.customer_id}'")
     lago_client = get_lago_client(onboard_info.product)
     customer_resp = lago_client.customers().find(str(onboard_info.customer_id))
     customer = CustomerResponse.from_lago(customer_resp)

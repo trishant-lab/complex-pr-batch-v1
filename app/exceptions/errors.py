@@ -47,6 +47,7 @@ PRODUCT_NOT_FOUND: ServerErrorModel = ServerErrorModel.initialize(code="R1003")
 
 # tenant
 TENANT_NOT_FOUND: ServerErrorModel = ServerErrorModel.initialize(code="R1002")
+TENANT_DETAILS_CANNOT_BE_UPDATED: ServerErrorModel = ServerErrorModel.initialize(code="R1019")
 
 # coupon
 INVALID_COUPON_CODE: ServerErrorModel = ServerErrorModel.initialize(code="R1016")

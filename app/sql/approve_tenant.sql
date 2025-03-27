@@ -4,6 +4,6 @@ WITH updates AS (
     WHERE id = {{tenant_id}}
     RETURNING id
 )
-UPDATE operatorstatus
+UPDATE provisioningstatus
 SET status = {{status}}
 WHERE cutomerid = (SELECT id FROM updates);

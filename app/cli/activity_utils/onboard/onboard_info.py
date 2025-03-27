@@ -19,9 +19,9 @@ async def get_customer_onboard_info(customer_id: uuid.UUID) -> OnboardInfo:
     )
 
     _operator_status_params = dict(
-        table="operatorstatus o",
-        where=f"o.customerid='{customer_id!s}'",
-        columns=["o.status"],
+        table="provisioningstatus p",
+        where=f"p.customerid='{customer_id!s}'",
+        columns=["p.status"],
     )
 
     _customer_params = dict(
@@ -79,9 +79,9 @@ async def get_operator_status(customer_id: uuid.UUID) -> TenantStatusEnum:
     db: DBManager = await get_db_manager()
     _operator_status = await db.fetch_one(
         "get.sql",
-        table="operatorstatus o",
-        where=f"o.customerid='{customer_id!s}'",
-        columns=["o.status"],
+        table="provisioningstatus p",
+        where=f"p.customerid='{customer_id!s}'",
+        columns=["p.status"],
     )
     return TenantStatusEnum(_operator_status["status"])
 
@@ -100,7 +100,7 @@ async def update_operator_status(
     payload = {"status": status, "errors": e.__str__()}
     await db.fetch_one(
         "put.sql",
-        table="operatorstatus",
+        table="provisioningstatus",
         where=f"customerid='{customer_id!s}'",
         payload=payload,
     )

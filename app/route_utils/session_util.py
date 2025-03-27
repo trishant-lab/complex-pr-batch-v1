@@ -118,7 +118,7 @@ async def get_first_subscription_status(
         customer_record = customer_record | dict(
             await db.fetch_one(
                 "get.sql",
-                table="operatorstatus",
+                table="provisioningstatus",
                 where=f"customerid='{customer_record['id']}'",
                 columns=["status"],
             ),

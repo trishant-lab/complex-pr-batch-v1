@@ -240,3 +240,10 @@ R1018 = {
     "followUpAction": [],
     "possibleResolutions": ["Please fill all required fields"],
 }
+
+R1019 = {
+    "statusCode": status.HTTP_400_BAD_REQUEST,
+    "displayMessage": "Tenant details cannot be updated!",
+    "followUpAction": [],
+    "possibleResolutions": ["Please contact support!"],
+}

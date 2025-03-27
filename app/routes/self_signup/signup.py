@@ -175,15 +175,15 @@ async def create_new_customer(
         "name": ACTIVE_SUBSCRIPTION_NAME,
         "plancode": plan_code,
     }
-    operatorstatus_params = {
+    provisioningstatus_params = {
         "status": TenantStatusEnum.NotApplicable,
         "errors": ijson_dumps({"error": "NA"}),
     }
     customer_insert = await db.fetch_one(
-        "post_customer_subscription_operatorstatus.sql",
+        "post_customer_subscription_provisioningstatus.sql",
         customer=customer_params,
         subscription=subscription_params,
-        operatorstatus=operatorstatus_params,
+        provisioningstatus=provisioningstatus_params,
     )
     customer.external_id = str(customer_insert["customerid"])
     lago_client = get_lago_client(product)
@@ -334,15 +334,15 @@ async def create_enterprise_customer(
         "name": ACTIVE_SUBSCRIPTION_NAME,
         "plancode": plan_code,
     }
-    operatorstatus_params = {
+    provisioningstatus_params = {
         "status": TenantStatusEnum.NotApplicable,
         "errors": ijson_dumps({"error": "NA"}),
     }
     customer_insert = await db.fetch_one(
-        "post_customer_subscription_operatorstatus.sql",
+        "post_customer_subscription_provisioningstatus.sql",
         customer=customer_params,
         subscription=subscription_params,
-        operatorstatus=operatorstatus_params,
+        provisioningstatus=provisioningstatus_params,
     )
 
     customer.external_id = str(customer_insert["customerid"])

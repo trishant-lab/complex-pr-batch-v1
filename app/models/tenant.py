@@ -21,6 +21,13 @@ class TenantStatusEnum(IntEnum):
     DeProvisioned = 5
     PendingApproval = 6
 
+    @classmethod
+    def can_update_tenant(cls, status: "TenantStatusEnum") -> bool:
+        """
+        Returns True if the tenant details can be updated
+        """
+        return status in [cls.Declined, cls.NotApplicable, cls.Stale, cls.PendingApproval]
+
 
 class TenantCreateRequestModel(BaseModel):
     tenantname: str

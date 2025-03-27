@@ -56,7 +56,7 @@ async def create_subscription(
 
     # update subscription creation date, in case it was created before
     provisioned_params = {
-        "table": "operatorstatus",
+        "table": "provisioningstatus",
         "where": _where,
         "payload": {"status": TenantStatusEnum.Stale.value},
     }

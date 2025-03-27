@@ -17,6 +17,7 @@ from app.models.tenant import (
     SuggestTenantNamesResponseModel,
     TenantCreateRequestModel,
     TenantResponseModel,
+    TenantStatusEnum,
 )
 from app.route_utils.product import validate_email_domain
 from app.route_utils.tenant_suggestions import get_existing_tenant_names, get_valid_suggestions
@@ -107,6 +108,13 @@ async def update_tenant(
     @return:
     """
     db: DBManager = await get_db_manager()
+    tenant = await db.fetch_one("get_tenant.sql", tenant_id=tenant_id)
+    if not tenant:
+        raise errors.TENANT_NOT_FOUND.exc()
+
+    if not TenantStatusEnum.can_update_tenant(TenantStatusEnum(tenant["status"])):
+        raise errors.TENANT_DETAILS_CANNOT_BE_UPDATED.exc()
+
     tenant_details_str = ijson_dumps(tenant_details)
     response = await db.fetch_one("update_tenant_details.sql", schema_=tenant_details_str, tenant_id=tenant_id)
 

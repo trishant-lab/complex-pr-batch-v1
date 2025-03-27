@@ -14,7 +14,7 @@ async def trigger_onboarding_workflow(activity_input: CustomerWorkflowInput) -> 
     db: DBManager = await get_db_manager()
     await db.execute(
         "put.sql",
-        table="operatorstatus",
+        table="provisioningstatus",
         payload={"status": TenantStatusEnum.Provisioning},
         where=f"customerid='{activity_input.customer_id!s}'",
     )

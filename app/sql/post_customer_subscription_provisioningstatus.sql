@@ -16,6 +16,6 @@ subscription_insert AS (
     VALUES ( (select id from customer_insert) , {{subscription['name']}}, {{subscription['plancode']}}, LOWER({{customer['product']}}))
     RETURNING id
 )
-INSERT INTO operatorstatus (customerid, status, errors)
-VALUES ( (select id from customer_insert) , {{operatorstatus['status']}}, {{operatorstatus['errors']}})
+INSERT INTO provisioningstatus (customerid, status, errors)
+VALUES ( (select id from customer_insert) , {{provisioningstatus['status']}}, {{provisioningstatus['errors']}})
 RETURNING customerid;

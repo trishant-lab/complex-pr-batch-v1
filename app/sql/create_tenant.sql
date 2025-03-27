@@ -13,7 +13,7 @@ WITH customer_insert AS (
     RETURNING id
 ),
 operator_insert AS (
-    INSERT INTO operatorstatus (customerid, status, errors)
+    INSERT INTO provisioningstatus (customerid, status, errors)
     VALUES ( (select id from customer_insert) , {{ status }}, {{errors}})
     RETURNING customerid
 )

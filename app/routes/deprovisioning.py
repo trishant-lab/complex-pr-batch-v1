@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from loguru import logger
 from pydantic.fields import PydanticUndefined
 
@@ -15,11 +15,15 @@ if TYPE_CHECKING:
 
 
 @de_provisioning_router.post(
-    "",
+    "/{product}",
     operation_id="deprovisionTenant",
     summary="Deprovision tenant",
 )
-async def de_provision_tenant(product: ProductEnum, tenant: str, _: dict = Depends(get_oauth_scheme())) -> None:
+async def de_provision_tenant(
+    tenant: str,
+    product: ProductEnum = Path(...),
+    _: dict = Depends(get_oauth_scheme()),
+) -> None:
     """
     De-provision tenant
     """

@@ -45,7 +45,7 @@ async def payment_failure(customer_id: uuid.UUID, product: ProductEnum) -> None:
     """
     db = await get_db_manager()
     params = {
-        "table": "operatorstatus s",
+        "table": "provisioningstatus s",
         "join_table": "customer c",
         "join_on": "c.id=s.customerid",
         "where": f"s.customerid='{customer_id!s}'",
@@ -144,7 +144,7 @@ async def reset_setup_intent(onboard_info: OnboardInfo, customer: CustomerRespon
             "payload": {"setupintent": setup_intent_key},
         }
         provisioned_params = {
-            "table": "operatorstatus",
+            "table": "provisioningstatus",
             "where": f"customerid='{customer_id!s}'",
             "payload": {"status": TenantStatusEnum.NotApplicable.value},
         }

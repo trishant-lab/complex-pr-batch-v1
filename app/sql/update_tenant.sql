@@ -1,4 +1,4 @@
-UPDATE operatorstatus
+UPDATE provisioningstatus
 SET status = {{status}}
     {% if error_message %} , errors = {{error_message}} {% endif %}
     {% if status == 2 %} , "provisionedDateTime" = NOW() {% endif %}

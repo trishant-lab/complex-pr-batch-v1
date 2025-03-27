@@ -98,8 +98,8 @@ CREATE TABLE failedinvoices (
     PRIMARY KEY ("invoiceid")
 );
 
--- Create operatorstatus table
-CREATE TABLE operatorstatus (
+-- Create provisioningstatus table
+CREATE TABLE provisioningstatus (
     customerid uuid NOT NULL,
     status integer DEFAULT '-2'::integer,  -- provisioning status
     errors text DEFAULT '{"errors": "not_applicable"}'::text,  -- errors in provisioning
