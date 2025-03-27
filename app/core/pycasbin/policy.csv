@@ -139,7 +139,7 @@ p, ADMINS, /api/v1/User, PUT
 p, ADMINS, /api/v1/User, GET
 p, ADMINS, /api/v1/User, DELETE
 
-p, ADMINS, /api/v1/User/getUserById, GET
+p, ADMINS, /api/v1/User/{userId}, GET
 p, ADMINS, /api/v1/User/roles, GET
 p, ADMINS, /api/v1/User/getGSuiteUsersList, GET
 

@@ -5,7 +5,7 @@ from uuid import UUID
 
 import aiohttp
 import jwt
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from keycloak import urls_patterns
 from loguru import logger
 from starlette.exceptions import HTTPException
@@ -76,30 +76,6 @@ async def get_keycloak_users(
     ]
 
 
-@user_router.get(
-    "/getUserById",
-    response_model=UserResponseModel,
-    operation_id="getUserById",
-    summary="Returns user by id",
-)
-async def get_user_by_id(user_id: str, _: dict = Depends(get_oauth_scheme())) -> UserResponseModel:
-    """
-    Returns user by id
-    :param user_id:
-    :param _: dict:
-    :return:
-    """
-    config: AppSettings = get_settings()
-
-    keycloak_admin_client = KeycloakAdminClient(config=config.keycloak)
-
-    user = keycloak_admin_client.get_user(user_id=user_id, realm_name=config.keycloak.realm)
-
-    return UserResponseModel.json_to_model(
-        {"roles": get_roles(kc_agent=keycloak_admin_client, user_id=user["id"], config=config), **user}
-    )
-
-
 def fetch_assignable_roles(keycloak_admin_client: KeycloakAdminClient, config: AppSettings) -> list:
     """
     fetch assignable roles for the user
@@ -135,6 +111,33 @@ def get_assignable_roles(
     keycloak_admin_client = KeycloakAdminClient(config=config.keycloak)
 
     return fetch_assignable_roles(keycloak_admin_client=keycloak_admin_client, config=config)
+
+
+@user_router.get(
+    "/{userId}",
+    response_model=UserResponseModel,
+    operation_id="getUserById",
+    summary="Returns user by id",
+)
+async def get_user_by_id(
+    user_id: str = Path(..., alias="userId"),
+    _: dict = Depends(get_oauth_scheme()),
+) -> UserResponseModel:
+    """
+    Returns user by id
+    :param user_id:
+    :param _: dict:
+    :return:
+    """
+    config: AppSettings = get_settings()
+
+    keycloak_admin_client = KeycloakAdminClient(config=config.keycloak)
+
+    user = keycloak_admin_client.get_user(user_id=user_id, realm_name=config.keycloak.realm)
+
+    return UserResponseModel.json_to_model(
+        {"roles": get_roles(kc_agent=keycloak_admin_client, user_id=user["id"], config=config), **user}
+    )
 
 
 def get_roles_data(kc_agent: KeycloakAdminClient, config: AppSettings, roles_data: list[RoleResponseModel]) -> list:
