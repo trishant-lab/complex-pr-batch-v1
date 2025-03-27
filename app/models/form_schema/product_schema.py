@@ -283,6 +283,7 @@ class PenknifeSchema(BaseFormSchema):
         },
     )
 
+
 class PricedxSchema(BaseFormSchema):
     organization: str | None = Field(
         default=None,
@@ -294,20 +295,6 @@ class PricedxSchema(BaseFormSchema):
             "placeholder": "e.g. ZZZ Medical",
             "mapTo": "organization",
             "order": 4,
-        },
-    )
-    emailSent: bool = Field(
-        default=False,
-        json_schema_extra={
-            "name": "emailSent",
-            "label": "Email Sent",
-            "type": "checkbox-group",
-            "className": "form-control",
-            "toggle": False,
-            "inline": False,
-            "other": False,
-            "mapTo": "emailSent",
-            "order": 6,
         },
     )
     companyName: str = Field(
@@ -335,7 +322,6 @@ class PricedxSchema(BaseFormSchema):
             "order": 9,
         },
     )
-
     isConsole: bool = Field(
         default=False,
         json_schema_extra={
