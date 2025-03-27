@@ -18,6 +18,7 @@ from app.models.tenant import (
     TenantCreateRequestModel,
     TenantResponseModel,
 )
+from app.route_utils.product import validate_email_domain
 from app.route_utils.tenant_suggestions import get_existing_tenant_names, get_valid_suggestions
 
 if TYPE_CHECKING:
@@ -47,12 +48,12 @@ async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
     response_model=list[TenantResponseModel] | None,
 )
 async def list_tenants(
-    product: ProductEnum = Path(...), tenant_id: uuid.UUID | None = None, _param: dict = Depends(get_oauth_scheme())
+    product: ProductEnum = Path(...), tenant_id: uuid.UUID | None = None, _: dict = Depends(get_oauth_scheme())
 ) -> list[TenantResponseModel]:
     """
     @param product:
     @param tenant_id:
-    @param _param:
+    @param _:
     @return:
     """
     db: DBManager = await get_db_manager()
@@ -95,14 +96,14 @@ async def update_tenant(
     tenant_details: dict,
     product: ProductEnum = Path(..., alias="product"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    _param: dict = Depends(get_oauth_scheme()),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> dict:
     """
     @param product:
     @param tenant_id:
     @param tenant_details:
     @param background_tasks:
-    @param _param:
+    @param _:
     @return:
     """
     db: DBManager = await get_db_manager()
@@ -122,12 +123,14 @@ async def suggest_tenant_names(
     product: ProductEnum = Path(...),
     email: EmailStr = Query(...),
     organization: str = Query(...),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> SuggestTenantNamesResponseModel:
     """
     @param organization:
     @param product:
     @return:
     """
+    validate_email_domain(product=product, email=email)
     tenant_names = await get_valid_suggestions(product=product, email=email, organization=organization)
     return SuggestTenantNamesResponseModel(
         tenant_names=tenant_names,
@@ -136,19 +139,21 @@ async def suggest_tenant_names(
 
 
 @tenant_router.get(
-    "/validateTenantName/{tenant_name}",
+    "/{product}/validateTenantName/{tenant_name}",
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(
     tenant_name: str = Path(pattern=TENANT_NAME_PATTERN),
-    product: ProductEnum = Query(...),
+    product: ProductEnum = Path(...),
     email: EmailStr = Query(...),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
     @param product:
     @param tenant_name:
     @return:
     """
+    validate_email_domain(product=product, email=email)
     tenant_names = await get_existing_tenant_names(product=product, email=email, tenant_names=[tenant_name.lower()])
     if tenant_names:
         raise errors.ALREADY_ALLOCATED_TENANT_NAME.exc()

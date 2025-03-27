@@ -22,6 +22,7 @@ class WorkerQueues(str, Enum):
     verify_payment = "verify_payment"
     webhooks = "webhooks"
     onboard = "onboard"
+    kube_config_cert_expiry = "kube_config_cert_expiry"
 
 
 class WorkerConfig(BaseModel):
@@ -68,6 +69,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
     from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
     from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
     from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
+    from app.cli.temporal.workflows.check_kube_config_certificate import KubeConfigCertExpiryWorkflow
     from app.cli.temporal.workflows.onboard import OnboardWorkflow
     from app.cli.temporal.workflows.payments.verify import OnboardPaymentVerifyWorkflow
     from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEventWorkflow
@@ -98,6 +100,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
         "WORKER_3_PROCESS": {
             "workers": {
                 WorkerQueues.onboard: {OnboardWorkflow},
+                WorkerQueues.kube_config_cert_expiry: {KubeConfigCertExpiryWorkflow},
             },
             "count": 2,
         },
@@ -116,3 +119,17 @@ def get_workers_config() -> dict[str, WorkerConfig]:
     }
 
     return {k: WorkerConfig.model_validate(v) for k, v in workers_config.items()}
+
+
+@lru_cache
+def get_schedules() -> set[str]:
+    """
+    Get schedules
+    """
+    # add schedule workflow names here , or they would be removed from the schedules
+    from app.cli.temporal.workflows.check_kube_config_certificate import KubeConfigCertExpiryWorkflow
+
+    start_up_schedules: set = {KubeConfigCertExpiryWorkflow.__name__}
+
+    # all schedules
+    return start_up_schedules

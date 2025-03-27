@@ -1,37 +1,14 @@
-from typing import Any, TypeVar
+from typing import TypeVar
 
-from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+from pydantic import Field, ValidationError, field_validator, model_validator
 
 from app.cli.temporal.penknife.models.penknife_spec import EmailProvider, TenantType
-from app.models.billing_models import COUNTRY_CODES, CustomCustomerBillingConfiguration, PhoneNumber
+from app.models.billing_models import COUNTRY_CODES, PhoneNumber
 from app.models.form_schema.base_schema import BaseFormSchema
 from app.models.product import ProductEnum
 
 
 class VeritableSchema(BaseFormSchema):
-    billing_configuration: CustomCustomerBillingConfiguration = Field(
-        default=CustomCustomerBillingConfiguration(),
-        json_schema_extra={
-            "name": "billingConfiguration",
-            "label": "Billing Configuration",
-            "className": "form-control",
-            "subtype": "text",
-            "mapTo": "billing_configuration",
-            "order": 6,
-        },
-    )
-    external_id: str | None = Field(
-        default=None,
-        json_schema_extra={
-            "name": "externalId",
-            "label": "External ID",
-            "subtype": "text",
-            "className": "form-control",
-            "placeholder": "e.g. e38c5f99-580b-4bfd-a926-a82402eb8d6a",
-            "mapTo": "external_id",
-            "order": 7,
-        },
-    )
     phone: PhoneNumber | None = Field(
         default=None,
         json_schema_extra={
@@ -41,10 +18,10 @@ class VeritableSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. 1234567890",
             "mapTo": "phone",
-            "order": 8,
+            "order": 6,
         },
     )
-    address_line1: str | None = Field(
+    address: str | None = Field(
         default=None,
         json_schema_extra={
             "name": "address",
@@ -52,8 +29,8 @@ class VeritableSchema(BaseFormSchema):
             "subtype": "text",
             "className": "form-control",
             "placeholder": "e.g. 1234 Main St",
-            "mapTo": "address_line1",
-            "order": 9,
+            "mapTo": "address",
+            "order": 7,
         },
     )
     city: str = Field(
@@ -64,7 +41,7 @@ class VeritableSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. Berkeley",
             "mapTo": "city",
-            "order": 10,
+            "order": 8,
         },
     )
     state: str = Field(
@@ -75,7 +52,7 @@ class VeritableSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. California",
             "mapTo": "state",
-            "order": 11,
+            "order": 9,
         },
     )
     country: str = Field(
@@ -86,7 +63,7 @@ class VeritableSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. US",
             "mapTo": "country",
-            "order": 12,
+            "order": 10,
         },
     )
     zipcode: str = Field(
@@ -97,10 +74,10 @@ class VeritableSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. 90001",
             "mapTo": "zipcode",
-            "order": 13,
+            "order": 11,
         },
     )
-    coupon_code: str | None = Field(
+    couponCode: str | None = Field(
         default=None,
         json_schema_extra={
             "name": "couponCode",
@@ -109,21 +86,7 @@ class VeritableSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. VER15",
             "mapTo": "coupon_code",
-            "order": 14,
-        },
-    )
-    emailSent: bool = Field(
-        default=False,
-        json_schema_extra={
-            "name": "emailSent",
-            "label": "Email Sent",
-            "type": "checkbox-group",
-            "className": "form-control",
-            "toggle": False,
-            "inline": False,
-            "other": False,
-            "mapTo": "emailSent",
-            "order": 15,
+            "order": 12,
         },
     )
 
@@ -172,20 +135,6 @@ class PractiflySchema(BaseFormSchema):
             "order": 4,
         },
     )
-    emailSent: bool = Field(
-        default=False,
-        json_schema_extra={
-            "name": "emailSent",
-            "label": "Email Sent",
-            "type": "checkbox-group",
-            "className": "form-control",
-            "toggle": False,
-            "inline": False,
-            "other": False,
-            "mapTo": "emailSent",
-            "order": 6,
-        },
-    )
 
 
 class JeevesSchema(BaseFormSchema):
@@ -201,20 +150,6 @@ class JeevesSchema(BaseFormSchema):
             "order": 4,
         },
     )
-    emailSent: bool = Field(
-        default=False,
-        json_schema_extra={
-            "name": "emailSent",
-            "label": "Email Sent",
-            "type": "checkbox-group",
-            "className": "form-control",
-            "toggle": False,
-            "inline": False,
-            "other": False,
-            "mapTo": "emailSent",
-            "order": 6,
-        },
-    )
     companyNameProvidersOrPayersOnly: str = Field(
         json_schema_extra={
             "name": "companyNameProvidersOrPayersOnly",
@@ -223,7 +158,7 @@ class JeevesSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. AETNA",
             "mapTo": "companyNameProvidersOrPayersOnly",
-            "order": 7,
+            "order": 6,
         },
     )
     whichEhrDoesYourCompanyUse: str = Field(
@@ -234,21 +169,7 @@ class JeevesSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. Epic",
             "mapTo": "whichEhrDoesYourCompanyUse",
-            "order": 8,
-        },
-    )
-    is_deployment: bool = Field(
-        default=False,
-        json_schema_extra={
-            "name": "isDeployment",
-            "label": "Is Deployment",
-            "type": "checkbox-group",
-            "className": "form-control",
-            "toggle": False,
-            "inline": False,
-            "other": False,
-            "mapTo": "is_deployment",
-            "order": 9,
+            "order": 7,
         },
     )
 
@@ -281,20 +202,6 @@ class HDPSchema(BaseFormSchema):
             "order": 4,
         },
     )
-    emailSent: bool = Field(
-        default=False,
-        json_schema_extra={
-            "name": "emailSent",
-            "label": "Email Sent",
-            "type": "checkbox-group",
-            "className": "form-control",
-            "toggle": False,
-            "inline": False,
-            "other": False,
-            "mapTo": "emailSent",
-            "order": 6,
-        },
-    )
 
 
 class ZsegmentSchema(BaseFormSchema):
@@ -310,21 +217,7 @@ class ZsegmentSchema(BaseFormSchema):
             "order": 4,
         },
     )
-    emailSent: bool = Field(
-        default=False,
-        json_schema_extra={
-            "name": "emailSent",
-            "label": "Email Sent",
-            "type": "checkbox-group",
-            "className": "form-control",
-            "toggle": False,
-            "inline": False,
-            "other": False,
-            "mapTo": "emailSent",
-            "order": 6,
-        },
-    )
-    PlanName: str = Field(
+    planName: str = Field(
         default="Free",
         json_schema_extra={
             "name": "planName",
@@ -333,7 +226,7 @@ class ZsegmentSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. Pro",
             "mapTo": "PlanName",
-            "order": 7,
+            "order": 6,
         },
     )
 
@@ -359,23 +252,31 @@ class PenknifeSchema(BaseFormSchema):
             "order": 6,
         },
     )
-    tenantType: TenantType = Field(
-        default=TenantType.staffing,
+    tenantType: str = Field(
+        default=TenantType.staffing.value,
         json_schema_extra={
             "name": "tenantType",
             "label": "Tenant Type",
             "subtype": "select",
+            "options": [
+                {"value": TenantType.staffing.value, "label": "Staffing"},
+                {"value": TenantType.internalhiring.value, "label": "Internal Hiring"},
+            ],
             "className": "form-control",
             "mapTo": "tenantType",
             "order": 7,
         },
     )
-    emailProvider: EmailProvider = Field(
-        default=EmailProvider.google,
+    emailProvider: str = Field(
+        default=EmailProvider.google.value,
         json_schema_extra={
             "name": "emailProvider",
             "label": "Email Provider",
             "subtype": "select",
+            "options": [
+                {"value": EmailProvider.google.value, "label": "Google"},
+                {"value": EmailProvider.microsoft.value, "label": "Microsoft"},
+            ],
             "className": "form-control",
             "mapTo": "emailProvider",
             "order": 8,
@@ -403,17 +304,3 @@ PRODUCT_SCHEMA_MAP = {
     ProductEnum.zsegment: ZsegmentSchema,
     ProductEnum.penknife: PenknifeSchema,
 }
-
-
-class ProductFormSchema(BaseModel):
-    product: ProductEnum
-    form_data: ProductSchemaDataType
-
-    def __init__(self: "ProductFormSchema", **data: Any) -> None:
-        super().__init__(**data)
-        if not data.get("product"):
-            raise ValidationError(["product is required"], ProductFormSchema)
-        product = ProductEnum(data.get("product"))
-        if product not in PRODUCT_SCHEMA_MAP:
-            raise ValidationError(["invalid product"], ProductFormSchema)
-        self.form_data = PRODUCT_SCHEMA_MAP[product](**data.get("form_data"))

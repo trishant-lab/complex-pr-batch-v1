@@ -4,7 +4,6 @@ from asyncpg import PostgresError
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
 from fastapi.responses import ORJSONResponse
-from fastapi_limiter import FastAPILimiter
 from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse
@@ -34,7 +33,6 @@ from .routes.self_signup.onboard import router as onboard_router
 from .routes.self_signup.plans import router as plans_router
 from .routes.self_signup.signup import router as signup_router
 from .routes.self_signup.subscriptions import router as subscriptions_router
-from .routes.self_signup.tenant_link import router as tenant_link_router
 from .routes.self_signup.user_otp import router as user_otp_router
 from .routes.self_signup.user_session import router as user_session_router
 from .routes.tenant import tenant_router
@@ -71,16 +69,9 @@ async def lifespan(app: FastAPI) -> None:
     startup and shutdown events
     """
     # All startup events go here
-    from app.core.connections import get_redis_conn
-    from app.middleware.rate_limiter import get_rate_limiting_identifier, http_callback
     from app.models.product import validate_self_signup_products
     from app.route_utils.plans_util import prefetch_plans
 
-    await FastAPILimiter.init(
-        get_redis_conn(),
-        identifier=get_rate_limiting_identifier,
-        http_callback=http_callback,
-    )
     validate_self_signup_products()
     await prefetch_plans()
     yield
@@ -156,7 +147,6 @@ fastapi_app.include_router(user_otp_router, prefix=f"{API_PREFIX}/otp", tags=["O
 fastapi_app.include_router(user_session_router, prefix=f"{API_PREFIX}/session", tags=["User Session"])
 fastapi_app.include_router(signup_router, prefix=f"{API_PREFIX}/signup", tags=["Signup"])
 fastapi_app.include_router(subscriptions_router, prefix=f"{API_PREFIX}/subscriptions", tags=["Subscriptions"])
-fastapi_app.include_router(tenant_link_router, prefix=f"{API_PREFIX}/portalLink", tags=["Portal"])
 fastapi_app.include_router(onboard_router, prefix=f"{API_PREFIX}/onboard", tags=["Onboard"])
 fastapi_app.include_router(product_router, prefix=f"{API_PREFIX}/product", tags=["Product"])
 fastapi_app.include_router(tenant_router, prefix=f"{API_PREFIX}/tenant", tags=["Tenant"])

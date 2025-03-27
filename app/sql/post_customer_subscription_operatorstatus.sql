@@ -6,14 +6,14 @@ WITH customer_insert AS (
         {{customer['email']}}, 
         {{customer['orgname']}}, 
         {{customer['data']}}, 
-        {{customer['product']}},
-        (SELECT schema FROM product WHERE name = {{customer['product']}})
+        LOWER({{customer['product']}}),
+        (SELECT schema FROM product WHERE name = LOWER({{customer['product']}}))
     )
     RETURNING id
 ),
 subscription_insert AS (
     INSERT INTO subscription (customerid, name, plancode, product)
-    VALUES ( (select id from customer_insert) , {{subscription['name']}}, {{subscription['plancode']}}, {{customer['product']}})
+    VALUES ( (select id from customer_insert) , {{subscription['name']}}, {{subscription['plancode']}}, LOWER({{customer['product']}}))
     RETURNING id
 )
 INSERT INTO operatorstatus (customerid, status, errors)

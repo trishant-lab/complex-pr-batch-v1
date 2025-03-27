@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Path
-from fastapi_limiter.depends import RateLimiter
 from pydantic.networks import EmailStr
 
 from app.cli.temporal.models.onboard import CustomerWorkflowInput
@@ -11,6 +10,7 @@ from app.core.cli_settings import WorkerQueues
 from app.core.connections import get_lago_client
 from app.core.db import DBManager, database
 from app.exceptions import errors
+from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.billing_models import OnboardingResponseModel
 from app.models.enums import OnboardingStatus
 from app.models.lago.customer import CustomerResponse
@@ -28,7 +28,7 @@ router = APIRouter()
     operation_id="createSubscription",
     response_model=OnboardingResponseModel,
     summary="verify payment method id with client secret",
-    dependencies=[Depends(RateLimiter(seconds=5))],
+    dependencies=[Depends(ResilientRateLimiter(seconds=5))],
 )
 async def create_subscription(
     email: EmailStr,
@@ -43,7 +43,6 @@ async def create_subscription(
     @return:
     """
     email = get_treated_email(email)
-
     provisioned, customer = await get_first_subscription_status(email, db, product)
     if provisioned:
         return provisioned

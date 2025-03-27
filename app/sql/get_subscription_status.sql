@@ -10,5 +10,5 @@ ON
 WHERE
     c.email = {{ email }} AND
     s.name = 'Active Subscription' AND
-    c.product = {{ product }}
+    c.product = LOWER({{ product }})
 ;

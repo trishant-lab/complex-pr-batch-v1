@@ -9,6 +9,7 @@ from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWor
 from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
 from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
 from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
+from app.cli.temporal.workflows.check_kube_config_certificate import KubeConfigCertExpiryWorkflow
 from app.cli.temporal.workflows.onboard import OnboardWorkflow
 from app.cli.temporal.workflows.payments.verify import OnboardPaymentVerifyWorkflow
 from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEventWorkflow
@@ -31,5 +32,27 @@ WORKFLOW_MAPPER: dict[str, type[Workflow | ScheduleWorkflow]] = {
         OnboardWorkflow,
         OnboardPaymentVerifyWorkflow,
         InvoiceWebhookEventWorkflow,
+        KubeConfigCertExpiryWorkflow,
     ]
 }
+
+
+async def schedule_workflows() -> None:
+    """
+    Schedule workflows
+    """
+    from app.cli.temporal.schedule_workflow_utils import remove_redundant_schedules
+    from app.cli.temporal.starter import schedule_workflow
+    from app.core.cli_settings import WorkerQueues
+
+    await schedule_workflow(workflow=KubeConfigCertExpiryWorkflow, queue=WorkerQueues.kube_config_cert_expiry)
+    await remove_redundant_schedules()
+
+
+def main() -> None:
+    """
+    Main function
+    """
+    import asyncio
+
+    asyncio.get_event_loop().run_until_complete(schedule_workflows())

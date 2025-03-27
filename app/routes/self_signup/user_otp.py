@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Path
-from fastapi_limiter.depends import RateLimiter
 from pydantic import EmailStr
 
+from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.product import ProductEnum
+from app.route_utils.product import validate_email_domain
 from app.route_utils.recaptcha import validate_recaptcha
 from app.route_utils.session_util import get_treated_email
 from app.route_utils.user_otp import UserOTP
@@ -15,8 +16,8 @@ router = APIRouter()
     operation_id="getOTP",
     response_model=None,
     dependencies=[
-        Depends(RateLimiter(seconds=30)),
-        Depends(RateLimiter(times=3, seconds=300)),
+        Depends(ResilientRateLimiter(seconds=30)),
+        Depends(ResilientRateLimiter(times=3, seconds=300)),
     ],
 )
 async def get_otp(
@@ -32,4 +33,5 @@ async def get_otp(
     @return:
     """
     email = get_treated_email(email)
+    validate_email_domain(product=product, email=email)
     await UserOTP.create_and_send_otp(email, plan_name, product)

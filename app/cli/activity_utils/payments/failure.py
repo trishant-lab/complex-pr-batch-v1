@@ -30,8 +30,8 @@ async def send_internal_renewal_payment_failure_mail(
     internal_content = internal_renewal_payment_failure_mail(customer, tenant_name, product)
     subject = f"[{product.value}] Action Required: Renewal Payment failure for {tenant_name}"
     await send_mail(
-        to_email=app_config.sendgrid_support_mail,
-        email_from=app_config.sendgrid_email_from,
+        to_email=app_config.sendgrid.support_mail,
+        email_from=app_config.sendgrid.email_from,
         subject=subject,
         content=internal_content,
         from_name=product.value,
@@ -77,10 +77,10 @@ async def payment_failure(customer_id: uuid.UUID, product: ProductEnum) -> None:
 
         await send_mail(
             to_email=_customer.email,
-            bcc_email=app_config.sendgrid_support_mail,
+            bcc_email=app_config.sendgrid.support_mail,
             subject=subject,
             content=content,
-            email_from=app_config.sendgrid_email_from,
+            email_from=app_config.sendgrid.email_from,
             from_name=product.value,
         )
 
@@ -105,8 +105,8 @@ async def send_retry_mail(customer: CustomerResponse, onboard_info: OnboardInfo)
     content = payment_failure_mail(customer.name, retry_link, plan.name, product)
     await send_mail(
         to_email=customer.email,
-        email_from=app_config.sendgrid_email_from,
-        bcc_email=app_config.sendgrid_support_mail,
+        email_from=app_config.sendgrid.email_from,
+        bcc_email=app_config.sendgrid.support_mail,
         subject=subject,
         content=content,
         from_name=product.value,

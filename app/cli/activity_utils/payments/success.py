@@ -173,8 +173,8 @@ async def payment_success_service(product: ProductEnum, invoice: InvoiceResponse
 
     await send_mail(
         to_email=invoice_data.customer.email,
-        email_from=app_config.sendgrid_email_from,
-        bcc_email=app_config.sendgrid_support_mail,
+        email_from=app_config.sendgrid.email_from,
+        bcc_email=app_config.sendgrid.support_mail,
         from_name=product.value,
         subject=subject,
         content=content,

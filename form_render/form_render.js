@@ -3516,7 +3516,6 @@ jQuery(($) => {
 			for (const file of files) {
 				const raw = fs.readFileSync(`${dir}/${file}`);
 				const formData = JSON.parse(raw);
-
 				let finalHtml = '';
 				let formRenderOpts = {};
 

@@ -20,3 +20,4 @@ class HDPSettings(BaseModel):
     kestra_username: str = "kestra.user@314ecorp.com"
 
     reporting_site_id: str = "1"
+    email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]

@@ -21,3 +21,4 @@ class PenknifeSettings(BaseModel):
     novu_admin_password: str = ""
 
     keycloak_db_password: str = ""
+    email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]

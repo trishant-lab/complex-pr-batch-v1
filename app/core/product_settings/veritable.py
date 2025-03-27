@@ -25,3 +25,4 @@ class VeritableSettings(SelfSignupSettings):
     novu_url: str = "https://alerting.314ecorp.tech/"
     novu_admin_user: str = "support@veritable.app"
     novu_admin_password: str = ""
+    email_domains_exclusions: list[str] | None = None

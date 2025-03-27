@@ -13,7 +13,7 @@ JOIN
 JOIN
     features f ON pf.featurecode = f.featurecode
 WHERE
-    pf.isincluded IS true AND p.product = {{ product }}
+    pf.isincluded IS true AND p.product = LOWER({{ product }})
 GROUP BY
     p.plancode, p.status, p.marketingtype, p.sortorder, p.description, p.details
 ;

@@ -22,24 +22,25 @@ INVALID_PHONE_NUMBER: ServerErrorModel = ServerErrorModel.initialize("R1005")
 
 # plans
 PLAN_RESOURCE_NOT_FOUND: ServerErrorModel = ServerErrorModel.initialize("R1006")
-PLAN_INACTIVE_ERROR: ServerErrorModel = ServerErrorModel.initialize("R1018")
+PLAN_INACTIVE_ERROR: ServerErrorModel = ServerErrorModel.initialize("R1012")
 
 # subscription
-PAYMENT_METHOD_NOT_ADDED: ServerErrorModel = ServerErrorModel.initialize("R1008")
+PAYMENT_METHOD_NOT_ADDED: ServerErrorModel = ServerErrorModel.initialize("R1007")
 
 # verification
-INVALID_OPERATION: ServerErrorModel = ServerErrorModel.initialize(code="R1012")
-INVALID_EMAIL: ServerErrorModel = ServerErrorModel.initialize(code="R1020")
-INVALID_OTP: ServerErrorModel = ServerErrorModel.initialize(code="R1021")
-OTP_RETRY: ServerErrorModel = ServerErrorModel.initialize(code="R1013")
+INVALID_OPERATION: ServerErrorModel = ServerErrorModel.initialize(code="R1008")
+INVALID_EMAIL: ServerErrorModel = ServerErrorModel.initialize(code="R1014")
+INVALID_OTP: ServerErrorModel = ServerErrorModel.initialize(code="R1015")
+OTP_RETRY: ServerErrorModel = ServerErrorModel.initialize(code="R1009")
 ALREADY_ALLOCATED_TENANT_NAME: ServerErrorModel = ServerErrorModel.initialize(
-    code="R1014",
+    code="R1010",
 )
-EXPLICIT_WORDS_NOT_ALLOWED: ServerErrorModel = ServerErrorModel.initialize(code="R1025")
-RECAPTCHA_FAILED: ServerErrorModel = ServerErrorModel.initialize(code="R1017")
+EXPLICIT_WORDS_NOT_ALLOWED: ServerErrorModel = ServerErrorModel.initialize(code="R1017")
+RECAPTCHA_FAILED: ServerErrorModel = ServerErrorModel.initialize(code="R1011")
 
 # provisioning
-INVALID_SCHEMA: ServerErrorModel = ServerErrorModel.initialize(code="R1019")
+INVALID_SCHEMA: ServerErrorModel = ServerErrorModel.initialize(code="R1013")
+REQUIRED_FIELD_MISSING: ServerErrorModel = ServerErrorModel.initialize(code="R1018")
 
 # product
 PRODUCT_NOT_FOUND: ServerErrorModel = ServerErrorModel.initialize(code="R1003")
@@ -48,7 +49,7 @@ PRODUCT_NOT_FOUND: ServerErrorModel = ServerErrorModel.initialize(code="R1003")
 TENANT_NOT_FOUND: ServerErrorModel = ServerErrorModel.initialize(code="R1002")
 
 # coupon
-INVALID_COUPON_CODE: ServerErrorModel = ServerErrorModel.initialize(code="R1022")
+INVALID_COUPON_CODE: ServerErrorModel = ServerErrorModel.initialize(code="R1016")
 
 
 # tenant_link

@@ -473,7 +473,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             # setup lago
             lago_customer_id = uuid4()
             lago_subscription_id = uuid4()
-            lago_plan_code = pydash.get(zsegment, "PlanName", "Free")
+            lago_plan_code = pydash.get(zsegment, "planName", "Free")
             lago_api_key = zsegment_config.lago_api_key
             lago_api_url = zsegment_config.lago_api_url
 

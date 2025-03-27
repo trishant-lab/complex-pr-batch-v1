@@ -47,7 +47,7 @@ class UserOTP:
         content = otp_verification_mail(otp=otp, plan_name=plan_name, product=product)
         response = await send_mail(
             to_email=email,
-            email_from=app_config.sendgrid_email_from,
+            email_from=app_config.sendgrid.email_from,
             subject=f"Important: OTP Verification for {plan_name} Plan - {product.value}",
             from_name=product.value,
             content=content,

@@ -16,4 +16,4 @@ class ZSegmentSpec(BaseSpec):
     organization: str | None = None
     emailSent: bool = False
     kestraSpec: None | BaseResourceSpec = BaseResourceSpec()
-    PlanName: str = "Free"
+    planName: str = "Free"

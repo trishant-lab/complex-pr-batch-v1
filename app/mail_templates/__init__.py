@@ -4,6 +4,7 @@ mail templates here
 
 from .main import (
     internal_payment_failure_mail,
+    kube_config_expiry_mail,
     otp_verification_mail,
     payment_failure_mail,
     periodic_invoice_mail,
@@ -14,6 +15,7 @@ from .main import (
 
 __all__ = [
     "internal_payment_failure_mail",
+    "kube_config_expiry_mail",
     "otp_verification_mail",
     "payment_failure_mail",
     "periodic_invoice_mail",

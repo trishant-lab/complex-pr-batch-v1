@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from asyncpg import Record
 from jinja2 import Environment, FileSystemLoader
@@ -205,3 +206,12 @@ def tenant_link_mail(tenant_links: list[Record], product: ProductEnum) -> str:
             )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
+
+
+def kube_config_expiry_mail(expiry_date: datetime) -> str:
+    """
+    @param expiry_date:
+    @return:
+    """
+    template = env.get_template("kube_config_expiry_mail.html")
+    return template.render(expiry_date=expiry_date.isoformat())

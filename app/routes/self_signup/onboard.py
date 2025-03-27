@@ -45,7 +45,7 @@ async def get_provisioning_status(
     db: DBManager = await get_db_manager()
     customer_params = {
         "table": "customer c",
-        "where": f"c.email='{email}' AND c.product='{product.value}'",
+        "where": f"c.email='{email}' AND c.product='{product.value.lower()}'",
         "columns": ["c.id"],
     }
     customer_record = await db.fetch_one("get.sql", **customer_params)

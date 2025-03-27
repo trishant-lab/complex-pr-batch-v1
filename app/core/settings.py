@@ -209,6 +209,7 @@ class AppSettings(BaseSettings):
     s3: S3Settings = S3Settings()
     r2: S3Settings = S3Settings()
     redis: Redis = Redis()
+    recaptcha: Recaptcha = Recaptcha()
 
     matomo_db_password: str = ""
 
@@ -233,6 +234,8 @@ class AppSettings(BaseSettings):
     log_file_path: str = os.path.join(log_path, "launchpad_app.log")
 
     gsuite: GSuiteModel = GSuiteModel()
+
+    kube_config_path: str = ".kube/config"
 
     model_config = ConfigDict(extra="ignore")
 

@@ -75,3 +75,13 @@ class BaseFormSchema(BaseModel):
         if profanity.contains_profanity(tenant):
             raise ValueError("Explicit words are not allowed!")
         return tenant
+
+    @classmethod
+    def get_mapping_dict(cls) -> dict:
+        """
+        Get mapping dict
+        """
+        return {
+            "required": [field_name for field_name, field in cls.model_fields.items() if field.is_required()],
+            "optional": [field_name for field_name, field in cls.model_fields.items() if not field.is_required()],
+        }

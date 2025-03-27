@@ -31,3 +31,4 @@ class ZSegmentSettings(BaseModel):
     victoria_metrics_url: str = ""
 
     deb_url: str = ""
+    email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]

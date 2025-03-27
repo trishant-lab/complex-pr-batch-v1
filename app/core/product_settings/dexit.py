@@ -34,3 +34,4 @@ class DexitSettings(BaseModel):
     idp_config: dict = {}
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
+    email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]

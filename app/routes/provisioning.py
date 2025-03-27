@@ -24,9 +24,9 @@ from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
 from app.exceptions import errors
-from app.models.form_schema.product_schema import ProductFormSchema
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
+from app.route_utils.product import validate_email_domain, validate_provisioning_details
 from app.routes.product import get_product
 from app.routes.tenant import TenantCreateRequestModel, create_tenant, get_existing_tenant_names
 from app.slack_utils import send_slack_msg
@@ -98,66 +98,46 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     send_slack_msg(product=product, text=text, blocks=blocks)
 
 
-@provisioning_router.get(
-    "/validateEmail",
-    operation_id="validateEmail",
-)
-def validate_email(email: str) -> None:
-    """
-    Validate email address
-    """
-    # List of public domains to exclude
-    public_domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
-
-    # Regular expression for basic email validation
-    email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-
-    if not re.match(email_regex, email):
-        raise errors.INVALID_EMAIL.exc()
-
-    # Extract the domain part of the email
-    domain = email.split("@")[1]
-
-    # Check if the domain is in the list of public domains
-    if domain in public_domains:
-        raise errors.INVALID_EMAIL.exc()
-
-
 @provisioning_router.post(
-    "",
+    "/{product}",
     operation_id="provisioning",
 )
 async def provisioning(
-    provisioning_details: ProductFormSchema,
+    provisioning_details: dict,
     request: Request,
+    product: ProductEnum = Path(...),
     skip_approval: bool = False,
     background_tasks: BackgroundTasks = BackgroundTasks(),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
     Trigger provisioning workflow for the given product
     """
-    product = provisioning_details.product
-    schema = provisioning_details.form_data
-    user_id: str = request.scope.get("user", {}).get("sub")
     product_details = await get_product(product=product)
     if not product_details:
         raise errors.PRODUCT_NOT_FOUND.exc()
+
     product_details = dict(product_details)
 
+    provisioning_model = await validate_provisioning_details(
+        product=product, data=provisioning_details, schema=product_details["product_schema"]
+    )
+
+    validate_email_domain(product=product, email=provisioning_model.email)
     existing_tenant_names = await get_existing_tenant_names(
-        product=product, email=None, tenant_names=[schema.tenant.lower()]
+        product=product, email=None, tenant_names=[provisioning_model.tenant.lower()]
     )
 
     if existing_tenant_names:
         raise errors.ALREADY_ALLOCATED_TENANT_NAME.exc()
 
-    schema_data = schema.model_dump()
+    user_id: str = request.scope.get("user", {}).get("sub")
     # Create tenant
     tenant_details = await create_tenant(
         TenantCreateRequestModel(
-            tenantname=schema.tenant.lower(),
-            email=schema.email,
-            orgname=schema.organization,
+            tenantname=provisioning_model.tenant.lower(),
+            email=provisioning_model.email,
+            orgname=provisioning_model.organization,
             product=product,
             product_schema=ijson_dumps(product_details["product_schema"]),
             status=(
@@ -166,26 +146,27 @@ async def provisioning(
                 else TenantStatusEnum.PendingApproval
             ),
             approvedBy=user_id if skip_approval else None,
-            schema_=ijson_dumps(schema_data),
+            schema_=ijson_dumps(provisioning_details),
         ),
     )
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
-    schema_data["customerId"] = tenant_details.get("id")
-    await product_workflow.onboard(schema_data)
+    onboard_schema = provisioning_model.model_dump()
+    onboard_schema["customerId"] = tenant_details.get("id")
+    await product_workflow.onboard(onboard_schema)
     logger.info(f"Triggered provisioning workflow for product: {product.value}")
 
     background_tasks.add_task(
         send_slack_notification,
         product=product,
-        schema=schema_data,
+        schema=onboard_schema,
         approval_required=True if product_details["approvalRequired"] and not skip_approval else False,
         tenant_id=tenant_details.get("id"),
     )
 
     if product_details["approvalRequired"] and skip_approval:
         logger.info(f"Skipping approval for product: {product.value}")
-        await product_workflow.approve(schema_data)
+        await product_workflow.approve(onboard_schema)
 
 
 @provisioning_router.post("/approveOrDecline/{product}", operation_id="approveOrDecline")
@@ -208,17 +189,19 @@ async def approve_tenant(
     operator_params = {
         "table": "operatorstatus",
         "payload": {"status": TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined},
-        "where": f"cutomerid={tenant_id!s}",
+        "where": f"customerid={tenant_id!s}",
     }
     await db.execute_many([("put.sql", tenant_params), ("put.sql", operator_params)])
 
-    schema = ijson_loads(response["schema"])
-
+    data = ijson_loads(response["data"])
+    product_schema = ijson_loads(response["schema"])
+    provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+    onboard_schema = provisioning_model.model_dump()
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     if approval:
-        if tenant_name and schema["tenant"] != tenant_name:
-            workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=schema)
+        if tenant_name and onboard_schema["tenant"] != tenant_name:
+            workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=onboard_schema)
 
             response = await workflow_handle.describe()
 
@@ -227,24 +210,25 @@ async def approve_tenant(
                 await workflow_handle.terminate()
 
             # start the workflow
-            schema["tenant"] = tenant_name
+            data["tenant"] = tenant_name
             await db.fetch_one(
                 "update_tenant_name.sql",
                 tenant_id=str(tenant_id),
                 tenant_name=tenant_name,
-                product_schema=ijson_dumps(schema),
+                product_schema=ijson_dumps(data),
             )
 
-            schema["emailSent"] = True
-            await product_workflow.onboard(schema)
-            await product_workflow.approve(schema)
+            onboard_schema["tenant"] = tenant_name
+            onboard_schema["emailSent"] = True
+            await product_workflow.onboard(onboard_schema)
+            await product_workflow.approve(onboard_schema)
 
         else:
-            await product_workflow.approve(schema)
+            await product_workflow.approve(onboard_schema)
             logger.info(f"Approved {response['product']} workflow for tenant: {response['tenantname']}")
 
     else:
-        await product_workflow.decline(schema)
+        await product_workflow.decline(onboard_schema)
         logger.info(f"Declined {response['product']} workflow for tenant: {response['tenantname']}")
 
 
@@ -270,16 +254,19 @@ async def retry_provisioning(
             status=TenantStatusEnum.Provisioning.value,
             product=product.value,
         )
-        schema = ijson_loads(response["schema"])
-        schema["emailSent"] = True
+        product_schema = ijson_loads(response["schema"])
+        data = ijson_loads(response["data"])
+        provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+        onboard_schema = provisioning_model.model_dump()
 
+        onboard_schema["emailSent"] = True
         product_details = dict(product_details)
 
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
-        await product_workflow.onboard(schema)
+        await product_workflow.onboard(onboard_schema)
 
         if product_details["approvalRequired"]:
-            await product_workflow.approve(schema)
+            await product_workflow.approve(onboard_schema)
 
         # await product_workflow.approve(schema)
         logger.info(f"Retried provisioning workflow for tenant: {response['tenantname']}")
@@ -432,7 +419,7 @@ async def get_workflow_steps(
     try:
         db: DBManager = await get_db_manager()
         response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))
-        schema = ijson_loads(response["schema"])
+        data = ijson_loads(response["data"])
     except Exception as e:
         logger.error(f"Error fetching tenant: {e}")
         raise errors.TENANT_NOT_FOUND.exc()
@@ -440,7 +427,7 @@ async def get_workflow_steps(
     try:
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
-        workflow_id: str = product_workflow.get_workflow_id(schema)
+        workflow_id: str = product_workflow.get_workflow_id(data)
         run_id: str = await get_latest_run_id_by_workflow_id(workflow_id)
 
         workflow_response: GetWorkflowExecutionHistoryResponse = await fetch_workflow_history(workflow_id, run_id)

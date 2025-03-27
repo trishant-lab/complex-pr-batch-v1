@@ -25,11 +25,26 @@ class UserSession:
         conn = get_redis_conn()
         # Generate session token
         session_token = generate_password(50)
-        # Hash email as key
         key = _get_hashed_key(product, email, uuid.NAMESPACE_OID)
         # Store in Redis with TTL
         await conn.set(key, session_token, ex=UserSession.SESSION_TTL)
         return session_token
+
+    @staticmethod
+    async def get_session_token(product: ProductEnum, email: EmailStr) -> str:
+        """
+        Checks for valid session token if not creates a new one
+        """
+        conn = get_redis_conn()
+        key = _get_hashed_key(product, email, uuid.NAMESPACE_OID)
+
+        # Check if token exists
+        existing_token = await conn.get(key)
+        if existing_token:
+            return existing_token.decode()
+
+        # If no token exists, create new one
+        return await UserSession.create_session(product, email)
 
     @staticmethod
     async def validate_session(product: ProductEnum, email: EmailStr, session_token: str) -> None:

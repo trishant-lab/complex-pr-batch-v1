@@ -1,4 +1,4 @@
 SELECT * from emailtemplates
-    WHERE product = {{product}}
+    WHERE product = LOWER({{product}})
     AND name = {{template_name}}
 ;

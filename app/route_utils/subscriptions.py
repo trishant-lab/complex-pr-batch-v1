@@ -1,16 +1,11 @@
-from datetime import UTC, datetime
 from uuid import UUID
 
 import stripe
-from asyncpg import Record
 from loguru import logger
 
 from app.core.connections import get_lago_client
-from app.core.db import DBManager, get_db_manager
 from app.exceptions import errors
-from app.models.billing_models import SubscriptionModel
 from app.models.lago.customer import CustomerResponse
-from app.models.lago.subscription import Subscription
 from app.models.product import ProductEnum
 
 
@@ -61,41 +56,3 @@ async def update_default_payment_method(
         invoice_settings={"default_payment_method": intent.payment_method},
         api_key=stripe_secret_key,
     )
-
-
-async def insert_subscription(
-    plan_code: str,
-    customer_id: str,
-    db: DBManager,
-) -> Record:
-    """
-    @param plan_code:
-    @param customer_id:
-    @param db:
-    @return:
-    """
-    params = {
-        "table": "subscription",
-        "payload": {"planCode": plan_code, "customerid": customer_id},
-        "returning": ["id"],
-    }
-    return await db.fetch_one("post.sql", **params)
-
-
-async def create_subscription_object(subscription: SubscriptionModel) -> Subscription:
-    """
-    @param subscription:
-    @return:
-    """
-    _subscription = Subscription(
-        **subscription.model_dump(exclude={"email", "payment_method_id", "subscription_at"}),
-    )
-    _subscription.subscription_at = datetime.now(UTC).replace(tzinfo=None).__str__()
-    if not _subscription.external_id:
-        db: DBManager = await get_db_manager()
-        _subscription.external_id = await insert_subscription(
-            subscription.plan_code,
-            subscription.external_customer_id,
-            db,
-        )
-    return _subscription

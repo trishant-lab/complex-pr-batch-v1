@@ -151,7 +151,7 @@ R1006 = {
 }
 
 
-R1008 = {
+R1007 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
     "displayMessage": "Payment details not found!",
     "followUpAction": [],
@@ -159,21 +159,21 @@ R1008 = {
 }
 
 
-R1012 = {
+R1008 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
     "displayMessage": "Unsupported Operation,",
     "followUpAction": [],
     "possibleResolutions": ["Please refresh the page"],
 }
 
-R1013 = {
+R1009 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
     "displayMessage": "Max number of attempts reached,",
     "followUpAction": [],
     "possibleResolutions": ["Please generate a new OTP and try again."],
 }
 
-R1014 = {
+R1010 = {
     "statusCode": status.HTTP_409_CONFLICT,
     "displayMessage": "Tenant already in use!",
     "followUpAction": [],
@@ -181,7 +181,7 @@ R1014 = {
 }
 
 
-R1017 = {
+R1011 = {
     "statusCode": status.HTTP_401_UNAUTHORIZED,
     "displayMessage": "Invalid re-captcha received.",
     "followUpAction": [],
@@ -190,35 +190,35 @@ R1017 = {
     ],
 }
 
-R1018 = {
+R1012 = {
     "statusCode": status.HTTP_403_FORBIDDEN,
     "displayMessage": "Plan does not exist or is no longer active!",
     "followUpAction": [],
     "possibleResolutions": ["Please select a valid plan!"],
 }
 
-R1019 = {
+R1013 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
-    "displayMessage": "Invalid schema!",
+    "displayMessage": "Invalid schema missing required fields mapping!",
     "followUpAction": [],
     "possibleResolutions": ["Please check the schema and try again."],
 }
 
-R1020 = {
+R1014 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
     "displayMessage": "Invalid email address!",
     "followUpAction": [],
     "possibleResolutions": ["Please provide a valid work email address."],
 }
 
-R1021 = {
+R1015 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
     "displayMessage": "Invalid OTP!",
     "followUpAction": [],
     "possibleResolutions": ["Re-enter correct OTP."],
 }
 
-R1022 = {
+R1016 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
     "displayMessage": "Invalid Coupon Code!",
     "followUpAction": [],
@@ -226,9 +226,17 @@ R1022 = {
 }
 
 
-R1025 = {
+R1017 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
     "displayMessage": "Explicit words not allowed!",
     "followUpAction": [],
     "possibleResolutions": ["Please retry with a different name"],
+}
+
+
+R1018 = {
+    "statusCode": status.HTTP_400_BAD_REQUEST,
+    "displayMessage": "Following required fields are missing: {fields}",
+    "followUpAction": [],
+    "possibleResolutions": ["Please fill all required fields"],
 }

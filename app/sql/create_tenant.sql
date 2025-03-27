@@ -5,7 +5,7 @@ WITH customer_insert AS (
         {{ tenantname }}, 
         {{ email }}, 
         {{ schema_ }}, 
-        {{product}},
+        LOWER({{product}}),
         {{product_schema}},
         {{source}},
         {{approvedBy}}

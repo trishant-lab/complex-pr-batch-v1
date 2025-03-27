@@ -21,7 +21,7 @@ async def send_customer_onboard_failure_mail(email: str, name: str, plan_name: s
     await send_mail(
         to_email=email,
         from_name=product.value,
-        email_from=app_config.sendgrid_email_from,
+        email_from=app_config.sendgrid.email_from,
         subject=subject,
         content=content,
     )

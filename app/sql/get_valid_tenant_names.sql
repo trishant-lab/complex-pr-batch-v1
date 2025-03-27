@@ -4,7 +4,7 @@ WHERE tenantname IN (
         LOWER({{ tenant }}) {% if not loop.last %},{% endif %}
     {% endfor %}
 ) 
-AND product = {{ product }}
+AND product = LOWER({{ product }})
 {% if email %}
     AND email != {{ email }}
 {% endif %}

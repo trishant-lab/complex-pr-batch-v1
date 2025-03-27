@@ -2,4 +2,4 @@ UPDATE product
 SET
     schema = {{product_schema}}
 WHERE
-    name = {{product_name}};
+    name = LOWER({{product_name}});

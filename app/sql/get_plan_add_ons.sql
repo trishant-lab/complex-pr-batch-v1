@@ -14,5 +14,5 @@ WHERE
     pf.isincluded = FALSE AND
     pf.cansubscribe = TRUE AND
     f.status = {{ status }} AND
-    f.product = {{ product }}
+    f.product = LOWER({{ product }})
 ;

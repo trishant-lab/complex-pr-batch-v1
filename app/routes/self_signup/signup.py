@@ -2,7 +2,7 @@ import uuid
 from collections import OrderedDict
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from lago_python_client.exceptions import LagoApiError
 from loguru import logger
 from pydantic import ValidationError
@@ -14,9 +14,9 @@ from app.core.cli_settings import WorkerQueues
 from app.core.connections import get_lago_client
 from app.core.db import DBManager, database
 from app.core.ijson import ijson_dumps, ijson_loads
+from app.core.oauth2 import get_oauth_scheme
 from app.exceptions import errors
 from app.models.billing_models import CustomerModel, CustomerResponseModel, OnboardingResponseModel
-from app.models.form_schema.product_schema import ProductFormSchema
 from app.models.input_param_patterns import TOKEN_PATTERN
 from app.models.lago.customer import Customer, CustomerResponse
 from app.models.product import ProductEnum
@@ -25,6 +25,7 @@ from app.route_utils.account_management import update_customer_model
 from app.route_utils.coupon import apply_coupon, get_coupon_by_code
 from app.route_utils.lead_slack_msg import leads_form_fill
 from app.route_utils.plans_util import verify_active_plan_codes, verify_enterprise_plans
+from app.route_utils.product import validate_email_domain, validate_provisioning_details
 from app.route_utils.session_util import get_first_subscription_status, get_treated_email
 from app.route_utils.subscriptions import create_setup_intent
 from app.route_utils.tenant_suggestions import get_existing_tenant_names
@@ -56,7 +57,7 @@ async def reconcile_subscription(
             "tenantname": customer.tenant.lower(),
             "orgname": customer.legal_name,
         },
-        "where": f"email='{customer.email!s}' AND product='{product.value}'",
+        "where": f"email='{customer.email!s}' AND product='{product.value.lower()}'",
     }
     queries = [
         ("put.sql", customer_params),
@@ -75,6 +76,7 @@ async def reconcile_subscription(
                 {
                     "name": "Active Subscription",
                     "plancode": subscription_plan,
+                    "product": product.value.lower(),
                     "customerid": str(customer_id),
                 }
             ),
@@ -204,13 +206,14 @@ async def create_new_customer(
 
 
 @router.post(
-    "",
+    "/{product}",
     operation_id="signUp",
     response_model=OnboardingResponseModel,
     summary="create customer",
 )
 async def create_customer(
-    signup_details: ProductFormSchema,
+    signup_details: dict,
+    product: ProductEnum = Path(...),
     plan_code: str = Query(...),
     token: str = Query(..., regex=TOKEN_PATTERN),
     db: DBManager = Depends(database),
@@ -222,13 +225,13 @@ async def create_customer(
     @param db:
     @return:
     """
-    customer = signup_details.form_data
-    product = signup_details.product
+    customer = await validate_provisioning_details(product=product, data=signup_details)
     customer.email = get_treated_email(customer.email)
+    validate_email_domain(product=product, email=customer.email)
     await UserSession.validate_session(product=product, email=customer.email, session_token=token)
     coupon: CouponResponse | None = None
-    if customer.coupon_code:
-        coupon = get_coupon_by_code(customer.coupon_code, product)
+    if customer.couponCode:
+        coupon = get_coupon_by_code(customer.couponCode, product)
     provisioned, customer_record = await get_first_subscription_status(customer.email, db, product)
     if provisioned:
         return provisioned
@@ -250,6 +253,7 @@ async def create_customer(
                 "legal_name": customer.organization,
                 "name": customer.firstName + " " + customer.lastName,
                 "product": product.value,
+                "address_line1": customer.address,
             }
         )
     except ValidationError as e:
@@ -259,7 +263,7 @@ async def create_customer(
     if customer_record:
         response, lago_customer = await update_existing_customer(customer_record, customer, plan_code, product, db)
     else:
-        response, lago_customer = await create_new_customer(customer, customer_data, plan_code, product, db)
+        response, lago_customer = await create_new_customer(customer, signup_details, plan_code, product, db)
 
     if coupon:
         apply_coupon(lago_customer.external_id, coupon, product)
@@ -275,14 +279,16 @@ async def create_customer(
 
 
 @router.post(
-    "/enterprise",
+    "/{product}/enterprise",
     operation_id="enterpriseSignUp",
     summary="create enterprise customer",
 )
 async def create_enterprise_customer(
-    signup_details: ProductFormSchema,
-    plan_code: str,
+    signup_details: dict,
+    product: ProductEnum = Path(...),
+    plan_code: str = Query(...),
     db: DBManager = Depends(database),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
     @param customer:
@@ -290,8 +296,8 @@ async def create_enterprise_customer(
     @param db:
     @return:
     """
-    product = signup_details.product
-    customer = signup_details.form_data
+    customer = await validate_provisioning_details(product=product, data=signup_details)
+    validate_email_domain(product=product, email=customer.email)
     tenant_names = await get_existing_tenant_names(
         product,
         customer.email,
@@ -309,6 +315,7 @@ async def create_enterprise_customer(
                 "legal_name": customer.organization,
                 "name": customer.firstName + " " + customer.lastName,
                 "product": product.value,
+                "address_line1": customer.address,
             }
         )
     except ValidationError as e:
@@ -321,7 +328,7 @@ async def create_enterprise_customer(
         "email": customer.email,
         "orgname": customer.legal_name,
         "product": product.value,
-        "data": ijson_dumps(customer_data),
+        "data": ijson_dumps(signup_details),
     }
     subscription_params = {
         "name": ACTIVE_SUBSCRIPTION_NAME,
