@@ -185,11 +185,11 @@ async def approve_tenant(
 
     db: DBManager = await get_db_manager()
     response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))  # NOSONAR
-    tenant_params = {"table": "customer", "payload": {"approvedBy": user_id}, "where": f"id={tenant_id!s}"}
+    tenant_params = {"table": "customer", "payload": {"approvedBy": user_id}, "where": f"id='{tenant_id!s}'"}
     operator_params = {
         "table": "provisioningstatus",
         "payload": {"status": TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined},
-        "where": f"customerid={tenant_id!s}",
+        "where": f"customerid='{tenant_id!s}'",
     }
     await db.execute_many([("put.sql", tenant_params), ("put.sql", operator_params)])
 
