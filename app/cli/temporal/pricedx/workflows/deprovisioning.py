@@ -42,10 +42,8 @@ from app.cli.temporal.activities.postgres_setup import (
 from app.cli.temporal.activities.redis import RedisDeleteNamespaceActivity, RedisDeleteNamespaceActivityModel
 from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivity,
-    DeleteTemporalNamespaceActivityModel,
 )
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.vespa_job import VespaDeleteActivity, VespaDeleteActivityModel
 from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperDeletionActivity,
     VMPodScrapperDeletionActivityModel,

@@ -10,7 +10,7 @@ allowed_origin = [
 ]
 
 [keycloak]
-realm = "pricedx_<<tenant>>"
+realm = "<<tenant>>"
 auth_url = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/keycloak_auth_url }}"
 client_id = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/keycloak_client_id }}"
 

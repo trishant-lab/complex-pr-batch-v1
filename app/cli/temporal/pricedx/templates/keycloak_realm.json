@@ -1340,7 +1340,7 @@
     "password": "<<smtp_password>>",
     "host": "smtp.sendgrid.net",
     "replyTo": "",
-    "from": "noreply@pricedx.com",
+    "from": "developer@314ecorp.com",
     "fromDisplayName": "Pricedx Support",
     "ssl": "false",
     "envelopeFrom": "",

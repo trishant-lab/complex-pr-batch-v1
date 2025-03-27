@@ -16,7 +16,6 @@ from app.cli.temporal.activities.cloudflare_setup import (
 )
 from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
-    DatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
@@ -60,7 +59,6 @@ from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
     OnePasswordGetActivity,
-    OnePasswordGetActivityModel,
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
 )
@@ -205,7 +203,8 @@ class PricedxOnboardingWorkflow(Workflow):
         last_name = pydash.get(pricedx, "lastName")
         email = pydash.get(pricedx, "email")
         tenant = pydash.get(pricedx, "tenant")
-        is_deployment = pydash.get(pricedx, "is_deployment")
+        is_deployment = pydash.get(pricedx, "isDeployment")
+        is_console = pydash.get(pricedx, "isConsole")
 
         try:
             if not pydash.get(pricedx, "emailSent") and not is_deployment:
@@ -244,17 +243,6 @@ class PricedxOnboardingWorkflow(Workflow):
             postgres_database_name = "pricedx"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
-                    server_item="application-config",
-                    secret_name="auth_secret",
-                    secret_value=pricedx_config.auth_secret,
-                ),
-            )
 
             await run_activity(
                 activity=PostgresUserCreationActivity,
@@ -334,7 +322,6 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-
             await run_activity(
                 activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(namespace=tenant),
@@ -362,7 +349,6 @@ class PricedxOnboardingWorkflow(Workflow):
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
             )
-
 
             # setup redis
             redis_tenant_password = generate_password(length=20)
@@ -450,7 +436,8 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            repo_name = "pricedx-ui"
+            repo_name = "pricedx-console-ui" if is_console else "pricedx-ui"
+            server_image_name = "pricedx-console-app" if is_console else "pricedx-app"
             image_tag = server_image_tag = "sprint"
             dest_dir = f"{bucket_name}/{image_tag}"
             if config.env == "production":
@@ -458,7 +445,7 @@ class PricedxOnboardingWorkflow(Workflow):
                 server_image_tag = "production"
                 dest_dir = f"{bucket_name}/"
 
-            docker_image = f"registry.314ecorp.tech/pricedx-app:{server_image_tag}"
+            docker_image = f"registry.314ecorp.tech/{server_image_name}:{server_image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
@@ -576,33 +563,36 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-
             # setup configmaps
             tenant_config = "config.toml"
             config_dir = "config"
 
-            # setup tenant configmap
-            for config_map in [
-                {
-                    "name": "pricedx-tenant-config",
-                    "key": tenant_config,
-                    "template_file_name": f"{config.env}-config.tmpl.toml",
-                },
-            ]:
-                await run_activity(
-                    activity=K8sConfigMapCreationActivity,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
-                        destination_file_name=config_map["key"],
-                        cloudflare_r2_folder_path="pricedx-config",
-                        template_payload={"tenant": tenant},
-                    ),
-                )
+            template_file_name = f"{config.env}_config.tmpl.toml"
+
+            if is_console:
+                template_file_name = f"{config.env}_console_config.tmpl.toml"
+
+            # setup tenant config map
+            config_map = {
+                "name": "pricedx-tenant-config",
+                "key": tenant_config,
+                "template_file_name": template_file_name,
+            }
+
+            await run_activity(
+                activity=K8sConfigMapCreationActivity,
+                arg=K8sConfigMapCreationActivityModel(
+                    namespace=tenant,
+                    name=config_map["name"],
+                    template_file_name=config_map["template_file_name"],
+                    destination_file_name=config_map["key"],
+                    cloudflare_r2_folder_path="pricedx-config",
+                    template_payload={"tenant": tenant},
+                ),
+            )
 
             # keycloak realm setup
-            realm_name = f"pricedx_{tenant}"
+            realm_name = tenant
 
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
@@ -645,9 +635,6 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-
-
-
             # keycloak tenant customer admin user setup
             await run_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
@@ -677,7 +664,6 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-
             # kubernetes service
             await run_activity(
                 activity=KubernetesServiceActivity,
@@ -690,7 +676,7 @@ class PricedxOnboardingWorkflow(Workflow):
 
             template_env = get_env(template_path=TemplatePath)
 
-            template = template_env.get_template("istio-rules.json")
+            template = template_env.get_template("istio_rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
             http_list = ijson_loads(output)
@@ -715,7 +701,6 @@ class PricedxOnboardingWorkflow(Workflow):
                     payload=http_list,
                 ),
             )
-
 
             # deployment pod creation for server
             await run_activity(
@@ -853,21 +838,21 @@ class PricedxOnboardingWorkflow(Workflow):
             # Send after provisioning mail
             if not is_deployment:
                 await run_activity(
-                        activity=SendAfterProvisioningMailActivity,
+                    activity=SendAfterProvisioningMailActivity,
                     arg=SendAfterProvisioningMailActivityModel(
                         realm_name=realm_name,
                         tenant=tenant,
                         user_details={
-                        "firstName": first_name,
-                        "lastName": last_name,
-                        "email": email,
-                    },
-                    domain_name=pricedx_config.domain_name,
-                    product=ProductName,
-                    from_name=pricedx_config.sender_name,
-                    email_from=pricedx_config.sender_email,
-                ),
-            )
+                            "firstName": first_name,
+                            "lastName": last_name,
+                            "email": email,
+                        },
+                        domain_name=pricedx_config.domain_name,
+                        product=ProductName,
+                        from_name=pricedx_config.sender_name,
+                        email_from=pricedx_config.sender_email,
+                    ),
+                )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")

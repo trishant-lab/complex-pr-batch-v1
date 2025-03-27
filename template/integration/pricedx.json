@@ -7,6 +7,7 @@
     "password": "{{op://launchpad/APPLICATION_CONFIG/INTEGRATION/postgres_password}}"
   },
   "domain_name": "pricedx.tech",
-  "sender_name": "pricedx",
-  "sender_email": "pricedx-engg@pricedx.com"
+  "sender_name": "Pricedx Support",
+  "sender_email": "developer@314ecorp.com",
+  "zone_id": "{{op://launchpad/PRICEDX/INTEGRATION/zone_id}}"
 }

@@ -321,8 +321,7 @@ class PricedxSchema(BaseFormSchema):
             "order": 7,
         },
     )
-   
-    is_deployment: bool = Field(
+    isDeployment: bool = Field(
         default=False,
         json_schema_extra={
             "name": "isDeployment",
@@ -332,8 +331,23 @@ class PricedxSchema(BaseFormSchema):
             "toggle": False,
             "inline": False,
             "other": False,
-            "mapTo": "is_deployment",
+            "mapTo": "isDeployment",
             "order": 9,
+        },
+    )
+
+    isConsole: bool = Field(
+        default=False,
+        json_schema_extra={
+            "name": "isConsole",
+            "label": "Is Pricedx Console Application",
+            "type": "checkbox-group",
+            "className": "form-control",
+            "toggle": False,
+            "inline": False,
+            "other": False,
+            "mapTo": "isConsole",
+            "order": 10,
         },
     )
 
@@ -347,6 +361,7 @@ ProductSchemaDataType = TypeVar(
     HDPSchema,
     ZsegmentSchema,
     PenknifeSchema,
+    PricedxSchema,
 )
 
 PRODUCT_SCHEMA_MAP = {
@@ -357,4 +372,5 @@ PRODUCT_SCHEMA_MAP = {
     ProductEnum.hdp: HDPSchema,
     ProductEnum.zsegment: ZsegmentSchema,
     ProductEnum.penknife: PenknifeSchema,
+    ProductEnum.pricedx: PricedxSchema,
 }

@@ -1,5 +1,0 @@
-{
-  "postgres.timezone": "UTC",
-  "fernet_key": "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/fernet_key }}",
-  "tenant_name": "<<tenant>>"
-}

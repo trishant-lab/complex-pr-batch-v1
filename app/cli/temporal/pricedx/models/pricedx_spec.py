@@ -16,7 +16,8 @@ class PricedxSpec(BaseSpec):
 
     companyName: str
     emailSent: bool = False
-    is_deployment: bool = False
+    isDeployment: bool = False
+    isConsole: bool = False
     organization: str | None = None
     serverSpec: ResourceSpec | None = ResourceSpec()
     cliSpec: ResourceSpec | None = ResourceSpec()
