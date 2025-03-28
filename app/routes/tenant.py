@@ -8,7 +8,7 @@ from pydantic import EmailStr
 from temporalio.client import WorkflowHandle
 
 from app.core.db import DBManager, get_db_manager
-from app.core.ijson import ijson_dumps
+from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.oauth2 import get_oauth_scheme
 from app.exceptions import errors
 from app.models.input_param_patterns import TENANT_NAME_PATTERN
@@ -75,12 +75,12 @@ async def update_provisioning_workflow(product: ProductEnum, tenant_details: dic
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=tenant_details)
+    if workflow_handle:
+        response = await workflow_handle.describe()
 
-    response = await workflow_handle.describe()
-
-    if response.status.name == "RUNNING":
-        # terminate the workflow
-        await workflow_handle.terminate()
+        if response.status.name == "RUNNING":
+            # terminate the workflow
+            await workflow_handle.terminate()
 
     # start the workflow
     await product_workflow.onboard(tenant_details)
@@ -115,7 +115,8 @@ async def update_tenant(
     if not TenantStatusEnum.can_update_tenant(TenantStatusEnum(tenant["status"])):
         raise errors.TENANT_DETAILS_CANNOT_BE_UPDATED.exc()
 
-    await validate_provisioning_details(product=product, data=tenant_details, schema=tenant["schema"])
+    schema = ijson_loads(tenant["schema"]) if tenant["schema"] else None
+    await validate_provisioning_details(product=product, data=tenant_details, schema=schema)
 
     tenant_details_str = ijson_dumps(tenant_details)
     response = await db.fetch_one("update_tenant_details.sql", data=tenant_details_str, tenant_id=tenant_id)
