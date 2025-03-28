@@ -63,7 +63,7 @@ from app.cli.temporal.activities.one_password import (
 )
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
-    KeycloakUserMappingActivityModel,
+    # KeycloakUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
@@ -310,13 +310,13 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            await run_activity(
-                activity=KeycloakUserMappingActivity,
-                arg=KeycloakUserMappingActivityModel(
-                    username=postgres_username,
-                    database_name=postgres_database_name,
-                ),
-            )
+            # await run_activity(
+            #     activity=KeycloakUserMappingActivity,
+            #     arg=KeycloakUserMappingActivityModel(
+            #         username=postgres_username,
+            #         database_name=postgres_database_name,
+            #     ),
+            # )
 
             await run_activity(
                 activity=K8sNamespaceCreationActivity,
