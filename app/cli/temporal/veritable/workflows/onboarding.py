@@ -49,12 +49,6 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresUserCreationActivityModel,
 )
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
-from app.cli.temporal.activities.send_mail import (
-    SendAfterProvisioningMailActivity,
-    SendAfterProvisioningMailActivityModel,
-    SendBeforeProvisioningMailActivity,
-    SendBeforeProvisioningMailActivityModel,
-)
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
@@ -112,7 +106,6 @@ class VeritableOnboardingWorkflow(Workflow):
         """
         return [
             TenantCrdExistsActivity.defn,
-            SendBeforeProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
             K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
@@ -136,7 +129,6 @@ class VeritableOnboardingWorkflow(Workflow):
             KubernetesStatefulSetActivity.defn,
             TemporalNamespaceActivity.defn,
             VMPodScrapperActivity.defn,
-            SendAfterProvisioningMailActivity.defn,
             TenantCrdCreationActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
             CheckPodRunningStatusActivity.defn,
@@ -160,7 +152,6 @@ class VeritableOnboardingWorkflow(Workflow):
         veritable_config: VeritableSettings = config.veritable
         first_name = pydash.get(veritable, "firstName")
         last_name = pydash.get(veritable, "lastName")
-        email = pydash.get(veritable, "email")
 
         tenant = pydash.get(veritable, "tenant")
 
@@ -177,21 +168,6 @@ class VeritableOnboardingWorkflow(Workflow):
 
             if tenant_crd_exists:
                 raise RuntimeError(f"Tenant {tenant} already exists")  # noqa: TRY301
-
-            if not pydash.get(veritable, "emailSent"):
-                await run_activity(
-                    activity=SendBeforeProvisioningMailActivity,
-                    arg=SendBeforeProvisioningMailActivityModel(
-                        user_details={
-                            "firstName": first_name,
-                            "lastName": last_name,
-                            "email": email,
-                        },
-                        product=ProductName,
-                        from_name=veritable_config.sender_name,
-                        email_from=veritable_config.sender_email,
-                    ),
-                )
 
             postgres_schema_name = f"{ProductName}_{tenant}"
             postgres_database_name = f"{ProductName}-{config.env}"
@@ -821,24 +797,6 @@ class VeritableOnboardingWorkflow(Workflow):
                     tenant_name=tenant,
                     status=TenantStatusEnum.Provisioned,
                     product=ProductEnum.veritable,
-                ),
-            )
-
-            # send mail
-            await run_activity(
-                activity=SendAfterProvisioningMailActivity,
-                arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=realm_name,
-                    tenant=tenant,
-                    user_details={
-                        "firstName": first_name,
-                        "lastName": last_name,
-                        "email": email,
-                    },
-                    domain_name=veritable_config.domain_name,
-                    product=ProductName,
-                    from_name=veritable_config.sender_name,
-                    email_from=veritable_config.sender_email,
                 ),
             )
 
