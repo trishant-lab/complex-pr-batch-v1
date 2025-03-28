@@ -1065,7 +1065,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="jeeves-worker-metrics",
-                    app="jeeves",
+                    app="jeeves-worker",
                     path="/metrics/",
                     interval="15s",
                 ),
