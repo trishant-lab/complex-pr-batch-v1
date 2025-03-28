@@ -13,8 +13,6 @@ class PricedxSettings(BaseModel):
 
     zone_id: str = ""
 
-    keycloak_smtp_password: str = ""
-
     sender_email: str = "developer@314ecorp.com"
     sender_name: str = "Pricedx Support"
 

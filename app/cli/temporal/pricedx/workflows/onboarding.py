@@ -512,7 +512,6 @@ class PricedxOnboardingWorkflow(Workflow):
                     template_name="keycloak_realm.json",
                     template_payload={
                         "company_name": pydash.get(pricedx, "companyName"),
-                        "smtp_password": pricedx_config.keycloak_smtp_password,
                     },
                 ),
             )

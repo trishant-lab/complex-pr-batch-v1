@@ -266,7 +266,6 @@
           "attributes": {}
         }
       ],
-      "formauth": [],
       "account": [
         {
           "name": "manage-account",
@@ -1337,7 +1336,7 @@
     "starttls": "true",
     "auth": "true",
     "port": "587",
-    "password": "<<smtp_password>>",
+    "password": "<<sendgrid_api_key>>",
     "host": "smtp.sendgrid.net",
     "replyTo": "",
     "from": "developer@314ecorp.com",
