@@ -143,6 +143,7 @@ class PricedxOnboardingWorkflow(Workflow):
         """
         return [
             SendBeforeProvisioningMailActivity.defn,
+            SendAfterProvisioningMailActivity.defn,
             UpdateTenantStatusActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
