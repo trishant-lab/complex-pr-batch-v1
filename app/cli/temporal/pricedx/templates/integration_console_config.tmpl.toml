@@ -25,9 +25,3 @@ schema_name = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/pg_schema_n
 [starrocks]
 catalog = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/starrocks_catalog }}"
 conn_string = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/starrocks_conn_string }}"
-
-[s3]
-bucket_name = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/s3_media_bucket_name }}"
-access_key = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/s3_access_key }}"
-secret_key = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/s3_secret_key }}"
-endpoint = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/s3_endpoint }}"
