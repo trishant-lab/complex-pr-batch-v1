@@ -105,6 +105,7 @@ from app.cli.temporal.activities.send_mail import (
 )
 from app.cli.temporal.activities.slack_notification_activity import (
     SlackNotificationActivity,
+    SlackNotificationActivityModel,
 )
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
@@ -1134,13 +1135,13 @@ class JeevesOnboardingWorkflow(Workflow):
                     product=ProductEnum.jeeves,
                 ),
             )
-            # await run_activity(
-            #     activity=SlackNotificationActivity,
-            #     arg=SlackNotificationActivityModel(
-            #         product=ProductName,
-            #         error_message=str(e),
-            #     ),
-            # )
+            await run_activity(
+                activity=SlackNotificationActivity,
+                arg=SlackNotificationActivityModel(
+                    product=ProductName,
+                    error_message=str(e),
+                ),
+            )
             raise e
 
     @workflow.signal
