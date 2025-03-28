@@ -164,20 +164,19 @@ def create_tenant_customer_admin_user(
 
     keycloak_client.create_user(ijson_loads(user_config), realm_name)
 
-    if client_name:
-        client_uuid = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+    client_uuid = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
 
-        if not roles:
-            roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=realm_name)
+    client_roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=realm_name)
 
-        user_id = keycloak_client.get_user_id(username=username, realm_name=realm_name)
-
-        keycloak_client.assign_client_role(
-            client_id=client_uuid,
-            user_id=user_id,
-            roles=roles,
-            realm_name=realm_name,
-        )
+    user_id = keycloak_client.get_user_id(username=username, realm_name=realm_name)
+    keycloak_client.assign_client_role(
+        client_id=client_uuid,
+        user_id=user_id,
+        roles=[{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
+        if roles
+        else client_roles,
+        realm_name=realm_name,
+    )
 
 
 def create_internal_users(
@@ -193,11 +192,9 @@ def create_internal_users(
     """
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
-    if client_name:
-        client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+    client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
 
-        if not roles:
-            roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
+    client_roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
 
     for user in users:
         user_config = template_render(
@@ -220,7 +217,13 @@ def create_internal_users(
             keycloak_client.assign_client_role(
                 client_id=client_id,
                 user_id=user_id,
-                roles=roles,
+                roles=[
+                    {"id": role.get("id"), "name": role.get("name")}
+                    for role in client_roles
+                    if role.get("name") in roles
+                ]
+                if roles
+                else client_roles,
                 realm_name=realm_name,
             )
 
