@@ -9,7 +9,6 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
 
 from app.core.ijson import ijson_loads
-from app.core.log import setup_logging
 from app.core.product_settings.common import PostgresSettings, Redis, SlackSettings
 from app.core.product_settings.dexit import DexitSettings
 from app.core.product_settings.hdp import HDPSettings
@@ -39,6 +38,7 @@ PRODUCT_FILE_NAMES: Final[list[str]] = [
     "practifly.json",
     "pricedx.json",
 ]
+
 
 class KeycloakSettings(BaseModel):
     """
@@ -315,7 +315,6 @@ def get_settings() -> AppSettings:
     for key, val in combined_config.items():
         default_settings_dict_partial(key, val)
 
-    setup_logging(default_settings.log_path, default_settings.log_file_path)
     return default_settings.model_validate(default_settings_dict)
 
 

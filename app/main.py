@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from asyncpg import PostgresError
@@ -64,7 +65,7 @@ origins: list = [
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> None:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """
     startup and shutdown events
     """
