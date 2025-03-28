@@ -53,3 +53,8 @@ class Provider(str, Enum):
 class BillingTime(str, Enum):
     ANNIVERSARY = "anniversary"
     CALENDAR = "calendar"
+
+
+class EmailTemplateName(str, Enum):
+    before_provisioning = "beforeprovisioning"
+    after_provisioning = "afterprovisioning"

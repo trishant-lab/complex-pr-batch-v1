@@ -113,6 +113,9 @@ async def provisioning(
     """
     Trigger provisioning workflow for the given product
     """
+    if product in ProductEnum.get_self_signup_products():
+        raise errors.SELF_SIGNUP_PRODUCT_PROVISIONING_NOT_ALLOWED.exc()
+
     product_details = await get_product(product=product)
     if not product_details:
         raise errors.PRODUCT_NOT_FOUND.exc()
@@ -183,6 +186,9 @@ async def approve_tenant(
 
     db: DBManager = await get_db_manager()
     response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))  # NOSONAR
+    if not response:
+        raise errors.TENANT_NOT_FOUND.exc()
+
     tenant_params = {"table": "customer", "payload": {'"approvedBy"': user_id}, "where": f"id='{tenant_id!s}'"}
     operator_params = {
         "table": "provisioningstatus",
@@ -248,7 +254,7 @@ async def retry_provisioning(
         response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))
         await db.fetch_one(
             "update_tenant.sql",
-            tenant_name=response["name"],
+            tenant_name=response["tenantname"],
             status=TenantStatusEnum.Provisioning.value,
             product=product.value,
         )

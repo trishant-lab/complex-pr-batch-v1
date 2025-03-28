@@ -40,7 +40,7 @@ async def deploy_workflow(tenant_name: str, product: ProductEnum) -> None:
 async def deploy(
     tenant_name: str,
     product: ProductEnum,
-    _param: dict = Depends(get_oauth_scheme()),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> dict:
     """
     Deploy a workflow for a tenant

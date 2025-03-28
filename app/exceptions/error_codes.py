@@ -247,3 +247,10 @@ R1019 = {
     "followUpAction": [],
     "possibleResolutions": ["Please contact support!"],
 }
+
+R1020 = {
+    "statusCode": status.HTTP_400_BAD_REQUEST,
+    "displayMessage": "Self signup products provisioning is not allowed through this endpoint!",
+    "followUpAction": [],
+    "possibleResolutions": ["Please use signup enterprise API endpoint!"],
+}
