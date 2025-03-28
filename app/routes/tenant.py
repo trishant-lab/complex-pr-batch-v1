@@ -19,7 +19,7 @@ from app.models.tenant import (
     TenantResponseModel,
     TenantStatusEnum,
 )
-from app.route_utils.product import validate_email_domain
+from app.route_utils.product import validate_email_domain, validate_provisioning_details
 from app.route_utils.tenant_suggestions import get_existing_tenant_names, get_valid_suggestions
 
 if TYPE_CHECKING:
@@ -115,8 +115,10 @@ async def update_tenant(
     if not TenantStatusEnum.can_update_tenant(TenantStatusEnum(tenant["status"])):
         raise errors.TENANT_DETAILS_CANNOT_BE_UPDATED.exc()
 
+    await validate_provisioning_details(product=product, data=tenant_details, schema=tenant["schema"])
+
     tenant_details_str = ijson_dumps(tenant_details)
-    response = await db.fetch_one("update_tenant_details.sql", schema_=tenant_details_str, tenant_id=tenant_id)
+    response = await db.fetch_one("update_tenant_details.sql", data=tenant_details_str, tenant_id=tenant_id)
 
     background_tasks.add_task(update_provisioning_workflow, product, tenant_details)
 
