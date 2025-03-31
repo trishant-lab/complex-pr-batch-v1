@@ -837,6 +837,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    group_path="Admin",
                 ),
             )
 
@@ -850,6 +851,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_name="keycloak_tenant_internal_user.json",
                     users=ijson_loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    group_path="Admin",
                 ),
             )
 
