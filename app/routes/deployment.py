@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from loguru import logger
 
 from app.core.db import DBManager, get_db_manager
@@ -36,10 +36,10 @@ async def deploy_workflow(tenant_name: str, product: ProductEnum) -> None:
         raise errors.DEPLOYMENT_ERROR.exc(e=e)
 
 
-@deployment_router.post("/deploy")
+@deployment_router.post("/{product}/deploy", operation_id="deployTenant", summary="Deploy tenant")
 async def deploy(
     tenant_name: str,
-    product: ProductEnum,
+    product: ProductEnum = Path(...),
     _: dict = Depends(get_oauth_scheme()),
 ) -> dict:
     """

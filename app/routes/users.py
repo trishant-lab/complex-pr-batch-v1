@@ -333,12 +333,12 @@ async def get_g_suite_users_list(_: dict = Depends(get_oauth_scheme())) -> list:
 
 
 @user_router.delete(
-    "",
+    "/{userId}",
     operation_id="deleteUser",
     summary="Deletes a user",
 )
 async def delete_user(
-    user_id: str,
+    user_id: str = Path(..., alias="userId"),
     _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """

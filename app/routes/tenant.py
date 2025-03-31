@@ -1,5 +1,5 @@
-import uuid
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from better_profanity import profanity
 from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query
@@ -49,7 +49,7 @@ async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
     response_model=list[TenantResponseModel] | None,
 )
 async def list_tenants(
-    product: ProductEnum = Path(...), tenant_id: uuid.UUID | None = None, _: dict = Depends(get_oauth_scheme())
+    product: ProductEnum = Path(...), tenant_id: UUID | None = None, _: dict = Depends(get_oauth_scheme())
 ) -> list[TenantResponseModel]:
     """
     @param product:
@@ -89,13 +89,13 @@ async def update_provisioning_workflow(product: ProductEnum, tenant_details: dic
 
 
 @tenant_router.put(
-    "/updateTenantDetails/{product}",
+    "/{product}/updateTenantDetails/{tenant_id}",
     operation_id="updateTenantDetails",
 )
 async def update_tenant(
-    tenant_id: str,
     tenant_details: dict,
     product: ProductEnum = Path(..., alias="product"),
+    tenant_id: UUID = Path(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     _: dict = Depends(get_oauth_scheme()),
 ) -> dict:
@@ -108,7 +108,7 @@ async def update_tenant(
     @return:
     """
     db: DBManager = await get_db_manager()
-    tenant = await db.fetch_one("get_tenant.sql", tenant_id=tenant_id)
+    tenant = await db.fetch_one("get_tenant.sql", tenant_id=f"'{tenant_id!s}'")
     if not tenant:
         raise errors.TENANT_NOT_FOUND.exc()
 
@@ -119,7 +119,7 @@ async def update_tenant(
     await validate_provisioning_details(product=product, data=tenant_details, schema=schema)
 
     tenant_details_str = ijson_dumps(tenant_details)
-    response = await db.fetch_one("update_tenant_details.sql", data=tenant_details_str, tenant_id=tenant_id)
+    response = await db.fetch_one("update_tenant_details.sql", data=tenant_details_str, tenant_id=f"'{tenant_id!s}'")
 
     background_tasks.add_task(update_provisioning_workflow, product, tenant_details)
 
