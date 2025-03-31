@@ -390,6 +390,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "realm",
                         "user_attribute",
                         "keycloak_role",
+                        "keycloak_group",
                         "user_role_mapping",
                         "matomo_log_visit",
                         "matomo_log_action",
@@ -758,27 +759,23 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             roles = [
-                "_access-manage-todos",
-                "_access-manage-alerts",
-                "_access-settings",
-                "_allow-delete-assets",
-                "_allow-add-edit-assets",
-                "_access-reports",
-                "_allow-view-assets",
-                "_JEEVESALL",
-                "_allow-conversion-tools",
-                "_access-screen-recorder",
                 "_allow-standalone-launch",
-                "_allow-publish-assets",
+                "_access-reports",
                 "_can-manage-activities",
-                "_allow-add-edit-courses",
-                "_allow-delete-courses",
-                "_allow-enroll-courses",
+                "_allow-view-assets",
                 "_allow-view-all-courses",
-                "_can-manage-users",
+                "_access-manage-todos",
                 "_access-users",
-                "_developer",
                 "_can-manage-groups",
+                "_allow-add-edit-assets",
+                "_allow-add-edit-courses",
+                "_allow-publish-assets",
+                "_allow-delete-assets",
+                "_allow-delete-courses",
+                "_can-manage-users",
+                "_access-settings",
+                "_developer",
+                "_JEEVESALL",
             ]
             # keycloak client roles setup
             await run_activity(
@@ -840,6 +837,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    group_path="Admin",
                 ),
             )
 
@@ -853,6 +851,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_name="keycloak_tenant_internal_user.json",
                     users=ijson_loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    group_path="Admin",
                 ),
             )
 
