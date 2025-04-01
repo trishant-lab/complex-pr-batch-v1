@@ -101,6 +101,14 @@ class TemporalSettings(BaseModel):
         return f"{self.host}:{self.port}"
 
 
+class DockerRegistrySettings(BaseModel):
+    """Docker Registry Settings"""
+
+    registry_url: str = "https://registry.314ecorp.tech"
+    registry_username: str = ""
+    registry_password: str = ""
+
+
 class S3Settings(BaseModel):
     """
     S3 Settings
@@ -396,6 +404,8 @@ class AppSettings(BaseSettings):
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
     cloudflare: CloudflareSettings = CloudflareSettings()
+    keycloak_prod: KeycloakSettings = KeycloakSettings()
+    docker_registry: DockerRegistrySettings = DockerRegistrySettings()
 
     veritable: VeritableSettings = VeritableSettings()
     jeeves: JeevesSettings = JeevesSettings()
