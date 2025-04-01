@@ -627,6 +627,8 @@ class JeevesOnboardingWorkflow(Workflow):
             credentials: CloudflareBucketCredentials = await workflow.execute_activity(
                 activity=CreateCloudflareBucketCredentialsActivity.defn,
                 arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=bucket_name, read_only=False),
+                retry_policy=CreateCloudflareBucketCredentialsActivity.get_retry_policy(),
+                start_to_close_timeout=CreateCloudflareBucketCredentialsActivity.get_timeout(),
             )
 
             # cdn base url added to onepassword
