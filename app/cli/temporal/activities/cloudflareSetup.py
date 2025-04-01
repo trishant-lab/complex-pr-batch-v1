@@ -18,6 +18,7 @@ from app.cli.cloudflareUtils import (
     delete_bucket,
     delete_dns_record,
     update_cors_for_bucket,
+    CloudflareBucketCredentials,
 )
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
@@ -739,7 +740,7 @@ class CreateCloudflareBucketCredentialsActivity(Activity):
 
     @staticmethod
     @activity.defn(name="CreateCloudflareBucketCredentialsActivity")
-    async def defn(activity_input: CreateCloudflareBucketCredentialsActivityModel) -> dict:
+    async def defn(activity_input: CreateCloudflareBucketCredentialsActivityModel) -> CloudflareBucketCredentials:
         """
         Create Cloudflare bucket credentials
         """
