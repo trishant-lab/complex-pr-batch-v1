@@ -2,8 +2,18 @@ from functools import lru_cache
 
 from keycloak import KeycloakAdmin
 
-from app.cli.temporal.core.log import log_error
+from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import KeycloakSettings, get_settings
+
+IGNORED_CLIENT_LIST: list = [
+    "account",
+    "account-console",
+    "admin-cli",
+    "broker",
+    "formauth",
+    "realm-management",
+    "security-admin-console",
+]
 
 
 class KeycloakAdminClient:
@@ -50,7 +60,7 @@ class KeycloakAdminClient:
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.create_realm(payload=realm_config, skip_exists=skip_exists)
 
-    def delete_realm(self: "KeycloakAdminClient", realm_name: str) -> None:
+    def delete_realm(self: "KeycloakAdminClient", realm_name: str, client_name: str) -> None:
         """
 
         :param realm_name:
@@ -62,7 +72,13 @@ class KeycloakAdminClient:
         # check if realm exists
         realms = [row["realm"] for row in self.get_all_realms()]
         if realm_name in realms:
-            self.kc_client.delete_realm(realm_name)
+            clients: set = set(self.get_all_clients(realm_name=realm_name))
+            if len(clients.difference(IGNORED_CLIENT_LIST)) == 1 and clients.difference(IGNORED_CLIENT_LIST) == {
+                client_name
+            }:
+                self.kc_client.delete_realm(realm_name=realm_name)
+                return
+            log_info(f"Skipping deletion of realm {realm_name}, multiple clients found")
 
     def create_user(self: "KeycloakAdminClient", user_config: dict, realm_name: str) -> str | dict:
         """
@@ -283,11 +299,22 @@ class KeycloakAdminClient:
         except Exception as e:
             log_error(f"Failed to send reset password link to user {user_id}: {e}")
 
+    def delete_idp(self: "KeycloakAdminClient", idp_alias: str, realm_name: str) -> None:
+        """
+        Delete identity provider
+        """
+        if idp_alias in [idp.get("alias") for idp in self.get_identity_providers(realm_name=realm_name)]:
+            self._refresh_token(self.kc_client, self.realm)
+            self.kc_client.connection.realm_name = realm_name
+            self.kc_client.delete_idp(idp_alias=idp_alias)
+            return
+        log_info(f"Identity provider {idp_alias} not found in realm {realm_name}")
+
 
 @lru_cache
-def get_keycloak_manager() -> "KeycloakAdminClient":
+def get_keycloak_manager(is_prod: bool = False) -> "KeycloakAdminClient":
     """
     Returns Keycloak client instance
     """
-    config = get_settings().keycloak
+    config = get_settings().keycloak_prod if is_prod else get_settings().keycloak
     return KeycloakAdminClient(config=config)
