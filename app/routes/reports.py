@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from loguru import logger
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -94,11 +94,11 @@ REPORT_NAMES: dict = {
 
 @reports_router.get("/{product}")
 async def get_report_data(
-    product_name: ProductEnum,
     tenant: str,
     report_name: str,
     start_date: date | None = None,
     end_date: date | None = None,
+    product: ProductEnum = Path(...),
     _: dict = Depends(get_oauth_scheme()),
 ) -> dict:
     """
@@ -107,7 +107,7 @@ async def get_report_data(
     config: AppSettings = get_settings()
     db: DBManager = await get_db_manager()
 
-    report_details: dict = REPORT_NAMES[product_name][report_name]
+    report_details: dict = REPORT_NAMES[product][report_name]
     site_id: str = config.jeeves.reporting_site_id
 
     parameters = {

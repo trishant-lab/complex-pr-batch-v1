@@ -170,7 +170,7 @@ async def provisioning(
         await product_workflow.approve(onboard_schema)
 
 
-@provisioning_router.post("/approveOrDecline/{product}", operation_id="approveOrDecline")
+@provisioning_router.post("/{product}/approveOrDecline", operation_id="approveOrDecline")
 async def approve_tenant(
     approval: bool,
     tenant_id: uuid.UUID,
@@ -236,7 +236,7 @@ async def approve_tenant(
         logger.info(f"Declined {response['product']} workflow for tenant: {response['tenantname']}")
 
 
-@provisioning_router.post("/retryProvisioning/{product}", operation_id="retryProvisioning")
+@provisioning_router.post("/{product}/retryProvisioning", operation_id="retryProvisioning")
 async def retry_provisioning(
     tenant_id: uuid.UUID,
     product: ProductEnum = Path(...),
@@ -409,7 +409,7 @@ async def get_latest_run_id_by_workflow_id(workflow_id: str) -> str | None:
     return None
 
 
-@provisioning_router.get("/workflowSteps/{product}", operation_id="workflowSteps")
+@provisioning_router.get("/{product}/workflowSteps", operation_id="workflowSteps")
 async def get_workflow_steps(
     tenant_id: uuid.UUID,
     product: ProductEnum = Path(...),

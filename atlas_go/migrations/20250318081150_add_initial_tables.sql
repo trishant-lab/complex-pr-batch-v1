@@ -1,3 +1,7 @@
+CREATE SCHEMA IF NOT EXISTS "{{ .schema }}";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" schema public;
+CREATE EXTENSION IF NOT EXISTS "pg_uuidv7" schema public;
+
 -- Create product table
 CREATE TABLE product (
     name text NOT NULL,
@@ -13,7 +17,7 @@ CREATE TABLE emailtemplates (
     id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
     product text NOT NULL,  -- product name reference
     name text NOT NULL,
-    template jsonb,
+    template text,
     subject text,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("product") REFERENCES product("name"),

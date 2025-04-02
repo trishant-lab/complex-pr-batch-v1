@@ -11,7 +11,7 @@ from app.core.db import DBManager, get_db_manager
 from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.oauth2 import get_oauth_scheme
 from app.exceptions import errors
-from app.models.input_param_patterns import TENANT_NAME_PATTERN
+from app.models.input_param_patterns import TENANT_NAME_PATTERN, TOKEN_PATTERN
 from app.models.product import ProductEnum
 from app.models.tenant import (
     SuggestTenantNamesResponseModel,
@@ -20,7 +20,9 @@ from app.models.tenant import (
     TenantStatusEnum,
 )
 from app.route_utils.product import validate_email_domain, validate_provisioning_details
+from app.route_utils.session_util import get_treated_email
 from app.route_utils.tenant_suggestions import get_existing_tenant_names, get_valid_suggestions
+from app.route_utils.user_session import UserSession
 
 if TYPE_CHECKING:
     from app.cli.base_workflow import ProductWorkflow
@@ -127,21 +129,23 @@ async def update_tenant(
 
 
 @tenant_router.get(
-    "/suggestTenantNames/{product}",
+    "/{product}/suggestTenantNames",
     operation_id="suggestTenantNames",
 )
 async def suggest_tenant_names(
     product: ProductEnum = Path(...),
     email: EmailStr = Query(...),
     organization: str = Query(...),
-    _: dict = Depends(get_oauth_scheme()),
+    token: str = Query(..., pattern=TOKEN_PATTERN),
 ) -> SuggestTenantNamesResponseModel:
     """
     @param organization:
     @param product:
     @return:
     """
+    email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
+    await UserSession.validate_session(product=product, email=email, session_token=token)
     tenant_names = await get_valid_suggestions(product=product, email=email, organization=organization)
     return SuggestTenantNamesResponseModel(
         tenant_names=tenant_names,
@@ -157,6 +161,31 @@ async def verify_tenant_name(
     tenant_name: str = Path(pattern=TENANT_NAME_PATTERN),
     product: ProductEnum = Path(...),
     email: EmailStr = Query(...),
+    token: str = Query(..., pattern=TOKEN_PATTERN),
+) -> None:
+    """
+    @param product:
+    @param tenant_name:
+    @return:
+    """
+    email = get_treated_email(email)
+    validate_email_domain(product=product, email=email)
+    await UserSession.validate_session(product=product, email=email, session_token=token)
+    tenant_names = await get_existing_tenant_names(product=product, email=email, tenant_names=[tenant_name.lower()])
+    if tenant_names:
+        raise errors.ALREADY_ALLOCATED_TENANT_NAME.exc()
+    if profanity.contains_profanity(tenant_name):
+        raise errors.EXPLICIT_WORDS_NOT_ALLOWED.exc()
+
+
+@tenant_router.get(
+    "/{product}/keycloak/validateTenantName/{tenant_name}",
+    operation_id="validateTenantNameByKeycloak",
+)
+async def verify_tenant_name_by_keycloak(
+    tenant_name: str = Path(pattern=TENANT_NAME_PATTERN),
+    product: ProductEnum = Path(...),
+    email: EmailStr = Query(...),
     _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
@@ -164,6 +193,7 @@ async def verify_tenant_name(
     @param tenant_name:
     @return:
     """
+    email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
     tenant_names = await get_existing_tenant_names(product=product, email=email, tenant_names=[tenant_name.lower()])
     if tenant_names:

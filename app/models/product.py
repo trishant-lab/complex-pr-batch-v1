@@ -11,6 +11,8 @@ from app.cli.temporal.penknife.models.penknife_spec import PenknifeSpec
 from app.cli.temporal.penknife.penknife import PenknifeWorkflow
 from app.cli.temporal.practifly.models.practifly_spec import PractiflySpec
 from app.cli.temporal.practifly.practifly import PractiflyWorkflow
+from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
+from app.cli.temporal.pricedx.pricedx import PricedxWorkflow
 from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
 from app.cli.temporal.veritable.veritable import VeritableWorkflow
 from app.cli.temporal.zsegment.models.zsegment_spec import ZSegmentSpec
@@ -18,8 +20,6 @@ from app.cli.temporal.zsegment.zsegment import ZSegmentWorkflow
 from app.core.product_settings.common import SelfSignupSettings
 from app.models.add_ons.veritable import VeritableAddOn, VeritableFeature
 from app.models.enums import AddOn, Feature
-from app.cli.temporal.pricedx.pricedx import PricedxWorkflow
-from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 
 
 class ProductEnum(str, Enum):
@@ -33,10 +33,10 @@ class ProductEnum(str, Enum):
     pricedx = "Pricedx"
 
     @classmethod
-    def _missing_(cls, value: Any) -> "ProductEnum":
+    def _missing_(cls, value: object) -> "ProductEnum":
         """Handle case-insensitive lookup of enum values"""
         if not isinstance(value, str):
-            raise TypeError(f"{value} is not a valid {cls.__name__}")
+            raise TypeError(f"{value} is not of type str")
 
         normalized = value.title()
         for member in cls:

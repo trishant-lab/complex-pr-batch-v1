@@ -4,7 +4,6 @@ from fastapi import APIRouter, Body, Depends, Path
 from pydantic import BaseModel, model_validator
 
 from app.core.db import DBManager, get_db_manager
-from app.core.ijson import ijson_dumps
 from app.core.oauth2 import get_oauth_scheme
 from app.models.enums import EmailTemplateName
 from app.models.product import ProductEnum
@@ -59,7 +58,7 @@ async def upsert_email_template(
     }
     existing_template = await db.fetch_one("get_email_template.sql", **params)
 
-    params = params | {"subject": details.subject, "template": ijson_dumps(details.template)}
+    params = params | {"subject": details.subject, "template": details.template}
     if existing_template:
         # Update existing template
         params["id"] = existing_template["id"]

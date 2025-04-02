@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/events/{product}",
+    "/{product}/events",
     operation_id="billingWebhookEvents",
     summary="create customer namespace and setup",
 )
