@@ -260,7 +260,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status=TenantStatusEnum.Declined,
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
                         product=ProductEnum.jeeves,
                     ),
@@ -1129,7 +1129,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed if not is_deployment else TenantStatusEnum.DeploymentFailed,
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.jeeves,
                 ),

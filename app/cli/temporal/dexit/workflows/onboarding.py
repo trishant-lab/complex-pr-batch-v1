@@ -204,7 +204,7 @@ class DexitOnboardingWorkflow(Workflow):
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
                         tenant_name=pydash.get(dexit, "tenant"),
-                        status=TenantStatusEnum.Declined,
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
                         product=ProductEnum.dexit,
                     ),
@@ -1005,7 +1005,7 @@ class DexitOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=pydash.get(dexit, "tenant"),
-                    status=TenantStatusEnum.Failed,
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.dexit,
                 ),

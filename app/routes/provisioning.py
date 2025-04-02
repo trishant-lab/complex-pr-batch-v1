@@ -144,7 +144,7 @@ async def provisioning(
             status=(
                 TenantStatusEnum.Provisioning
                 if product_details.approvalRequired and skip_approval
-                else TenantStatusEnum.PendingApproval
+                else TenantStatusEnum.ApprovalPending
             ),
             approvedBy=user_id if skip_approval else None,
             formData=ijson_dumps(provisioning_details),
@@ -192,7 +192,7 @@ async def approve_tenant(
     tenant_params = {"table": "customer", "payload": {'"approvedBy"': user_id}, "where": f"id='{tenant_id!s}'"}
     operator_params = {
         "table": "provisioningstatus",
-        "payload": {"status": TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined},
+        "payload": {"status": TenantStatusEnum.Provisioning if approval else TenantStatusEnum.ApprovalDeclined},
         "where": f"customerid='{tenant_id!s}'",
     }
     await db.execute_many([("put.sql", tenant_params), ("put.sql", operator_params)])

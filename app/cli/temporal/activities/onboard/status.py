@@ -82,7 +82,7 @@ class PollOnboardStatusActivity(Activity):
             activity_input.onboard_status = await get_operator_status(activity_input.customer_id)
 
             if activity_input.onboard_status == TenantStatusEnum.Provisioning and _time >= _timeout:
-                activity_input.onboard_status = TenantStatusEnum.Failed
+                activity_input.onboard_status = TenantStatusEnum.ProvisioningFailed
                 await update_operator_status(
                     activity_input.customer_id,
                     activity_input.onboard_status,

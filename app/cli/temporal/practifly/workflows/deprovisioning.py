@@ -270,7 +270,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed,
+                    status=TenantStatusEnum.DeprovisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.practifly,
                 ),

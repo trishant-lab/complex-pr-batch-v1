@@ -26,7 +26,7 @@ class TenantStatusEnum(IntEnum):
         """
         Returns True if the tenant details can be updated
         """
-        return status in [cls.Declined, cls.NotApplicable, cls.Stale, cls.PendingApproval]
+        return status in [cls.ApprovalDeclined, cls.NotApplicable, cls.Stale, cls.ApprovalPending]
 
 
 class TenantCreateRequestModel(BaseModel):

@@ -142,7 +142,7 @@ async def get_first_subscription_status(
             return OnboardingResponseModel(status=OnboardingStatus.PROVISIONED, domain=customer_domain), None
         if provisioning_status in {
             TenantStatusEnum.Provisioning,
-            TenantStatusEnum.Failed,
+            TenantStatusEnum.ProvisioningFailed,
         }:
             return OnboardingResponseModel(status=OnboardingStatus.IN_PROGRESS), None
     return None, customer_record

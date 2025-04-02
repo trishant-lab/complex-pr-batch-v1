@@ -90,7 +90,6 @@ if TYPE_CHECKING:
     from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 
 ProductName = "veritable"
-OnePasswordVaultName = "practifly"
 
 
 @workflow.defn(sandboxed=False)
@@ -271,12 +270,14 @@ class VeritableOnboardingWorkflow(Workflow):
             cloudflare_r2_data_bucket_access_key: str = credentials.access_key
             cloudflare_r2_data_bucket_secret_key: str = credentials.secret_key
 
+            one_password_vault = ProductEnum.get_onepassword_vault_name(ProductEnum.veritable)
+
             # s3 access key added to onepassword
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
+                    vault=one_password_vault,
                     server_item="application-config",
                     key="s3_access_key",
                     key_value=cloudflare_r2_data_bucket_access_key,
@@ -288,7 +289,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
-                    vault=OnePasswordVaultName,
+                    vault=one_password_vault,
                     server_item="application-config",
                     key="s3_secret_key",
                     key_value=cloudflare_r2_data_bucket_secret_key,
@@ -372,7 +373,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=tenant,
-                    vault=OnePasswordVaultName,
+                    vault=one_password_vault,
                     server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
                     key="fernet_key",
                     key_value=fernet_key,
@@ -827,7 +828,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed,
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.veritable,
                 ),

@@ -125,6 +125,34 @@ class ProductEnum(str, Enum):
                 raise ValueError(f"Product {enum_value} not found")
 
     @classmethod
+    def get_onepassword_vault_name(cls: "ProductEnum", enum_value: "ProductEnum") -> str:
+        """
+        Get the onepassword vault name for the given enum value
+        """
+        from ..core.settings import AppSettings, get_settings
+
+        settings: AppSettings = get_settings()
+        match settings.env:
+            case "integration":
+                match enum_value:
+                    case cls.veritable:
+                        return "veritable-devops-int"
+                    case cls.practifly:
+                        return "practifly-devops-int"
+                    case _:
+                        raise ValueError(f"Not Implemented for product: {enum_value.value}")
+            case "production":
+                match enum_value:
+                    case cls.veritable:
+                        return "veritable-devops-prod"
+                    case cls.practifly:
+                        return "practifly-devops-prod"
+                    case _:
+                        raise ValueError(f"Not Implemented for product: {enum_value.value}")
+            case _:
+                raise ValueError(f"Not Implemented for product: {enum_value.value}")
+
+    @classmethod
     def get_domain(cls: "ProductEnum", enum_value: "ProductEnum") -> str:
         """
         Get the domain for the given enum value

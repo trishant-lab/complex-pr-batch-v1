@@ -91,7 +91,6 @@ from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 ProductName = "practifly"
-OnePasswordVaultName = "practifly"
 
 
 @workflow.defn(sandboxed=False)
@@ -203,7 +202,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status=TenantStatusEnum.Declined,
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
                         product=ProductEnum.practifly,
                     ),
@@ -374,13 +373,14 @@ class PractiflyOnboardingWorkflow(Workflow):
                     payload=http_list,
                 ),
             )
+            one_password_vault = ProductEnum.get_onepassword_vault_name(ProductEnum.practifly)
             # insert fernet key into 1Password if it doesn't exist
             fernet_key = Fernet.generate_key().decode()
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=tenant,
-                    vault=OnePasswordVaultName,
+                    vault=one_password_vault,
                     server_item=f"practifly-tenant-config-{config.env.lower().strip()}",
                     key="fernet_key",
                     key_value=fernet_key,
@@ -824,7 +824,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed,
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.practifly,
                 ),

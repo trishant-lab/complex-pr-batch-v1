@@ -44,7 +44,7 @@ class OnboardWorkflow(Workflow):
         # fetch onboarding status
         onboard_info: OnboardInfo = await run_activity(activity=OnboardStatusActivity, arg=workflow_input)
 
-        if onboard_info.onboard_status not in {TenantStatusEnum.Provisioning, TenantStatusEnum.Failed}:
+        if onboard_info.onboard_status not in {TenantStatusEnum.Provisioning, TenantStatusEnum.ProvisioningFailed}:
             msg = f"Invalid onboarding status: {onboard_info.onboard_status}"
             raise InvalidOnboardStatusException(msg)
 
@@ -56,7 +56,7 @@ class OnboardWorkflow(Workflow):
         match onboard_info.onboard_status:
             case TenantStatusEnum.Provisioned:
                 await run_activity(activity=OnboardSuccessMailActivity, arg=onboard_info)
-            case TenantStatusEnum.Failed:
+            case TenantStatusEnum.ProvisioningFailed:
                 await run_activity(activity=OnboardFailureMailActivity, arg=onboard_info)
             case _:
                 msg = f"Unknown onboarding status after polling: {onboard_info.onboard_status}"
