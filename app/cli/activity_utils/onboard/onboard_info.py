@@ -3,10 +3,11 @@ from uuid import UUID
 from app.cli.temporal.models.onboard import OnboardInfo
 from app.core.db import DBManager, get_db_manager
 from app.core.ijson import ijson_loads
+from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 
 
-async def get_customer_onboard_info(customer_id: UUID) -> OnboardInfo:
+async def get_customer_onboard_info(customer_id: UUID, product: ProductEnum) -> OnboardInfo:
     """
     Return Customer info from DB
     """
@@ -62,6 +63,7 @@ async def get_customer_onboard_info(customer_id: UUID) -> OnboardInfo:
 
     return OnboardInfo(
         customer_id=customer_id,
+        product=product,
         tenant_name=_customer["tenantname"],
         subscription_id=_subscription["id"],
         subscription_plan=_subscription["plancode"],

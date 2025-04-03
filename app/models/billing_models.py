@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, ClassVar
 
 import phonenumbers
 from better_profanity import profanity
@@ -52,6 +52,8 @@ class CustomerResponseModel(Customer):
     plancode: str
     email: EmailStr
     tenant_name: str | None = Field(pattern=TENANT_NAME_PATTERN)
+
+    model_config: ClassVar[dict] = {"extra": "allow"}  # allow extra fields from database
 
 
 class OnboardingStage(BaseModel):

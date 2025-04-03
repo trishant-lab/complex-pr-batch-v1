@@ -54,7 +54,7 @@ async def get_provisioning_status(
     if customer_id != customer_record["id"]:
         raise errors.INVALID_REQUEST.exc()
 
-    onboard_info: OnboardInfo = await get_customer_onboard_info(customer_id)
+    onboard_info: OnboardInfo = await get_customer_onboard_info(customer_id, product)
     invoice = fetch_subscription_invoice(onboard_info)
     _response = OnboardingResponseModel(
         onboardingStage=OnboardingStage(
