@@ -66,7 +66,8 @@ from app.cli.temporal.activities.tenant_crd import (
     TenantCrdExistsActivityModel,
 )
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
+
+# from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
 from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.models.cloudflare import (
@@ -131,7 +132,7 @@ class VeritableOnboardingWorkflow(Workflow):
             TenantCrdCreationActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
             CheckPodRunningStatusActivity.defn,
-            VeritableNovuOnboardingActivity.defn,
+            # VeritableNovuOnboardingActivity.defn,
         ]
 
     @classmethod
@@ -238,19 +239,19 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            novu_api_key = await run_activity(
-                activity=VeritableNovuOnboardingActivity,
-                arg=veritable,
-            )
+            # novu_api_key = await run_activity(
+            #     activity=VeritableNovuOnboardingActivity,
+            #     arg=veritable,
+            # )
 
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="veritable-novu",
-                    string_data={"api-key": novu_api_key},
-                ),
-            )
+            # await run_activity(
+            #     activity=K8sSecretCreationActivity,
+            #     arg=K8sSecretCreationActivityModel(
+            #         namespace=tenant,
+            #         name="veritable-novu",
+            #         string_data={"api-key": novu_api_key},
+            #     ),
+            # )
 
             data_bucket = veritable.cloudflare_r2_data_bucket
 
@@ -549,7 +550,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
-                        {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        # {"name": "NOVU__API_KEY", "value": novu_api_key},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                     ],
                     argument=(
@@ -658,7 +659,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "IS_CLI", "value": "FALSE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "organization")},
                         {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        # {"name": "NOVU__API_KEY", "value": novu_api_key},
                         {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
                         {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
                     ],
@@ -752,7 +753,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "IS_CLI", "value": "TRUE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "organization")},
                         {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        # {"name": "NOVU__API_KEY", "value": novu_api_key},
                         {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
                         {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
                     ],
