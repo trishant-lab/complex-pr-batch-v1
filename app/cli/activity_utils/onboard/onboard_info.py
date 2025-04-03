@@ -1,4 +1,4 @@
-import uuid
+from uuid import UUID
 
 from app.cli.temporal.models.onboard import OnboardInfo
 from app.core.db import DBManager, get_db_manager
@@ -6,7 +6,7 @@ from app.core.ijson import ijson_loads
 from app.models.tenant import TenantStatusEnum
 
 
-async def get_customer_onboard_info(customer_id: uuid.UUID) -> OnboardInfo:
+async def get_customer_onboard_info(customer_id: UUID) -> OnboardInfo:
     """
     Return Customer info from DB
     """
@@ -63,7 +63,7 @@ async def get_customer_onboard_info(customer_id: uuid.UUID) -> OnboardInfo:
     return OnboardInfo(
         customer_id=customer_id,
         tenant_name=_customer["tenantname"],
-        subscription_id=uuid.UUID(_subscription["id"]),
+        subscription_id=_subscription["id"],
         subscription_plan=_subscription["plancode"],
         subscription_created=_subscription["created"],
         onboard_status=TenantStatusEnum(_operator_status["status"]),
@@ -72,7 +72,7 @@ async def get_customer_onboard_info(customer_id: uuid.UUID) -> OnboardInfo:
     )
 
 
-async def get_operator_status(customer_id: uuid.UUID) -> TenantStatusEnum:
+async def get_operator_status(customer_id: UUID) -> TenantStatusEnum:
     """
     Returns onboarding status
     """
@@ -87,7 +87,7 @@ async def get_operator_status(customer_id: uuid.UUID) -> TenantStatusEnum:
 
 
 async def update_operator_status(
-    customer_id: uuid.UUID,
+    customer_id: UUID,
     status: TenantStatusEnum,
     e: Exception,
     db: DBManager | None = None,

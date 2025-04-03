@@ -31,7 +31,7 @@ CREATE TABLE customer (
     tenantname text,
     orgname text,
     setupintent text,   -- payment method setup intent
-    email text,
+    email text NOT NULL, -- email of the requestor or customer
     source text,  -- source of signup request
     "approvedBy" uuid,
     schema jsonb,   -- product schema at tenant creation
