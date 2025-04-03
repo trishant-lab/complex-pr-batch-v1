@@ -31,6 +31,6 @@ async def trigger_provisioning_workflow(customer_id: UUID, product: ProductEnum)
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
     onboard_schema = provisioning_model.model_dump()
-    onboard_schema["customerId"] = customer_id
+    onboard_schema["customerId"] = str(customer_id)
     await product_workflow.onboard(onboard_schema)
     logger.info(f"Triggered provisioning workflow for product: {product.value}")
