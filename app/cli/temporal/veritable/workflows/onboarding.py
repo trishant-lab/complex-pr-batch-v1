@@ -118,6 +118,7 @@ class VeritableOnboardingWorkflow(Workflow):
             K8sConfigMapCreationActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
             CreateCloudflareBucketActivity.defn,
+            CreateCloudflareBucketCredentialsActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
