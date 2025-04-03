@@ -10,13 +10,13 @@ class VeritableSettings(SelfSignupSettings):
     """
 
     zone_id: str = ""
-    domain_name: str = "veritable.tech"
-    sender_name: str = ""
+    domain_name: str = "veritable.work"
+    sender_name: str = "Veritable"
     sender_email: str = ""
 
     domain_org: str = "app"
     signup_url: str = "https://test.veritable-app.pages.dev"
-    tenant_fqdn: str = "veritable.app"
+    tenant_fqdn: str = "veritable.work"
     sendgrid: SendGridSettings = SendGridSettings(
         email_from=VERITABLE_ENGG_MAIL,
         support_mail=VERITABLE_ENGG_MAIL,

@@ -43,13 +43,17 @@ async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> Te
     )
 
 
-async def get_bucket(config: AppSettings, bucket_name: str) -> list:
+async def get_bucket(config: AppSettings, bucket_name: str) -> bool:
     """
     Get a bucket
     """
-    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
-    response = await client.r2.buckets.list(account_id=config.cloudflare.account_id, name_contains=bucket_name)
-    return response.result.get("buckets", [])
+    try:
+        client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
+        await client.r2.buckets.get(account_id=config.cloudflare.account_id, bucket_name=bucket_name)
+        return True
+    except Exception as e:
+        logger.error(f"Error getting bucket {bucket_name}: {e}")
+        return False
 
 
 async def create_bucket(config: AppSettings, bucket_name: str, location_hint: str | None = None) -> dict | None:
@@ -57,14 +61,15 @@ async def create_bucket(config: AppSettings, bucket_name: str, location_hint: st
     Create a bucket
     """
     client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
-    if not await get_bucket(config=config, bucket_name=bucket_name):
-        return (
-            await client.r2.buckets.create(
+    bucket_exists = await get_bucket(config=config, bucket_name=bucket_name)
+    if not bucket_exists:
+        if location_hint:
+            bucket = await client.r2.buckets.create(
                 account_id=config.cloudflare.account_id, name=bucket_name, location_hint=location_hint
             )
-            if location_hint
-            else await client.r2.buckets.create(account_id=config.cloudflare.account_id, name=bucket_name)
-        )
+        else:
+            bucket = await client.r2.buckets.create(account_id=config.cloudflare.account_id, name=bucket_name)
+        return bucket.model_dump()
     return None
 
 

@@ -24,6 +24,9 @@ def template_render(
     """
     jinja_env: jinja2.Environment = get_env(template_path=template_path)
     template = jinja_env.get_template(template_name)
+    if template_payload and "jinja_env.autoescape" in template_payload:
+        jinja_env.autoescape = template_payload["jinja_env.autoescape"]
+        del template_payload["jinja_env.autoescape"]
     return template.render(**(template_payload if template_payload else {}))
 
 
@@ -173,9 +176,11 @@ def create_tenant_customer_admin_user(
     keycloak_client.assign_client_role(
         client_id=client_uuid,
         user_id=user_id,
-        roles=[{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
-        if roles
-        else client_roles,
+        roles=(
+            [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
+            if roles
+            else client_roles
+        ),
         realm_name=realm_name,
     )
     if group_path:
@@ -224,11 +229,11 @@ def create_internal_users(
         keycloak_client.assign_client_role(
             client_id=client_id,
             user_id=user_id,
-            roles=[
-                {"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles
-            ]
-            if roles
-            else client_roles,
+            roles=(
+                [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
+                if roles
+                else client_roles
+            ),
             realm_name=realm_name,
         )
         if group_path:

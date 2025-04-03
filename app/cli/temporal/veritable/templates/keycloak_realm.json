@@ -369,7 +369,7 @@
       "clientRoles": {},
       "name": "vt-customer-admin",
       "path": "/vt-customer-admin",
-      "realmRoles": "<<customerRealmRoles>>",
+      "realmRoles": <<customerRealmRoles>>,
       "subGroups": []
     },
     {

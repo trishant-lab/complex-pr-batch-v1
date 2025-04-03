@@ -496,7 +496,7 @@ class VeritableOnboardingWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = f"veritable_{tenant}"
+            realm_name = f"{tenant}"
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
@@ -505,8 +505,9 @@ class VeritableOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                     template_payload={
-                        "customerRealmRoles": ijson_dumps(["VT_CUSTOMER_ADMIN"]),
-                        "domain_org": veritable_config.domain_name,
+                        "customerRealmRoles": '["VT_CUSTOMER_ADMIN"]',
+                        "domain_org": veritable_config.domain_name.split(".")[-1],
+                        "jinja_env.autoescape": False,
                     },
                 ),
             )
@@ -518,7 +519,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     realm_name=realm_name,
                     client_name=ProductName,
                     username="admin",
-                    email="support@veritable.app",
+                    email=veritable_config.sendgrid.support_mail,
                     firstname=first_name,
                     lastname=last_name,
                     template_path=TemplatePath,

@@ -70,15 +70,6 @@ p, MUSPELL_VIEW_GROUP, /api/v1/tenant/Muspell/suggestTenantNames, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/tenant/Veritable/suggestTenantNames, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/tenant/Practifly/suggestTenantNames, GET
 
-p, ADMINS, /api/v1/tenant/{product}/validateTenantName/{tenant_name}, GET
-p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves/validateTenantName/{tenant_name}, GET
-p, DEXIT_VIEW_GROUP, /api/v1/tenant/Dexit/validateTenantName/{tenant_name}, GET
-p, PENKNIFE_VIEW_GROUP, /api/v1/tenant/Penknife/validateTenantName/{tenant_name}, GET
-p, ZSEGMENT_VIEW_GROUP, /api/v1/tenant/Zsegment/validateTenantName/{tenant_name}, GET
-p, MUSPELL_VIEW_GROUP, /api/v1/tenant/Muspell/validateTenantName/{tenant_name}, GET
-p, VERITABLE_VIEW_GROUP, /api/v1/tenant/Veritable/validateTenantName/{tenant_name}, GET
-p, PRACTIFLY_VIEW_GROUP, /api/v1/tenant/Practifly/validateTenantName/{tenant_name}, GET
-
 p, ADMINS, /api/v1/tenant/{product}/keycloak/validateTenantName/{tenant_name}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves/keycloak/validateTenantName/{tenant_name}, GET
 p, DEXIT_VIEW_GROUP, /api/v1/tenant/Dexit/keycloak/validateTenantName/{tenant_name}, GET
@@ -210,6 +201,7 @@ p, PUBLIC, /api/v1/signup/{product}/enterprise, POST
 p, PUBLIC, /api/v1/subscriptions/{product}, POST
 p, PUBLIC, /api/v1/onboard/{product}/status, GET
 p, PUBLIC, /api/v1/webhooks/billing/events/{product}, POST
+p, PUBLIC, /api/v1/tenant/{product}/validateTenantName/{tenant_name}, GET
 
 g, ADMINS, Admin
 g, JEEVES_VIEW_GROUP, JeevesView
