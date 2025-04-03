@@ -148,6 +148,8 @@ class VeritableOnboardingWorkflow(Workflow):
         """
         Entry point for workflow
         """
+        veritable = VeritableSpec.model_validate(veritable)
+
         config: AppSettings = get_settings()
         veritable_config: VeritableSettings = config.veritable
         first_name = pydash.get(veritable, "firstName")
