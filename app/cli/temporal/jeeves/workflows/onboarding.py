@@ -401,6 +401,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "matomo_log_media_view",
                         "matomo_log_link_visit_action_view",
                         "federated_identity",
+                        "user_group_membership",
                     ],
                 ),
             )
