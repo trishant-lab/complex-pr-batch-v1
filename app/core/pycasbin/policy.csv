@@ -60,16 +60,6 @@ p, MUSPELL_EDIT_GROUP, /api/v1/tenant/Muspell/updateTenantDetails/{tenant_id}, P
 p, VERITABLE_EDIT_GROUP, /api/v1/tenant/Veritable/updateTenantDetails/{tenant_id}, PUT
 p, PRACTIFLY_EDIT_GROUP, /api/v1/tenant/Practifly/updateTenantDetails/{tenant_id}, PUT
 
-
-p, ADMINS, /api/v1/tenant/{product}/suggestTenantNames, GET
-p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves/suggestTenantNames, GET
-p, DEXIT_VIEW_GROUP, /api/v1/tenant/Dexit/suggestTenantNames, GET
-p, PENKNIFE_VIEW_GROUP, /api/v1/tenant/Penknife/suggestTenantNames, GET
-p, ZSEGMENT_VIEW_GROUP, /api/v1/tenant/Zsegment/suggestTenantNames, GET
-p, MUSPELL_VIEW_GROUP, /api/v1/tenant/Muspell/suggestTenantNames, GET
-p, VERITABLE_VIEW_GROUP, /api/v1/tenant/Veritable/suggestTenantNames, GET
-p, PRACTIFLY_VIEW_GROUP, /api/v1/tenant/Practifly/suggestTenantNames, GET
-
 p, ADMINS, /api/v1/tenant/{product}/keycloak/validateTenantName/{tenant_name}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves/keycloak/validateTenantName/{tenant_name}, GET
 p, DEXIT_VIEW_GROUP, /api/v1/tenant/Dexit/keycloak/validateTenantName/{tenant_name}, GET
@@ -190,6 +180,15 @@ p, MUSPELL_VIEW_GROUP, /api/v1/session/Muspell, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/session/Veritable, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/session/Practifly, GET
 
+p, ADMINS, /api/v1/signup/{product}/enterprise, POST
+p, JEEVES_EDIT_GROUP, /api/v1/signup/Jeeves/enterprise, POST
+p, DEXIT_EDIT_GROUP, /api/v1/signup/Dexit/enterprise, POST
+p, PENKNIFE_EDIT_GROUP, /api/v1/signup/Penknife/enterprise, POST
+p, ZSEGMENT_EDIT_GROUP, /api/v1/signup/Zsegment/enterprise, POST
+p, MUSPELL_EDIT_GROUP, /api/v1/signup/Muspell/enterprise, POST
+p, VERITABLE_EDIT_GROUP, /api/v1/signup/Veritable/enterprise, POST
+p, PRACTIFLY_EDIT_GROUP, /api/v1/signup/Practifly/enterprise, POST
+
 p, PUBLIC, /api/v1/otp/{product}, GET
 p, PUBLIC, /api/v1/session/{product}, GET
 p, PUBLIC, /api/v1/session/{product}/refresh, GET
@@ -197,11 +196,11 @@ p, PUBLIC, /api/v1/plans/{product}, GET
 p, PUBLIC, /api/v1/addOns/{product}, GET
 p, PUBLIC, /api/v1/coupon/{product}, GET
 p, PUBLIC, /api/v1/signup/{product}, POST
-p, PUBLIC, /api/v1/signup/{product}/enterprise, POST
 p, PUBLIC, /api/v1/subscriptions/{product}, POST
 p, PUBLIC, /api/v1/onboard/{product}/status, GET
 p, PUBLIC, /api/v1/webhooks/billing/events/{product}, POST
 p, PUBLIC, /api/v1/tenant/{product}/validateTenantName/{tenant_name}, GET
+p, PUBLIC, /api/v1/tenant/{product}/suggestTenantNames, GET
 
 g, ADMINS, Admin
 g, JEEVES_VIEW_GROUP, JeevesView
