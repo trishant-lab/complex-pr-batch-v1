@@ -1,5 +1,6 @@
+from app.cli.activity_utils.onboard.onboard_info import get_customer_onboard_info
 from app.cli.keycloak_utils import KeycloakAdminClient
-from app.cli.temporal.models.onboard import OnboardInfo
+from app.cli.temporal.models.onboard import CustomerWorkflowInput
 from app.core.connections import get_lago_client
 from app.core.settings import get_settings
 from app.mail_templates import provisioning_success_mail
@@ -60,10 +61,11 @@ async def send_customer_password_mail(
     )
 
 
-async def onboard_success(onboard_info: OnboardInfo) -> None:
+async def onboard_success(activity_input: CustomerWorkflowInput) -> None:
     """
     @return:
     """
+    onboard_info = await get_customer_onboard_info(activity_input.customer_id, activity_input.product)
     lago_client = get_lago_client(onboard_info.product)
     customer_resp = lago_client.customers().find(str(onboard_info.customer_id))
     customer = CustomerResponse.from_lago(customer_resp)

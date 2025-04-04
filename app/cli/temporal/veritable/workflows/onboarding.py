@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 import pydash
 from cryptography.fernet import Fernet
@@ -32,6 +33,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
+from app.cli.temporal.activities.onboard.failure import OnboardFailureMailActivity
+from app.cli.temporal.activities.onboard.success import OnboardSuccessMailActivity
 from app.cli.temporal.activities.one_password import (
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
@@ -66,8 +69,7 @@ from app.cli.temporal.activities.tenant_crd import (
     TenantCrdExistsActivityModel,
 )
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
-
-# from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
+from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
 from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.models.cloudflare import (
@@ -78,6 +80,7 @@ from app.cli.temporal.models.cloudflare import (
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivityModel,
 )
+from app.cli.temporal.models.onboard import CustomerWorkflowInput
 from app.cli.temporal.veritable import TemplatePath
 from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
 from app.common import generate_password
@@ -133,7 +136,9 @@ class VeritableOnboardingWorkflow(Workflow):
             TenantCrdCreationActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
             CheckPodRunningStatusActivity.defn,
-            # VeritableNovuOnboardingActivity.defn,
+            VeritableNovuOnboardingActivity.defn,
+            OnboardSuccessMailActivity.defn,
+            OnboardFailureMailActivity.defn,
         ]
 
     @classmethod
@@ -242,19 +247,19 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # novu_api_key = await run_activity(
-            #     activity=VeritableNovuOnboardingActivity,
-            #     arg=veritable,
-            # )
+            novu_api_key = await run_activity(
+                activity=VeritableNovuOnboardingActivity,
+                arg=veritable,
+            )
 
-            # await run_activity(
-            #     activity=K8sSecretCreationActivity,
-            #     arg=K8sSecretCreationActivityModel(
-            #         namespace=tenant,
-            #         name="veritable-novu",
-            #         string_data={"api-key": novu_api_key},
-            #     ),
-            # )
+            await run_activity(
+                activity=K8sSecretCreationActivity,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="veritable-novu",
+                    string_data={"api-key": novu_api_key},
+                ),
+            )
 
             data_bucket = veritable.cloudflare_r2_data_bucket
 
@@ -505,7 +510,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                     template_payload={
-                        "customerRealmRoles": '["VT_CUSTOMER_ADMIN"]',
+                        "customerRealmRoles": ijson_dumps(["VT_CUSTOMER_ADMIN"]),
                         "domain_org": veritable_config.domain_name.split(".")[-1],
                         "jinja_env.autoescape": False,
                     },
@@ -554,7 +559,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
-                        # {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        {"name": "NOVU__API_KEY", "value": novu_api_key},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                     ],
                     argument=(
@@ -663,7 +668,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "IS_CLI", "value": "FALSE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "organization")},
                         {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        # {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        {"name": "NOVU__API_KEY", "value": novu_api_key},
                         {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
                         {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
                     ],
@@ -757,7 +762,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "IS_CLI", "value": "TRUE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "organization")},
                         {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        # {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        {"name": "NOVU__API_KEY", "value": novu_api_key},
                         {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
                         {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
                     ],
@@ -806,6 +811,15 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # send onboarding success mail
+            await run_activity(
+                activity=OnboardSuccessMailActivity,
+                arg=CustomerWorkflowInput(
+                    customer_id=UUID(veritable.customerId),
+                    product=ProductEnum.veritable,
+                ),
+            )
+
             # check pod running status
             for pod in ["veritable", "veritable-cli"]:
                 await run_activity(
@@ -835,6 +849,14 @@ class VeritableOnboardingWorkflow(Workflow):
                     tenant_name=tenant,
                     status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
+                    product=ProductEnum.veritable,
+                ),
+            )
+            # send onboarding failure mail
+            await run_activity(
+                activity=OnboardFailureMailActivity,
+                arg=CustomerWorkflowInput(
+                    customer_id=UUID(veritable.customerId),
                     product=ProductEnum.veritable,
                 ),
             )

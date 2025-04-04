@@ -5,7 +5,7 @@ from temporalio.common import RetryPolicy
 
 from app.cli.activity_utils.onboard.failure import onboard_failure
 from app.cli.temporal.core.base import Activity
-from app.cli.temporal.models.onboard import OnboardInfo
+from app.cli.temporal.models.onboard import CustomerWorkflowInput
 
 
 class OnboardFailureMailActivity(Activity):
@@ -29,7 +29,7 @@ class OnboardFailureMailActivity(Activity):
 
     @staticmethod
     @activity.defn(name="OnboardFailureMailActivity")
-    async def defn(activity_input: OnboardInfo) -> None:
+    async def defn(activity_input: CustomerWorkflowInput) -> None:
         """
         @param activity_input:
         @return:

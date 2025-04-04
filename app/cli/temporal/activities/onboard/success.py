@@ -5,7 +5,7 @@ from temporalio.common import RetryPolicy
 
 from app.cli.activity_utils.onboard.success import onboard_success
 from app.cli.temporal.core.base import Activity
-from app.cli.temporal.models.onboard import OnboardInfo
+from app.cli.temporal.models.onboard import CustomerWorkflowInput
 
 
 class OnboardSuccessMailActivity(Activity):
@@ -29,7 +29,7 @@ class OnboardSuccessMailActivity(Activity):
 
     @staticmethod
     @activity.defn(name="OnboardSuccessMailActivity")
-    async def defn(activity_input: OnboardInfo) -> None:
+    async def defn(activity_input: CustomerWorkflowInput) -> None:
         """
         @param activity_input:
         @return:
