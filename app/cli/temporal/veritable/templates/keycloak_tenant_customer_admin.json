@@ -1,11 +1,11 @@
 {
-  "username": "<<customerEmail>>",
+  "username": "<<username>>",
   "enabled": true,
   "totp": false,
   "emailVerified": true,
-  "firstName": "<<customerUserName>>",
-  "lastName": "",
-  "email": "<<customerEmail>>",
+  "firstName": "<<firstname>>",
+  "lastName": "<<lastname>>",
+  "email": "<<email>>",
   "disableableCredentialTypes": [],
   "requiredActions": [],
   "notBefore": 0,
@@ -20,7 +20,7 @@
     {
       "type": "password",
       "temporary": true,
-      "value": "<<customerPassword>>"
+      "value": "<<password>>"
     }
   ],
   "groups": ["vt-customer-admin"]
