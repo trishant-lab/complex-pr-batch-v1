@@ -52,9 +52,9 @@ async def onboard_failure(activity_input: CustomerWorkflowInput) -> None:
     app_config = ProductEnum.get_product_settings(onboard_info.product)
 
     await send_mail(
-        to_email=app_config.sendgrid_support_mail,
+        to_email=app_config.sendgrid.support_mail,
         from_name=onboard_info.product.value,
-        email_from=app_config.sendgrid_from_mail,
+        email_from=app_config.sendgrid.email_from,
         subject=f"{onboard_info.tenant_name} provisioning {onboard_info.onboard_status.name}",
         content=content,
     )

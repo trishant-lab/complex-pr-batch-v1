@@ -588,7 +588,7 @@ class PostgresSupavisorPollUserActivity(Activity):
             )
 
             if response.status < 200 or response.status >= 299:
-                response_json = await response.json()
+                response_json = await response.text()
                 log_error(
                     f"Supavisor user creation failed with status code: {response.status} and response: {response_json}"
                 )
