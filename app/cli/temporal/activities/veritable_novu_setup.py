@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import Any
+from urllib.parse import urljoin
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
@@ -68,7 +69,7 @@ class NovuSetup:
         """
         Get the access token for the Novu integration
         """
-        url: str = f"{self.config.veritable.novu_url}/v1/auth/login"
+        url: str = urljoin(self.config.veritable.novu_url, "/v1/auth/login")
 
         payload: dict[str, str] = {
             "email": self.config.veritable.novu_admin_user,
@@ -101,7 +102,7 @@ class NovuSetup:
         the first environment ID for use in subsequent API calls. The environment ID
         is required for many organization-specific operations.
         """
-        url: str = f"{self.config.veritable.novu_url}/v1/environments"
+        url: str = urljoin(self.config.veritable.novu_url, "/v1/environments")
 
         async with aiohttp.ClientSession() as session:
             res: aiohttp.ClientResponse = await session.get(
