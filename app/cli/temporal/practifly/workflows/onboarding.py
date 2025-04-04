@@ -489,6 +489,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=f"practifly_{tenant}",
+                    client_name="app",
                     username=email,
                     email=email,
                     firstname=first_name,
@@ -503,6 +504,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
                     realm_name=f"practifly_{tenant}",
+                    client_name="app",
                     users=[
                         {
                             "username": "admin",
