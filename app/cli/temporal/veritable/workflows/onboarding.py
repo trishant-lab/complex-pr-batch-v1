@@ -521,7 +521,7 @@ class VeritableOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=realm_name,
+                    realm_name=f"veritable_{tenant}",
                     client_name="app",
                     username=veritable.email,
                     email=veritable.email,
