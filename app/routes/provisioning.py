@@ -153,7 +153,7 @@ async def provisioning(
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
     onboard_schema = provisioning_model.model_dump()
-    onboard_schema["customerId"] = tenant_details.get("id")
+    onboard_schema["customerId"] = str(tenant_details.get("id"))
     await product_workflow.onboard(onboard_schema)
     logger.info(f"Triggered provisioning workflow for product: {product.value}")
 
@@ -201,6 +201,7 @@ async def approve_tenant(
     product_schema = ijson_loads(response["schema"])
     provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
     onboard_schema = provisioning_model.model_dump()
+    onboard_schema["customerId"] = str(tenant_id)
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     if approval:
@@ -264,14 +265,13 @@ async def retry_provisioning(
         onboard_schema = provisioning_model.model_dump()
 
         onboard_schema["emailSent"] = True
-        onboard_schema["customerId"] = tenant_id
+        onboard_schema["customerId"] = str(tenant_id)
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(onboard_schema)
 
         if product_details.approvalRequired:
             await product_workflow.approve(onboard_schema)
 
-        # await product_workflow.approve(schema)
         logger.info(f"Retried provisioning workflow for tenant: {response['tenantname']}")
     except Exception as e:
         logger.error(f"Error retrying provisioning: {e}")

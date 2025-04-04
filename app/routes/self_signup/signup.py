@@ -286,7 +286,7 @@ async def create_customer(
 async def create_enterprise_customer(
     signup_details: dict,
     product: ProductEnum = Path(...),
-    plan_code: str = Query(...),
+    plan_code: str = Query(default="ee_m_v1"),
     db: DBManager = Depends(database),
     _: dict = Depends(get_oauth_scheme()),
 ) -> None:
