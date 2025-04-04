@@ -264,7 +264,7 @@ async def retry_provisioning(
         onboard_schema = provisioning_model.model_dump()
 
         onboard_schema["emailSent"] = True
-
+        onboard_schema["customerId"] = tenant_id
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(onboard_schema)
 
