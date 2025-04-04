@@ -155,6 +155,12 @@ def create_tenant_customer_admin_user(
     Create tenant customer admin user
     """
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    # First check if realm exists
+    if keycloak_client.get_realm(realm_name):
+        log_info(f"Realm {realm_name} already exists")
+        return
+
     user_config = template_render(
         template_path=template_path,
         template_name=template_name,
