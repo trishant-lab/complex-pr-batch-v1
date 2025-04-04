@@ -28,6 +28,8 @@ from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivi
 from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
 from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
 from app.cli.temporal.activities.keycloak_setup import (
+    KeycloakCreateInternalUsersActivity,
+    KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
@@ -127,6 +129,7 @@ class VeritableOnboardingWorkflow(Workflow):
             CopyArtifactsToBucketActivity.defn,
             KeycloakRealmSetupActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            KeycloakCreateInternalUsersActivity.defn,
             DatabaseMigrationJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
@@ -527,6 +530,25 @@ class VeritableOnboardingWorkflow(Workflow):
                     email=veritable.email,
                     firstname=first_name,
                     lastname=last_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_customer_admin.json",
+                ),
+            )
+
+            # keycloak tenant internal admin user setup
+            await run_activity(
+                activity=KeycloakCreateInternalUsersActivity,
+                arg=KeycloakCreateInternalUsersActivityModel(
+                    realm_name=f"veritable_{tenant}",
+                    client_name="app",
+                    users=[
+                        {
+                            "username": "admin",
+                            "email": veritable_config.sendgrid.support_mail,
+                            "firstname": "Admin",
+                            "lastname": "",
+                        },
+                    ],
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_admin.json",
                 ),
