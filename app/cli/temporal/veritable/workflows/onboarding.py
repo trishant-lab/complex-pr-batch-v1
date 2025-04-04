@@ -523,8 +523,8 @@ class VeritableOnboardingWorkflow(Workflow):
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
                     client_name="app",
-                    username="admin",
-                    email=veritable_config.sendgrid.support_mail,
+                    username=veritable.email,
+                    email=veritable.email,
                     firstname=first_name,
                     lastname=last_name,
                     template_path=TemplatePath,
