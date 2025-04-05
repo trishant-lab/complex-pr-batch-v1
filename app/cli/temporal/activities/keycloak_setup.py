@@ -56,6 +56,13 @@ def create_keycloak_realm(
     """
     config: AppSettings = get_settings()
 
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    # First check if realm exists
+    if keycloak_client.get_realm(realm_name):
+        log_info(f"Realm {realm_name} already exists")
+        return
+
     realm_config = template_render(
         template_path=template_path,
         template_name=template_name,
@@ -68,7 +75,6 @@ def create_keycloak_realm(
         },
     )
 
-    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
     keycloak_client.create_realm(ijson_loads(realm_config), skip_exists=True)
 
 
