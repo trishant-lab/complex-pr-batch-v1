@@ -859,7 +859,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     tenant=tenant,
                     kind="VeritableTenant",
                     product=ProductName,
-                    data=ijson_dumps(veritable),
+                    data=veritable.model_dump_json(),
                 ),
             )
 
