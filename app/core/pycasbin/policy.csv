@@ -114,6 +114,15 @@ p, MUSPELL_EDIT_GROUP, /api/v1/deprovisioning/Muspell, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/deprovisioning/Veritable, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/deprovisioning/Practifly, POST
 
+p, ADMINS, /api/v1/deprovisioning/{product}/approveOrDecline, POST
+p, JEEVES_EDIT_GROUP, /api/v1/deprovisioning/Jeeves/approveOrDecline, POST
+p, DEXIT_EDIT_GROUP, /api/v1/deprovisioning/Dexit/approveOrDecline, POST
+p, PENKNIFE_EDIT_GROUP, /api/v1/deprovisioning/Penknife/approveOrDecline, POST
+p, ZSEGMENT_EDIT_GROUP, /api/v1/deprovisioning/Zsegment/approveOrDecline, POST
+p, MUSPELL_EDIT_GROUP, /api/v1/deprovisioning/Muspell/approveOrDecline, POST
+p, VERITABLE_EDIT_GROUP, /api/v1/deprovisioning/Veritable/approveOrDecline, POST
+p, PRACTIFLY_EDIT_GROUP, /api/v1/deprovisioning/Practifly/approveOrDecline, POST
+
 p, ADMINS, /api/v1/User, POST
 p, ADMINS, /api/v1/User, PUT
 p, ADMINS, /api/v1/User, GET

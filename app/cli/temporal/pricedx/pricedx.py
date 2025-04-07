@@ -6,6 +6,7 @@ from app.core.cli_settings import WorkerQueues
 
 ProductName = "pricedx"
 
+
 class PricedxWorkflow(ProductWorkflow):
     """
     PricedxWorkflow class
@@ -30,11 +31,12 @@ class PricedxWorkflow(ProductWorkflow):
         """
         deprovision method
         """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
         from app.cli.temporal.pricedx.workflows.deprovisioning import PricedxDeProvisioningWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
         await trigger_workflow(
-            workflow_input=PricedxSpec(**schema),
+            workflow_input=DeboardWorkflowInput(**schema),
             workflow=PricedxDeProvisioningWorkflow,
             queue=WorkerQueues.pricedx_deboarding,
         )
@@ -61,7 +63,37 @@ class PricedxWorkflow(ProductWorkflow):
 
         handle = await get_workflow_handle(workflow_input=PricedxSpec(**schema), workflow=PricedxOnboardingWorkflow)
 
-        await handle.signal(PricedxOnboardingWorkflow.deny)
+        await handle.signal(PricedxOnboardingWorkflow.decline)
+
+    @staticmethod
+    async def approve_deprovisioning(schema: dict) -> None:
+        """
+        approve_deprovisioning method
+        """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.pricedx.workflows.deprovisioning import PricedxDeProvisioningWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=PricedxDeProvisioningWorkflow
+        )
+
+        await handle.signal(PricedxDeProvisioningWorkflow.approve)
+
+    @staticmethod
+    async def deny_deprovisioning(schema: dict) -> None:
+        """
+        deny_deprovisioning method
+        """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.pricedx.workflows.deprovisioning import PricedxDeProvisioningWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=PricedxDeProvisioningWorkflow
+        )
+
+        await handle.signal(PricedxDeProvisioningWorkflow.decline)
 
     @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:

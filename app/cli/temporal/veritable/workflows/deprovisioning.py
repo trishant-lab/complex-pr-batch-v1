@@ -42,7 +42,7 @@ from app.cli.temporal.models.cloudflare import (
     DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivityModel,
 )
-from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
+from app.cli.temporal.models.deboard import DeboardWorkflowInput
 from app.core.settings import VeritableSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
@@ -58,7 +58,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -82,24 +82,25 @@ class VeritableDeProvisioningWorkflow(Workflow):
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", veritable: VeritableSpec) -> str:
+    def get_workflow_id(cls: "Workflow", veritable: DeboardWorkflowInput) -> str:
         """
         Get the workflow id
         """
-        return f"veritable_deprovisioning_workflow_{pydash.get(veritable, 'tenant')}"
+        return f"veritable_deprovisioning_workflow_{pydash.get(veritable, 'tenant_id')}"
 
     @workflow.run
-    async def run(self: "Workflow", veritable: VeritableSpec) -> None:
+    async def run(self: "Workflow", veritable: DeboardWorkflowInput) -> None:
         """
         Entry point for workflow
         """
         veritable_config: VeritableSettings = get_settings().veritable
-        tenant = pydash.get(veritable, "tenant")
+        veritable = DeboardWorkflowInput.model_validate(veritable)
+        tenant = veritable.tenant_name
 
         # Wait for approval or denial
-        await workflow.wait_condition(lambda: self.approved or self.deny)
+        await workflow.wait_condition(lambda: self.approved or self.denied)
 
-        if self.deny:
+        if self.denied:
             return
 
         try:
@@ -259,8 +260,8 @@ class VeritableDeProvisioningWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
-        Deny the workflow
+        denied the workflow
         """
-        self.deny = True
+        self.denied = True

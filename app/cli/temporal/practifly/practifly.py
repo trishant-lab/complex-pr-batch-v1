@@ -31,11 +31,12 @@ class PractiflyWorkflow(ProductWorkflow):
         """
         deprovision method
         """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
         from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
         await trigger_workflow(
-            workflow_input=PractiflySpec(**schema),
+            workflow_input=DeboardWorkflowInput(**schema),
             workflow=PractiflyDeProvisioningWorkflow,
             queue=WorkerQueues.practifly_deboarding,
         )
@@ -53,20 +54,6 @@ class PractiflyWorkflow(ProductWorkflow):
         await handle.signal(PractiflyOnboardingWorkflow.approve)
 
     @staticmethod
-    async def approve_deprovisioning(schema: dict) -> None:
-        """
-        approve_deprovisioning method
-        """
-        from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
-        from app.cli.temporal.starter import get_workflow_handle
-
-        handle = await get_workflow_handle(
-            workflow_input=PractiflySpec(**schema), workflow=PractiflyDeProvisioningWorkflow
-        )
-
-        await handle.signal(PractiflyDeProvisioningWorkflow.approve)
-
-    @staticmethod
     async def decline(schema: dict) -> None:
         """
         decline method
@@ -76,7 +63,37 @@ class PractiflyWorkflow(ProductWorkflow):
 
         handle = await get_workflow_handle(workflow_input=PractiflySpec(**schema), workflow=PractiflyOnboardingWorkflow)
 
-        await handle.signal(PractiflyOnboardingWorkflow.deny)
+        await handle.signal(PractiflyOnboardingWorkflow.decline)
+
+    @staticmethod
+    async def approve_deprovisioning(schema: dict) -> None:
+        """
+        approve_deprovisioning method
+        """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=PractiflyDeProvisioningWorkflow
+        )
+
+        await handle.signal(PractiflyDeProvisioningWorkflow.approve)
+
+    @staticmethod
+    async def deny_deprovisioning(schema: dict) -> None:
+        """
+        deny_deprovisioning method
+        """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=PractiflyDeProvisioningWorkflow
+        )
+
+        await handle.signal(PractiflyDeProvisioningWorkflow.decline)
 
     @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:

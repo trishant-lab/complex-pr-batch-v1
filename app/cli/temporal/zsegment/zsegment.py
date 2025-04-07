@@ -55,7 +55,7 @@ class ZSegmentWorkflow(ProductWorkflow):
 
         handle = await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)
 
-        await handle.signal(ZSegmentOnboardingWorkflow.deny)
+        await handle.signal(ZSegmentOnboardingWorkflow.decline)
 
     @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:
