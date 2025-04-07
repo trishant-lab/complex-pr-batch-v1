@@ -31,7 +31,7 @@ async def de_provision_tenant(
     De-provision tenant
     """
     db: DBManager = await get_db_manager()
-    res = await db.fetch_one("get_tenant.sql", tenant_id=f"'{tenant!s}'")
+    res = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant))
     if not res:
         raise errors.TENANT_NOT_FOUND.exc()
 
@@ -59,7 +59,7 @@ async def approve_or_decline(
     Approve or decline de-provisioning
     """
     db: DBManager = await get_db_manager()
-    res = await db.fetch_one("get_tenant.sql", tenant_id=f"'{tenant!s}'")
+    res = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant))
     if not res:
         raise errors.TENANT_NOT_FOUND.exc()
 
