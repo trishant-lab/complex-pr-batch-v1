@@ -62,7 +62,7 @@ class TenantCrdCreationActivity(Activity):
 
         body = {
             "apiVersion": f"{CRD_GROUP}/{CRD_VERSION}",
-            "kind": activity_model.kind,
+            "kind": activity_model.kind.value,
             "metadata": {
                 "name": f"{activity_model.product}-{activity_model.tenant}",
                 "namespace": "default",
@@ -76,7 +76,7 @@ class TenantCrdCreationActivity(Activity):
         k8s_dynamic_client.server_side_apply(
             resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
         )
-        log_info(f"{activity_model.kind} {activity_model.tenant} created")
+        log_info(f"{activity_model.kind.value} {activity_model.tenant} created")
 
 
 class TenantCrdDeletionActivityModel(LaunchpadCLIBaseModel):
