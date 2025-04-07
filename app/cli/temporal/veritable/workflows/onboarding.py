@@ -639,7 +639,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
-                    host=f"{tenant}.{veritable_config.domain_name}",
+                    host=api_dns,
                     service_name="veritable-vs",
                     payload=http_list,
                 ),
