@@ -43,6 +43,7 @@ from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.models.cloudflare import (
     DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivityModel,
+    DeleteFilesFromCloudflareActivityModel,
 )
 from app.cli.temporal.models.deboard import DeboardWorkflowInput
 from app.core.settings import VeritableSettings, get_settings
@@ -185,6 +186,24 @@ class VeritableDeProvisioningWorkflow(Workflow):
                     ),
                 )
 
+            # delete dns record
+            await run_activity(
+                activity=DeleteCloudflareDNSRecordActivity,
+                arg=DeleteCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.{veritable_config.domain_name}",
+                    zone_id=veritable_config.zone_id,
+                ),
+            )
+
+            # delete files from cloudflare
+            await run_activity(
+                activity=DeleteFilesFromCloudflareActivity,
+                arg=DeleteFilesFromCloudflareActivityModel(
+                    bucket_name=veritable.cloudflare_r2_data_bucket,
+                    tenant=tenant,
+                ),
+            )
+
             # delete bucket
             await run_activity(
                 activity=DeleteCloudflareBucketActivity,
@@ -193,12 +212,20 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 ),
             )
 
-            # delete dns record
+            # delete files from cloudflare
             await run_activity(
-                activity=DeleteCloudflareDNSRecordActivity,
-                arg=DeleteCloudflareDNSRecordActivityModel(
-                    domain_name=f"{tenant}.{veritable_config.domain_name}",
-                    zone_id=veritable_config.zone_id,
+                activity=DeleteFilesFromCloudflareActivity,
+                arg=DeleteFilesFromCloudflareActivityModel(
+                    bucket_name=veritable.cloudflare_r2_ui_bucket,
+                    tenant=tenant,
+                ),
+            )
+
+            # delete bucket
+            await run_activity(
+                activity=DeleteCloudflareBucketActivity,
+                arg=DeleteCloudflareBucketActivityModel(
+                    bucket_name=veritable.cloudflare_r2_ui_bucket,
                 ),
             )
 
