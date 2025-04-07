@@ -56,6 +56,13 @@ def create_keycloak_realm(
     """
     config: AppSettings = get_settings()
 
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    # First check if realm exists
+    if keycloak_client.get_realm(realm_name):
+        log_info(f"Realm {realm_name} already exists")
+        return
+
     realm_config = template_render(
         template_path=template_path,
         template_name=template_name,
@@ -68,7 +75,6 @@ def create_keycloak_realm(
         },
     )
 
-    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
     keycloak_client.create_realm(ijson_loads(realm_config), skip_exists=True)
 
 
@@ -155,6 +161,7 @@ def create_tenant_customer_admin_user(
     Create tenant customer admin user
     """
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
     user_config = template_render(
         template_path=template_path,
         template_name=template_name,
@@ -596,7 +603,7 @@ class KeycloakCreateTenantCustomerAdminUserActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
-    client_name: str | None = None
+    client_name: str
     username: str
     email: str
     firstname: str
@@ -654,7 +661,7 @@ class KeycloakCreateInternalUsersActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
-    client_name: str | None = None
+    client_name: str
     roles: list[str] | None = None
     template_path: str
     template_name: str
@@ -999,7 +1006,7 @@ class KeycloakCreateGroupActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
-    client_name: str | None = None
+    client_name: str
     template_path: str
     template_name: str
 

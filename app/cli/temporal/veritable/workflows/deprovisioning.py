@@ -81,6 +81,13 @@ class VeritableDeProvisioningWorkflow(Workflow):
             VeritableNovuDeProvisionActivity.defn,
         ]
 
+    @classmethod
+    def get_workflow_id(cls: "Workflow", veritable: VeritableSpec) -> str:
+        """
+        Get the workflow id
+        """
+        return f"veritable_deprovisioning_workflow_{pydash.get(veritable, 'tenant')}"
+
     @workflow.run
     async def run(self: "Workflow", veritable: VeritableSpec) -> None:
         """
