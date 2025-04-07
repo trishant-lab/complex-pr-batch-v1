@@ -4,6 +4,7 @@ import pydash
 from temporalio import workflow
 
 from app.cli.activity_util import run_activity
+from app.cli.k8s_util import ResourceKindEnum
 from app.cli.temporal.activities.cloudflare_setup import (
     DeleteCloudflareBucketActivity,
     DeleteCloudflareDNSRecordActivity,
@@ -31,6 +32,7 @@ from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
 )
+from app.cli.temporal.activities.tenant_crd import TenantCrdDeletionActivity, TenantCrdDeletionActivityModel
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuDeProvisionActivity
 from app.cli.temporal.activities.vm_pod_scrapper import (
@@ -79,6 +81,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             DeleteKubernetesIstioVirtualServiceActivity.defn,
             DeleteDatabaseMigrationJobActivity.defn,
             VeritableNovuDeProvisionActivity.defn,
+            TenantCrdDeletionActivity.defn,
         ]
 
     @classmethod
@@ -236,6 +239,15 @@ class VeritableDeProvisioningWorkflow(Workflow):
                     tenant_name=tenant,
                     status=TenantStatusEnum.DeProvisioned,
                     product=ProductEnum.veritable,
+                ),
+            )
+
+            await run_activity(
+                activity=TenantCrdDeletionActivity,
+                arg=TenantCrdDeletionActivityModel(
+                    product=ProductName,
+                    tenant=tenant,
+                    kind=ResourceKindEnum.VeritableTenant,
                 ),
             )
 
