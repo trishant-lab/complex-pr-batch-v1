@@ -444,11 +444,12 @@ class VeritableOnboardingWorkflow(Workflow):
                     ),
                 )
 
+            api_dns = f"{tenant}.api.{veritable_config.domain_name}"
             # dns setup
             await run_activity(
                 activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
-                    domain_name=f"{tenant}.{veritable_config.domain_name}",
+                    domain_name=api_dns,
                     zone_id=veritable_config.zone_id,
                     content=config.k8s_cname,
                 ),
@@ -461,12 +462,13 @@ class VeritableOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareBucketActivityModel(bucket_name=ui_bucket),
             )
 
+            ui_dns = f"{tenant}.{veritable_config.domain_name}"
             # link bucket to custom domain
             await run_activity(
                 activity=LinkBucketToDomainActivity,
                 arg=LinkBucketToDomainActivityModel(
                     bucket_name=ui_bucket,
-                    domain_name=f"{tenant}.{veritable_config.domain_name}",
+                    domain_name=ui_dns,
                     zone_id=veritable_config.zone_id,
                 ),
             )
@@ -559,14 +561,47 @@ class VeritableOnboardingWorkflow(Workflow):
                     docker_image=docker_image,
                     volume_mounts=[
                         {
-                            "name": "veritable-provisioning-config",
-                            "mount_path": "/provisioningConfig",
-                            "read_only": True,
+                            "name": "custom-volume",
+                            "mount_path": f"/{config_dir}/{custom_config}",
+                            "sub_path": custom_config,
+                        },
+                        {
+                            "name": "env-volume",
+                            "mount_path": f"/{config_dir}/{env_config}",
+                            "sub_path": env_config,
+                        },
+                        {
+                            "name": "tenant-volume",
+                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "sub_path": tenant_config,
+                        },
+                        {
+                            "name": "provisioning-volume",
+                            "mount_path": f"/{config_dir}/{provisioning_config}",
+                            "sub_path": provisioning_config,
                         },
                     ],
                     volumes=[
                         {
-                            "name": "veritable-provisioning-config",
+                            "name": "tenant-volume",
+                            "config_map_name": "veritable-tenant-config",
+                            "key": tenant_config,
+                            "path": tenant_config,
+                        },
+                        {
+                            "name": "custom-volume",
+                            "config_map_name": "veritable-custom-config",
+                            "key": custom_config,
+                            "path": custom_config,
+                        },
+                        {
+                            "name": "env-volume",
+                            "config_map_name": "veritable-env-config",
+                            "key": env_config,
+                            "path": env_config,
+                        },
+                        {
+                            "name": "provisioning-volume",
                             "config_map_name": "veritable-provisioning-config",
                             "key": provisioning_config,
                             "path": provisioning_config,

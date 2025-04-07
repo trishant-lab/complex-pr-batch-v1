@@ -86,7 +86,7 @@ async def onboard_success(activity_input: CustomerWorkflowInput) -> None:
         to_email=app_config.sendgrid.support_mail,
         from_name=onboard_info.product.value,
         email_from=app_config.sendgrid.email_from,
-        subject=f"{onboard_info.tenant_name} provisioning {onboard_info.onboard_status.name}",
+        subject=f"{onboard_info.tenant_name} {onboard_info.onboard_status.name}",
         content=content,
     )
 

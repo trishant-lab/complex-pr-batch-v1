@@ -50,17 +50,25 @@ ui_init_oauth: dict = {
     "clientId": config.keycloak.client_id,
 }
 
+DOMAINS = [
+    r"veritable\.app",
+    r"veritable\.work",
+    r"314ecorp\.tech",
+    r"314ecorp\.com",
+    r"314e\.com",
+    r"314e\.tech",
+]
+
 origins: list = [
     "http://localhost:8000",
     "http://localhost:2000",
     "http://localhost:3000",
     "http://localhost:1313",
-    config.keycloak.auth_url,
-    "https://api-definitions.314ecorp.tech",
     "https://softwareartistry.github.io",
-    "https://launchpad.314ecorp.tech",
+    "https://veritable-app.pages.dev",
+    "https://test.veritable-app.pages.dev",
+    "https://test2.veritable-app.pages.dev",
     "https://test.314e-website.pages.dev",
-    "https://314e.com",
 ]
 
 
@@ -102,6 +110,7 @@ fastapi_app.add_middleware(AuthenticationMiddleware)
 fastapi_app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=rf"^https?:\/\/([a-z0-9-]+\.)({'|'.join(DOMAINS)})$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
