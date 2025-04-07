@@ -611,13 +611,13 @@ class VeritableOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES__PASSWORD", "value": postgres_password},
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "PROVISIONING_CONFIG", "value": "/provisioningConfig/provisioning-config.json"},
+                        {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
                         {"name": "NOVU__API_KEY", "value": novu_api_key},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                     ],
                     argument=(
                         "cd /app && python3 /app/provisioning/provisioning_.py "
-                        "--config /provisioningConfig/provisioning-config.json"
+                        "--config /config/provisioning-config.json"
                     ),
                     job_type="provisioning",
                     product=ProductName,
