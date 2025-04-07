@@ -4,6 +4,7 @@ from functools import lru_cache, partial
 from typing import Final
 
 import requests
+from app.core.product_settings.muspell_archive import MuspellArchiveSettings
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
@@ -23,6 +24,7 @@ CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
     "jeeves.json",
     "dexit.json",
+    "muspell_archive.json",
     "penknife.json",
     "zsegment.json",
     "practifly.json",
@@ -33,6 +35,7 @@ PRODUCT_FILE_NAMES: Final[list[str]] = [
     "veritable.json",
     "jeeves.json",
     "dexit.json",
+    "muspell_archive.json",
     "penknife.json",
     "zsegment.json",
     "practifly.json",
@@ -206,7 +209,7 @@ class AppSettings(BaseSettings):
     zsegment: ZSegmentSettings = ZSegmentSettings()
     practifly: PractiflySettings = PractiflySettings()
     pricedx: PricedxSettings = PricedxSettings()
-
+    muspell: MuspellArchiveSettings = MuspellArchiveSettings()
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
     s3: S3Settings = S3Settings()

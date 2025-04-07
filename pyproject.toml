@@ -58,6 +58,7 @@ lxml = "^5.3.1"
 defusedxml = "^0.7.1"
 supervisor = "^4.2.5"
 psutil = "^7.0.0"
+mysql-connector-python = "^9.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"

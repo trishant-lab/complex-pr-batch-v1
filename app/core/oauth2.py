@@ -50,7 +50,7 @@ async def get_keycloak_key() -> str:
 
     r: Response = await request_client().get(security_config["jwks_uri"])
     rsa256_key: dict = filter(lambda x: x["alg"] == "RS256", r.json()["keys"]).__next__()
-    certificate: str = f'-----BEGIN CERTIFICATE-----\n{rsa256_key["x5c"][0]}\n-----END CERTIFICATE-----'
+    certificate: str = f"-----BEGIN CERTIFICATE-----\n{rsa256_key['x5c'][0]}\n-----END CERTIFICATE-----"
     cert_obj = load_pem_x509_certificate(certificate.encode(), default_backend())
     return (
         cert_obj.public_key()

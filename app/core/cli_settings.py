@@ -11,6 +11,7 @@ class WorkerQueues(str, Enum):
     jeeves_deboarding = "jeeves_deboarding"
     hdp_onboarding = "hdp_onboarding"
     hdp_deboarding = "hdp_deboarding"
+    muspell_onboarding = "muspell_onboarding"
     penknife_onboarding = "penknife_onboarding"
     penknife_deboarding = "penknife_deboarding"
     practifly_onboarding = "practifly_onboarding"
@@ -66,6 +67,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
     from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
     from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
     from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+    from app.cli.temporal.muspell.workflows.onboarding import MuspellOnboardingWorkflow
     from app.cli.temporal.penknife.workflows.deprovisioning import PenknifeDeProvisioningWorkflow
     from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
     from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
@@ -86,6 +88,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
                 WorkerQueues.dexit_onboarding: {DexitOnboardingWorkflow},
                 WorkerQueues.jeeves_onboarding: {JeevesOnboardingWorkflow},
                 WorkerQueues.hdp_onboarding: {HDPOnboardingWorkflow},
+                WorkerQueues.muspell_onboarding: {MuspellOnboardingWorkflow},
                 WorkerQueues.penknife_onboarding: {PenknifeOnboardingWorkflow},
                 WorkerQueues.practifly_onboarding: {PractiflyOnboardingWorkflow},
                 WorkerQueues.zsegment_onboarding: {ZSegmentOnboardingWorkflow},
