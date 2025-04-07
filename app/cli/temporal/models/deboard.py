@@ -10,6 +10,17 @@ class DeboardWorkflowInput(LaunchpadCLIBaseModel):
     product: ProductEnum
 
     @property
+    def novu_organization_name(self: "DeboardWorkflowInput") -> str:
+        """
+        Returns the formatted Novu organization name for the current tenant.
+        """
+        match self.product:
+            case ProductEnum.veritable:
+                return f"veritable_{self.tenant_name}"
+            case _:
+                raise NotImplementedError(f"Novu organization name not implemented for {self.product}")
+
+    @property
     def cloudflare_r2_ui_bucket(self: "DeboardWorkflowInput") -> str:
         """
         Returns the formatted Cloudflare R2 bucket name for the current tenant and product.
