@@ -7,6 +7,7 @@ from cryptography.fernet import Fernet
 from temporalio import workflow
 
 from app.cli.activity_util import run_activity
+from app.cli.k8s_util import ResourceKindEnum
 from app.cli.temporal.activities.cloudflare_setup import (
     CopyArtifactsToBucketActivity,
     CreateCloudflareBucketActivity,
@@ -172,7 +173,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=TenantCrdExistsActivity,
                 arg=TenantCrdExistsActivityModel(
                     tenant=tenant,
-                    kind="VeritableTenant",
+                    kind=ResourceKindEnum.VeritableTenant,
                     product=ProductName,
                 ),
             )
@@ -181,7 +182,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 raise RuntimeError(f"Tenant {tenant} already exists")  # noqa: TRY301
 
             postgres_schema_name = f"{ProductName}_{tenant}"
-            postgres_database_name = f"{ProductName}-{config.env}"
+            postgres_database_name = f"{ProductName}_{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
             redis_tenant_password = generate_password(length=20)
@@ -857,7 +858,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=TenantCrdCreationActivity,
                 arg=TenantCrdCreationActivityModel(
                     tenant=tenant,
-                    kind="VeritableTenant",
+                    kind=ResourceKindEnum.VeritableTenant,
                     product=ProductName,
                     data=veritable.model_dump_json(),
                 ),

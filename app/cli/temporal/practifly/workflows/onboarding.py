@@ -5,6 +5,7 @@ from cryptography.fernet import Fernet
 from temporalio import workflow
 
 from app.cli.activity_util import run_activity
+from app.cli.k8s_util import ResourceKindEnum
 from app.cli.temporal.activities.cloudflare_setup import (
     CopyArtifactsToBucketActivity,
     CopyWebCoreToBucketActivity,
@@ -170,7 +171,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=TenantCrdExistsActivity,
                 arg=TenantCrdExistsActivityModel(
                     tenant=tenant,
-                    kind="PractiflyTenant",
+                    kind=ResourceKindEnum.PractiflyTenant,
                     product=ProductName,
                 ),
             )
@@ -814,7 +815,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=TenantCrdCreationActivity,
                 arg=TenantCrdCreationActivityModel(
                     tenant=tenant,
-                    kind="PractiflyTenant",
+                    kind=ResourceKindEnum.PractiflyTenant,
                     product=ProductName,
                     data=ijson_dumps(practifly),
                 ),

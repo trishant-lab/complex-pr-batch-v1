@@ -17,7 +17,7 @@ class TenantCrdCreationActivityModel(LaunchpadCLIBaseModel):
     TenantCrdCreationActivityModel
     """
 
-    kind: str
+    kind: ResourceKindEnum
     tenant: str
     data: str | None = None
     product: str
@@ -56,7 +56,7 @@ class TenantCrdCreationActivity(Activity):
 
         resource = get_resource(
             dynamic_client=k8s_dynamic_client,
-            kind=ResourceKindEnum.PractiflyTenant,
+            kind=activity_model.kind,
             api_version=f"{CRD_GROUP}/{CRD_VERSION}",
         )
 
@@ -84,7 +84,7 @@ class TenantCrdDeletionActivityModel(LaunchpadCLIBaseModel):
     TenantCrdDeletionActivityModel
     """
 
-    kind: str
+    kind: ResourceKindEnum
     tenant: str
     product: str
 
@@ -140,7 +140,7 @@ class GetTenantCrdActivityModel(LaunchpadCLIBaseModel):
     GetTenantCrdActivityModel
     """
 
-    kind: str
+    kind: ResourceKindEnum
     product: str
 
 
@@ -188,7 +188,7 @@ class TenantCrdExistsActivityModel(LaunchpadCLIBaseModel):
     TenantCrdExistsActivityModel
     """
 
-    kind: str
+    kind: ResourceKindEnum
     product: str
     tenant: str
 

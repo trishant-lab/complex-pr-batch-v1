@@ -110,7 +110,7 @@ async def update_tenant(
     @return:
     """
     db: DBManager = await get_db_manager()
-    tenant = await db.fetch_one("get_tenant.sql", tenant_id=f"'{tenant_id!s}'")
+    tenant = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))
     if not tenant:
         raise errors.TENANT_NOT_FOUND.exc()
 

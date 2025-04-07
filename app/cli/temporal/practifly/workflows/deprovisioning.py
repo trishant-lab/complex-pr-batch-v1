@@ -4,6 +4,7 @@ import pydash
 from temporalio import workflow
 
 from app.cli.activity_util import run_activity
+from app.cli.k8s_util import ResourceKindEnum
 from app.cli.temporal.activities.cloudflare_setup import (
     DeleteCloudflareBucketActivity,
     DeleteCloudflareDNSRecordActivity,
@@ -259,7 +260,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 activity=TenantCrdDeletionActivity,
                 arg=TenantCrdDeletionActivityModel(
                     tenant=tenant,
-                    kind="PractiflyTenant",
+                    kind=ResourceKindEnum.PractiflyTenant,
                     product="practifly",
                 ),
             )
