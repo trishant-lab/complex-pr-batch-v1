@@ -492,7 +492,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 arg=CopyArtifactsToBucketActivityModel(
                     bucket_name=ui_bucket,
                     src_object_name=src_object_name,
-                    dest_dir="",
+                    dest_dir=f"{ui_bucket}/",
                     bundle_path=bundle_path,
                     bundle_name="bundle.zip",
                     tenant=tenant,
