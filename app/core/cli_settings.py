@@ -70,14 +70,15 @@ def get_workers_config() -> dict[str, WorkerConfig]:
     from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
     from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvisioningWorkflow
     from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
+    from app.cli.temporal.pricedx.workflows.deprovisioning import PricedxDeProvisioningWorkflow
+    from app.cli.temporal.pricedx.workflows.onboarding import PricedxOnboardingWorkflow
+    from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvisioningWorkflow
     from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
     from app.cli.temporal.workflows.check_kube_config_certificate import KubeConfigCertExpiryWorkflow
     from app.cli.temporal.workflows.onboard import OnboardWorkflow
     from app.cli.temporal.workflows.payments.verify import OnboardPaymentVerifyWorkflow
     from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEventWorkflow
     from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
-    from app.cli.temporal.pricedx.workflows.onboarding import PricedxOnboardingWorkflow
-    from app.cli.temporal.pricedx.workflows.deprovisioning import PricedxDeProvisioningWorkflow
 
     workers_config = {
         "WORKER_1_PROCESS": {
@@ -100,6 +101,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
                 WorkerQueues.penknife_deboarding: {PenknifeDeProvisioningWorkflow},
                 WorkerQueues.practifly_deboarding: {PractiflyDeProvisioningWorkflow},
                 WorkerQueues.pricedx_deboarding: {PricedxDeProvisioningWorkflow},
+                WorkerQueues.veritable_deboarding: {VeritableDeProvisioningWorkflow},
             },
             "count": 1,
         },
