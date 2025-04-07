@@ -1,9 +1,8 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.temporal.penknife.models.penknifespec import PenknifeSpec
-from app.cli.workflowbase import ProductWorkflow
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.penknife.models.penknife_spec import PenknifeSpec
 from app.core.cli_settings import WorkerQueues
-
 
 ProductName = "penknife"
 
@@ -32,8 +31,8 @@ class PenknifeWorkflow(ProductWorkflow):
         """
         deprovision method
         """
-        from app.cli.temporal.starter import trigger_workflow
         from app.cli.temporal.penknife.workflows.deprovisioning import PenknifeDeProvisioningWorkflow
+        from app.cli.temporal.starter import trigger_workflow
 
         await trigger_workflow(
             workflow_input=PenknifeSpec(**schema),
@@ -46,8 +45,8 @@ class PenknifeWorkflow(ProductWorkflow):
         """
         approve method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=PenknifeSpec(**schema), workflow=PenknifeOnboardingWorkflow)
 
@@ -58,8 +57,8 @@ class PenknifeWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=PenknifeSpec(**schema), workflow=PenknifeOnboardingWorkflow)
 
@@ -70,8 +69,8 @@ class PenknifeWorkflow(ProductWorkflow):
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         return await get_workflow_handle(workflow_input=PenknifeSpec(**schema), workflow=PenknifeOnboardingWorkflow)
 

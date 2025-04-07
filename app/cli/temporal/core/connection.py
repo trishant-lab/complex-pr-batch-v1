@@ -1,3 +1,4 @@
+import async_lru
 from google.protobuf.duration_pb2 import Duration
 from loguru import logger
 from temporalio import client
@@ -9,11 +10,13 @@ from app.cli.temporal.core.data_converter import PydanticPayloadConverter
 from app.core.settings import get_settings
 
 
+@async_lru.alru_cache
 async def get_temporal_client() -> client.Client:
     """
     Get Temporal Client
     """
     config = get_settings()
+    await create_temporal_namespace()
     return await client.Client.connect(
         config.temporal.dsn,
         namespace=config.temporal.namespace,

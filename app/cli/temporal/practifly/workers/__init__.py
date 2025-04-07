@@ -1,3 +1,0 @@
-"""
-Practifly Temporal CLI Workers
-"""

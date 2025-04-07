@@ -1,7 +1,7 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
-from app.cli.workflowbase import ProductWorkflow
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec
 from app.core.cli_settings import WorkerQueues
 
 ProductName = "jeeves"
@@ -9,7 +9,7 @@ ProductName = "jeeves"
 
 class JeevesWorkflow(ProductWorkflow):
     """
-    VeritableWorkflow class
+    JeevesWorkflow class
     """
 
     @staticmethod
@@ -31,8 +31,8 @@ class JeevesWorkflow(ProductWorkflow):
         """
         deprovision method
         """
-        from app.cli.temporal.starter import trigger_workflow
         from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
+        from app.cli.temporal.starter import trigger_workflow
 
         await trigger_workflow(
             workflow_input=JeevesSpec(**schema),
@@ -45,8 +45,8 @@ class JeevesWorkflow(ProductWorkflow):
         """
         approve method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)
 
@@ -57,8 +57,8 @@ class JeevesWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)
 
@@ -69,8 +69,8 @@ class JeevesWorkflow(ProductWorkflow):
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         return await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)
 

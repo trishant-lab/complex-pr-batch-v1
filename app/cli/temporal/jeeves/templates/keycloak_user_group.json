@@ -1,0 +1,49 @@
+{
+  "Admin": [
+    "_allow-standalone-launch",
+    "_access-reports",
+    "_can-manage-activities",
+    "_allow-view-assets",
+    "_allow-view-all-courses",
+    "_access-manage-todos",
+    "_access-users",
+    "_can-manage-groups",
+    "_allow-add-edit-assets",
+    "_allow-add-edit-courses",
+    "_allow-publish-assets",
+    "_allow-delete-assets",
+    "_allow-delete-courses",
+    "_can-manage-users",
+    "_access-settings"
+  ],
+  "Publisher": [
+    "_allow-standalone-launch",
+    "_access-reports",
+    "_can-manage-activities",
+    "_allow-view-assets",
+    "_allow-view-all-courses",
+    "_access-manage-todos",
+    "_access-users",
+    "_can-manage-groups",
+    "_allow-add-edit-assets",
+    "_allow-add-edit-courses",
+    "_allow-publish-assets",
+    "_allow-delete-assets",
+    "_allow-delete-courses"
+  ],
+  "Author": [
+    "_allow-standalone-launch",
+    "_access-reports",
+    "_can-manage-activities",
+    "_allow-view-assets",
+    "_allow-view-all-courses",
+    "_access-manage-todos",
+    "_access-users",
+    "_can-manage-groups",
+    "_allow-add-edit-assets",
+    "_allow-add-edit-courses"
+  ],
+  "Learner": [
+    "_allow-standalone-launch"
+  ]
+}

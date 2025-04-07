@@ -1,7 +1,7 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
-from app.cli.workflowbase import ProductWorkflow
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
 from app.core.cli_settings import WorkerQueues
 
 ProductName = "veritable"
@@ -17,8 +17,8 @@ class VeritableWorkflow(ProductWorkflow):
         """
         onboard method
         """
-        from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
+        from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
 
         await trigger_workflow(
             workflow_input=VeritableSpec(**schema),

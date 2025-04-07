@@ -3,38 +3,49 @@ from collections.abc import Callable
 import pydash
 from temporalio import workflow
 
-from app.cli.temporal.activities.cloudflareSetup import (
+from app.cli.activity_util import run_activity
+from app.cli.temporal.activities.cloudflare_setup import (
     DeleteCloudflareBucketActivity,
-    DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivity,
-    DeleteCloudflareDNSRecordActivityModel,
     DeleteFilesFromCloudflareActivity,
 )
-from app.cli.temporal.activities.databaseMigrationJob import (
+from app.cli.temporal.activities.database_migration_job import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
 )
-from app.cli.temporal.activities.k8sconfigMap import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
-from app.cli.temporal.activities.k8sIstioVirtualService import (
+from app.cli.temporal.activities.k8s_config_map import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
+from app.cli.temporal.activities.k8s_istio_virtual_service import (
     DeleteKubernetesIstioVirtualServiceActivity,
     DeleteKubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8sSecret import K8sSecretDeletionActivity, K8sSecretDeletionActivityModel
-from app.cli.temporal.activities.k8sService import DeleteKubernetesServiceActivity, DeleteKubernetesServiceActivityModel
-from app.cli.temporal.activities.statefulSetPodCreation import (
+from app.cli.temporal.activities.k8s_secret import K8sSecretDeletionActivity, K8sSecretDeletionActivityModel
+from app.cli.temporal.activities.k8s_service import (
+    DeleteKubernetesServiceActivity,
+    DeleteKubernetesServiceActivityModel,
+)
+from app.cli.temporal.activities.stateful_set_pod_creation import (
     StatefulSetPodDeletionActivity,
     StatefulSetPodDeletionActivityModel,
 )
-from app.cli.temporal.activities.temporalNamespace import (
+from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
 )
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.veritableNovuSetup import VeritableNovuDeProvisionActivity
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperDeletionActivity, VMPodScrapperDeletionActivityModel
+from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuDeProvisionActivity
+from app.cli.temporal.activities.vm_pod_scrapper import (
+    VMPodScrapperDeletionActivity,
+    VMPodScrapperDeletionActivityModel,
+)
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.veritable.models.veritableSpec import VeritableSpec
+from app.cli.temporal.models.cloudflare import (
+    DeleteCloudflareBucketActivityModel,
+    DeleteCloudflareDNSRecordActivityModel,
+)
+from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
 from app.core.settings import VeritableSettings, get_settings
+from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
 
 ProductName = "veritable"
 
@@ -86,59 +97,49 @@ class VeritableDeProvisioningWorkflow(Workflow):
 
         try:
             # delete k8s service
-            await workflow.execute_activity(
-                DeleteKubernetesServiceActivity.defn,
+            await run_activity(
+                activity=DeleteKubernetesServiceActivity,
                 arg=DeleteKubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="veritable",
                 ),
-                start_to_close_timeout=DeleteKubernetesServiceActivity.get_timeout(),
-                retry_policy=DeleteKubernetesServiceActivity.get_retry_policy(),
             )
 
             # delete k8s virtual service
-            await workflow.execute_activity(
-                DeleteKubernetesIstioVirtualServiceActivity.defn,
+            await run_activity(
+                activity=DeleteKubernetesIstioVirtualServiceActivity,
                 arg=DeleteKubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     service_name="veritable-vs",
                 ),
-                start_to_close_timeout=DeleteKubernetesIstioVirtualServiceActivity.get_timeout(),
-                retry_policy=DeleteKubernetesIstioVirtualServiceActivity.get_retry_policy(),
             )
 
             # delete provisioning job
-            await workflow.execute_activity(
-                DeleteDatabaseMigrationJobActivity.defn,
+            await run_activity(
+                activity=DeleteDatabaseMigrationJobActivity,
                 arg=DeleteDatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="veritable-tenant-provisioning-job",
                 ),
-                start_to_close_timeout=DeleteDatabaseMigrationJobActivity.get_timeout(),
-                retry_policy=DeleteDatabaseMigrationJobActivity.get_retry_policy(),
             )
 
             # delete alembic job
-            await workflow.execute_activity(
-                DeleteDatabaseMigrationJobActivity.defn,
+            await run_activity(
+                activity=DeleteDatabaseMigrationJobActivity,
                 arg=DeleteDatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="veritable-tenant-alembic-job",
                 ),
-                start_to_close_timeout=DeleteDatabaseMigrationJobActivity.get_timeout(),
-                retry_policy=DeleteDatabaseMigrationJobActivity.get_retry_policy(),
             )
 
             # delete stateful sets
             for stateful_set in ["veritable", "veritable-cli"]:
-                await workflow.execute_activity(
-                    StatefulSetPodDeletionActivity.defn,
+                await run_activity(
+                    activity=StatefulSetPodDeletionActivity,
                     arg=StatefulSetPodDeletionActivityModel(
                         namespace=tenant,
                         name=stateful_set,
                     ),
-                    start_to_close_timeout=StatefulSetPodDeletionActivity.get_timeout(),
-                    retry_policy=StatefulSetPodDeletionActivity.get_retry_policy(),
                 )
 
             # delete config maps
@@ -150,14 +151,12 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 "veritable-provisioning-config",
             ]
             for config_map in config_maps:
-                await workflow.execute_activity(
-                    DeleteK8sConfigMapActivity.defn,
+                await run_activity(
+                    activity=DeleteK8sConfigMapActivity,
                     arg=DeleteK8sConfigMapActivityModel(
                         namespace=tenant,
                         name=config_map,
                     ),
-                    start_to_close_timeout=DeleteK8sConfigMapActivity.get_timeout(),
-                    retry_policy=DeleteK8sConfigMapActivity.get_retry_policy(),
                 )
 
             # delete secrets
@@ -167,99 +166,81 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 "veritable-cloudflare-r2",
             ]
             for secret in secrets:
-                await workflow.execute_activity(
-                    K8sSecretDeletionActivity.defn,
+                await run_activity(
+                    activity=K8sSecretDeletionActivity,
                     arg=K8sSecretDeletionActivityModel(
                         namespace=tenant,
                         name=secret,
                     ),
-                    start_to_close_timeout=K8sSecretDeletionActivity.get_timeout(),
-                    retry_policy=K8sSecretDeletionActivity.get_retry_policy(),
                 )
 
             # delete bucket
-            await workflow.execute_activity(
-                DeleteCloudflareBucketActivity.defn,
+            await run_activity(
+                activity=DeleteCloudflareBucketActivity,
                 arg=DeleteCloudflareBucketActivityModel(
                     bucket_name=veritable.cloudflare_r2_data_bucket,
                 ),
-                start_to_close_timeout=DeleteCloudflareBucketActivity.get_timeout(),
-                retry_policy=DeleteCloudflareBucketActivity.get_retry_policy(),
             )
 
             # delete dns record
-            await workflow.execute_activity(
-                DeleteCloudflareDNSRecordActivity.defn,
+            await run_activity(
+                activity=DeleteCloudflareDNSRecordActivity,
                 arg=DeleteCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.{veritable_config.domain_name}",
                     zone_id=veritable_config.zone_id,
                 ),
-                start_to_close_timeout=DeleteCloudflareDNSRecordActivity.get_timeout(),
-                retry_policy=DeleteCloudflareDNSRecordActivity.get_retry_policy(),
             )
 
             # delete vm pod scrappers
             for scrapper in ["veritable-metrics", "veritable-cli-metrics"]:
-                await workflow.execute_activity(
-                    VMPodScrapperDeletionActivity.defn,
+                await run_activity(
+                    activity=VMPodScrapperDeletionActivity,
                     arg=VMPodScrapperDeletionActivityModel(
                         namespace=tenant,
                         name=scrapper,
                     ),
-                    start_to_close_timeout=VMPodScrapperDeletionActivity.get_timeout(),
-                    retry_policy=VMPodScrapperDeletionActivity.get_retry_policy(),
                 )
 
             # delete temporal namespace
-            await workflow.execute_activity(
-                DeleteTemporalNamespaceActivity.defn,
+            await run_activity(
+                activity=DeleteTemporalNamespaceActivity,
                 arg=DeleteTemporalNamespaceActivityModel(
                     namespace=f"veritable_{tenant}",
                 ),
-                start_to_close_timeout=DeleteTemporalNamespaceActivity.get_timeout(),
-                retry_policy=DeleteTemporalNamespaceActivity.get_retry_policy(),
             )
 
-            await workflow.execute_activity(
-                activity=VeritableNovuDeProvisionActivity.defn,
+            await run_activity(
+                activity=VeritableNovuDeProvisionActivity,
                 arg=veritable,
-                start_to_close_timeout=VeritableNovuDeProvisionActivity.get_timeout(),
-                retry_policy=VeritableNovuDeProvisionActivity.get_retry_policy(),
             )
 
-            await workflow.execute_activity(
-                DeleteCloudflareBucketActivity.defn,
+            await run_activity(
+                activity=DeleteCloudflareBucketActivity,
                 arg=DeleteCloudflareBucketActivityModel(
                     bucket_name=veritable.cloudflare_r2_ui_bucket,
                 ),
-                start_to_close_timeout=DeleteCloudflareBucketActivity.get_timeout(),
-                retry_policy=DeleteCloudflareBucketActivity.get_retry_policy(),
             )
 
             # update tenant status
-            await workflow.execute_activity(
-                UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status="DeProvisioned",
-                    product=ProductName,
+                    status=TenantStatusEnum.DeProvisioned,
+                    product=ProductEnum.veritable,
                 ),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
             )
 
         except Exception as e:
             workflow.logger.error(f"Error in deprovisioning workflow: {e}")
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status="Failed",
+                    status=TenantStatusEnum.DeprovisioningFailed,
                     error_msg=str(e),
-                    product=ProductName,
+                    product=ProductEnum.veritable,
                 ),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
 

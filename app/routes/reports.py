@@ -1,123 +1,113 @@
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Path
 from loguru import logger
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.core.db import DBManager, get_db_manager
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
+from app.models.product import ProductEnum
 
 reports_router = APIRouter()
 
-RESULT_PER_USER = "int(sum(row['count_'] for row in {result}) / len({result}))"
-SUM_RESULT = "sum(row['count_'] for row in {result})"
-JEEVES_REPORTS_PER_USER_SQL = "jeevesReportsPerUser.sql"
-
 REPORT_NAMES: dict = {
-    "jeeves": {
+    ProductEnum.jeeves: {
         "assetsViewedSummary": {
-            "query": "assetViewedPerUser.sql",
+            "query": "asset_viewed_per_user.sql",
             "response_model": {
-                "total_assets_viewed": SUM_RESULT,
-                "assets_viewed_per_user": RESULT_PER_USER,
+                "total_assets_viewed": "sum(row['count_'] for row in {result})",
+                "assets_viewed_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
             },
         },
         "assetsDownloadSummary": {
-            "query": JEEVES_REPORTS_PER_USER_SQL,
+            "query": "jeeves_reports_per_user.sql",
             "input_params": {"event_category": "Assets", "event_action": "Download"},
             "response_model": {
-                "total_assets_downloaded": SUM_RESULT,
-                "assets_downloaded_per_user": RESULT_PER_USER,
+                "total_assets_downloaded": "sum(row['count_'] for row in {result})",
+                "assets_downloaded_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
             },
         },
         "assetsShared": {
-            "query": JEEVES_REPORTS_PER_USER_SQL,
+            "query": "jeeves_reports_per_user.sql",
             "input_params": {"event_category": "Assets", "event_action": "Share"},
             "response_model": {
-                "total_assets_shared": SUM_RESULT,
-                "assets_shared_per_user": RESULT_PER_USER,
+                "total_assets_shared": "sum(row['count_'] for row in {result})",
+                "assets_shared_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
             },
         },
         "queriesSearched": {
-            "query": "queriesPerUser.sql",
+            "query": "queries_per_user.sql",
             "response_model": {
-                "total_searches": SUM_RESULT,
-                "searches_per_user": RESULT_PER_USER,
+                "total_searches": "sum(row['count_'] for row in {result})",
+                "searches_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
             },
         },
         "users": {
-            "query": "getTotalUsers.sql",
+            "query": "get_total_users.sql",
             "response_model": {
                 "total_users": "'{result[0][total_users]}'",
                 "users_per_session": "'{result[0][session_per_user]}'",
             },
         },
         "totalSessionsAndAvgDuration": {
-            "query": "totalSessionsAndAvgDuration.sql",
+            "query": "total_sessions_and_avg_duration.sql",
             "response_model": {
                 "total_sessions": "'{result[0][total_sessions]}'",
                 "avg_duration": "'{result[0][average_session_duration]}'",
             },
         },
         "assignmentsCreatedPerUser": {
-            "query": "jeevesReportsPerUser.sql",
+            "query": "jeeves_reports_per_user.sql",
             "input_params": {"event_category": "Assignments", "event_action": "Create"},
             "response_model": {
-                "total_assignments_created": SUM_RESULT,
-                "assignments_per_user": RESULT_PER_USER,
+                "total_assignments_created": "sum(row['count_'] for row in {result})",
+                "assignments_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
             },
         },
         "assetUpload": {
-            "query": JEEVES_REPORTS_PER_USER_SQL,
+            "query": "jeeves_reports_per_user.sql",
             "input_params": {"event_category": "Add Asset", "event_action": "Upload Video"},
             "response_model": {
-                "total_assets_uploaded": SUM_RESULT,
-                "assets_uploaded_per_user": RESULT_PER_USER,
+                "total_assets_uploaded": "sum(row['count_'] for row in {result})",
+                "assets_uploaded_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
             },
         },
         "assetRecord": {
-            "query": JEEVES_REPORTS_PER_USER_SQL,
+            "query": "jeeves_reports_per_user.sql",
             "input_params": {"event_category": "Add Asset", "event_action": "Record Video"},
             "response_model": {
-                "total_assets_recorded": SUM_RESULT,
-                "assets_recorded_per_user": RESULT_PER_USER,
+                "total_assets_recorded": "sum(row['count_'] for row in {result})",
+                "assets_recorded_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
             },
         },
         "assetsTipSheetCreatedPerUser": {
-            "query": "jeevesTipSheetReportsPerUser.sql",
+            "query": "jeeves_tip_sheet_reports_per_user.sql",
             "response_model": {
-                "total_assets_tip_sheet": SUM_RESULT,
-                "tipsheet_created_per_user": RESULT_PER_USER,
+                "total_assets_tip_sheet": "sum(row['count_'] for row in {result})",
+                "tipsheet_created_per_user": "int(sum(row['count_'] for row in {result}) / len({result}))",
             },
         },
     }
 }
 
 
-@reports_router.get("/getreportsNames", operation_id="getReportsNames")
-async def get_reports_names(product_name: str) -> list[str]:
-    """
-    Get all the reports names for a given product
-    """
-    return list(REPORT_NAMES[product_name].keys())
-
-
-@reports_router.get("/")
+@reports_router.get("/{product}")
 async def get_report_data(
-    product_name: str,
     tenant: str,
     report_name: str,
     start_date: date | None = None,
     end_date: date | None = None,
-    _params: dict = Depends(get_oauth_scheme()),
+    product: ProductEnum = Path(...),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> dict:
     """
     Get the report data for a given report name
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+    db: DBManager = await get_db_manager()
 
-    report_details: dict = REPORT_NAMES[product_name][report_name]
+    report_details: dict = REPORT_NAMES[product][report_name]
     site_id: str = config.jeeves.reporting_site_id
 
     parameters = {

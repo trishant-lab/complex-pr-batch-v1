@@ -1,52 +1,33 @@
-import uuid
-from itertools import filterfalse
 from typing import TYPE_CHECKING
+from uuid import UUID
 
-import orjson
-from fastapi import APIRouter, Depends, Path, BackgroundTasks
+from better_profanity import profanity
+from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query
 from loguru import logger
-from starlette.exceptions import HTTPException
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
+from pydantic import EmailStr
 from temporalio.client import WorkflowHandle
 
 from app.core.db import DBManager, get_db_manager
+from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.oauth2 import get_oauth_scheme
-from app.core.settings import AppSettings, get_settings
+from app.exceptions import errors
+from app.models.input_param_patterns import TENANT_NAME_PATTERN, TOKEN_PATTERN
 from app.models.product import ProductEnum
 from app.models.tenant import (
+    SuggestTenantNamesResponseModel,
     TenantCreateRequestModel,
     TenantResponseModel,
-    SuggestTenantNamesResponseModel,
+    TenantStatusEnum,
 )
+from app.route_utils.product import validate_email_domain, validate_provisioning_details
+from app.route_utils.session_util import get_treated_email
+from app.route_utils.tenant_suggestions import get_existing_tenant_names, get_valid_suggestions
+from app.route_utils.user_session import UserSession
 
 if TYPE_CHECKING:
-    from app.cli.workflowbase import ProductWorkflow
+    from app.cli.base_workflow import ProductWorkflow
 
 tenant_router = APIRouter()
-
-
-async def create_requestor(requestor: dict) -> dict:
-    """
-    @param requestor:
-    @return:
-    """
-    config: AppSettings = get_settings()
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one(
-            "createRequestor.sql",
-            username=requestor["userName"],
-            email=requestor["email"],
-            organization=requestor["organization"],
-        )
-        return dict(response)
-
-    except Exception as e:
-        logger.error(f"Error updating requestor: {e}")
-        raise HTTPException(
-            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error updating requestor",
-        )
 
 
 async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
@@ -54,22 +35,14 @@ async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
     @param tenant_details:
     @return:
     """
-    config: AppSettings = get_settings()
-
-    requestor = await create_requestor(tenant_details.requestor)
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        return dict(
-            await db.fetch_one(
-                "createTenant.sql",
-                **tenant_details.model_dump(),
-                requestor_id=requestor["id"],
-            )
+    db: DBManager = await get_db_manager()
+    return dict(
+        await db.fetch_one(
+            "create_tenant.sql",
+            errors=ijson_dumps({"error": "NA"}),
+            **tenant_details.model_dump(),
         )
-
-    except Exception as e:
-        logger.error(f"Error creating tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error creating tenant")
+    )
 
 
 @tenant_router.get(
@@ -78,37 +51,18 @@ async def create_tenant(tenant_details: TenantCreateRequestModel) -> dict:
     response_model=list[TenantResponseModel] | None,
 )
 async def list_tenants(
-    product: ProductEnum = Path(...), tenant_id: uuid.UUID | None = None, _param: dict = Depends(get_oauth_scheme())
+    product: ProductEnum = Path(...), tenant_id: UUID | None = None, _: dict = Depends(get_oauth_scheme())
 ) -> list[TenantResponseModel]:
     """
     @param product:
     @param tenant_id:
-    @param _param:
+    @param _:
     @return:
     """
-    config: AppSettings = get_settings()
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        parameters = {"tenant_id": str(tenant_id) if tenant_id else None, "product": product.value.lower()}
-        response = await db.fetch_all("listTenants.sql", **parameters)
-
-        output_response = []
-        for tenant in response:
-            tenant = dict(tenant)
-            tenant["requestor"] = orjson.loads(tenant["requestor_details"])
-            tenant["product_schema"] = orjson.loads(tenant["schema"]) if tenant.get("schema") else None
-            tenant["product_schema"].pop("tenant") if tenant["product_schema"] and tenant.get("product_schema", {}).get(
-                "tenant"
-            ) else None
-            tenant["provisionedDateTime"] = tenant.get("provisioneddatetime")
-            tenant["approvedBy"] = tenant.get("approver")
-            output_response.append(TenantResponseModel(**tenant))
-
-        return output_response
-
-    except Exception as e:
-        logger.error(f"Error fetching tenants: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenants")
+    db: DBManager = await get_db_manager()
+    parameters = {"tenant_id": str(tenant_id) if tenant_id else None, "product": product.value}
+    response = await db.fetch_all("list_tenants.sql", **parameters)
+    return [TenantResponseModel.json_to_model(dict(tenant)) for tenant in response]
 
 
 async def update_provisioning_workflow(product: ProductEnum, tenant_details: dict) -> None:
@@ -123,12 +77,12 @@ async def update_provisioning_workflow(product: ProductEnum, tenant_details: dic
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=tenant_details)
+    if workflow_handle:
+        response = await workflow_handle.describe()
 
-    response = await workflow_handle.describe()
-
-    if response.status.name == "RUNNING":
-        # terminate the workflow
-        await workflow_handle.terminate()
+        if response.status.name == "RUNNING":
+            # terminate the workflow
+            await workflow_handle.terminate()
 
     # start the workflow
     await product_workflow.onboard(tenant_details)
@@ -137,119 +91,112 @@ async def update_provisioning_workflow(product: ProductEnum, tenant_details: dic
 
 
 @tenant_router.put(
-    "/updateTenantDetails/{product}",
+    "/{product}/updateTenantDetails/{tenant_id}",
     operation_id="updateTenantDetails",
 )
 async def update_tenant(
-    tenant_id: str,
     tenant_details: dict,
     product: ProductEnum = Path(..., alias="product"),
+    tenant_id: UUID = Path(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    _param: dict = Depends(get_oauth_scheme()),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> dict:
     """
     @param product:
     @param tenant_id:
     @param tenant_details:
     @param background_tasks:
-    @param _param:
+    @param _:
     @return:
     """
-    config: AppSettings = get_settings()
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        tenant_details_str = orjson.dumps(tenant_details).decode("utf-8")
-        response = await db.fetch_one("updateTenantDetails.sql", schema_=tenant_details_str, tenant_id=tenant_id)
+    db: DBManager = await get_db_manager()
+    tenant = await db.fetch_one("get_tenant.sql", tenant_id=f"'{tenant_id!s}'")
+    if not tenant:
+        raise errors.TENANT_NOT_FOUND.exc()
 
-        background_tasks.add_task(update_provisioning_workflow, product, tenant_details)
+    if not TenantStatusEnum.can_update_tenant(TenantStatusEnum(tenant["status"])):
+        raise errors.TENANT_DETAILS_CANNOT_BE_UPDATED.exc()
 
-        return {"message": "Tenant details are updated successfully", "data": response}
+    schema = ijson_loads(tenant["schema"]) if tenant["schema"] else None
+    await validate_provisioning_details(product=product, data=tenant_details, schema=schema)
 
-    except Exception as e:
-        logger.error(f"Error updating tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error updating tenant")
+    tenant_details_str = ijson_dumps(tenant_details)
+    response = await db.fetch_one("update_tenant_details.sql", data=tenant_details_str, tenant_id=f"'{tenant_id!s}'")
 
+    background_tasks.add_task(update_provisioning_workflow, product, tenant_details)
 
-def generate_combinations(organization: str) -> list:
-    """
-    @param organization:
-    @return:
-    """
-    words = organization.split()
-    combinations = set()
-
-    def helper(prefix: str, start: int) -> None:
-        if len(combinations) > 20:
-            return
-        if start >= len(words):
-            if 2 < len(prefix) < 8:
-                combinations.add(prefix.lower())
-        else:
-            word = words[start]
-            for j in range(1, len(word) + 1):
-                if word[:j].isdigit():
-                    continue
-                new_prefix = prefix + "".join(x for x in word[:j] if x.isalpha())
-                helper(new_prefix, start + 1)
-
-    helper("", 0)
-    return sorted(combinations, key=len)
-
-
-async def get_valid_tenant_names(product: ProductEnum, tenant_names: list) -> list:
-    """
-    @param product:
-    @param tenant_names:
-    @return:
-    """
-    config: AppSettings = get_settings()
-    tenant_name_clause = ",".join([f"'{val.lower()}'" for val in tenant_names])
-    if tenant_name_clause:
-        params = {
-            "tenant_name_clause": tenant_name_clause,
-            "product": product.value.lower(),
-        }
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
-        return [data["name"] for data in await db.fetch_all("getValidTenantNames.sql", **params)]
-    return []
+    return {"message": "Tenant details are updated successfully", "data": response}
 
 
 @tenant_router.get(
-    "/suggestTenantNames/{product}",
+    "/{product}/suggestTenantNames",
     operation_id="suggestTenantNames",
 )
-async def suggest_tenant_names(organization: str, product: ProductEnum = Path(...)) -> SuggestTenantNamesResponseModel:
+async def suggest_tenant_names(
+    product: ProductEnum = Path(...),
+    email: EmailStr = Query(...),
+    organization: str = Query(...),
+    token: str = Query(..., pattern=TOKEN_PATTERN),
+) -> SuggestTenantNamesResponseModel:
     """
     @param organization:
     @param product:
     @return:
     """
-    combinations = generate_combinations(organization=organization)
-    existing_tenants = await get_valid_tenant_names(product=product, tenant_names=combinations)
-    existing_tenants.extend(["auth", "accounts"])
+    email = get_treated_email(email)
+    validate_email_domain(product=product, email=email)
+    await UserSession.validate_session(product=product, email=email, session_token=token)
+    tenant_names = await get_valid_suggestions(product=product, email=email, organization=organization)
     return SuggestTenantNamesResponseModel(
-        tenant_names=list(filterfalse(existing_tenants.__contains__, combinations)),
-        domain=ProductEnum.get_domain(product.value),
+        tenant_names=tenant_names,
+        domain=ProductEnum.get_domain(product),
     )
 
 
 @tenant_router.get(
-    "/validateTenantName/{tenant_name}",
+    "/{product}/validateTenantName/{tenant_name}",
     operation_id="validateTenantName",
 )
 async def verify_tenant_name(
-    product: ProductEnum,
-    tenant_name: str = Path(min_length=3, max_length=20),
-    # , regex="^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$"),
+    tenant_name: str = Path(pattern=TENANT_NAME_PATTERN),
+    product: ProductEnum = Path(...),
+    email: EmailStr = Query(...),
+    token: str = Query(..., pattern=TOKEN_PATTERN),
 ) -> None:
     """
     @param product:
     @param tenant_name:
     @return:
     """
-    tenant_names = await get_valid_tenant_names(product=product, tenant_names=[tenant_name.lower()])
+    email = get_treated_email(email)
+    validate_email_domain(product=product, email=email)
+    await UserSession.validate_session(product=product, email=email, session_token=token)
+    tenant_names = await get_existing_tenant_names(product=product, email=email, tenant_names=[tenant_name.lower()])
     if tenant_names:
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-            detail=f"Tenant name {tenant_name} already exists",
-        )
+        raise errors.ALREADY_ALLOCATED_TENANT_NAME.exc()
+    if profanity.contains_profanity(tenant_name):
+        raise errors.EXPLICIT_WORDS_NOT_ALLOWED.exc()
+
+
+@tenant_router.get(
+    "/{product}/keycloak/validateTenantName/{tenant_name}",
+    operation_id="validateTenantNameByKeycloak",
+)
+async def verify_tenant_name_by_keycloak(
+    tenant_name: str = Path(pattern=TENANT_NAME_PATTERN),
+    product: ProductEnum = Path(...),
+    email: EmailStr = Query(...),
+    _: dict = Depends(get_oauth_scheme()),
+) -> None:
+    """
+    @param product:
+    @param tenant_name:
+    @return:
+    """
+    email = get_treated_email(email)
+    validate_email_domain(product=product, email=email)
+    tenant_names = await get_existing_tenant_names(product=product, email=email, tenant_names=[tenant_name.lower()])
+    if tenant_names:
+        raise errors.ALREADY_ALLOCATED_TENANT_NAME.exc()
+    if profanity.contains_profanity(tenant_name):
+        raise errors.EXPLICIT_WORDS_NOT_ALLOWED.exc()
