@@ -338,6 +338,10 @@ class PricedxSchema(BaseFormSchema):
     )
 
 
+class MuspellSchema(BaseFormSchema):
+    pass
+
+
 ProductSchemaDataType = TypeVar(
     "ProductSchemaDataType",
     VeritableSchema,
@@ -348,6 +352,7 @@ ProductSchemaDataType = TypeVar(
     ZsegmentSchema,
     PenknifeSchema,
     PricedxSchema,
+    MuspellSchema,
 )
 
 PRODUCT_SCHEMA_MAP = {
@@ -359,4 +364,5 @@ PRODUCT_SCHEMA_MAP = {
     ProductEnum.zsegment: ZsegmentSchema,
     ProductEnum.penknife: PenknifeSchema,
     ProductEnum.pricedx: PricedxSchema,
+    ProductEnum.muspell: MuspellSchema,
 }
