@@ -87,6 +87,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             DeleteDatabaseMigrationJobActivity.defn,
             VeritableNovuDeProvisionActivity.defn,
             TenantCrdDeletionActivity.defn,
+            DeploymentDeletionActivity.defn,
         ]
 
     @classmethod

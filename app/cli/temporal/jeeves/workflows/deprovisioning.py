@@ -96,6 +96,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
             DeleteKeycloakRealmActivity.defn,
             DeleteIdpFromHelpinstanceActivity.defn,
             RedisDeleteNamespaceActivity.defn,
+            DeploymentDeletionActivity.defn,
         ]
 
     @classmethod

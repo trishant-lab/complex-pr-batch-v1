@@ -90,6 +90,7 @@ class PricedxDeProvisioningWorkflow(Workflow):
             DeleteKeycloakClientActivity.defn,
             DeleteKeycloakRealmActivity.defn,
             RedisDeleteNamespaceActivity.defn,
+            DeploymentDeletionActivity.defn,
         ]
 
     @classmethod
