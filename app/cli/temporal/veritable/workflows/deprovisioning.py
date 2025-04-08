@@ -14,6 +14,10 @@ from app.cli.temporal.activities.database_migration_job import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.deployment import (
+    DeploymentDeletionActivity,
+    DeploymentDeletionActivityModel,
+)
 from app.cli.temporal.activities.k8s_config_map import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     DeleteKubernetesIstioVirtualServiceActivity,
@@ -145,12 +149,20 @@ class VeritableDeProvisioningWorkflow(Workflow):
             )
 
             # delete stateful sets
-            for stateful_set in ["veritable", "veritable-cli"]:
+            for name in ["veritable", "veritable-cli"]:
                 await run_activity(
                     activity=StatefulSetPodDeletionActivity,
                     arg=StatefulSetPodDeletionActivityModel(
                         namespace=tenant,
-                        name=stateful_set,
+                        name=name,
+                    ),
+                )
+
+                await run_activity(
+                    activity=DeploymentDeletionActivity,
+                    arg=DeploymentDeletionActivityModel(
+                        namespace=tenant,
+                        name=name,
                     ),
                 )
 
@@ -173,7 +185,8 @@ class VeritableDeProvisioningWorkflow(Workflow):
 
             # delete secrets
             secrets = [
-                "tenant-cache-secret",
+                "veritable-postgres",
+                "veritable-redis",
                 "veritable-novu",
                 "veritable-cloudflare-r2",
             ]

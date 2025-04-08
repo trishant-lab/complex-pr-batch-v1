@@ -1,7 +1,7 @@
 {
     "keycloak.auth_url": "https://auth.veritable.app",
     "keycloak.client_id": "installer",
-    "keycloak.client_secret": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/keycloak_client_secret>>",
+    "keycloak.client_secret": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/keycloak_client_secret}}",
 
     "postgres.port": "5432",
     "postgres.host": "db-cluster-ha.postgres16.svc.cluster.local",
@@ -13,22 +13,22 @@
 
     "ezapi.request_url": "http://ezapi.ezapi.svc.cluster.local:8000",
     "ezapi.auth_url": "https://auth.veritable.app",
-    "ezapi.client_id": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/ezapi_client_id>>",
-    "ezapi.client_secret": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/ezapi_client_secret>>",
-    "ezapi.realm": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/ezapi_realm>>",
-    "ezapi.grant_type": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/ezapi_grant_type>>",
+    "ezapi.client_id": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/ezapi_client_id}}",
+    "ezapi.client_secret": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/ezapi_client_secret}}",
+    "ezapi.realm": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/ezapi_realm}}",
+    "ezapi.grant_type": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/ezapi_grant_type}}",
 
-    "sendgrid.api_key": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/sendgrid_api_key>>",
+    "sendgrid.api_key": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/sendgrid_api_key}}",
 
-    "stripe.api_key": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/stripe_api_key>>",
-    "stripe.secret_key": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/stripe_secret_key>>",
+    "stripe.api_key": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/stripe_api_key}}",
+    "stripe.secret_key": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/stripe_secret_key}}",
 
     "accounts.api_url": "http://veritable-accounts-svc.lago.svc.cluster.local:8000/accounts/",
     "accounts.auth_url": "https://auth.veritable.app",
-    "accounts.client_id": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_client_id>>",
-    "accounts.client_secret": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_client_secret>>",
-    "accounts.realm": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_realm>>",
-    "accounts.grant_type": "<<op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_grant_type>>",
+    "accounts.client_id": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_client_id}}",
+    "accounts.client_secret": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_client_secret}}",
+    "accounts.realm": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_realm}}",
+    "accounts.grant_type": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_grant_type}}",
 
     "temporal.host": "temporal-frontend.temporal.svc.cluster.local",
     "temporal.port": "7233"

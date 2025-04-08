@@ -14,6 +14,10 @@ from app.cli.temporal.activities.cloudflare_setup import (
     LinkBucketToDomainActivity,
     PropagateDNSRecordActivity,
 )
+from app.cli.temporal.activities.deployment_pod_creation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
+)
 from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
@@ -61,8 +65,8 @@ from app.cli.temporal.activities.send_mail import (
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
+    StatefulSetPodDeletionActivity,
+    StatefulSetPodDeletionActivityModel,
 )
 from app.cli.temporal.activities.temporal_namespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.tenant_crd import (
@@ -134,7 +138,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             PractiflyJobActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             CopyWebCoreToBucketActivity.defn,
-            KubernetesStatefulSetActivity.defn,
+            StatefulSetPodDeletionActivity.defn,
             UpdateTenantStatusActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             TenantCrdExistsActivity.defn,
@@ -142,6 +146,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             KeycloakCreateInternalUsersActivity.defn,
             CheckPodRunningStatusActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            KubernetesDeploymentActivity.defn,
         ]
 
     @classmethod
@@ -602,10 +607,20 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # statefulset pod creation for server
+            # delete statefulsets
+            for statefulset in ["practifly", "practifly-cli"]:
+                await run_activity(
+                    activity=StatefulSetPodDeletionActivity,
+                    arg=StatefulSetPodDeletionActivityModel(
+                        namespace=tenant,
+                        name=statefulset,
+                    ),
+                )
+
+            # deployment pod creation for server
             await run_activity(
-                activity=KubernetesStatefulSetActivity,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="practifly",
                     docker_image=docker_image,
@@ -683,8 +698,8 @@ class PractiflyOnboardingWorkflow(Workflow):
 
             # statefulset pod creation for cli
             await run_activity(
-                activity=KubernetesStatefulSetActivity,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="practifly-cli",
                     docker_image=docker_image,

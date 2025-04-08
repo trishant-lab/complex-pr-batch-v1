@@ -20,6 +20,10 @@ from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.deployment_pod_creation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
+)
 from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
@@ -58,8 +62,8 @@ from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActi
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
+    StatefulSetPodDeletionActivity,
+    StatefulSetPodDeletionActivityModel,
 )
 from app.cli.temporal.activities.temporal_namespace import (
     TemporalNamespaceActivity,
@@ -134,7 +138,6 @@ class VeritableOnboardingWorkflow(Workflow):
             DatabaseMigrationJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
-            KubernetesStatefulSetActivity.defn,
             TemporalNamespaceActivity.defn,
             VMPodScrapperActivity.defn,
             TenantCrdCreationActivity.defn,
@@ -143,6 +146,8 @@ class VeritableOnboardingWorkflow(Workflow):
             VeritableNovuOnboardingActivity.defn,
             OnboardSuccessMailActivity.defn,
             OnboardFailureMailActivity.defn,
+            KubernetesDeploymentActivity.defn,
+            StatefulSetPodDeletionActivity.defn,
         ]
 
     @classmethod
@@ -185,26 +190,35 @@ class VeritableOnboardingWorkflow(Workflow):
             postgres_database_name = f"{ProductName}_{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
+            postgres_secret_name = f"{ProductName}-postgres"
             redis_tenant_password = generate_password(length=20)
-            image_tag = "production" if config.env == "production" else "sprint"
-            docker_image = f"registry.314ecorp.tech/veritable-server:{image_tag}"
-            template_env = get_env(template_path=TemplatePath)
-            template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=tenant, image_tag=image_tag)
-            http_list = ijson_loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
+            redis_secret_name = f"{ProductName}-redis"
+            novu_secret_name = f"{ProductName}-novu"
 
             # create namespace in k8s
             await run_activity(
                 activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(namespace=tenant),
+            )
+
+            # secret setup for redis password
+            await run_activity(
+                activity=K8sSecretCreationActivity,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name=redis_secret_name,
+                    string_data={"password": redis_tenant_password},
+                ),
+            )
+
+            # secret setup for postgres password
+            await run_activity(
+                activity=K8sSecretCreationActivity,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name=postgres_secret_name,
+                    string_data={"password": postgres_password},
+                ),
             )
 
             # create postgres database
@@ -260,7 +274,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
-                    name="veritable-novu",
+                    name=novu_secret_name,
                     string_data={"api-key": novu_api_key},
                 ),
             )
@@ -289,9 +303,9 @@ class VeritableOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=tenant,
                     vault=one_password_vault,
-                    server_item="application-config",
+                    server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
                     key="s3_access_key",
                     key_value=cloudflare_r2_data_bucket_access_key,
                 ),
@@ -301,9 +315,9 @@ class VeritableOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=tenant,
                     vault=one_password_vault,
-                    server_item="application-config",
+                    server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
                     key="s3_secret_key",
                     key_value=cloudflare_r2_data_bucket_secret_key,
                 ),
@@ -314,16 +328,10 @@ class VeritableOnboardingWorkflow(Workflow):
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="veritable-cloudflare-r2",
-                    string_data={"access-key": cloudflare_r2_data_bucket_access_key},
-                ),
-            )
-
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="veritable-cloudflare-r2",
-                    string_data={"secret-key": cloudflare_r2_data_bucket_secret_key},
+                    string_data={
+                        "access-key": cloudflare_r2_data_bucket_access_key,
+                        "secret-key": cloudflare_r2_data_bucket_secret_key,
+                    },
                 ),
             )
 
@@ -347,16 +355,6 @@ class VeritableOnboardingWorkflow(Workflow):
                     namespace=tenant,
                     name="cache-secret",
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
-                ),
-            )
-
-            # secret setup for redis password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="tenant-cache-secret",
-                    string_data={"REDIS_PASSWORD": redis_tenant_password},
                 ),
             )
 
@@ -396,7 +394,6 @@ class VeritableOnboardingWorkflow(Workflow):
             custom_config = "custom-config.json"
             env_config = "env-config.json"
             tenant_config = "tenant-config.json"
-            vector_config = "vector-config.toml"
             provisioning_config = "provisioning-config.json"
             config_dir = "config"
             # kubernetes config map creation
@@ -415,11 +412,6 @@ class VeritableOnboardingWorkflow(Workflow):
                     "name": "veritable-tenant-config",
                     "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
-                },
-                {
-                    "name": "veritable-cli-vector-config",
-                    "key": vector_config,
-                    "template_file_name": "vector-config.tmpl.toml",
                 },
                 {
                     "name": "veritable-provisioning-config",
@@ -552,6 +544,8 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
+            image_tag = "veritable-latest" if config.env == "production" else "sprint"
+            docker_image = f"registry.314ecorp.tech/veritable-server:{image_tag}"
             # provisioning job
             await run_activity(
                 activity=DatabaseMigrationJobActivity,
@@ -608,11 +602,17 @@ class VeritableOnboardingWorkflow(Workflow):
                         },
                     ],
                     container_envs=[
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {
+                            "name": "POSTGRES__PASSWORD",
+                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
+                        },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "RELEASE_VERSION", "value": image_tag},
                         {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
-                        {"name": "NOVU__API_KEY", "value": novu_api_key},
+                        {
+                            "name": "NOVU__API_KEY",
+                            "value_from": {"secret_key_ref": {"name": novu_secret_name, "key": "api-key"}},
+                        },
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                     ],
                     argument=(
@@ -634,6 +634,10 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
+            template_env = get_env(template_path=TemplatePath)
+            template = template_env.get_template("istio-rules.json")
+            output = template.render(tenant=tenant, image_tag=image_tag)
+            http_list = ijson_loads(output)
             # kubernetes virtual service
             await run_activity(
                 activity=KubernetesIstioVirtualServiceActivity,
@@ -645,10 +649,19 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # statefulset pod creation for server
+            # delete statefulset pod
             await run_activity(
-                activity=KubernetesStatefulSetActivity,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=StatefulSetPodDeletionActivity,
+                arg=StatefulSetPodDeletionActivityModel(
+                    namespace=tenant,
+                    name="veritable",
+                ),
+            )
+
+            # Deployment pod creation for server
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="veritable",
                     docker_image=docker_image,
@@ -712,26 +725,48 @@ class VeritableOnboardingWorkflow(Workflow):
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {
+                            "name": "POSTGRES__PASSWORD",
+                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
+                        },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
-                        {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
+                        {
+                            "name": "REDIS__PASSWORD",
+                            "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
+                        },
                         {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "FALSE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "organization")},
                         {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        {"name": "NOVU__API_KEY", "value": novu_api_key},
-                        {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
-                        {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
+                        {
+                            "name": "NOVU__API_KEY",
+                            "value_from": {"secret_key_ref": {"name": novu_secret_name, "key": "api-key"}},
+                        },
+                        {
+                            "name": "CLOUDFLARE_R2__ACCESS_KEY",
+                            "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "access-key"}},
+                        },
+                        {
+                            "name": "CLOUDFLARE_R2__SECRET_KEY",
+                            "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
+                        },
                     ],
                 ),
             )
 
-            # statefulset pod creation for cli
             await run_activity(
-                activity=KubernetesStatefulSetActivity,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=StatefulSetPodDeletionActivity,
+                arg=StatefulSetPodDeletionActivityModel(
+                    namespace=tenant,
+                    name="veritable-cli",
+                ),
+            )
+
+            # Deployment pod creation for cli
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="veritable-cli",
                     docker_image=docker_image,
@@ -761,11 +796,6 @@ class VeritableOnboardingWorkflow(Workflow):
                             "sub_path": tenant_config,
                         },
                         {
-                            "name": "vector-volume",
-                            "mount_path": "/vector",
-                            "read_only": True,
-                        },
-                        {
                             "name": "provisioning-volume",
                             "mount_path": f"/{config_dir}/{provisioning_config}",
                             "sub_path": provisioning_config,
@@ -791,12 +821,6 @@ class VeritableOnboardingWorkflow(Workflow):
                             "path": env_config,
                         },
                         {
-                            "name": "vector-volume",
-                            "config_map_name": "veritable-cli-vector-config",
-                            "key": vector_config,
-                            "path": vector_config,
-                        },
-                        {
                             "name": "provisioning-volume",
                             "config_map_name": "veritable-provisioning-config",
                             "key": provisioning_config,
@@ -806,18 +830,32 @@ class VeritableOnboardingWorkflow(Workflow):
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
-                        {"name": "POSTGRES__PASSWORD", "value": postgres_password},
+                        {
+                            "name": "POSTGRES__PASSWORD",
+                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
+                        },
                         {"name": "POSTGRES__USER", "value": postgres_username},
                         {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
-                        {"name": "REDIS__PASSWORD", "value": redis_tenant_password},
+                        {
+                            "name": "REDIS__PASSWORD",
+                            "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
+                        },
                         {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "IS_CLI", "value": "TRUE"},
                         {"name": "ORG_NAME", "value": pydash.get(veritable, "organization")},
                         {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        {"name": "NOVU__API_KEY", "value": novu_api_key},
-                        {"name": "CLOUDFLARE_R2__ACCESS_KEY", "value": cloudflare_r2_data_bucket_access_key},
-                        {"name": "CLOUDFLARE_R2__SECRET_KEY", "value": cloudflare_r2_data_bucket_secret_key},
+                        {
+                            "name": "NOVU__API_KEY",
+                            "value_from": {"secret_key_ref": {"name": novu_secret_name, "key": "api-key"}},
+                        },
+                        {
+                            "name": "CLOUDFLARE_R2__ACCESS_KEY",
+                            "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "access-key"}},
+                        },
+                        {
+                            "name": "CLOUDFLARE_R2__SECRET_KEY",
+                            "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
+                        },
                     ],
                 ),
             )
@@ -864,15 +902,6 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # send onboarding success mail
-            await run_activity(
-                activity=OnboardSuccessMailActivity,
-                arg=CustomerWorkflowInput(
-                    customer_id=UUID(veritable.customerId),
-                    product=ProductEnum.veritable,
-                ),
-            )
-
             # check pod running status
             for pod in ["veritable", "veritable-cli"]:
                 await run_activity(
@@ -891,6 +920,15 @@ class VeritableOnboardingWorkflow(Workflow):
                     kind=ResourceKindEnum.VeritableTenant,
                     product=ProductName,
                     data=veritable.model_dump_json(),
+                ),
+            )
+
+            # send onboarding success mail
+            await run_activity(
+                activity=OnboardSuccessMailActivity,
+                arg=CustomerWorkflowInput(
+                    customer_id=UUID(veritable.customerId),
+                    product=ProductEnum.veritable,
                 ),
             )
 

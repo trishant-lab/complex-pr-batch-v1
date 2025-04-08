@@ -14,6 +14,7 @@ from app.cli.temporal.activities.database_migration_job import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
 from app.cli.temporal.activities.k8s_config_map import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     DeleteKubernetesIstioVirtualServiceActivity,
@@ -81,6 +82,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
             DeleteFilesFromCloudflareActivity.defn,
             DeleteTemporalNamespaceActivity.defn,
             TenantCrdDeletionActivity.defn,
+            DeploymentDeletionActivity.defn,
         ]
 
     @classmethod
@@ -156,6 +158,13 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 await run_activity(
                     activity=StatefulSetPodDeletionActivity,
                     arg=StatefulSetPodDeletionActivityModel(
+                        namespace=tenant,
+                        name=stateful_set,
+                    ),
+                )
+                await run_activity(
+                    activity=DeploymentDeletionActivity,
+                    arg=DeploymentDeletionActivityModel(
                         namespace=tenant,
                         name=stateful_set,
                     ),
