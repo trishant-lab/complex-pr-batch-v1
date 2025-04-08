@@ -34,6 +34,7 @@ from .routes.self_signup.onboard import router as onboard_router
 from .routes.self_signup.plans import router as plans_router
 from .routes.self_signup.signup import router as signup_router
 from .routes.self_signup.subscriptions import router as subscriptions_router
+from .routes.self_signup.tenant_link import router as tenant_link_router
 from .routes.self_signup.user_otp import router as user_otp_router
 from .routes.self_signup.user_session import router as user_session_router
 from .routes.tenant import tenant_router
@@ -153,6 +154,7 @@ async def redoc_html() -> HTMLResponse:
 fastapi_app.include_router(plans_router, prefix=f"{API_PREFIX}/plans", tags=["Plans"])
 fastapi_app.include_router(add_ons_router, prefix=f"{API_PREFIX}/addOns", tags=["AddOns"])
 fastapi_app.include_router(coupon_router, prefix=f"{API_PREFIX}/coupon", tags=["Coupon"])
+fastapi_app.include_router(tenant_link_router, prefix=f"{API_PREFIX}/portalLink", tags=["Portal"])
 fastapi_app.include_router(user_otp_router, prefix=f"{API_PREFIX}/otp", tags=["OTP"])
 fastapi_app.include_router(user_session_router, prefix=f"{API_PREFIX}/session", tags=["User Session"])
 fastapi_app.include_router(signup_router, prefix=f"{API_PREFIX}/signup", tags=["Signup"])

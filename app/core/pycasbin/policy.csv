@@ -210,6 +210,7 @@ p, PUBLIC, /api/v1/onboard/{product}/status, GET
 p, PUBLIC, /api/v1/webhooks/billing/events/{product}, POST
 p, PUBLIC, /api/v1/tenant/{product}/validateTenantName/{tenant_name}, GET
 p, PUBLIC, /api/v1/tenant/{product}/suggestTenantNames, GET
+p, PUBLIC, /api/v1/portalLink/{product}, POST
 
 g, ADMINS, Admin
 g, JEEVES_VIEW_GROUP, JeevesView
