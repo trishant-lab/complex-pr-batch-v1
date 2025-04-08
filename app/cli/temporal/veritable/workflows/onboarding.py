@@ -150,6 +150,7 @@ class VeritableOnboardingWorkflow(Workflow):
             OnboardFailureMailActivity.defn,
             KubernetesDeploymentActivity.defn,
             StatefulSetPodDeletionActivity.defn,
+            OnePasswordGetActivity.defn,
         ]
 
     @classmethod
