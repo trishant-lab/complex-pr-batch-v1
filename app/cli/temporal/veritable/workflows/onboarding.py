@@ -43,6 +43,8 @@ from app.cli.temporal.activities.keycloak_setup import (
 from app.cli.temporal.activities.onboard.failure import OnboardFailureMailActivity
 from app.cli.temporal.activities.onboard.success import OnboardSuccessMailActivity
 from app.cli.temporal.activities.one_password import (
+    OnePasswordGetActivity,
+    OnePasswordGetActivityModel,
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
 )
@@ -294,34 +296,57 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            cloudflare_r2_data_bucket_access_key: str = credentials.access_key
-            cloudflare_r2_data_bucket_secret_key: str = credentials.secret_key
-
             one_password_vault = ProductEnum.get_onepassword_vault_name(ProductEnum.veritable)
 
-            # s3 access key added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=tenant,
-                    vault=one_password_vault,
-                    server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
-                    key="s3_access_key",
-                    key_value=cloudflare_r2_data_bucket_access_key,
-                ),
-            )
+            cloudflare_r2_data_bucket_access_key: str
+            cloudflare_r2_data_bucket_secret_key: str
 
-            # s3 secret key added to onepassword
-            await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=tenant,
-                    vault=one_password_vault,
-                    server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
-                    key="s3_secret_key",
-                    key_value=cloudflare_r2_data_bucket_secret_key,
-                ),
-            )
+            if credentials.exists:
+                cloudflare_r2_data_bucket_access_key = await run_activity(
+                    activity=OnePasswordGetActivity,
+                    arg=OnePasswordGetActivityModel(
+                        tenant=tenant,
+                        vault=one_password_vault,
+                        server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                        secret_name="s3_access_key",
+                    ),
+                )
+                cloudflare_r2_data_bucket_secret_key = await run_activity(
+                    activity=OnePasswordGetActivity,
+                    arg=OnePasswordGetActivityModel(
+                        tenant=tenant,
+                        vault=one_password_vault,
+                        server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                        secret_name="s3_secret_key",
+                    ),
+                )
+            else:
+                cloudflare_r2_data_bucket_access_key = credentials.access_key
+                cloudflare_r2_data_bucket_secret_key = credentials.secret_key
+
+                # s3 access key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=tenant,
+                        vault=one_password_vault,
+                        server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                        key="s3_access_key",
+                        key_value=cloudflare_r2_data_bucket_access_key,
+                    ),
+                )
+
+                # s3 secret key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=tenant,
+                        vault=one_password_vault,
+                        server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                        key="s3_secret_key",
+                        key_value=cloudflare_r2_data_bucket_secret_key,
+                    ),
+                )
 
             await run_activity(
                 activity=K8sSecretCreationActivity,
