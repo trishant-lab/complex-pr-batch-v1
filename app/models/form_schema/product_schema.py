@@ -339,7 +339,18 @@ class PricedxSchema(BaseFormSchema):
 
 
 class MuspellSchema(BaseFormSchema):
-    pass
+    organization: str | None = Field(
+        default=None,
+        json_schema_extra={
+            "name": "organizationName",
+            "label": "Organization Name",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. Z Medical",
+            "mapTo": "organization",
+            "order": 4,
+        },
+    )
 
 
 ProductSchemaDataType = TypeVar(
