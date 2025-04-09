@@ -1,5 +1,5 @@
 from app.core.connections import get_lago_client
-from app.core.db import DBManager
+from app.core.db import DBManager, get_db_manager
 from app.models.billing_models import AddOnResponseModel
 from app.models.enums import FeatureStatus
 from app.models.lago.billable_metric import BillableMetricResponse
@@ -7,6 +7,7 @@ from app.models.lago.plan import PlanResponse
 from app.models.product import ProductEnum
 
 _ADDONS_CACHE = {}
+_PLAN_ADDONS_CACHE = {}
 
 
 def get_addon_name(product: ProductEnum, addon_metric_code: str) -> str:
@@ -50,27 +51,43 @@ def get_addon_price(product: ProductEnum, addon_metric_code: str, plan_code: str
     return 0
 
 
-async def get_plan_addons(plan_code: str, product: ProductEnum, db: DBManager) -> list[AddOnResponseModel]:
+def get_plan_addons(plan_code: str, product: ProductEnum) -> list[AddOnResponseModel]:
     """
     @param plan_code:
-    @param db:
+    @param product:
     @return: list of addons for a particular plan
     """
-    param = {
-        "plancode": plan_code,
-        "status": FeatureStatus.active.value,
-        "product": product.value,
-    }
-    records = await db.fetch_all("get_plan_add_ons.sql", **param)
-    addons = [AddOnResponseModel.json_to_model(dict(record) | {"product": product}) for record in records]
+    if not _PLAN_ADDONS_CACHE.get(product.value):
+        return []
+    return _PLAN_ADDONS_CACHE[product.value].get(plan_code, [])
+
+
+async def prefetch_addons() -> None:
+    """
+    @param product:
+    @return:
+    """
+    db: DBManager = await get_db_manager()
 
     global _ADDONS_CACHE
-    for addon in addons:
-        if not _ADDONS_CACHE.get(product.value):
-            _ADDONS_CACHE[product.value] = {}
-        _ADDONS_CACHE[product.value][addon.code.value] = addon
-
-    return addons
+    global _PLAN_ADDONS_CACHE
+    for product in ProductEnum:
+        param = {
+            "status": FeatureStatus.active.value,
+            "product": product.value,
+        }
+        addons = await db.fetch_all("get_plan_add_ons.sql", **param)
+        for addon in addons:
+            plan_code = addon["plancode"]
+            addon = AddOnResponseModel.json_to_model(dict(addon))
+            if not _ADDONS_CACHE.get(product.value):
+                _ADDONS_CACHE[product.value] = {}
+            _ADDONS_CACHE[product.value][addon.code.value] = addon
+            if not _PLAN_ADDONS_CACHE.get(product.value):
+                _PLAN_ADDONS_CACHE[product.value] = {}
+            if not _PLAN_ADDONS_CACHE[product.value].get(plan_code):
+                _PLAN_ADDONS_CACHE[product.value][plan_code] = []
+            _PLAN_ADDONS_CACHE[product.value][plan_code].append(addon)
 
 
 def get_all_addons(product: ProductEnum) -> list[AddOnResponseModel]:

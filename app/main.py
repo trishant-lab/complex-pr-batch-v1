@@ -80,9 +80,11 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """
     # All startup events go here
     from app.models.product import validate_self_signup_products
+    from app.route_utils.addons_util import prefetch_addons
     from app.route_utils.plans_util import prefetch_plans
 
     validate_self_signup_products()
+    await prefetch_addons()
     await prefetch_plans()
     yield
     # All shutdown events go here

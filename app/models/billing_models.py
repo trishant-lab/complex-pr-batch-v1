@@ -92,9 +92,10 @@ class AddOnResponseModel(BaseModel):
 
         from app.route_utils.addons_util import get_addon_name, get_addon_price
 
-        data["name"] = get_addon_name(data["product"], data["code"])
-        data["price"] = get_addon_price(data["product"], data["code"], data["plancode"])
-        data["code"] = ProductEnum.get_add_on_enum(data["product"])(data["code"])
+        product = ProductEnum(data["product"])
+        data["name"] = get_addon_name(product, data["code"])
+        data["price"] = get_addon_price(product, data["code"], data["plancode"])
+        data["code"] = ProductEnum.get_add_on_enum(product)(data["code"])
         return AddOnResponseModel.model_validate(data)
 
 

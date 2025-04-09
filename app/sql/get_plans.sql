@@ -6,7 +6,7 @@ WITH PlanFeaturesView AS (
     FROM
         planfeatures
     WHERE
-        isincluded IS true AND product = LOWER({{ product }})
+        isincluded IS true
     GROUP BY
         plancode, product
 )
@@ -24,6 +24,6 @@ FROM
     plans p
 JOIN
     PlanFeaturesView pf ON p.plancode = pf.plancode AND p.product = pf.product
-WHERE
-    p.product = LOWER({{ product }})
+GROUP BY
+    p.product, p.plancode, pf."includedFeatures"
 ;

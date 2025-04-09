@@ -144,10 +144,10 @@ R1005 = {
 }
 
 R1006 = {
-    "statusCode": status.HTTP_403_FORBIDDEN,
-    "displayMessage": "Requested plan resource not found!",
+    "statusCode": status.HTTP_400_BAD_REQUEST,
+    "displayMessage": "Requested product plan resource not found!",
     "followUpAction": [],
-    "possibleResolutions": ["Please request with correct plan code"],
+    "possibleResolutions": ["Please request with correct product and plan code"],
 }
 
 
