@@ -128,7 +128,7 @@ class CustomCustomerBillingConfiguration(CustomerBillingConfiguration):
 class CustomerModel(Customer):
     external_id: str | None = None
     email: EmailStr
-    tenant: str = Field(pattern=TENANT_NAME_PATTERN)
+    tenant: str | None = Field(pattern=TENANT_NAME_PATTERN)
     billing_configuration: CustomCustomerBillingConfiguration = CustomCustomerBillingConfiguration()
     phone: PhoneNumber | None = None
     legal_name: str
