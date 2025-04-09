@@ -29,7 +29,6 @@ from app.route_utils.product import validate_email_domain, validate_provisioning
 from app.route_utils.session_util import get_first_subscription_status, get_treated_email
 from app.route_utils.subscriptions import create_setup_intent
 from app.route_utils.tenant_suggestions import get_existing_tenant_names
-from app.route_utils.user_session import UserSession
 from app.routes.self_signup.subscriptions import create_subscription
 
 if TYPE_CHECKING:
@@ -120,11 +119,11 @@ async def update_existing_customer(
     lago_client = get_lago_client(product)
     lago_customer_resp = lago_client.customers().find(customer.external_id)
     lago_customer = CustomerResponse.from_lago(lago_customer_resp)
-
-    updated_customer = update_customer_model(
-        CustomerModel.model_validate(lago_customer.model_dump(exclude_unset=True) | {"product": product.value}),
-        customer,
-    )
+    lago_customer_data = lago_customer.model_dump(exclude_unset=True)
+    lago_customer_data["product"] = product.value
+    lago_customer_data["tenant"] = customer.tenant
+    lago_customer_data["billing_configuration"]["sync"] = True
+    updated_customer = update_customer_model(CustomerModel.model_validate(lago_customer_data), customer)
 
     try:
         customer = lago_client.customers().create(Customer.model_validate(updated_customer))
@@ -229,7 +228,7 @@ async def create_customer(
     customer = await validate_provisioning_details(product=product, data=signup_details)
     customer.email = get_treated_email(customer.email)
     validate_email_domain(product=product, email=customer.email)
-    await UserSession.validate_session(product=product, email=customer.email, session_token=token)
+    # await UserSession.validate_session(product=product, email=customer.email, session_token=token)
     coupon: CouponResponse | None = None
     if customer.couponCode:
         coupon = get_coupon_by_code(customer.couponCode, product)
