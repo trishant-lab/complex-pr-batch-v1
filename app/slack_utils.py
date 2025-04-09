@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from loguru import logger
 from slack_sdk import WebClient
 
 from app.core.settings import AppSettings, get_settings
@@ -25,21 +26,24 @@ def _send_message(product: ProductEnum, text: str, blocks: list[dict]) -> None:
     Send message to channel
     """
     # Send a message
-    client = get_slack_client(product)
-    match product:
-        case ProductEnum.veritable:
-            channel_id = config.veritable.slack.channel_id
-            username = config.veritable.slack.bot_username
-        case _:
-            channel_id = config.slack.channel_id
-            username = config.slack.bot_username
+    try:
+        client = get_slack_client(product)
+        match product:
+            case ProductEnum.veritable:
+                channel_id = config.veritable.slack.channel_id
+                username = config.veritable.slack.bot_username
+            case _:
+                channel_id = config.slack.channel_id
+                username = config.slack.bot_username
 
-    client.chat_postMessage(
-        channel=channel_id,
-        text=text,
-        blocks=blocks,
-        username=username,
-    )
+        client.chat_postMessage(
+            channel=channel_id,
+            text=text,
+            blocks=blocks,
+            username=username,
+        )
+    except Exception as e:
+        logger.error(f"Error sending message to slack: {e!r}")
 
 
 def send_slack_msg(product: ProductEnum, text: str, blocks: list[dict]) -> None:
