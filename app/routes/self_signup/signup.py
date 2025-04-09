@@ -122,7 +122,8 @@ async def update_existing_customer(
     lago_customer = CustomerResponse.from_lago(lago_customer_resp)
 
     updated_customer = update_customer_model(
-        CustomerModel.model_validate(lago_customer.model_dump(exclude_unset=True)), customer
+        CustomerModel.model_validate(lago_customer.model_dump(exclude_unset=True) | {"product": product.value}),
+        customer,
     )
 
     try:
