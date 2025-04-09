@@ -21,8 +21,10 @@ async def prefetch_plans() -> None:
     global _PLANS_CACHE
     for plan in plans or []:
         product = ProductEnum(plan["product"])
-        _PLANS_CACHE[product.value] = {}
-        _ACTIVE_PLAN_CODES[product.value] = []
+        if not _PLANS_CACHE.get(product.value):
+            _PLANS_CACHE[product.value] = {}
+        if not _ACTIVE_PLAN_CODES.get(product.value):
+            _ACTIVE_PLAN_CODES[product.value] = []
         if plan["status"] == PlanStatus.active.value:
             _ACTIVE_PLAN_CODES[product.value].append(plan["plancode"])
         addons = get_plan_addons(plan["plancode"], product)
