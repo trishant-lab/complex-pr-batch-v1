@@ -156,6 +156,7 @@ async def redoc_html() -> HTMLResponse:
 fastapi_app.include_router(plans_router, prefix=f"{API_PREFIX}/plans", tags=["Plans"])
 fastapi_app.include_router(add_ons_router, prefix=f"{API_PREFIX}/addOns", tags=["AddOns"])
 fastapi_app.include_router(add_ons_router, prefix="/addOns", tags=["AddOns"], deprecated=True)
+fastapi_app.include_router(add_ons_router, prefix="/addOns/", tags=["AddOns"], deprecated=True)
 fastapi_app.include_router(coupon_router, prefix=f"{API_PREFIX}/coupon", tags=["Coupon"])
 fastapi_app.include_router(tenant_link_router, prefix=f"{API_PREFIX}/portalLink", tags=["Portal"])
 fastapi_app.include_router(user_otp_router, prefix=f"{API_PREFIX}/otp", tags=["OTP"])
