@@ -55,7 +55,7 @@ class HdpWorkflow(ProductWorkflow):
 
         handle = await get_workflow_handle(workflow_input=HDPSpec(**schema), workflow=HDPOnboardingWorkflow)
 
-        await handle.signal(HDPOnboardingWorkflow.deny)
+        await handle.signal(HDPOnboardingWorkflow.decline)
 
     @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:

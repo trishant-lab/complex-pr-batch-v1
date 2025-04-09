@@ -32,10 +32,11 @@ class DexitWorkflow(ProductWorkflow):
         deprovision method
         """
         from app.cli.temporal.dexit.workflows.deprovisioning import DexitDeProvisioningWorkflow
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
         from app.cli.temporal.starter import trigger_workflow
 
         await trigger_workflow(
-            workflow_input=DexitSpec(**schema),
+            workflow_input=DeboardWorkflowInput(**schema),
             workflow=DexitDeProvisioningWorkflow,
             queue=WorkerQueues.dexit_deboarding,
         )

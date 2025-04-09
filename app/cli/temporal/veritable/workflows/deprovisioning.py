@@ -4,6 +4,7 @@ import pydash
 from temporalio import workflow
 
 from app.cli.activity_util import run_activity
+from app.cli.k8s_util import ResourceKindEnum
 from app.cli.temporal.activities.cloudflare_setup import (
     DeleteCloudflareBucketActivity,
     DeleteCloudflareDNSRecordActivity,
@@ -12,6 +13,10 @@ from app.cli.temporal.activities.cloudflare_setup import (
 from app.cli.temporal.activities.database_migration_job import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
+)
+from app.cli.temporal.activities.deployment import (
+    DeploymentDeletionActivity,
+    DeploymentDeletionActivityModel,
 )
 from app.cli.temporal.activities.k8s_config_map import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
@@ -31,6 +36,7 @@ from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
 )
+from app.cli.temporal.activities.tenant_crd import TenantCrdDeletionActivity, TenantCrdDeletionActivityModel
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuDeProvisionActivity
 from app.cli.temporal.activities.vm_pod_scrapper import (
@@ -41,8 +47,9 @@ from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.models.cloudflare import (
     DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivityModel,
+    DeleteFilesFromCloudflareActivityModel,
 )
-from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
+from app.cli.temporal.models.deboard import DeboardWorkflowInput
 from app.core.settings import VeritableSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
@@ -58,7 +65,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -79,27 +86,30 @@ class VeritableDeProvisioningWorkflow(Workflow):
             DeleteKubernetesIstioVirtualServiceActivity.defn,
             DeleteDatabaseMigrationJobActivity.defn,
             VeritableNovuDeProvisionActivity.defn,
+            TenantCrdDeletionActivity.defn,
+            DeploymentDeletionActivity.defn,
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", veritable: VeritableSpec) -> str:
+    def get_workflow_id(cls: "Workflow", veritable: DeboardWorkflowInput) -> str:
         """
         Get the workflow id
         """
-        return f"veritable_deprovisioning_workflow_{pydash.get(veritable, 'tenant')}"
+        return f"veritable_deprovisioning_workflow_{pydash.get(veritable, 'tenant_id')}"
 
     @workflow.run
-    async def run(self: "Workflow", veritable: VeritableSpec) -> None:
+    async def run(self: "Workflow", veritable: DeboardWorkflowInput) -> None:
         """
         Entry point for workflow
         """
         veritable_config: VeritableSettings = get_settings().veritable
-        tenant = pydash.get(veritable, "tenant")
+        veritable = DeboardWorkflowInput.model_validate(veritable)
+        tenant = veritable.tenant_name
 
         # Wait for approval or denial
-        await workflow.wait_condition(lambda: self.approved or self.deny)
+        await workflow.wait_condition(lambda: self.approved or self.denied)
 
-        if self.deny:
+        if self.denied:
             return
 
         try:
@@ -140,12 +150,20 @@ class VeritableDeProvisioningWorkflow(Workflow):
             )
 
             # delete stateful sets
-            for stateful_set in ["veritable", "veritable-cli"]:
+            for name in ["veritable", "veritable-cli"]:
                 await run_activity(
                     activity=StatefulSetPodDeletionActivity,
                     arg=StatefulSetPodDeletionActivityModel(
                         namespace=tenant,
-                        name=stateful_set,
+                        name=name,
+                    ),
+                )
+
+                await run_activity(
+                    activity=DeploymentDeletionActivity,
+                    arg=DeploymentDeletionActivityModel(
+                        namespace=tenant,
+                        name=name,
                     ),
                 )
 
@@ -168,7 +186,8 @@ class VeritableDeProvisioningWorkflow(Workflow):
 
             # delete secrets
             secrets = [
-                "tenant-cache-secret",
+                "veritable-postgres",
+                "veritable-redis",
                 "veritable-novu",
                 "veritable-cloudflare-r2",
             ]
@@ -181,6 +200,24 @@ class VeritableDeProvisioningWorkflow(Workflow):
                     ),
                 )
 
+            # delete dns record
+            await run_activity(
+                activity=DeleteCloudflareDNSRecordActivity,
+                arg=DeleteCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.{veritable_config.domain_name}",
+                    zone_id=veritable_config.zone_id,
+                ),
+            )
+
+            # delete files from cloudflare
+            await run_activity(
+                activity=DeleteFilesFromCloudflareActivity,
+                arg=DeleteFilesFromCloudflareActivityModel(
+                    bucket_name=veritable.cloudflare_r2_data_bucket,
+                    tenant=tenant,
+                ),
+            )
+
             # delete bucket
             await run_activity(
                 activity=DeleteCloudflareBucketActivity,
@@ -189,12 +226,20 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 ),
             )
 
-            # delete dns record
+            # delete files from cloudflare
             await run_activity(
-                activity=DeleteCloudflareDNSRecordActivity,
-                arg=DeleteCloudflareDNSRecordActivityModel(
-                    domain_name=f"{tenant}.{veritable_config.domain_name}",
-                    zone_id=veritable_config.zone_id,
+                activity=DeleteFilesFromCloudflareActivity,
+                arg=DeleteFilesFromCloudflareActivityModel(
+                    bucket_name=veritable.cloudflare_r2_ui_bucket,
+                    tenant=tenant,
+                ),
+            )
+
+            # delete bucket
+            await run_activity(
+                activity=DeleteCloudflareBucketActivity,
+                arg=DeleteCloudflareBucketActivityModel(
+                    bucket_name=veritable.cloudflare_r2_ui_bucket,
                 ),
             )
 
@@ -238,6 +283,15 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 ),
             )
 
+            await run_activity(
+                activity=TenantCrdDeletionActivity,
+                arg=TenantCrdDeletionActivityModel(
+                    product=ProductName,
+                    tenant=tenant,
+                    kind=ResourceKindEnum.VeritableTenant,
+                ),
+            )
+
         except Exception as e:
             workflow.logger.error(f"Error in deprovisioning workflow: {e}")
             await run_activity(
@@ -259,8 +313,8 @@ class VeritableDeProvisioningWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
-        Deny the workflow
+        denied the workflow
         """
-        self.deny = True
+        self.denied = True

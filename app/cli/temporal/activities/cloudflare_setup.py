@@ -232,15 +232,6 @@ class CopyArtifactsToBucketActivity(Activity):
                     prefix=prefix,
                 )
 
-                # if environment == "production":
-                #     sync_and_verify_files(
-                #         op=storage_client,
-                #         input_path=f"{tmp_dir}/{activity_input.bundle_path}/index.html",
-                #         bucket_name=activity_input.bucket_name,
-                #         dest_dir=activity_input.dest_dir,
-                #         prefix=prefix,
-                #     )
-
                 log_info(f"UI setup completed for {activity_input.dest_dir}")
 
         except Exception as e:

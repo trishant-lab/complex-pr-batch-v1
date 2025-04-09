@@ -49,11 +49,11 @@ from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperDeletionActivityModel,
 )
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.pricedx.pricedx import PricedxSpec
 from app.cli.temporal.models.cloudflare import (
     DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivityModel,
 )
+from app.cli.temporal.models.deboard import DeboardWorkflowInput
 from app.core.settings import PricedxSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
@@ -64,6 +64,10 @@ class PricedxDeProvisioningWorkflow(Workflow):
     """
     Pricedx DeBoarding Workflow
     """
+
+    def __init__(self: "Workflow") -> None:
+        self.approved: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:
@@ -86,30 +90,31 @@ class PricedxDeProvisioningWorkflow(Workflow):
             DeleteKeycloakClientActivity.defn,
             DeleteKeycloakRealmActivity.defn,
             RedisDeleteNamespaceActivity.defn,
+            DeploymentDeletionActivity.defn,
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", workflow_input: PricedxSpec) -> str | None:
+    def get_workflow_id(cls: "Workflow", workflow_input: DeboardWorkflowInput) -> str | None:
         """
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
         """
-        return f"de_provisioning_{workflow_input.tenant}"
+        return f"de_provisioning_{pydash.get(workflow_input, 'tenant_id')}"
 
     @workflow.run
-    async def run(self: "Workflow", pricedx: PricedxSpec) -> None:
+    async def run(self: "Workflow", pricedx: DeboardWorkflowInput) -> None:
         """
         Entry point for workflow
         """
         pricedx_config: PricedxSettings = get_settings().pricedx
 
         # Wait for approval or denial
-        await workflow.wait_condition(lambda: self.approved or self.deny)
+        await workflow.wait_condition(lambda: self.approved or self.denied)
 
-        if self.deny:
+        if self.denied:
             return
 
-        tenant = pydash.get(pricedx, "tenant")
+        tenant = pydash.get(pricedx, "tenant_name")
 
         # delete k8s service
         await run_activity(
@@ -280,3 +285,17 @@ class PricedxDeProvisioningWorkflow(Workflow):
             ),
             start_to_close_timeout=timedelta(seconds=120),
         )
+
+    @workflow.signal
+    async def approve(self: "Workflow") -> None:
+        """
+        Approve the workflow
+        """
+        self.approved = True
+
+    @workflow.signal
+    async def decline(self: "Workflow") -> None:
+        """
+        Deny the workflow
+        """
+        self.denied = True

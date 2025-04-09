@@ -605,10 +605,14 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
+        "http://<<tenant>>.api.veritable.<<domain_org>>/*",
+        "https://<<tenant>>.api.veritable.<<domain_org>>/*",
         "http://<<tenant>>.veritable.<<domain_org>>/*",
         "https://<<tenant>>.veritable.<<domain_org>>/*"
       ],
       "webOrigins": [
+        "https://<<tenant>>.api.veritable.<<domain_org>>",
+        "http://<<tenant>>.api.veritable.<<domain_org>>",
         "https://<<tenant>>.veritable.<<domain_org>>",
         "http://<<tenant>>.veritable.<<domain_org>>"
       ],
@@ -1331,7 +1335,7 @@
     "ssl": "",
     "user": "apikey"
   },
-  "loginTheme": "veritable",
+  "loginTheme": "314e-login-theme",
   "eventsEnabled": true,
   "eventsListeners": [
     "jboss-logging"

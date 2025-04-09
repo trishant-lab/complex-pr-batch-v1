@@ -7,6 +7,9 @@ from app.cli.temporal.hdp.hdp import HdpWorkflow
 from app.cli.temporal.hdp.models.hdp_spec import HDPSpec
 from app.cli.temporal.jeeves.jeeves import JeevesWorkflow
 from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec
+
+from app.cli.temporal.muspell.models.muspellSpec import MuspellArchiveSpec
+from app.cli.temporal.muspell.muspell import MuspellArchiveWorkflow
 from app.cli.temporal.penknife.models.penknife_spec import PenknifeSpec
 from app.cli.temporal.penknife.penknife import PenknifeWorkflow
 from app.cli.temporal.practifly.models.practifly_spec import PractiflySpec
@@ -31,6 +34,7 @@ class ProductEnum(str, Enum):
     zsegment = "Zsegment"
     practifly = "Practifly"
     pricedx = "Pricedx"
+    muspell = "Muspell"
 
     @classmethod
     def _missing_(cls, value: object) -> "ProductEnum":
@@ -67,6 +71,8 @@ class ProductEnum(str, Enum):
                 return PractiflyWorkflow
             case cls.pricedx:
                 return PricedxWorkflow
+            case cls.muspell:
+                return MuspellArchiveWorkflow
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -92,6 +98,8 @@ class ProductEnum(str, Enum):
                 return PractiflySpec
             case cls.pricedx:
                 return PricedxSpec
+            case cls.muspell:
+                return MuspellArchiveSpec
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -121,6 +129,8 @@ class ProductEnum(str, Enum):
                 return settings.practifly
             case cls.pricedx:
                 return settings.pricedx
+            case cls.muspell:
+                return settings.muspell
             case _:
                 raise ValueError(f"Product {enum_value} not found")
 

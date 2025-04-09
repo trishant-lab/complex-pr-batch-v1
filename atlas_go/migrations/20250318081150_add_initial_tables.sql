@@ -14,7 +14,7 @@ CREATE TABLE product (
 
 -- Create email templates table
 CREATE TABLE emailtemplates (
-    id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     product text NOT NULL,  -- product name reference
     name text NOT NULL,
     template text,
@@ -26,7 +26,7 @@ CREATE TABLE emailtemplates (
 
 -- Create customer table
 CREATE TABLE customer (
-    id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     product text NOT NULL,  -- product name reference
     tenantname text,
     orgname text,
@@ -116,7 +116,7 @@ CREATE TABLE provisioningstatus (
 
 -- Create subscription table
 CREATE TABLE subscription (
-    id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     name text,  -- subscription name
     customerid uuid NOT NULL,
     product text NOT NULL,  -- product name reference

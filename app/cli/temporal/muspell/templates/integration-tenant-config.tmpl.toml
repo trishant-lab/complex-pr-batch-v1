@@ -1,0 +1,115 @@
+[server]
+host = "0.0.0.0:8080"
+docs_path = "./static/swagger"
+parallelism_factor = 10
+timezone = "US/Pacific"
+sql_template_path = "./sql/**/*.sql"
+temp_path = "/tmp"
+allowed_origin = ["https://<<tenant>>.<<domain>>"]
+
+[server.storage]
+scheme = "s3"
+
+[server.storage.backend.s3]
+access_key = "<<tenant>>-files"
+secret_key = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/minio_s3_secret_key }}"
+bucket = "<<tenant>>-files"
+url = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/minio_s3_endpoint }}"
+region = "custom"
+
+[redis]
+url = "redis://:{{ op://Muspell Archive/integration-config/muspell_archive_<<tenant>>/redis_password }}@cache.<<tenant>>.svc.cluster.local:6379"
+chart_ttl = 300
+
+[log]
+level = "debug"
+
+[vespa]
+url = "http://vespa-muspell.vespa.svc.cluster.local:8080/search/"
+db = "muspell_archive_<<tenant>>"
+
+[fax]
+workspace= "314e.signalwire.com"
+project_id= "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/fax_project_id }}"
+token= "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/fax_token }}"
+fax_number= "+12544077606"
+callback_url = "https://<<tenant>>.<<domain>>/public/api/v1/faxStatusCallback"
+
+[auth]
+client_id = "muspell"
+url = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/keycloak_auth_url }}"
+realm = "<<tenant>>"
+admin_uname = "installer"
+admin_secret = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/keycloak_admin_secret }}"
+master_realm = "master"
+enforcer_model = "./static/casbin/model.conf"
+enforcer_policy = "./static/casbin/policy.csv"
+
+[auth.client_idp_map]
+3ed85e9c-c521-46d6-a6ce-a4dd35719496 = "testepic"
+
+[epic]
+client_secret = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/epic_encode_token_key }}"
+encode_key = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/epic_encode_key }}"
+encode_algorithm = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/epic_encode_token_algorithm }}"
+removable_token_fields = ["smart_style_url", "scope", "state", "need_patient_banner"]
+
+[sql_copilot]
+api_key = "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"
+model = "gpt-4o-2024-08-06"
+url = "https://api.openai.com/v1/chat/completions"
+questionbank_path = "static/sqlcopilot/questionbank.txt"
+ddl_dir_path = "static/sqlcopilot/iceberg"
+sql_path = "static/sqlcopilot/sql.csv"
+prompt_path = "static/sqlcopilot/prompt.txt"
+tables = [
+        "patient",
+        "condition",
+        "coverage",
+        "procedure",
+        "practitioner",
+        "encounter",
+        "medicationadministration",
+        "allergyintolerance",
+        "familymemberhistory",
+        "observation",
+        "medicationrequest",
+        "immunization",
+        "servicerequest",
+]
+
+[export_template]
+path = "static/export/template"
+muspell_logo = "static/export/muspell.png"
+pdf_binary = "/usr/bin/latexmk"
+temp_folder = "/tmp"
+
+[postgres]
+connection_string = "postgresql://muspell_archive_<<tenant>>:{{ op://Muspell Archive/integration-config/MUSPELL_<<tenant>>/pg_password }}@db-cluster-ha.postgresql.svc.cluster.local:5432/muspell?application_name=muspell&options=-c search_path%3D<<tenant>>"
+
+[paths]
+path_prefix = "/mnt"
+base_path = "warehouse"
+cache_bin_path = "/app/cache"
+document_ref_schema = "static/customdocumentschema"
+provenance_schema = "static/customprovenanceschema"
+legacy_upload_identifier = "<<tenant>>"
+
+[server.docs_storage]
+scheme = "s3"
+
+[server.docs_storage.backend.s3]
+access_key = "<<tenant>>-files"
+secret_key = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/minio_s3_secret_key }}"
+bucket = "<<tenant>>-files"
+url = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/minio_s3_endpoint }}"
+region = "custom"
+
+[mysql]
+connection_string = "mysql://root:{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/mysql_password }}@pxccluster-proxysql.pxc.svc.cluster.local/analytics"
+visit_action_id = 6
+environment = "<<tenant>>"
+
+[starrocks]
+conn_string="mysql://root:{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/starrocks_password }}@10.20.12.1:9030?prefer_socket=false"
+catalog="<<tenant>>"

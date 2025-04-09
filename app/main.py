@@ -34,6 +34,7 @@ from .routes.self_signup.onboard import router as onboard_router
 from .routes.self_signup.plans import router as plans_router
 from .routes.self_signup.signup import router as signup_router
 from .routes.self_signup.subscriptions import router as subscriptions_router
+from .routes.self_signup.tenant_link import router as tenant_link_router
 from .routes.self_signup.user_otp import router as user_otp_router
 from .routes.self_signup.user_session import router as user_session_router
 from .routes.tenant import tenant_router
@@ -50,17 +51,25 @@ ui_init_oauth: dict = {
     "clientId": config.keycloak.client_id,
 }
 
+DOMAINS = [
+    r"veritable\.app",
+    r"veritable\.work",
+    r"314ecorp\.tech",
+    r"314ecorp\.com",
+    r"314e\.com",
+    r"314e\.tech",
+]
+
 origins: list = [
     "http://localhost:8000",
     "http://localhost:2000",
     "http://localhost:3000",
     "http://localhost:1313",
-    config.keycloak.auth_url,
-    "https://api-definitions.314ecorp.tech",
     "https://softwareartistry.github.io",
-    "https://launchpad.314ecorp.tech",
+    "https://veritable-app.pages.dev",
+    "https://test.veritable-app.pages.dev",
+    "https://test2.veritable-app.pages.dev",
     "https://test.314e-website.pages.dev",
-    "https://314e.com",
 ]
 
 
@@ -71,9 +80,11 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """
     # All startup events go here
     from app.models.product import validate_self_signup_products
+    from app.route_utils.addons_util import prefetch_addons
     from app.route_utils.plans_util import prefetch_plans
 
     validate_self_signup_products()
+    await prefetch_addons()
     await prefetch_plans()
     yield
     # All shutdown events go here
@@ -102,6 +113,7 @@ fastapi_app.add_middleware(AuthenticationMiddleware)
 fastapi_app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=rf"^https?:\/\/([a-z0-9-]+\.)({'|'.join(DOMAINS)})$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -143,7 +155,9 @@ async def redoc_html() -> HTMLResponse:
 # Adding application routes to FastAPI instance
 fastapi_app.include_router(plans_router, prefix=f"{API_PREFIX}/plans", tags=["Plans"])
 fastapi_app.include_router(add_ons_router, prefix=f"{API_PREFIX}/addOns", tags=["AddOns"])
+fastapi_app.include_router(add_ons_router, prefix="/addOns", tags=["AddOns"], deprecated=True)
 fastapi_app.include_router(coupon_router, prefix=f"{API_PREFIX}/coupon", tags=["Coupon"])
+fastapi_app.include_router(tenant_link_router, prefix=f"{API_PREFIX}/portalLink", tags=["Portal"])
 fastapi_app.include_router(user_otp_router, prefix=f"{API_PREFIX}/otp", tags=["OTP"])
 fastapi_app.include_router(user_session_router, prefix=f"{API_PREFIX}/session", tags=["User Session"])
 fastapi_app.include_router(signup_router, prefix=f"{API_PREFIX}/signup", tags=["Signup"])

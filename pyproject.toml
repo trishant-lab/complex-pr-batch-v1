@@ -47,8 +47,6 @@ python-digitalocean = "^1.17.0"
 cffi = "^1.17.1"
 setuptools = "^75.7.0"
 opendal = "^0.45.16"
-<<<<<<< HEAD
-=======
 fastapi-limiter = "^0.1.6"
 pendulum = "^3.0.0"
 phonenumbers = "^8.13.55"
@@ -60,7 +58,7 @@ lxml = "^5.3.1"
 defusedxml = "^0.7.1"
 supervisor = "^4.2.5"
 psutil = "^7.0.0"
->>>>>>> 18de63444fb3f3924b33d2137daea540dfc7c2ac
+mysql-connector-python = "^9.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"

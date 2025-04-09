@@ -31,11 +31,12 @@ class VeritableWorkflow(ProductWorkflow):
         """
         deprovision method
         """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
         from app.cli.temporal.starter import trigger_workflow
         from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvisioningWorkflow
 
         await trigger_workflow(
-            workflow_input=VeritableSpec(**schema),
+            workflow_input=DeboardWorkflowInput(**schema),
             workflow=VeritableDeProvisioningWorkflow,
             queue=WorkerQueues.veritable_deboarding,
         )
@@ -64,11 +65,27 @@ class VeritableWorkflow(ProductWorkflow):
         """
         approve_deprovisioning method
         """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
         from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvisioningWorkflow
 
         handle = await get_workflow_handle(
-            workflow_input=VeritableSpec(**schema), workflow=VeritableDeProvisioningWorkflow
+            workflow_input=DeboardWorkflowInput(**schema), workflow=VeritableDeProvisioningWorkflow
         )
 
         await handle.signal(VeritableDeProvisioningWorkflow.approve)
+
+    @staticmethod
+    async def deny_deprovisioning(schema: dict) -> None:
+        """
+        deny_deprovisioning method
+        """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.starter import get_workflow_handle
+        from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvisioningWorkflow
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=VeritableDeProvisioningWorkflow
+        )
+
+        await handle.signal(VeritableDeProvisioningWorkflow.decline)

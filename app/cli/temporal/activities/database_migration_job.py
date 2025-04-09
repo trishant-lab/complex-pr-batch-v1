@@ -1,33 +1,33 @@
-from temporalio import activity
-from temporalio.common import RetryPolicy
-from kubernetes.dynamic.exceptions import NotFoundError
-
-from app.cli.temporal.core.log import log_error
-
-
 from datetime import timedelta
+
 from kubernetes.client import (
+    BatchV1Api,
+    V1ConfigMapKeySelector,
+    V1ConfigMapVolumeSource,
+    V1Container,
+    V1DeleteOptions,
+    V1EnvVar,
+    V1EnvVarSource,
     V1Job,
-    V1ObjectMeta,
     V1JobSpec,
     V1JobTemplateSpec,
-    V1PodSpec,
-    V1LocalObjectReference,
-    V1Container,
-    V1VolumeMount,
-    V1Volume,
-    V1ConfigMapVolumeSource,
     V1KeyToPath,
+    V1LocalObjectReference,
+    V1ObjectMeta,
     V1PersistentVolumeClaimVolumeSource,
-    V1EnvVar,
-    V1DeleteOptions,
-    BatchV1Api,
+    V1PodSpec,
+    V1SecretKeySelector,
+    V1Volume,
+    V1VolumeMount,
 )
 from kubernetes.dynamic import Resource
+from kubernetes.dynamic.exceptions import NotFoundError
+from temporalio import activity
+from temporalio.common import RetryPolicy
 
 from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+from app.cli.temporal.core.log import log_error, log_info
 
 
 class DatabaseMigrationJobActivityModel(LaunchpadCLIBaseModel):
@@ -97,8 +97,40 @@ class DatabaseMigrationJobActivity(Activity):
                                 image=activity_model.docker_image,
                                 image_pull_policy="Always",
                                 env=[
-                                    V1EnvVar(name=container_env["name"], value=container_env["value"])
+                                    V1EnvVar(
+                                        name=container_env["name"],
+                                        value=container_env["value"],
+                                    )
                                     for container_env in activity_model.container_envs
+                                    if container_env.get("value")
+                                ]
+                                + [
+                                    V1EnvVar(
+                                        name=container_env["name"],
+                                        value_from=V1EnvVarSource(
+                                            config_map_key_ref=V1ConfigMapKeySelector(
+                                                name=container_env["value_from"]["config_map_key_ref"]["name"],
+                                                key=container_env["value_from"]["config_map_key_ref"]["key"],
+                                            )
+                                        ),
+                                    )
+                                    for container_env in activity_model.container_envs
+                                    if container_env.get("value_from")
+                                    and container_env["value_from"].get("config_map_key_ref")
+                                ]
+                                + [
+                                    V1EnvVar(
+                                        name=container_env["name"],
+                                        value_from=V1EnvVarSource(
+                                            secret_key_ref=V1SecretKeySelector(
+                                                name=container_env["value_from"]["secret_key_ref"]["name"],
+                                                key=container_env["value_from"]["secret_key_ref"]["key"],
+                                            )
+                                        ),
+                                    )
+                                    for container_env in activity_model.container_envs
+                                    if container_env.get("value_from")
+                                    and container_env["value_from"].get("secret_key_ref")
                                 ],
                                 volume_mounts=[
                                     V1VolumeMount(
