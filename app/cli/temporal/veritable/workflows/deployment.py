@@ -752,11 +752,11 @@ class VeritableDeploymentWorkflow(Workflow):
                             "value_from": {"secret_key_ref": {"name": novu_secret_name, "key": "api-key"}},
                         },
                         {
-                            "name": "CLOUDFLARE_R2__ACCESS_KEY",
+                            "name": "TENANT_S3__ACCESS_KEY",
                             "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "access-key"}},
                         },
                         {
-                            "name": "CLOUDFLARE_R2__SECRET_KEY",
+                            "name": "TENANT_S3__SECRET_KEY",
                             "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
                         },
                     ],
@@ -857,11 +857,11 @@ class VeritableDeploymentWorkflow(Workflow):
                             "value_from": {"secret_key_ref": {"name": novu_secret_name, "key": "api-key"}},
                         },
                         {
-                            "name": "CLOUDFLARE_R2__ACCESS_KEY",
+                            "name": "TENANT_S3__ACCESS_KEY",
                             "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "access-key"}},
                         },
                         {
-                            "name": "CLOUDFLARE_R2__SECRET_KEY",
+                            "name": "TENANT_S3__SECRET_KEY",
                             "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
                         },
                     ],
