@@ -16,7 +16,7 @@ from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 
 COUNTRY_CODES = ["US", "IN", "CA", "MX"]
-RESERVED_TENANT_NAMES = {"auth", "accounts", "get", "forms"}
+RESERVED_TENANT_NAMES = {"auth", "accounts", "get", "forms", "launchpad"}
 
 
 class PhoneNumber(str):
@@ -52,8 +52,8 @@ class CustomerResponseModel(Customer):
     plancode: str
     email: EmailStr
     tenant_name: str | None = Field(pattern=TENANT_NAME_PATTERN)
-    form_schema: str | None = Field(serialization_alias="schema", validation_alias="schema")
-    form_data: str | None = Field(serialization_alias="data", validation_alias="data")
+    form_schema: str | None = Field(None, serialization_alias="schema", validation_alias="schema")
+    form_data: str | None = Field(None, serialization_alias="data", validation_alias="data")
 
 
 class OnboardingStage(BaseModel):
