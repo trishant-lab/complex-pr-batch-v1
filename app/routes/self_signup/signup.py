@@ -29,6 +29,7 @@ from app.route_utils.product import validate_email_domain, validate_provisioning
 from app.route_utils.session_util import get_first_subscription_status, get_treated_email
 from app.route_utils.subscriptions import create_setup_intent
 from app.route_utils.tenant_suggestions import get_existing_tenant_names
+from app.route_utils.user_session import UserSession
 from app.routes.self_signup.subscriptions import create_subscription
 
 if TYPE_CHECKING:
@@ -229,7 +230,7 @@ async def create_customer(
     customer = await validate_provisioning_details(product=product, data=signup_details)
     customer.email = get_treated_email(customer.email)
     validate_email_domain(product=product, email=customer.email)
-    # await UserSession.validate_session(product=product, email=customer.email, session_token=token)
+    await UserSession.validate_session(product=product, email=customer.email, session_token=token)
     coupon: CouponResponse | None = None
     if customer.couponCode:
         coupon = get_coupon_by_code(customer.couponCode, product)
