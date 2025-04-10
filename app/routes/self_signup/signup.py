@@ -30,7 +30,7 @@ from app.route_utils.session_util import get_first_subscription_status, get_trea
 from app.route_utils.subscriptions import create_setup_intent
 from app.route_utils.tenant_suggestions import get_existing_tenant_names
 from app.route_utils.user_session import UserSession
-from app.routes.self_signup.subscriptions import create_subscription
+from app.routes.self_signup.subscriptions import _create_subscription
 
 if TYPE_CHECKING:
     from app.models.lago.coupon import CouponResponse
@@ -141,7 +141,9 @@ async def update_existing_customer(
     )
     if intent.status in {"success", "succeeded"}:
         return (
-            await create_subscription(customer.email, intent.payment_method, product, db),
+            await _create_subscription(
+                product=product, email=customer.email, payment_method_id=intent.payment_method, db=db
+            ),
             lago_customer,
         )
     # update if setup intent is canceled
@@ -271,7 +273,7 @@ async def create_customer(
         apply_coupon(lago_customer.external_id, coupon, product)
 
     leads_form_fill(lago_customer, product)
-    _customer_response = ijson_loads(lago_customer.model_dump_json()) | dict(
+    _customer_response = ijson_loads(lago_customer.model_dump_json(exclude={"billing_configuration"})) | dict(
         tenant_name=customer.tenant,
         email=customer.email,
         plancode=plan_code,

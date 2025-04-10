@@ -49,6 +49,15 @@ async def create_subscription(
     email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
     await UserSession.validate_session(product=product, email=email, session_token=token)
+    return await _create_subscription(product=product, email=email, payment_method_id=payment_method_id, db=db)
+
+
+async def _create_subscription(
+    product: ProductEnum,
+    email: EmailStr,
+    payment_method_id: str,
+    db: DBManager,
+) -> OnboardingResponseModel | None:
     provisioned, customer = await get_first_subscription_status(email, db, product)
     if provisioned:
         return provisioned
