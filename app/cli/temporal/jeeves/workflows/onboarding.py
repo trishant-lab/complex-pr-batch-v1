@@ -1110,7 +1110,9 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
-                    tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.jeeves
+                    tenant_name=tenant,
+                    status=TenantStatusEnum.Deployed if is_deployment else TenantStatusEnum.Provisioned,
+                    product=ProductEnum.jeeves,
                 ),
             )
 
@@ -1130,7 +1132,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.ProvisioningFailed,
+                    status=TenantStatusEnum.DeploymentFailed if is_deployment else TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.jeeves,
                 ),

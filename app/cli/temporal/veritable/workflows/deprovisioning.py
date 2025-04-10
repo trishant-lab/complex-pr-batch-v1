@@ -95,7 +95,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
         """
         Get the workflow id
         """
-        return f"veritable_deprovisioning_workflow_{pydash.get(veritable, 'tenant_id')}"
+        return f"veritable_deprovisioning_workflow_{pydash.get(veritable, 'tenant_name')}"
 
     @workflow.run
     async def run(self: "Workflow", veritable: DeboardWorkflowInput) -> None:

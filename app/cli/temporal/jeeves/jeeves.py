@@ -42,6 +42,21 @@ class JeevesWorkflow(ProductWorkflow):
         )
 
     @staticmethod
+    async def deploy(schema: dict) -> None:
+        """
+        deploy method
+        """
+        from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+        from app.cli.temporal.starter import trigger_workflow
+
+        schema["is_deployment"] = True
+        await trigger_workflow(
+            workflow_input=JeevesSpec(**schema),
+            workflow=JeevesOnboardingWorkflow,
+            queue=WorkerQueues.jeeves_onboarding,
+        )
+
+    @staticmethod
     async def approve(schema: dict) -> None:
         """
         approve method

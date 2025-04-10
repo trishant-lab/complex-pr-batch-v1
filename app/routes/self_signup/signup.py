@@ -119,11 +119,12 @@ async def update_existing_customer(
     lago_client = get_lago_client(product)
     lago_customer_resp = lago_client.customers().find(customer.external_id)
     lago_customer = CustomerResponse.from_lago(lago_customer_resp)
-    lago_customer_data = lago_customer.model_dump(exclude_unset=True)
-    lago_customer_data["product"] = product.value
-    lago_customer_data["tenant"] = customer.tenant
-    lago_customer_data["billing_configuration"]["sync"] = True
-    updated_customer = update_customer_model(CustomerModel.model_validate(lago_customer_data), customer)
+    updated_customer = update_customer_model(
+        CustomerModel.model_validate(
+            lago_customer.model_dump(exclude_unset=True) | {"product": product.value, "tenant": customer.tenant}
+        ),
+        customer,
+    )
 
     try:
         customer = lago_client.customers().create(Customer.model_validate(updated_customer))
