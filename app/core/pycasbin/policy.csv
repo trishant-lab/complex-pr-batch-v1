@@ -209,7 +209,7 @@ p, PUBLIC, /api/v1/coupon/{product}, GET
 p, PUBLIC, /api/v1/signup/{product}, POST
 p, PUBLIC, /api/v1/subscriptions/{product}, POST
 p, PUBLIC, /api/v1/onboard/{product}/status, GET
-p, PUBLIC, /api/v1/webhooks/billing/events/{product}, POST
+p, PUBLIC, /api/v1/webhooks/billing/{product}/events, POST
 p, PUBLIC, /api/v1/tenant/{product}/validateTenantName/{tenant_name}, GET
 p, PUBLIC, /api/v1/tenant/{product}/suggestTenantNames, GET
 p, PUBLIC, /api/v1/portalLink/{product}, POST
