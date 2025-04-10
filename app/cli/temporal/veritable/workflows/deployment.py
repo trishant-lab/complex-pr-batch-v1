@@ -281,6 +281,8 @@ class VeritableDeploymentWorkflow(Workflow):
                 arg=K8sSecretFetchActivityModel(namespace=tenant, name=data_bucket_secret_name, decode_data=True),
             )
 
+            one_password_vault = ProductEnum.get_onepassword_vault_name(ProductEnum.veritable)
+
             if not data_bucket_secret_exists:
                 data_bucket = veritable.cloudflare_r2_data_bucket
 
@@ -296,8 +298,6 @@ class VeritableDeploymentWorkflow(Workflow):
                         read_only=False,
                     ),
                 )
-
-                one_password_vault = ProductEnum.get_onepassword_vault_name(ProductEnum.veritable)
 
                 cloudflare_r2_data_bucket_access_key: str
                 cloudflare_r2_data_bucket_secret_key: str
