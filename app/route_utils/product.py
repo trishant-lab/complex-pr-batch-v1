@@ -74,12 +74,11 @@ async def validate_provisioning_details(
     missing_required_fields = []
     for field in schema:
         field_name = field["name"]
-        if field["required"]:
-            if not data.get(field_name):
-                missing_required_fields.append(field_name)
-            elif field.get("mapTo"):
+        if data.get(field_name):
+            if field.get("mapTo"):
                 model_data[field["mapTo"]] = data.get(field_name)
-
+        elif field["required"]:
+            missing_required_fields.append(field_name)
     if missing_required_fields:
         raise errors.REQUIRED_FIELD_MISSING.exc(fields=missing_required_fields)
 
