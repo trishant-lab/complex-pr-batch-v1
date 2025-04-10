@@ -1,5 +1,7 @@
 SELECT 
     c.*,
+    c.schema as form_schema,
+    c.data as form_data,
     s.plancode
 FROM
     customer c
