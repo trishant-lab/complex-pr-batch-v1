@@ -1,4 +1,3 @@
-import tempfile
 from datetime import datetime
 from enum import Enum
 from types import UnionType
@@ -51,14 +50,12 @@ async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
     )
     form_path = f"{product.value}/form.json"
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        form_file_path = f"{tmp_dir}/form.json"
-        with open(form_file_path, "w") as f:
-            f.write(ijson_dumps(form))
-
-        s3_utils.upload_file_to_storage(
-            file_path=form_file_path, object_name=form_path, bucket_name=config.r2.bucket, storage_client=storage_client
-        )
+    storage_client.write(
+        form_path,
+        ijson_dumps(form).encode(),
+        content_type="application/json",
+        content_disposition="inline",
+    )
 
 
 async def validate_provisioning_details(
