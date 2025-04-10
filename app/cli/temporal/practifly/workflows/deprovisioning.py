@@ -90,7 +90,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
         """
         Return workflow id
         """
-        return f"practifly_deprovisioning_workflow_{pydash.get(practifly, 'tenant_id')}"
+        return f"practifly_deprovisioning_workflow_{pydash.get(practifly, 'tenant_name')}"
 
     @workflow.run
     async def run(self: "Workflow", practifly: DeboardWorkflowInput) -> None:
