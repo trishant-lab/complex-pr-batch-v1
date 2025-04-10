@@ -474,8 +474,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
             lago_customer_id = uuid4()
             lago_subscription_id = uuid4()
             lago_plan_code = pydash.get(zsegment, "planName", "Free")
-            lago_api_key = zsegment_config.lago_api_key
-            lago_api_url = zsegment_config.lago_api_url
+            lago_api_key = zsegment_config.lago.api_key
+            lago_api_url = zsegment_config.lago.api_url
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
@@ -525,8 +525,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "keycloakSecret": installer_secret,
                         "redpandaBrokerUrl": zsegment_config.redpanda_broker,
                         "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": zsegment_config.lago_api_url,
-                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoUrl": zsegment_config.lago.api_url,
+                        "lagoKey": zsegment_config.lago.api_key,
                         "lagoCustomerId": lago_customer_id,
                         "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",  # NOSONAR
                         "victoriaMetricsUrl": zsegment_config.victoria_metrics_url,
@@ -563,8 +563,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "tenantName": tenant,
                         "redpandaBrokerUrl": zsegment_config.redpanda_broker,
                         "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": zsegment_config.lago_api_url,
-                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoUrl": zsegment_config.lago.api_url,
+                        "lagoKey": zsegment_config.lago.api_key,
                         "lagoCustomerId": lago_customer_id,
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,

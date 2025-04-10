@@ -42,6 +42,7 @@ class SlackSettings(BaseModel):
 class Lago(BaseModel):
     api_url: str = ""
     api_key: str = ""
+    plan_code: str = ""
 
 
 class Stripe(BaseModel):

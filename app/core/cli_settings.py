@@ -114,18 +114,8 @@ def get_workers_config() -> dict[str, WorkerConfig]:
             "workers": {
                 WorkerQueues.onboard: {OnboardWorkflow},
                 WorkerQueues.kube_config_cert_expiry: {KubeConfigCertExpiryWorkflow},
-            },
-            "count": 2,
-        },
-        "WORKER_4_PROCESS": {
-            "workers": {
                 WorkerQueues.verify_payment: {OnboardPaymentVerifyWorkflow},
                 WorkerQueues.veritable_deployment: {VeritableDeploymentWorkflow},
-            },
-            "count": 2,
-        },
-        "WORKER_5_PROCESS": {
-            "workers": {
                 WorkerQueues.webhooks: {InvoiceWebhookEventWorkflow},
             },
             "count": 1,

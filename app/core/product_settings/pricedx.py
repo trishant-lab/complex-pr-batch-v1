@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.core.product_settings.common import PostgresSettings
+from app.core.product_settings.common import Lago, PostgresSettings
 
 
 class PricedxSettings(BaseModel):
@@ -21,7 +21,5 @@ class PricedxSettings(BaseModel):
     pg_dsn_template: str = "postgresql://pricedx_{tenant}.pricedx_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/pricedx"
     redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
 
-    lago_api_url: str = ""
-    lago_plan_code: str = ""
-    lago_api_key: str = ""
+    lago: Lago = Lago()
     email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
