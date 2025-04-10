@@ -41,7 +41,7 @@ async def deploy_workflow(tenant_name: str, product: ProductEnum) -> None:
         await product_workflow.deploy(deploy_schema)
 
         # await product_workflow.approve(schema)
-        logger.info(f"Deployed workflow for tenant: {response['tenant_name']}")
+        logger.info(f"Deployed workflow for tenant: {response['tenantname']}")
     except Exception as e:
         logger.error(f"Error deploying workflow: {e}")
         raise errors.DEPLOYMENT_ERROR.exc(e=e)
