@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.core.product_settings.common import PostgresSettings
+from app.core.product_settings.common import Lago, PostgresSettings
 
 
 class ZSegmentSettings(BaseModel):
@@ -21,9 +21,7 @@ class ZSegmentSettings(BaseModel):
     gitea_admin_username: str = ""
     gitea_admin_password: str = ""
     gitea_template_owner: str = ""
-    lago_api_url: str = ""
-    lago_plan_code: str = ""
-    lago_api_key: str = ""
+    lago: Lago = Lago()
     postgres_url: str = ""
     matomo_auth_token: str = ""
     sender_name: str = ""

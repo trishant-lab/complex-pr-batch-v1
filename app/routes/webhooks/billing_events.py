@@ -29,7 +29,7 @@ async def events_webhook(request: Request, product: ProductEnum = Path(...)) -> 
         request.headers.get("X-Lago-Signature"),
         pub_key,
         algorithms=["RS256"],
-        issuer=urlparse(app_config.lago_api_url).netloc,
+        issuer=urlparse(app_config.lago.api_url).netloc,
     )
     event = ijson_loads(decoded_signature["data"])
     if event.get("webhook_type") in InvoiceWebhookType:
