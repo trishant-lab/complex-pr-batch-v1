@@ -72,8 +72,6 @@ from app.cli.temporal.activities.temporal_namespace import (
 from app.cli.temporal.activities.tenant_crd import (
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
-    TenantCrdExistsActivity,
-    TenantCrdExistsActivityModel,
 )
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
@@ -114,7 +112,6 @@ class VeritableDeploymentWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            TenantCrdExistsActivity.defn,
             UpdateTenantStatusActivity.defn,
             K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
@@ -168,19 +165,6 @@ class VeritableDeploymentWorkflow(Workflow):
         tenant = pydash.get(veritable, "tenant")
 
         try:
-            # get tenant crd
-            tenant_crd_exists: bool = await run_activity(
-                activity=TenantCrdExistsActivity,
-                arg=TenantCrdExistsActivityModel(
-                    tenant=tenant,
-                    kind=ResourceKindEnum.VeritableTenant,
-                    product=ProductName,
-                ),
-            )
-
-            if not tenant_crd_exists:
-                raise RuntimeError(f"Tenant {tenant} does not exist")  # noqa: TRY301
-
             postgres_schema_name = f"{ProductName}_{tenant}"
             postgres_database_name = f"{ProductName}_{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
