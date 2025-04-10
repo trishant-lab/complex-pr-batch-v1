@@ -16,7 +16,7 @@ from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 
 COUNTRY_CODES = ["US", "IN", "CA", "MX"]
-RESERVED_TENANT_NAMES = {"auth", "accounts", "get"}
+RESERVED_TENANT_NAMES = {"auth", "accounts", "get", "forms"}
 
 
 class PhoneNumber(str):
