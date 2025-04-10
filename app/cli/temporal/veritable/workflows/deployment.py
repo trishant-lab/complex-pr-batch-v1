@@ -425,11 +425,6 @@ class VeritableDeploymentWorkflow(Workflow):
             # kubernetes config map creation
             for config_map in [
                 {
-                    "name": "veritable-custom-config",
-                    "key": custom_config,
-                    "data": "{}",
-                },
-                {
                     "name": "veritable-env-config",
                     "key": env_config,
                     "template_file_name": f"{config.env}-env-config.tmpl.json",

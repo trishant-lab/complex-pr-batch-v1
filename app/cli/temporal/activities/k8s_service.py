@@ -1,14 +1,13 @@
+from datetime import timedelta
+
+from kubernetes.client import V1ObjectMeta, V1Service, V1ServicePort, V1ServiceSpec
+from kubernetes.dynamic.exceptions import NotFoundError
 from temporalio import activity
 from temporalio.common import RetryPolicy
-from kubernetes.dynamic.exceptions import NotFoundError
 
-from app.cli.temporal.core.log import log_error
-
-from datetime import timedelta
-from kubernetes.client import V1Service, V1ObjectMeta, V1ServiceSpec, V1ServicePort
 from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+from app.cli.temporal.core.log import log_error, log_info
 
 
 class KubernetesServiceActivityModel(LaunchpadCLIBaseModel):
@@ -72,7 +71,9 @@ class KubernetesServiceActivity(Activity):
         )
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        k8s_dynamic_client.server_side_apply(resource=resource, body=payload, field_manager="kubectl-client-side-apply")
+        k8s_dynamic_client.server_side_apply(
+            resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+        )
         log_info(f"Service {activity_model.service_name} created in namespace {activity_model.namespace}")
 
 

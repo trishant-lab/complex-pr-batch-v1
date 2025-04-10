@@ -1,15 +1,12 @@
+from datetime import timedelta
+
+from kubernetes.dynamic.exceptions import NotFoundError
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.temporal.core.log import log_error
-from kubernetes.dynamic.exceptions import NotFoundError
-
-
-from datetime import timedelta
 from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
-
+from app.cli.temporal.core.log import log_error, log_info
 
 API_VERSION = "networking.istio.io/v1beta1"
 
@@ -72,7 +69,9 @@ class KubernetesIstioVirtualServiceActivity(Activity):
         }
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        k8s_dynamic_client.server_side_apply(resource=resource, body=payload, field_manager="kubectl-client-side-apply")
+        k8s_dynamic_client.server_side_apply(
+            resource=resource, body=payload, field_manager="kubectl-client-side-apply", force_conflicts=True
+        )
         log_info(f"VirtualService {activity_model.service_name} created in namespace {activity_model.namespace}")
 
 

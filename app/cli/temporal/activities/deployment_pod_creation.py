@@ -207,7 +207,8 @@ class KubernetesDeploymentActivity(Activity):
 
         payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
         try:
-            resource.server_side_apply(
+            k8s_dynamic_client.server_side_apply(
+                resource=resource,
                 body=payload,
                 field_manager="kubectl-client-side-apply",
                 force_conflicts=True,
