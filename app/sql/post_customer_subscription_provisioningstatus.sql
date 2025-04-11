@@ -7,7 +7,7 @@ WITH customer_insert AS (
         {{customer['orgname']}}, 
         {{customer['data']}}, 
         LOWER({{customer['product']}}),
-        (SELECT schema FROM product WHERE name = LOWER({{customer['product']}}))
+        {{customer['schema']}}
     )
     RETURNING id
 ),

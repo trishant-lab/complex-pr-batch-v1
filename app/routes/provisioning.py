@@ -120,7 +120,7 @@ async def provisioning(
     if not product_details:
         raise errors.PRODUCT_NOT_FOUND.exc()
 
-    provisioning_model = await validate_provisioning_details(
+    _, provisioning_model = await validate_provisioning_details(
         product=product, data=provisioning_details, schema=product_details.formSchema
     )
 
@@ -199,7 +199,7 @@ async def approve_tenant(
 
     data = ijson_loads(response["data"])
     product_schema = ijson_loads(response["schema"])
-    provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+    _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
     onboard_schema = provisioning_model.model_dump()
     onboard_schema["customerId"] = str(tenant_id)
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
@@ -261,7 +261,7 @@ async def retry_provisioning(
         )
         product_schema = ijson_loads(response["schema"])
         data = ijson_loads(response["data"])
-        provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+        _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
         onboard_schema = provisioning_model.model_dump()
 
         onboard_schema["emailSent"] = True
