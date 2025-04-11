@@ -1,7 +1,7 @@
 {
-  "id": "practifly_<<tenant>>",
-  "realm": "practifly_<<tenant>>",
-  "displayName": "practifly_<<tenant>>",
+  "id": "<<realm_name>>",
+  "realm": "<<realm_name>>",
+  "displayName": "<<realm_name>>",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
@@ -51,7 +51,7 @@
         "description": "${role_uma_authorization}",
         "composite": false,
         "clientRole": false,
-        "containerId": "practifly_<<tenant>>",
+        "containerId": "<<realm_name>>",
         "attributes": {}
       },
       {
@@ -71,7 +71,7 @@
           }
         },
         "clientRole": false,
-        "containerId": "practifly_<<tenant>>",
+        "containerId": "<<realm_name>>",
         "attributes": {}
       },
       {
@@ -79,28 +79,28 @@
         "description": "${role_offline-access}",
         "composite": false,
         "clientRole": false,
-        "containerId": "practifly_<<tenant>>",
+        "containerId": "<<realm_name>>",
         "attributes": {}
       },
       {
         "name": "PF_INTERNAL_ADMIN",
         "composite": false,
         "clientRole": false,
-        "containerId": "practifly_<<tenant>>",
+        "containerId": "<<realm_name>>",
         "attributes": {}
       },
       {
         "name": "PF_CMS_ADMIN",
         "composite": false,
         "clientRole": false,
-        "containerId": "practifly_<<tenant>>",
+        "containerId": "<<realm_name>>",
         "attributes": {}
       },
       {
         "name": "PF_CMS_USER",
         "composite": false,
         "clientRole": false,
-        "containerId": "practifly_<<tenant>>",
+        "containerId": "<<realm_name>>",
         "attributes": {}
       }
     ],
@@ -405,7 +405,7 @@
     "description": "${role_default-roles}",
     "composite": true,
     "clientRole": false,
-    "containerId": "practifly_<<tenant>>"
+    "containerId": "<<realm_name>>"
   },
   "requiredCredentials": [
     "password"
@@ -471,13 +471,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/practifly_<<tenant>>/account/",
+      "baseUrl": "/realms/<<realm_name>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/practifly_<<tenant>>/account/*"
+        "/realms/<<realm_name>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -522,13 +522,13 @@
       "clientId": "account-console",
       "name": "${client_account-console}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/practifly_<<tenant>>/account/",
+      "baseUrl": "/realms/<<realm_name>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/practifly_<<tenant>>/account/*"
+        "/realms/<<realm_name>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -814,13 +814,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/practifly_<<tenant>>/console/",
+      "baseUrl": "/admin/<<realm_name>>/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/practifly_<<tenant>>/console/*"
+        "/admin/<<realm_name>>/console/*"
       ],
       "webOrigins": [
         "+"
