@@ -2,6 +2,7 @@ import base64
 from datetime import timedelta
 
 import aiohttp
+import httpx
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
@@ -531,7 +532,7 @@ class PostgresSupavisorPollUserActivity(Activity):
             DB_PASSWORD=activity_model.db_password,
         )
 
-        async with aiohttp.ClientSession() as session:
+        async with httpx.AsyncClient() as session:
             response = await session.put(
                 url=f"{config.supavisor_url}/api/tenants/{activity_model.username}",
                 headers={
@@ -539,14 +540,14 @@ class PostgresSupavisorPollUserActivity(Activity):
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                 },
-                data=rendered_template,
-                timeout=aiohttp.ClientTimeout(total=120),
+                content=rendered_template,
+                timeout=httpx.Timeout(120),
             )
 
-            if response.status < 200 or response.status >= 299:
-                response_json = await response.text()
+            if response.status_code < 200 or response.status_code >= 299:
+                response_json = response.text
                 log_error(
-                    f"Supavisor user creation failed with status code: {response.status} and response: {response_json}"
+                    f"Supavisor user creation failed with status: {response.status_code} and response: {response_json}"
                 )
                 raise aiohttp.ClientResponseError(
                     request_info=aiohttp.RequestInfo(
@@ -555,8 +556,8 @@ class PostgresSupavisorPollUserActivity(Activity):
                         headers={"Authorization": f"Bearer {config.supavisor_token}"},
                     ),
                     history=(),
-                    status=response.status,
-                    message=f"Supavisor user creation failed with status code: {response.status}",
+                    status=response.status_code,
+                    message=f"Supavisor user creation failed with status code: {response.status_code}",
                 )
         log_info(f"Supervisor poll user created: {activity_model.username}")
 
