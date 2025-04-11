@@ -105,7 +105,7 @@ class JeevesDeProvisioningWorkflow(Workflow):
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
         """
-        return f"de_provisioning_{pydash.get(workflow_input, 'tenant_id')}"
+        return f"jeeves_deprovisioning_workflow_{pydash.get(workflow_input, 'tenant_name')}"
 
     @workflow.run
     async def run(self: "Workflow", jeeves: DeboardWorkflowInput) -> None:

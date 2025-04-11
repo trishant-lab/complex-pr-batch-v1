@@ -1,4 +1,4 @@
-from typing import Any, ClassVar
+from typing import Any
 
 import phonenumbers
 from better_profanity import profanity
@@ -16,7 +16,7 @@ from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 
 COUNTRY_CODES = ["US", "IN", "CA", "MX"]
-RESERVED_TENANT_NAMES = {"auth", "accounts", "get"}
+RESERVED_TENANT_NAMES = {"auth", "accounts", "get", "forms", "launchpad"}
 
 
 class PhoneNumber(str):
@@ -52,8 +52,8 @@ class CustomerResponseModel(Customer):
     plancode: str
     email: EmailStr
     tenant_name: str | None = Field(pattern=TENANT_NAME_PATTERN)
-
-    model_config: ClassVar[dict] = {"extra": "allow"}  # allow extra fields from database
+    form_schema: str | None = Field(None, serialization_alias="schema", validation_alias="schema")
+    form_data: str | None = Field(None, serialization_alias="data", validation_alias="data")
 
 
 class OnboardingStage(BaseModel):
@@ -121,14 +121,14 @@ class PlanResponseModel(BaseModel):
 
 class CustomCustomerBillingConfiguration(CustomerBillingConfiguration):
     payment_provider: str = Field(default=Provider.STRIPE.value)
-    sync: bool = Field(default=True)
+    sync: bool | None = Field(default=True)
     sync_with_provider: bool = Field(default=True)
 
 
 class CustomerModel(Customer):
     external_id: str | None = None
     email: EmailStr
-    tenant: str = Field(pattern=TENANT_NAME_PATTERN)
+    tenant: str | None = Field(pattern=TENANT_NAME_PATTERN)
     billing_configuration: CustomCustomerBillingConfiguration = CustomCustomerBillingConfiguration()
     phone: PhoneNumber | None = None
     legal_name: str
@@ -136,11 +136,14 @@ class CustomerModel(Customer):
 
     @field_validator("tenant")
     @classmethod
-    def validate_tenant_name(cls: "CustomerModel", tenant: str) -> str:
+    def validate_tenant_name(cls: "CustomerModel", tenant: str | None) -> str | None:
         """
         @param tenant:
         @return:
         """
+        if tenant is None:
+            return None
+
         if tenant.lower() in RESERVED_TENANT_NAMES:
             raise ValueError("Invalid tenant name!")
 
@@ -174,9 +177,10 @@ class CustomerModel(Customer):
         set url based on tenant name
         """
         tenant = values.get("tenant")
-        app_config = ProductEnum.get_product_settings(values.get("product"))
         if tenant:
+            app_config = ProductEnum.get_product_settings(values.get("product"))
             values["url"] = f"https://{tenant}.{app_config.tenant_fqdn}"
+
         return values
 
 

@@ -20,6 +20,9 @@ class TenantStatusEnum(IntEnum):
     DeProvisioning = 5
     DeProvisioned = 6
     DeprovisioningFailed = -4
+    Deploying = 7
+    Deployed = 8
+    DeploymentFailed = -5
 
     @classmethod
     def can_update_tenant(cls, status: "TenantStatusEnum") -> bool:

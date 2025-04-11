@@ -11,6 +11,7 @@ from app.cli.temporal.practifly.workflows.deprovisioning import PractiflyDeProvi
 from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
 from app.cli.temporal.pricedx.workflows.deprovisioning import PricedxDeProvisioningWorkflow
 from app.cli.temporal.pricedx.workflows.onboarding import PricedxOnboardingWorkflow
+from app.cli.temporal.veritable.workflows.deployment import VeritableDeploymentWorkflow
 from app.cli.temporal.veritable.workflows.deprovisioning import VeritableDeProvisioningWorkflow
 from app.cli.temporal.veritable.workflows.onboarding import VeritableOnboardingWorkflow
 from app.cli.temporal.workflows.check_kube_config_certificate import KubeConfigCertExpiryWorkflow
@@ -41,6 +42,7 @@ WORKFLOW_MAPPER: dict[str, type[Workflow | ScheduleWorkflow]] = {
         PricedxOnboardingWorkflow,
         PricedxDeProvisioningWorkflow,
         VeritableDeProvisioningWorkflow,
+        VeritableDeploymentWorkflow,
     ]
 }
 

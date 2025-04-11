@@ -1,4 +1,3 @@
-import tempfile
 from datetime import datetime
 from enum import Enum
 from types import UnionType
@@ -51,14 +50,12 @@ async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
     )
     form_path = f"{product.value}/form.json"
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        form_file_path = f"{tmp_dir}/form.json"
-        with open(form_file_path, "w") as f:
-            f.write(ijson_dumps(form))
-
-        s3_utils.upload_file_to_storage(
-            file_path=form_file_path, object_name=form_path, bucket_name=config.r2.bucket, storage_client=storage_client
-        )
+    storage_client.write(
+        form_path,
+        ijson_dumps(form).encode(),
+        content_type="application/json",
+        content_disposition="inline",
+    )
 
 
 async def validate_provisioning_details(
@@ -77,12 +74,11 @@ async def validate_provisioning_details(
     missing_required_fields = []
     for field in schema:
         field_name = field["name"]
-        if field["required"]:
-            if not data.get(field_name):
-                missing_required_fields.append(field_name)
-            elif field.get("mapTo"):
+        if data.get(field_name):
+            if field.get("mapTo"):
                 model_data[field["mapTo"]] = data.get(field_name)
-
+        elif field["required"]:
+            missing_required_fields.append(field_name)
     if missing_required_fields:
         raise errors.REQUIRED_FIELD_MISSING.exc(fields=missing_required_fields)
 

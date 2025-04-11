@@ -42,6 +42,20 @@ class VeritableWorkflow(ProductWorkflow):
         )
 
     @staticmethod
+    async def deploy(schema: dict) -> None:
+        """
+        deploy method
+        """
+        from app.cli.temporal.starter import trigger_workflow
+        from app.cli.temporal.veritable.workflows.deployment import VeritableDeploymentWorkflow
+
+        await trigger_workflow(
+            workflow_input=VeritableSpec(**schema),
+            workflow=VeritableDeploymentWorkflow,
+            queue=WorkerQueues.veritable_deployment,
+        )
+
+    @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:
         """
         get_workflow_handle method

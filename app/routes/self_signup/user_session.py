@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends, Path, Query
 from lago_python_client.exceptions import LagoApiError
 from loguru import logger
@@ -15,6 +17,9 @@ from app.route_utils.product import validate_email_domain
 from app.route_utils.session_util import get_first_subscription_status, get_treated_email
 from app.route_utils.user_otp import UserOTP
 from app.route_utils.user_session import UserSession
+
+if TYPE_CHECKING:
+    from app.models.lago.customer import CustomerResponse
 
 router = APIRouter()
 
@@ -51,7 +56,9 @@ async def get_session(
     if customer_record:
         try:
             lago_client = get_lago_client(product)
-            customer = lago_client.customers().find(str(customer_record.pop("id"))).dict()
+            _customer: CustomerResponse = lago_client.customers().find(str(customer_record.pop("id")))
+            # use dict, lago_python_client.CustomerResponse is not V2 compatible
+            customer = _customer.dict(exclude={"billing_configuration"})  # type: ignore
         except LagoApiError as e:
             logger.error(e)
         if customer:

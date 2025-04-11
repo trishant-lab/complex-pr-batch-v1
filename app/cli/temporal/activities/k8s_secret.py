@@ -1,15 +1,14 @@
+from base64 import b64decode
+from datetime import timedelta
+
+from kubernetes.client import V1ObjectMeta, V1Secret
+from kubernetes.dynamic.exceptions import ConflictError, NotFoundError
 from temporalio import activity
 from temporalio.common import RetryPolicy
-from kubernetes.dynamic.exceptions import NotFoundError, ConflictError
 
-from app.cli.temporal.core.log import log_error
-
-
-from datetime import timedelta
-from kubernetes.client import V1Secret, V1ObjectMeta
 from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info
+from app.cli.temporal.core.log import log_error, log_info
 
 
 class K8sSecretCreationActivityModel(LaunchpadCLIBaseModel):
@@ -123,3 +122,69 @@ class K8sSecretDeletionActivity(Activity):
             log_error(f"Secret {activity_model.name} not found in namespace {activity_model.namespace}")
 
         log_info(f"Secret {activity_model.name} deleted in namespace {activity_model.namespace}")
+
+
+class K8sSecretFetchActivityModel(LaunchpadCLIBaseModel):
+    """
+    K8sSecretFetchActivityModel
+    """
+
+    namespace: str
+    name: str
+    decode_data: bool = True  # Whether to base64 decode the secret data
+
+
+class K8sSecretFetchActivity(Activity):
+    """
+    K8sSecretFetchActivity to retrieve a Kubernetes secret's data
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=5), backoff_coefficient=2, maximum_attempts=3)
+
+    @staticmethod
+    @activity.defn(name="K8sSecretFetchActivity")
+    async def defn(activity_model: K8sSecretFetchActivityModel) -> dict | None:
+        """
+        Fetch k8s secret data
+        """
+        k8s_dynamic_client = get_dynamic_client()
+        k8s_secret_resource = get_resource(
+            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.Secret, api_version="v1"
+        )
+
+        try:
+            # Get the secret
+            secret = k8s_dynamic_client.get(
+                resource=k8s_secret_resource, name=activity_model.name, namespace=activity_model.namespace
+            )
+
+            # Extract data field
+            data = secret.get("data", {})
+
+            # Decode base64 data if requested
+            if activity_model.decode_data and data:
+                decoded_data = {}
+                for key, value in data.items():
+                    if value:
+                        decoded_data[key] = b64decode(value).decode("utf-8")
+                    else:
+                        decoded_data[key] = None
+                return decoded_data
+
+            return data
+
+        except NotFoundError:
+            log_info(f"Secret {activity_model.name} not found in namespace {activity_model.namespace}")
+            return None

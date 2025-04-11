@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 import pydash
 from cryptography.fernet import Fernet
@@ -30,18 +29,17 @@ from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivityModel,
 )
 from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
-from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
+from app.cli.temporal.activities.k8s_secret import (
+    K8sSecretCreationActivity,
+    K8sSecretCreationActivityModel,
+    K8sSecretFetchActivity,
+    K8sSecretFetchActivityModel,
+)
 from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
 from app.cli.temporal.activities.keycloak_setup import (
-    KeycloakCreateInternalUsersActivity,
-    KeycloakCreateInternalUsersActivityModel,
-    KeycloakCreateTenantCustomerAdminUserActivity,
-    KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
-from app.cli.temporal.activities.onboard.failure import OnboardFailureMailActivity
-from app.cli.temporal.activities.onboard.success import OnboardSuccessMailActivity
 from app.cli.temporal.activities.one_password import (
     OnePasswordGetActivity,
     OnePasswordGetActivityModel,
@@ -74,8 +72,6 @@ from app.cli.temporal.activities.temporal_namespace import (
 from app.cli.temporal.activities.tenant_crd import (
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
-    TenantCrdExistsActivity,
-    TenantCrdExistsActivityModel,
 )
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
@@ -89,7 +85,6 @@ from app.cli.temporal.models.cloudflare import (
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivityModel,
 )
-from app.cli.temporal.models.onboard import CustomerWorkflowInput
 from app.cli.temporal.veritable import TemplatePath
 from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
 from app.common import generate_password
@@ -106,9 +101,9 @@ ProductName = "veritable"
 
 
 @workflow.defn(sandboxed=False)
-class VeritableOnboardingWorkflow(Workflow):
+class VeritableDeploymentWorkflow(Workflow):
     """
-    Veritable Onboarding Workflow
+    Veritable Deployment Workflow
     """
 
     @staticmethod
@@ -117,7 +112,6 @@ class VeritableOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            TenantCrdExistsActivity.defn,
             UpdateTenantStatusActivity.defn,
             K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
@@ -135,8 +129,6 @@ class VeritableOnboardingWorkflow(Workflow):
             PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             KeycloakRealmSetupActivity.defn,
-            KeycloakCreateTenantCustomerAdminUserActivity.defn,
-            KeycloakCreateInternalUsersActivity.defn,
             DatabaseMigrationJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
@@ -146,11 +138,10 @@ class VeritableOnboardingWorkflow(Workflow):
             OnePasswordInsertIfNotExistsActivity.defn,
             CheckPodRunningStatusActivity.defn,
             VeritableNovuOnboardingActivity.defn,
-            OnboardSuccessMailActivity.defn,
-            OnboardFailureMailActivity.defn,
             KubernetesDeploymentActivity.defn,
             StatefulSetPodDeletionActivity.defn,
             OnePasswordGetActivity.defn,
+            K8sSecretFetchActivity.defn,
         ]
 
     @classmethod
@@ -159,7 +150,7 @@ class VeritableOnboardingWorkflow(Workflow):
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
         """
-        return f"veritable_onboarding_workflow_{pydash.get(veritable, 'tenant')}"
+        return f"veritable_deployment_workflow_{pydash.get(veritable, 'tenant')}"
 
     @workflow.run
     async def run(self: "Workflow", veritable: VeritableSpec) -> None:
@@ -170,25 +161,10 @@ class VeritableOnboardingWorkflow(Workflow):
 
         config: AppSettings = get_settings()
         veritable_config: VeritableSettings = config.veritable
-        first_name = pydash.get(veritable, "firstName")
-        last_name = pydash.get(veritable, "lastName")
 
         tenant = pydash.get(veritable, "tenant")
 
         try:
-            # get tenant crd
-            tenant_crd_exists: bool = await run_activity(
-                activity=TenantCrdExistsActivity,
-                arg=TenantCrdExistsActivityModel(
-                    tenant=tenant,
-                    kind=ResourceKindEnum.VeritableTenant,
-                    product=ProductName,
-                ),
-            )
-
-            if tenant_crd_exists:
-                raise RuntimeError(f"Tenant {tenant} already exists")  # noqa: TRY301
-
             postgres_schema_name = f"{ProductName}_{tenant}"
             postgres_database_name = f"{ProductName}_{config.env}"
             postgres_username = f"{ProductName}_{tenant}"
@@ -204,6 +180,14 @@ class VeritableOnboardingWorkflow(Workflow):
                 arg=K8sNamespaceCreationActivityModel(namespace=tenant),
             )
 
+            # check if redis secret exists
+            redis_secret_exists = await run_activity(
+                activity=K8sSecretFetchActivity,
+                arg=K8sSecretFetchActivityModel(namespace=tenant, name=redis_secret_name, decode_data=True),
+            )
+            if redis_secret_exists:
+                redis_tenant_password = redis_secret_exists["password"]
+
             # secret setup for redis password
             await run_activity(
                 activity=K8sSecretCreationActivity,
@@ -213,6 +197,14 @@ class VeritableOnboardingWorkflow(Workflow):
                     string_data={"password": redis_tenant_password},
                 ),
             )
+
+            # check if postgres secret exists
+            postgres_secret_exists = await run_activity(
+                activity=K8sSecretFetchActivity,
+                arg=K8sSecretFetchActivityModel(namespace=tenant, name=postgres_secret_name, decode_data=True),
+            )
+            if postgres_secret_exists:
+                postgres_password = postgres_secret_exists["password"]
 
             # secret setup for postgres password
             await run_activity(
@@ -282,84 +274,92 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            data_bucket = veritable.cloudflare_r2_data_bucket
-
-            await run_activity(
-                activity=CreateCloudflareBucketActivity,
-                arg=CreateCloudflareBucketActivityModel(bucket_name=data_bucket),
-            )
-
-            credentials: CloudflareBucketCredentials = await run_activity(
-                activity=CreateCloudflareBucketCredentialsActivity,
-                arg=CreateCloudflareBucketCredentialsActivityModel(
-                    bucket_name=data_bucket,
-                    read_only=False,
-                ),
+            # check if data bucket credentials exists in secret
+            data_bucket_secret_name = "veritable-cloudflare-r2"
+            data_bucket_secret_exists = await run_activity(
+                activity=K8sSecretFetchActivity,
+                arg=K8sSecretFetchActivityModel(namespace=tenant, name=data_bucket_secret_name, decode_data=True),
             )
 
             one_password_vault = ProductEnum.get_onepassword_vault_name(ProductEnum.veritable)
 
-            cloudflare_r2_data_bucket_access_key: str
-            cloudflare_r2_data_bucket_secret_key: str
+            if not data_bucket_secret_exists:
+                data_bucket = veritable.cloudflare_r2_data_bucket
 
-            if credentials.exists:
-                cloudflare_r2_data_bucket_access_key = await run_activity(
-                    activity=OnePasswordGetActivity,
-                    arg=OnePasswordGetActivityModel(
-                        tenant=tenant,
-                        vault=one_password_vault,
-                        server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
-                        secret_name="s3_access_key",
-                    ),
-                )
-                cloudflare_r2_data_bucket_secret_key = await run_activity(
-                    activity=OnePasswordGetActivity,
-                    arg=OnePasswordGetActivityModel(
-                        tenant=tenant,
-                        vault=one_password_vault,
-                        server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
-                        secret_name="s3_secret_key",
-                    ),
-                )
-            else:
-                cloudflare_r2_data_bucket_access_key = credentials.access_key
-                cloudflare_r2_data_bucket_secret_key = credentials.secret_key
-
-                # s3 access key added to onepassword
                 await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=tenant,
-                        vault=one_password_vault,
-                        server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
-                        key="s3_access_key",
-                        key_value=cloudflare_r2_data_bucket_access_key,
+                    activity=CreateCloudflareBucketActivity,
+                    arg=CreateCloudflareBucketActivityModel(bucket_name=data_bucket),
+                )
+
+                credentials: CloudflareBucketCredentials = await run_activity(
+                    activity=CreateCloudflareBucketCredentialsActivity,
+                    arg=CreateCloudflareBucketCredentialsActivityModel(
+                        bucket_name=data_bucket,
+                        read_only=False,
                     ),
                 )
 
-                # s3 secret key added to onepassword
+                cloudflare_r2_data_bucket_access_key: str
+                cloudflare_r2_data_bucket_secret_key: str
+
+                if credentials.exists:
+                    cloudflare_r2_data_bucket_access_key = await run_activity(
+                        activity=OnePasswordGetActivity,
+                        arg=OnePasswordGetActivityModel(
+                            tenant=tenant,
+                            vault=one_password_vault,
+                            server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                            secret_name="s3_access_key",
+                        ),
+                    )
+                    cloudflare_r2_data_bucket_secret_key = await run_activity(
+                        activity=OnePasswordGetActivity,
+                        arg=OnePasswordGetActivityModel(
+                            tenant=tenant,
+                            vault=one_password_vault,
+                            server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                            secret_name="s3_secret_key",
+                        ),
+                    )
+                else:
+                    cloudflare_r2_data_bucket_access_key = credentials.access_key
+                    cloudflare_r2_data_bucket_secret_key = credentials.secret_key
+
+                    # s3 access key added to onepassword
+                    await run_activity(
+                        activity=OnePasswordInsertIfNotExistsActivity,
+                        arg=OnePasswordInsertIfNotExistsActivityModel(
+                            tenant=tenant,
+                            vault=one_password_vault,
+                            server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                            key="s3_access_key",
+                            key_value=cloudflare_r2_data_bucket_access_key,
+                        ),
+                    )
+
+                    # s3 secret key added to onepassword
+                    await run_activity(
+                        activity=OnePasswordInsertIfNotExistsActivity,
+                        arg=OnePasswordInsertIfNotExistsActivityModel(
+                            tenant=tenant,
+                            vault=one_password_vault,
+                            server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
+                            key="s3_secret_key",
+                            key_value=cloudflare_r2_data_bucket_secret_key,
+                        ),
+                    )
+
                 await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=tenant,
-                        vault=one_password_vault,
-                        server_item=f"veritable-tenant-config-{config.env.lower().strip()}",
-                        key="s3_secret_key",
-                        key_value=cloudflare_r2_data_bucket_secret_key,
+                    activity=K8sSecretCreationActivity,
+                    arg=K8sSecretCreationActivityModel(
+                        namespace=tenant,
+                        name=data_bucket_secret_name,
+                        string_data={
+                            "access-key": cloudflare_r2_data_bucket_access_key,
+                            "secret-key": cloudflare_r2_data_bucket_secret_key,
+                        },
                     ),
                 )
-
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="veritable-cloudflare-r2",
-                    string_data={
-                        "access-key": cloudflare_r2_data_bucket_access_key,
-                        "secret-key": cloudflare_r2_data_bucket_secret_key,
-                    },
-                ),
-            )
 
             # secret setup for docker registry
             await run_activity(
@@ -424,11 +424,6 @@ class VeritableOnboardingWorkflow(Workflow):
             config_dir = "config"
             # kubernetes config map creation
             for config_map in [
-                {
-                    "name": "veritable-custom-config",
-                    "key": custom_config,
-                    "data": "{}",
-                },
                 {
                     "name": "veritable-env-config",
                     "key": env_config,
@@ -533,40 +528,6 @@ class VeritableOnboardingWorkflow(Workflow):
                         "domain_org": veritable_config.domain_name.split(".")[-1],
                         "jinja_env.autoescape": False,
                     },
-                ),
-            )
-
-            # keycloak tenant customer admin user setup
-            await run_activity(
-                activity=KeycloakCreateTenantCustomerAdminUserActivity,
-                arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=f"veritable_{tenant}",
-                    client_name="app",
-                    username=veritable.email,
-                    email=veritable.email,
-                    firstname=first_name,
-                    lastname=last_name,
-                    template_path=TemplatePath,
-                    template_name="keycloak_tenant_customer_admin.json",
-                ),
-            )
-
-            # keycloak tenant internal admin user setup
-            await run_activity(
-                activity=KeycloakCreateInternalUsersActivity,
-                arg=KeycloakCreateInternalUsersActivityModel(
-                    realm_name=f"veritable_{tenant}",
-                    client_name="app",
-                    users=[
-                        {
-                            "username": "admin",
-                            "email": veritable_config.sendgrid.support_mail,
-                            "firstname": "Admin",
-                            "lastname": "",
-                        },
-                    ],
-                    template_path=TemplatePath,
-                    template_name="keycloak_tenant_admin.json",
                 ),
             )
 
@@ -923,7 +884,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Provisioned,
+                    status=TenantStatusEnum.Deployed,
                     product=ProductEnum.veritable,
                 ),
             )
@@ -949,31 +910,14 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # send onboarding success mail
-            await run_activity(
-                activity=OnboardSuccessMailActivity,
-                arg=CustomerWorkflowInput(
-                    customer_id=UUID(veritable.customerId),
-                    product=ProductEnum.veritable,
-                ),
-            )
-
         except Exception as e:
-            workflow.logger.error(f"Error in onboarding workflow: {e}")
+            workflow.logger.error(f"Error in deployment workflow: {e}")
             await run_activity(
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.ProvisioningFailed,
+                    status=TenantStatusEnum.DeploymentFailed,
                     error_msg=str(e),
-                    product=ProductEnum.veritable,
-                ),
-            )
-            # send onboarding failure mail
-            await run_activity(
-                activity=OnboardFailureMailActivity,
-                arg=CustomerWorkflowInput(
-                    customer_id=UUID(veritable.customerId),
                     product=ProductEnum.veritable,
                 ),
             )
