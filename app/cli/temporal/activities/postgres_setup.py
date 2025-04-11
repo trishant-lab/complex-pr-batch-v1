@@ -111,8 +111,10 @@ class PostgresUserCreationActivity(Activity):
 
         if response is None:
             await db.execute_raw_sql(
-                query=f"CREATE ROLE {activity_model.username} NOSUPERUSER NOCREATEDB"
-                " NOCREATEROLE INHERIT LOGIN PASSWORD '{activity_model.password}';",
+                query=(
+                    f"CREATE ROLE {activity_model.username} NOSUPERUSER NOCREATEDB "
+                    f"NOCREATEROLE INHERIT LOGIN PASSWORD '{activity_model.password}';"
+                ),
             )
             log_info(f"Created user {activity_model.username} with password {activity_model.password}")
         else:
