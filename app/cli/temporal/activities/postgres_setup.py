@@ -8,7 +8,7 @@ from temporalio.common import RetryPolicy
 from app.cli.k8s_util import get_k8s_core_v1_api_client
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
-from app.core.db import DBManager, get_db_manager
+from app.core.db import DBManager, get_super_admin_db_manager
 from app.core.settings import AppSettings, get_settings
 from app.template_env import get_env
 
@@ -52,22 +52,15 @@ class PostgresSchemaCreationActivity(Activity):
         """
         Setup postgres
         """
-        config: AppSettings = get_settings()
-
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
+        db: DBManager = await get_super_admin_db_manager()
 
         await db.execute_raw_sql(
             f'CREATE SCHEMA IF NOT EXISTS "{activity_model.schema_name}" AUTHORIZATION {activity_model.username};',
         )
-
         log_info(f"Created schema {activity_model.schema_name} for user {activity_model.username}")
 
 
 # Create user
-
-
 class PostgresUserCreationActivityModel(LaunchpadCLIBaseModel):
     """
     PostgresUserCreationActivityModel
@@ -108,12 +101,7 @@ class PostgresUserCreationActivity(Activity):
         Setup postgres
         """
         # check if user exists and if not create user
-
-        config: AppSettings = get_settings()
-
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
+        db: DBManager = await get_super_admin_db_manager()
 
         response = await db.fetch_one(
             sqlfile="check_if_user_exists.sql",
@@ -175,12 +163,7 @@ class PostgresUserCreationFromSecretActivity(Activity):
         Setup postgres
         """
         # check if user exists and if not create user
-
-        config: AppSettings = get_settings()
-
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
+        db: DBManager = await get_super_admin_db_manager()
 
         response = await db.fetch_one(
             sqlfile="check_if_user_exists.sql",
@@ -199,9 +182,7 @@ class PostgresUserCreationFromSecretActivity(Activity):
             await db.execute_raw_sql(query=query)
             log_info(f"Created user {username}")
         else:
-            await db.execute_raw_sql(
-                query=f"ALTER USER {username} WITH PASSWORD '{password}';",
-            )
+            await db.execute_raw_sql(query=f"ALTER USER {username} WITH PASSWORD '{password}';")
             log_info(f"Updated password for user {username} successfully.")
 
 
@@ -242,18 +223,14 @@ class PostgresDatabaseCreationActivity(Activity):
         """
         Setup postgres
         """
-        config: AppSettings = get_settings()
-
-        db: DBManager = await get_db_manager(dsn=config.postgres.dsn)
+        db: DBManager = await get_super_admin_db_manager()
 
         database_exists = await db.fetch_one(
             sqlfile="check_if_database_exists.sql",
             database_name=activity_model.database_name,
         )
-
         if not database_exists:
             await db.create_database(db_name=activity_model.database_name)
-
             log_info(f"Created database {activity_model.database_name}")
 
 
@@ -296,11 +273,7 @@ class PostgresGrantAccessToUserActivity(Activity):
         """
         Setup postgres
         """
-        config: AppSettings = get_settings()
-
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
+        db: DBManager = await get_super_admin_db_manager()
 
         await db.execute_raw_sql(
             query=f'GRANT CONNECT, CREATE ON DATABASE "{activity_model.database_name}" TO {activity_model.username};',
@@ -358,10 +331,7 @@ class KeycloakUserMappingActivity(Activity):
         Setup postgres
         """
         config: AppSettings = get_settings()
-
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
+        db: DBManager = await get_super_admin_db_manager()
 
         await db.execute_raw_sql(
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {activity_model.username} SERVER keycloak_server OPTIONS  "
@@ -409,10 +379,7 @@ class MatomoUserMappingActivity(Activity):
         Setup postgres
         """
         config: AppSettings = get_settings()
-
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
+        db: DBManager = await get_super_admin_db_manager()
 
         await db.execute_raw_sql(
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {activity_model.username} SERVER matomo_server OPTIONS  "
@@ -459,15 +426,9 @@ class TableSpaceActivity(Activity):
         """
         Setup postgres
         """
-        config: AppSettings = get_settings()
+        db: DBManager = await get_super_admin_db_manager()
 
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
-
-        await db.execute_raw_sql(
-            query=f"GRANT CREATE ON TABLESPACE pgdataenc TO {activity_model.username};",
-        )
+        await db.execute_raw_sql(query=f"GRANT CREATE ON TABLESPACE pgdataenc TO {activity_model.username};")
         log_info(f"Granted user {activity_model.username} create role on tablespace pgdataenc successfully.")
 
 
@@ -510,12 +471,7 @@ class PostgresGrantAllPrivilegesOnTableActivity(Activity):
         """
         Setup postgres
         """
-        config: AppSettings = get_settings()
-
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
-
+        db: DBManager = await get_super_admin_db_manager()
         for table in activity_model.tables:
             await db.execute_raw_sql(
                 query=f"GRANT ALL PRIVILEGES ON TABLE {table} TO {activity_model.username};",
@@ -711,15 +667,9 @@ class DeletePostgresUserActivity(Activity):
         """
         Setup postgres
         """
-        config: AppSettings = get_settings()
+        db: DBManager = await get_super_admin_db_manager()
 
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
-
-        await db.execute_raw_sql(
-            query=f"DROP USER IF EXISTS {activity_model.username};",
-        )
+        await db.execute_raw_sql(query=f"DROP USER IF EXISTS {activity_model.username};")
         log_info(f"Deleted user {activity_model.username} successfully.")
 
 
@@ -761,13 +711,7 @@ class DeletePostgresSchemaActivity(Activity):
         """
         Setup postgres
         """
-        config: AppSettings = get_settings()
+        db: DBManager = await get_super_admin_db_manager()
 
-        dsn = f"postgres://{config.postgres.user}:{config.postgres.password}@{config.postgres.host}:{config.postgres.port}/{activity_model.database_name}"
-
-        db: DBManager = await get_db_manager(dsn=dsn)
-
-        await db.execute_raw_sql(
-            query=f"DROP SCHEMA IF EXISTS {activity_model.schema_name} CASCADE;",
-        )
+        await db.execute_raw_sql(query=f"DROP SCHEMA IF EXISTS {activity_model.schema_name} CASCADE;")
         log_info(f"Deleted schema {activity_model.schema_name} successfully.")
