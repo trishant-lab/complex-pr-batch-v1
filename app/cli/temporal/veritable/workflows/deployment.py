@@ -515,10 +515,11 @@ class VeritableDeploymentWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = f"{tenant}"
+            realm_name = f"veritable_{tenant}"
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
+                    tenant=tenant,
                     realm_name=realm_name,
                     domain=veritable_config.domain_name,
                     template_path=TemplatePath,

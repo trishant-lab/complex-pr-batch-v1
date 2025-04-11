@@ -130,7 +130,8 @@ def download_invoice(product: ProductEnum, lago_id: str) -> InvoiceResponse:
     @return:
     """
     client = get_lago_client(product)
-    return client.invoices().download(lago_id)
+    invoice_resp = client.invoices().download(lago_id)
+    return InvoiceResponse.from_lago(invoice_resp)
 
 
 async def payment_success_service(product: ProductEnum, invoice: InvoiceResponse) -> None:

@@ -48,6 +48,7 @@ def create_keycloak_realm(
     domain: str,
     template_path: str,
     template_name: str,
+    tenant: str | None = None,
     installer_secret: str | None = None,
     template_payload: dict | None = None,
 ) -> None:
@@ -67,7 +68,8 @@ def create_keycloak_realm(
         template_path=template_path,
         template_name=template_name,
         template_payload={
-            "tenant": realm_name,
+            "tenant": tenant if tenant else realm_name,
+            "realm_name": realm_name,
             "sendgrid_api_key": config.sendgrid.api_key,
             "domain": domain,
             "installer_secret": installer_secret,
@@ -409,6 +411,7 @@ class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
     domain: str
     template_path: str
     template_name: str
+    tenant: str | None = None
     installer_secret: str | None = None
     template_payload: dict | None = None
 
@@ -439,6 +442,7 @@ class KeycloakRealmSetupActivity(Activity):
         Create keycloak realm
         """
         create_keycloak_realm(
+            tenant=activity_model.tenant,
             realm_name=activity_model.realm_name,
             domain=activity_model.domain,
             template_path=activity_model.template_path,
