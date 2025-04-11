@@ -12,7 +12,7 @@ class LagoBaseModel(BaseModel):
         """Common conversion method for all Lago models"""
         try:
             if lago_model is None:
-                return None
+                return lago_model
             return cls.model_validate(lago_model.dict())
         except Exception as e:
             logger.error(f"Failed to convert Lago model to {cls.__name__}: {e}")
