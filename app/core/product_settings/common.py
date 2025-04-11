@@ -64,7 +64,6 @@ class SelfSignupSettings(BaseModel):
     """Base Settings for Self Signup Product"""
 
     signup_url: str = ""
-    billing_url: str = ""
     tenant_fqdn: str = ""
     domain_org: str = ""
 

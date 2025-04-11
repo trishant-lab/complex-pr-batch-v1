@@ -192,6 +192,7 @@ class AppSettings(BaseSettings):
     env: str = os.getenv("DEPLOYMENT", "integration").lower()
     api_prefix: str = "/api/v1"
     client_code: str = "launchpad"
+    billing_url: str = ""
 
     keycloak: KeycloakSettings = KeycloakSettings()
     keycloak_prod: KeycloakSettings = KeycloakSettings()
@@ -264,6 +265,7 @@ class IntegrationSettings(AppSettings):
     postgres: PostgresSettings = PostgresSettings()
     gsuite: GSuiteModel = GSuiteModel()
 
+    billing_url: str = "https://api-billing.314ecorp.tech"
     app_url: str = "https://launchpad.314ecorp.tech/sprint"
 
     model_config = ConfigDict(extra="ignore")
@@ -277,6 +279,7 @@ class ProductionSettings(AppSettings):
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
 
+    billing_url: str = "https://api-billing.314ecorp.com"
     app_url: str = "https://launchpad.314ecorp.com"
     grafana_datasource_uid: str = "LTvkszRVk"
 

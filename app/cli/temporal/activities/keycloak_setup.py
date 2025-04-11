@@ -59,8 +59,9 @@ def create_keycloak_realm(
 
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
-    # First check if realm exists
-    if keycloak_client.get_realm(realm_name):
+    # check if realm exists
+    realms = [row["realm"] for row in keycloak_client.get_all_realms()]
+    if realm_name in realms:
         log_info(f"Realm {realm_name} already exists")
         return
 

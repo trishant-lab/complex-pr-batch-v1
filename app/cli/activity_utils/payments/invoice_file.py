@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
+from app.core.settings import AppSettings, get_settings
 from app.models.product import ProductEnum
 
 
@@ -24,6 +25,8 @@ def get_invoice_helper(product: ProductEnum, resp: dict) -> dict:
     @return:
     """
     app_config = ProductEnum.get_product_settings(product)
+    config: AppSettings = get_settings()
+
     if resp.get("file_url"):
         # normalize file url
         file_url = normalise_http_url(str(resp["file_url"]))
@@ -33,7 +36,7 @@ def get_invoice_helper(product: ProductEnum, resp: dict) -> dict:
             if api_url.endswith("/"):
                 api_url = api_url.removesuffix("/")
             if file_url.startswith(api_url):
-                resp["file_url"] = file_url.replace(api_url, urljoin(app_config.billing_url, "billing"))
+                resp["file_url"] = file_url.replace(api_url, urljoin(config.billing_url, "billing"))
     resp["external_id"] = resp.pop("lago_id")
     return resp
 
