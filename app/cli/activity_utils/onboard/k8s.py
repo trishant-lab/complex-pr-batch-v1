@@ -24,7 +24,7 @@ async def trigger_provisioning_workflow(customer_id: UUID, product: ProductEnum)
     schema = ijson_loads(resp["schema"])
 
     try:
-        provisioning_model = await validate_provisioning_details(product=product, data=data, schema=schema)
+        _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=schema)
     except ValidationError as e:
         logger.error(f"Invalid schema: {e.errors()}")
         raise NonRetryableException(f"Invalid schema: {e.errors()}")
