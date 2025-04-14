@@ -85,7 +85,7 @@ class VeritableSchema(BaseFormSchema):
             "subtype": "text",
             "className": "form-control",
             "placeholder": "e.g. VER15",
-            "mapTo": "coupon_code",
+            "mapTo": "couponCode",
             "order": 12,
         },
     )

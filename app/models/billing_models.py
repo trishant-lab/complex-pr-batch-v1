@@ -29,10 +29,14 @@ class PhoneNumber(str):
         _source_type: Any | None = None,
     ) -> CoreSchema:
         """Define the core schema for phone number validation"""
-        return core_schema.str_schema(serialization=core_schema.plain_serializer_function_ser_schema(cls.validate))
+        return core_schema.no_info_wrap_validator_function(
+            cls.validate,
+            core_schema.str_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(cls.validate),
+        )
 
     @classmethod
-    def validate(cls: "PhoneNumber", v: str) -> "PhoneNumber":
+    def validate(cls: "PhoneNumber", v: str, info: Any = None) -> "PhoneNumber":
         """
         Remove spaces
         @param v:
