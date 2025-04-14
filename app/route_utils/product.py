@@ -86,7 +86,8 @@ async def validate_provisioning_details(
         product_schema = PRODUCT_SCHEMA_MAP[product]
         provisioning_model = product_schema.model_validate(model_data)
     except ValidationError as e:
-        raise errors.INVALID_SCHEMA.exc(errors=e.errors())
+        error_message = [error["msg"] for error in e.errors()]
+        raise errors.INVALID_SCHEMA.exc(e=error_message)
 
     return schema, provisioning_model
 
