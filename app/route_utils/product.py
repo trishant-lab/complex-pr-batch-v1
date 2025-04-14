@@ -93,7 +93,7 @@ async def validate_provisioning_details(
 
 # Map form field types to Pydantic types
 TYPE_MAPPING = {
-    "text": (str, EmailStr),
+    "text": (str, EmailStr, PhoneNumber),
     "email": (str, EmailStr),
     "number": (int, float, PhoneNumber),
     "select": (str, Enum),
