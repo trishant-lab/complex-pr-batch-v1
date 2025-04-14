@@ -270,7 +270,8 @@ async def create_customer(
         )
     except ValidationError as e:
         logger.error(f"Invalid schema: {e.errors()}")
-        raise errors.INVALID_SCHEMA.exc()
+        error_message = [error["msg"] for error in e.errors()]
+        raise errors.INVALID_SCHEMA.exc(e=error_message)
 
     if customer_record:
         response, lago_customer = await update_existing_customer(
@@ -334,7 +335,8 @@ async def create_enterprise_customer(
         )
     except ValidationError as e:
         logger.error(f"Invalid schema: {e.errors()}")
-        raise errors.INVALID_SCHEMA.exc()
+        error_message = [error["msg"] for error in e.errors()]
+        raise errors.INVALID_SCHEMA.exc(e=error_message)
 
     customer_params = {
         "tenantname": customer.tenant.lower(),
