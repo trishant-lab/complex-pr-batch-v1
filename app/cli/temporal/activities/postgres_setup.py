@@ -9,7 +9,7 @@ from temporalio.common import RetryPolicy
 from app.cli.k8s_util import get_k8s_core_v1_api_client
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
-from app.core.db import DBManager, get_super_admin_db_manager
+from app.core.db import DBManager, get_super_admin_db_manager, get_super_admin_for_database
 from app.core.settings import AppSettings, get_settings
 from app.template_env import get_env
 
@@ -53,7 +53,7 @@ class PostgresSchemaCreationActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_db_manager()
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
 
         await db.execute_raw_sql(
             f'CREATE SCHEMA IF NOT EXISTS "{activity_model.schema_name}" AUTHORIZATION {activity_model.username};',
@@ -334,8 +334,7 @@ class KeycloakUserMappingActivity(Activity):
         Setup postgres
         """
         config: AppSettings = get_settings()
-        db: DBManager = await get_super_admin_db_manager()
-
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
         await db.execute_raw_sql(
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {activity_model.username} SERVER keycloak_server OPTIONS  "
             f"(user 'keyclock_fdw', password '{config.keycloak.keycloak_db_password}');",
@@ -382,8 +381,7 @@ class MatomoUserMappingActivity(Activity):
         Setup postgres
         """
         config: AppSettings = get_settings()
-        db: DBManager = await get_super_admin_db_manager()
-
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
         await db.execute_raw_sql(
             query=f"CREATE USER MAPPING IF NOT EXISTS FOR {activity_model.username} SERVER matomo_server OPTIONS  "
             f"(username 'matomo_fdw', password '{config.matomo_db_password}');",
@@ -429,8 +427,7 @@ class TableSpaceActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_db_manager()
-
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
         await db.execute_raw_sql(query=f"GRANT CREATE ON TABLESPACE pgdataenc TO {activity_model.username};")
         log_info(f"Granted user {activity_model.username} create role on tablespace pgdataenc successfully.")
 
@@ -474,7 +471,7 @@ class PostgresGrantAllPrivilegesOnTableActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_db_manager()
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
         for table in activity_model.tables:
             await db.execute_raw_sql(
                 query=f"GRANT ALL PRIVILEGES ON TABLE {table} TO {activity_model.username};",
@@ -621,7 +618,7 @@ class DeleteSupavisorTenantActivity(Activity):
                 )
                 raise aiohttp.ClientResponseError(
                     request_info=aiohttp.RequestInfo(
-                        url=f"{config.supavisor_url}/api/tenants/{activity_model.username}",
+                        url=f"{config.supavisor_url}/api/tenants/{activity_model.supavisor_tenant_name}",
                         method="DELETE",
                         headers={"Authorization": f"Bearer {config.supavisor_token}"},
                     ),
@@ -629,7 +626,7 @@ class DeleteSupavisorTenantActivity(Activity):
                     status=response.status,
                     message=f"Supavisor user creation failed with status code: {response.status}",
                 )
-        log_info(f"Supervisor poll user created: {activity_model.username}")
+        log_info(f"Supervisor poll user created: {activity_model.supavisor_tenant_name}")
 
 
 class DeletePostgresUserActivityModel(LaunchpadCLIBaseModel):
@@ -714,7 +711,7 @@ class DeletePostgresSchemaActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_db_manager()
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
 
         await db.execute_raw_sql(query=f"DROP SCHEMA IF EXISTS {activity_model.schema_name} CASCADE;")
         log_info(f"Deleted schema {activity_model.schema_name} successfully.")

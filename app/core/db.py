@@ -9,6 +9,7 @@ import asyncpg
 import jinja2
 from asyncpg import Record
 from pydantic import PostgresDsn
+from pydantic_core import MultiHostUrl
 
 from .jinjasql import JinjaSql
 from .settings import AppSettings, PostgresSettings, get_settings
@@ -228,7 +229,7 @@ async def get_db(pg_dsn: PostgresDsn) -> asyncpg.pool.Pool:
     """
     creates database instance from PostgreSQL DSN
     """
-    return await asyncpg.create_pool(str(pg_dsn), min_size=1, max_size=2)
+    return await asyncpg.create_pool(str(pg_dsn), min_size=0, max_size=2)
 
 
 async def get_db_manager(dsn: PostgresDsn | None = None) -> DBManager:
@@ -247,6 +248,16 @@ async def get_super_admin_db_manager() -> DBManager:
     """
     pg_super_admin_config: PostgresSettings = config.pg_super_admin
     pool: asyncpg.pool.Pool = await get_db(pg_super_admin_config.dsn)
+    return DBManager(pool, pg_super_admin_config.schema_name)
+
+
+async def get_super_admin_for_database(database_name: str) -> DBManager:
+    """
+    creates database manager object for super admin
+    """
+    pg_super_admin_config: PostgresSettings = config.pg_super_admin
+    dsn = f"postgres://{pg_super_admin_config.user}:{pg_super_admin_config.password}@{pg_super_admin_config.host}:{pg_super_admin_config.port}/{database_name}"
+    pool: asyncpg.pool.Pool = await get_db(MultiHostUrl(dsn))
     return DBManager(pool, pg_super_admin_config.schema_name)
 
 
