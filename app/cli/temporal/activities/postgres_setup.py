@@ -276,7 +276,7 @@ class PostgresGrantAccessToUserActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_db_manager()
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
 
         await db.execute_raw_sql(
             query=f'GRANT CONNECT, CREATE ON DATABASE "{activity_model.database_name}" TO {activity_model.username};',
