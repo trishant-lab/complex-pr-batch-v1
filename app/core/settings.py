@@ -253,6 +253,7 @@ class JeevesSettings(BaseModel):
     s3_mpd_api: str = "https://{tenant}.api.okjeeves.app/public/api/v1/recording/getMPDFile"
     mpd_api: str = "https://{tenant}.api.okjeeves.app/api/v1/asset"
     auth_secret: str = ""
+    keycloak_attribute_to_match_user: str = "username"
 
 
 class HDPSettings(BaseModel):
