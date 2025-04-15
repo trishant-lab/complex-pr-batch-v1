@@ -1128,37 +1128,29 @@ class JeevesOnboardingWorkflow(Workflow):
                     ),
                 )
 
-            # update tenant status
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(
-                    tenant_name=tenant,
-                    status=TenantStatusEnum.Deployed if is_deployment else TenantStatusEnum.Provisioned,
-                    product=ProductEnum.jeeves,
-                ),
-            )
-
-            # Commented for testing config changes.
-            # if not is_deployment:
-            #     await run_activity(
-            #         activity=JeevesSendAfterProvisioningMailActivity,
-            #         arg=JeevesSendAfterProvisioningMailActivityModel(
-            #             realm_name=realm_name,
-            #             client_id="jeeves",
-            #         ),
-            #     )
+            if not is_deployment:
+                # update tenant status
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
+                        tenant_name=tenant,
+                        status=TenantStatusEnum.Provisioned,
+                        product=ProductEnum.jeeves,
+                    ),
+                )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(
-                    tenant_name=tenant,
-                    status=TenantStatusEnum.DeploymentFailed if is_deployment else TenantStatusEnum.ProvisioningFailed,
-                    error_msg=str(e),
-                    product=ProductEnum.jeeves,
-                ),
-            )
+            if not is_deployment:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
+                        tenant_name=tenant,
+                        status=TenantStatusEnum.ProvisioningFailed,
+                        error_msg=str(e),
+                        product=ProductEnum.jeeves,
+                    ),
+                )
             await run_activity(
                 activity=SlackNotificationActivity,
                 arg=SlackNotificationActivityModel(
