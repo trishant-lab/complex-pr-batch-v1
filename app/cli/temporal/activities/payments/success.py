@@ -51,10 +51,10 @@ class PaymentSuccessActivity(Activity):
         _timeout = PaymentSuccessActivity._timeout
 
         invoice = download_invoice(activity_input.product, str(activity_input.lago_id))
-        while invoice.file_url is None:
+        while invoice or invoice.file_url is None:
             invoice = download_invoice(activity_input.product, str(activity_input.lago_id))
 
-            if invoice.file_url is None and _time >= _timeout:
+            if (invoice or invoice.file_url is None) and _time >= _timeout:
                 msg = "Invoice pdf file not yet generated!"
                 raise RetryableException(msg)
 
