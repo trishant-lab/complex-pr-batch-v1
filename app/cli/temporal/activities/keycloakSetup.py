@@ -145,6 +145,7 @@ def create_tenant_customer_admin_user(
     lastname: str,
     template_path: str,
     template_name: str,
+    group_path: str | None,
     roles: list[str] | None = None,
 ) -> None:
     """
@@ -177,6 +178,12 @@ def create_tenant_customer_admin_user(
         else client_roles,
         realm_name=realm_name,
     )
+    if group_path:
+        keycloak_client.assign_group(
+            user_id=user_id,
+            realm_name=realm_name,
+            group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
+        )
 
 
 def create_internal_users(
@@ -185,6 +192,7 @@ def create_internal_users(
     template_path: str,
     template_name: str,
     users: list[dict],
+    group_path: str | None,
     roles: list[str] | None = None,
 ) -> None:
     """
@@ -225,6 +233,13 @@ def create_internal_users(
                 if roles
                 else client_roles,
                 realm_name=realm_name,
+            )
+
+        if group_path:
+            keycloak_client.assign_group(
+                user_id=user_id,
+                realm_name=realm_name,
+                group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
             )
 
 
@@ -588,6 +603,7 @@ class KeycloakCreateTenantCustomerAdminUserActivityModel(LaunchpadCLIBaseModel):
     roles: list[str] | None = None
     template_path: str
     template_name: str
+    group_path: str | None = None
 
 
 class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
@@ -625,6 +641,7 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
             roles=activity_model.roles,
             template_path=activity_model.template_path,
             template_name=activity_model.template_name,
+            group_path=activity_model.group_path,
         )
 
         log_info(f"Keycloak tenant customer admin user {activity_model.username} assigned to client roles successfully")
@@ -641,6 +658,7 @@ class KeycloakCreateInternalUsersActivityModel(LaunchpadCLIBaseModel):
     template_path: str
     template_name: str
     users: list[dict]
+    group_path: str | None = None
 
 
 class KeycloakCreateInternalUsersActivity(Activity):
@@ -675,6 +693,7 @@ class KeycloakCreateInternalUsersActivity(Activity):
             template_path=activity_model.template_path,
             template_name=activity_model.template_name,
             users=activity_model.users,
+            group_path=activity_model.group_path,
         )
 
         log_info(f"Created {len(activity_model.users)} keycloak internal users successfully")

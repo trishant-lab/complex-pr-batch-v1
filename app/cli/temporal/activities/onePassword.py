@@ -109,7 +109,7 @@ class OnePasswordInsertIfNotExistsActivityModel(LaunchpadCLIBaseModel):
     vault: str
     server_item: str
     key: str
-    key_value: str | None
+    key_value: str
 
 
 class OnePasswordInsertIfNotExistsActivity(Activity):
@@ -148,6 +148,6 @@ class OnePasswordInsertIfNotExistsActivity(Activity):
         # Try to get existing key
         existing_key = op_util.get_key(activity_input.key)
 
-        if all([existing_key is None, activity_input.key_value is not None]):
+        if existing_key is None:
             # Create or update the key
             op_util.create_or_replace(activity_input.key, activity_input.key_value)
