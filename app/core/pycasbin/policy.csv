@@ -181,13 +181,13 @@ p, VERITABLE_VIEW_GROUP, /api/v1/reports/Veritable,  GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/reports/Practifly,  GET
 
 p, ADMINS, /api/v1/session/{product}/keycloak, GET
-p, JEEVES_VIEW_GROUP, /api/v1/session/Jeeves, GET
-p, DEXIT_VIEW_GROUP, /api/v1/session/Dexit, GET
-p, PENKNIFE_VIEW_GROUP, /api/v1/session/Penknife, GET
-p, ZSEGMENT_VIEW_GROUP, /api/v1/session/Zsegment, GET
-p, MUSPELL_VIEW_GROUP, /api/v1/session/Muspell, GET
-p, VERITABLE_VIEW_GROUP, /api/v1/session/Veritable, GET
-p, PRACTIFLY_VIEW_GROUP, /api/v1/session/Practifly, GET
+p, JEEVES_VIEW_GROUP, /api/v1/session/Jeeves/keycloak, GET
+p, DEXIT_VIEW_GROUP, /api/v1/session/Dexit/keycloak, GET
+p, PENKNIFE_VIEW_GROUP, /api/v1/session/Penknife/keycloak, GET
+p, ZSEGMENT_VIEW_GROUP, /api/v1/session/Zsegment/keycloak, GET
+p, MUSPELL_VIEW_GROUP, /api/v1/session/Muspell/keycloak, GET
+p, VERITABLE_VIEW_GROUP, /api/v1/session/Veritable/keycloak, GET
+p, PRACTIFLY_VIEW_GROUP, /api/v1/session/Practifly/keycloak, GET
 
 p, ADMINS, /api/v1/signup/{product}/enterprise, POST
 p, JEEVES_EDIT_GROUP, /api/v1/signup/Jeeves/enterprise, POST

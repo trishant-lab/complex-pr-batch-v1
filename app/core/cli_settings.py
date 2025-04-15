@@ -97,7 +97,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
                 WorkerQueues.veritable_onboarding: {VeritableOnboardingWorkflow},
                 WorkerQueues.pricedx_onboarding: {PricedxOnboardingWorkflow},
             },
-            "count": 1,
+            "count": 3,
         },
         "WORKER_2_PROCESS": {
             "workers": {
