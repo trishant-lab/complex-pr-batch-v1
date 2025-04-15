@@ -284,6 +284,28 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="keycloak_attribute_to_match_user",
+                    secret_value=jeeves_config.keycloak_attribute_to_match_user,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="ehr_field_to_match_user",
+                    secret_value=jeeves_config.ehr_field_to_match_user,
+                ),
+            )
+
+            await run_activity(
                 activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
