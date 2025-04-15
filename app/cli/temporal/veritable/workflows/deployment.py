@@ -73,7 +73,6 @@ from app.cli.temporal.activities.tenant_crd import (
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
 )
-from app.cli.temporal.activities.update_tenant_status import UpdateTenantStatusActivity
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
 from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
@@ -111,7 +110,6 @@ class VeritableDeploymentWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            UpdateTenantStatusActivity.defn,
             K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             PostgresUserCreationActivity.defn,
