@@ -1,6 +1,7 @@
 from functools import lru_cache
 
-from keycloak import KeycloakAdmin
+from keycloak import KeycloakAdmin, KeycloakPostError
+from starlette.status import HTTP_409_CONFLICT
 
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import KeycloakSettings, get_settings
@@ -80,13 +81,24 @@ class KeycloakAdminClient:
                 return
             log_info(f"Skipping deletion of realm {realm_name}, multiple clients found")
 
-    def create_user(self: "KeycloakAdminClient", user_config: dict, realm_name: str) -> str | dict:
+    def create_user(
+        self: "KeycloakAdminClient",
+        user_config: dict,
+        realm_name: str,
+        exist_ok: bool = True,
+    ) -> str | None:
         """
         Create keycloak user
         """
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
-        return self.kc_client.create_user(payload=user_config, exist_ok=True)
+        try:
+            return self.kc_client.create_user(payload=user_config, exist_ok=exist_ok)
+        except KeycloakPostError as e:
+            if exist_ok and e.response_code == HTTP_409_CONFLICT:
+                log_info(f"User already exists in realm {realm_name}, ignoring 409 conflict.")
+                return None
+            raise
 
     def get_user_id(self: "KeycloakAdminClient", username: str, realm_name: str) -> str:
         """
