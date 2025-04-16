@@ -560,7 +560,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     client_name="app",
                     users=[
                         {
-                            "username": "admin",
+                            "username": veritable_config.sendgrid.support_mail,
                             "email": veritable_config.sendgrid.support_mail,
                             "firstname": "Admin",
                             "lastname": "",
