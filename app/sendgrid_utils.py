@@ -1,32 +1,32 @@
 import base64
 import os
-from datetime import datetime, UTC
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import ClassVar
 
-import python_http_client.exceptions as sg_exceptions
 import aiohttp
+import python_http_client.exceptions as sg_exceptions
 from sendgrid import (
-    SendGridAPIClient,
     Attachment,
-    Mail,
-    From,
-    To,
+    Bcc,
     Content,
     CustomArg,
-    Subject,
-    FileContent,
     Disposition,
-    FileType,
+    FileContent,
     FileName,
+    FileType,
+    From,
+    Mail,
     Personalization,
-    Bcc,
+    SendGridAPIClient,
+    Subject,
+    To,
 )
 
 TEXT_HTML_MIME_TYPE = "text/html"
 
-from app.core.settings import get_settings, AppSettings
-from app.models.mail import SGMailStatus, CommunicationMedium, MessageProvider
+from app.core.settings import AppSettings, get_settings
+from app.models.mail import CommunicationMedium, MessageProvider, SGMailStatus
 
 config: AppSettings = get_settings()
 
@@ -71,6 +71,17 @@ class Sendgrid(metaclass=Singleton):
         self.sendgrid_config = config.sendgrid
         self.sg = SendGridAPIClient(api_key=self.sendgrid_config.api_key)
 
+    @staticmethod
+    def _remove_duplicate_emails(emails: list[str] | None, remove_emails: list[str] | None) -> list[str]:
+        """
+        Remove duplicate emails from the list
+        """
+        if not emails:
+            return []
+        if not remove_emails:
+            return emails
+        return [e for e in emails if e not in remove_emails]
+
     def prepare_mail(
         self: "Sendgrid",
         subject: str,
@@ -96,9 +107,12 @@ class Sendgrid(metaclass=Singleton):
         mail: Mail = Mail()
         if isinstance(to_email, str):
             to_email = [to_email]
+        if isinstance(bcc_email, str):
+            bcc_email = [bcc_email]
+        bcc_email = Sendgrid._remove_duplicate_emails(bcc_email, to_email)
 
         # Add personalization for each recipient
-        for recipient in to_email:
+        for recipient in to_email or []:
             personalization = Personalization()
             personalization.add_to(To(recipient))
             mail.add_personalization(personalization)
@@ -107,8 +121,6 @@ class Sendgrid(metaclass=Singleton):
         mail.subject = Subject(subject=subject)
         mail.content = [Content(mime_type=mime_type, content=content)]
         if bcc_email:
-            if isinstance(bcc_email, str):
-                bcc_email = [bcc_email]
             mail.bcc = [Bcc(email=email) for email in bcc_email]
         if self.sendgrid_config.category:
             mail.custom_arg = CustomArg(key="cid", value=self.sendgrid_config.category)
