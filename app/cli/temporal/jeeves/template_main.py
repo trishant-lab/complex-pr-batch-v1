@@ -35,7 +35,7 @@ def get_asset_created_custom_email() -> str:
     """
     Get the custom email for the Novu notifications
     """
-    return get_template_from_file("novu/asset_created_mail.html")
+    return get_template_from_file("novu/asset_created_custom_mail.html")
 
 
 def get_assignment_due_in_15_days_custom_email() -> str:

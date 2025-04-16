@@ -70,10 +70,10 @@ class BaseFormSchema(BaseModel):
         Validate tenant name
         """
         if tenant and tenant.lower() in RESERVED_TENANT_NAMES:
-            raise ValueError("Invalid tenant name!")
+            raise ValueError("Invalid tenant/portal name!")
 
         if profanity.contains_profanity(tenant):
-            raise ValueError("Explicit words are not allowed!")
+            raise ValueError("Explicit words are not allowed in tenant/portal name!")
         return tenant
 
     @classmethod

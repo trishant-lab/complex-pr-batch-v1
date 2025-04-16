@@ -9,24 +9,24 @@ from app.models.product import ProductEnum
 
 
 class TenantStatusEnum(IntEnum):
-    DeploymentFailed = -4
-    Declined = -3
     NotApplicable = -2
-    Failed = -1
     Stale = 0
+    ApprovalPending = 3
+    ApprovalDeclined = -3
+    Approved = 4
     Provisioning = 1
+    ProvisioningFailed = -1
     Provisioned = 2
-    Approved = 3
-    DeProvisioning = 4
-    DeProvisioned = 5
-    PendingApproval = 6
+    DeProvisioning = 5
+    DeProvisioned = 6
+    DeprovisioningFailed = -4
 
     @classmethod
     def can_update_tenant(cls, status: "TenantStatusEnum") -> bool:
         """
         Returns True if the tenant details can be updated
         """
-        return status in [cls.Declined, cls.NotApplicable, cls.Stale, cls.PendingApproval]
+        return status in [cls.ApprovalDeclined, cls.NotApplicable, cls.Stale, cls.ApprovalPending]
 
 
 class TenantCreateRequestModel(BaseModel):

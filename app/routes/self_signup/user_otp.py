@@ -3,6 +3,7 @@ from pydantic import EmailStr
 
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.product import ProductEnum
+from app.route_utils.lead_slack_msg import leads_otp_sent
 from app.route_utils.product import validate_email_domain
 from app.route_utils.recaptcha import validate_recaptcha
 from app.route_utils.session_util import get_treated_email
@@ -35,3 +36,4 @@ async def get_otp(
     email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
     await UserOTP.create_and_send_otp(email, plan_name, product)
+    leads_otp_sent(email, product)

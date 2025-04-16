@@ -1,9 +1,10 @@
 from collections.abc import Callable
 
+import pydash
 from temporalio import workflow
 
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.penknife.models.penknife_spec import PenknifeSpec
+from app.cli.temporal.models.deboard import DeboardWorkflowInput
 
 
 @workflow.defn
@@ -20,15 +21,15 @@ class PenknifeDeProvisioningWorkflow(Workflow):
         return []
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", workflow_input: PenknifeSpec) -> str | None:
+    def get_workflow_id(cls: "Workflow", workflow_input: DeboardWorkflowInput) -> str | None:
         """
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
         """
-        return f"de_provisioning_{workflow_input.tenant}"
+        return f"penknife_deprovisioning_workflow_{pydash.get(workflow_input, 'tenant_name')}"
 
     @workflow.run
-    async def run(self: "Workflow", workflow_input: PenknifeSpec) -> None:
+    async def run(self: "Workflow", workflow_input: DeboardWorkflowInput) -> None:
         """
         Entry point for workflow
         """

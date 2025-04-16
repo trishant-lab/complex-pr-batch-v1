@@ -24,6 +24,9 @@ def template_render(
     """
     jinja_env: jinja2.Environment = get_env(template_path=template_path)
     template = jinja_env.get_template(template_name)
+    if template_payload and "jinja_env.autoescape" in template_payload:
+        jinja_env.autoescape = template_payload["jinja_env.autoescape"]
+        del template_payload["jinja_env.autoescape"]
     return template.render(**(template_payload if template_payload else {}))
 
 
@@ -45,6 +48,7 @@ def create_keycloak_realm(
     domain: str,
     template_path: str,
     template_name: str,
+    tenant: str | None = None,
     installer_secret: str | None = None,
     template_payload: dict | None = None,
 ) -> None:
@@ -53,11 +57,20 @@ def create_keycloak_realm(
     """
     config: AppSettings = get_settings()
 
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+    # check if realm exists
+    realms = [row["realm"] for row in keycloak_client.get_all_realms()]
+    if realm_name in realms:
+        log_info(f"Realm {realm_name} already exists")
+        return
+
     realm_config = template_render(
         template_path=template_path,
         template_name=template_name,
         template_payload={
-            "tenant": realm_name,
+            "tenant": tenant if tenant else realm_name,
+            "realm_name": realm_name,
             "sendgrid_api_key": config.sendgrid.api_key,
             "domain": domain,
             "installer_secret": installer_secret,
@@ -65,7 +78,6 @@ def create_keycloak_realm(
         },
     )
 
-    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
     keycloak_client.create_realm(ijson_loads(realm_config), skip_exists=True)
 
 
@@ -145,12 +157,14 @@ def create_tenant_customer_admin_user(
     lastname: str,
     template_path: str,
     template_name: str,
+    group_path: str | None,
     roles: list[str] | None = None,
 ) -> None:
     """
     Create tenant customer admin user
     """
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
     user_config = template_render(
         template_path=template_path,
         template_name=template_name,
@@ -172,11 +186,19 @@ def create_tenant_customer_admin_user(
     keycloak_client.assign_client_role(
         client_id=client_uuid,
         user_id=user_id,
-        roles=[{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
-        if roles
-        else client_roles,
+        roles=(
+            [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
+            if roles
+            else client_roles
+        ),
         realm_name=realm_name,
     )
+    if group_path:
+        keycloak_client.assign_group(
+            user_id=user_id,
+            realm_name=realm_name,
+            group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
+        )
 
 
 def create_internal_users(
@@ -185,6 +207,7 @@ def create_internal_users(
     template_path: str,
     template_name: str,
     users: list[dict],
+    group_path: str | None,
     roles: list[str] | None = None,
 ) -> None:
     """
@@ -213,18 +236,21 @@ def create_internal_users(
         log_info(f"Keycloak internal user {user['username']} created successfully")
         user_id = keycloak_client.get_user_id(username=user["username"], realm_name=realm_name)
 
-        if client_name:
-            keycloak_client.assign_client_role(
-                client_id=client_id,
-                user_id=user_id,
-                roles=[
-                    {"id": role.get("id"), "name": role.get("name")}
-                    for role in client_roles
-                    if role.get("name") in roles
-                ]
+        keycloak_client.assign_client_role(
+            client_id=client_id,
+            user_id=user_id,
+            roles=(
+                [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
                 if roles
-                else client_roles,
+                else client_roles
+            ),
+            realm_name=realm_name,
+        )
+        if group_path:
+            keycloak_client.assign_group(
                 realm_name=realm_name,
+                user_id=user_id,
+                group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
             )
 
 
@@ -386,6 +412,7 @@ class KeycloakRealmSetupActivityModel(LaunchpadCLIBaseModel):
     domain: str
     template_path: str
     template_name: str
+    tenant: str | None = None
     installer_secret: str | None = None
     template_payload: dict | None = None
 
@@ -416,6 +443,7 @@ class KeycloakRealmSetupActivity(Activity):
         Create keycloak realm
         """
         create_keycloak_realm(
+            tenant=activity_model.tenant,
             realm_name=activity_model.realm_name,
             domain=activity_model.domain,
             template_path=activity_model.template_path,
@@ -580,7 +608,7 @@ class KeycloakCreateTenantCustomerAdminUserActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
-    client_name: str | None = None
+    client_name: str
     username: str
     email: str
     firstname: str
@@ -588,6 +616,7 @@ class KeycloakCreateTenantCustomerAdminUserActivityModel(LaunchpadCLIBaseModel):
     roles: list[str] | None = None
     template_path: str
     template_name: str
+    group_path: str | None = None
 
 
 class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
@@ -625,6 +654,7 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
             roles=activity_model.roles,
             template_path=activity_model.template_path,
             template_name=activity_model.template_name,
+            group_path=activity_model.group_path,
         )
 
         log_info(f"Keycloak tenant customer admin user {activity_model.username} assigned to client roles successfully")
@@ -636,11 +666,12 @@ class KeycloakCreateInternalUsersActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
-    client_name: str | None = None
+    client_name: str
     roles: list[str] | None = None
     template_path: str
     template_name: str
     users: list[dict]
+    group_path: str | None = None
 
 
 class KeycloakCreateInternalUsersActivity(Activity):
@@ -675,6 +706,7 @@ class KeycloakCreateInternalUsersActivity(Activity):
             template_path=activity_model.template_path,
             template_name=activity_model.template_name,
             users=activity_model.users,
+            group_path=activity_model.group_path,
         )
 
         log_info(f"Created {len(activity_model.users)} keycloak internal users successfully")
@@ -979,7 +1011,7 @@ class KeycloakCreateGroupActivityModel(LaunchpadCLIBaseModel):
     """
 
     realm_name: str
-    client_name: str | None = None
+    client_name: str
     template_path: str
     template_name: str
 

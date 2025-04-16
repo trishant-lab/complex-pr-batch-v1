@@ -7,10 +7,15 @@ from app.cli.temporal.hdp.hdp import HdpWorkflow
 from app.cli.temporal.hdp.models.hdp_spec import HDPSpec
 from app.cli.temporal.jeeves.jeeves import JeevesWorkflow
 from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec
+
+from app.cli.temporal.muspell.models.muspellSpec import MuspellArchiveSpec
+from app.cli.temporal.muspell.muspell import MuspellArchiveWorkflow
 from app.cli.temporal.penknife.models.penknife_spec import PenknifeSpec
 from app.cli.temporal.penknife.penknife import PenknifeWorkflow
 from app.cli.temporal.practifly.models.practifly_spec import PractiflySpec
 from app.cli.temporal.practifly.practifly import PractiflyWorkflow
+from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
+from app.cli.temporal.pricedx.pricedx import PricedxWorkflow
 from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
 from app.cli.temporal.veritable.veritable import VeritableWorkflow
 from app.cli.temporal.zsegment.models.zsegment_spec import ZSegmentSpec
@@ -18,8 +23,6 @@ from app.cli.temporal.zsegment.zsegment import ZSegmentWorkflow
 from app.core.product_settings.common import SelfSignupSettings
 from app.models.add_ons.veritable import VeritableAddOn, VeritableFeature
 from app.models.enums import AddOn, Feature
-from app.cli.temporal.pricedx.pricedx import PricedxWorkflow
-from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 
 
 class ProductEnum(str, Enum):
@@ -31,12 +34,13 @@ class ProductEnum(str, Enum):
     zsegment = "Zsegment"
     practifly = "Practifly"
     pricedx = "Pricedx"
+    muspell = "Muspell"
 
     @classmethod
-    def _missing_(cls, value: Any) -> "ProductEnum":
+    def _missing_(cls, value: object) -> "ProductEnum":
         """Handle case-insensitive lookup of enum values"""
         if not isinstance(value, str):
-            raise TypeError(f"{value} is not a valid {cls.__name__}")
+            raise TypeError(f"{value} is not of type str")
 
         normalized = value.title()
         for member in cls:
@@ -67,6 +71,8 @@ class ProductEnum(str, Enum):
                 return PractiflyWorkflow
             case cls.pricedx:
                 return PricedxWorkflow
+            case cls.muspell:
+                return MuspellArchiveWorkflow
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -92,6 +98,8 @@ class ProductEnum(str, Enum):
                 return PractiflySpec
             case cls.pricedx:
                 return PricedxSpec
+            case cls.muspell:
+                return MuspellArchiveSpec
             case _:
                 raise ValueError(f"Unknown enum value: {enum_value}")
 
@@ -121,8 +129,45 @@ class ProductEnum(str, Enum):
                 return settings.practifly
             case cls.pricedx:
                 return settings.pricedx
+            case cls.muspell:
+                return settings.muspell
             case _:
                 raise ValueError(f"Product {enum_value} not found")
+
+    @classmethod
+    def get_onepassword_vault_name(cls: "ProductEnum", enum_value: "ProductEnum") -> str:
+        """
+        Get the onepassword vault name for the given enum value
+        """
+        # from ..core.settings import AppSettings, get_settings
+
+        # settings: AppSettings = get_settings()
+        match enum_value:
+            case cls.veritable:
+                return "Practifly"
+            case cls.practifly:
+                return "Practifly"
+            case _:
+                raise ValueError(f"Not Implemented for product: {enum_value.value}")
+        # match settings.env:
+        #     case "integration":
+        #         match enum_value:
+        #             case cls.veritable:
+        #                 return "veritable-devops-int"
+        #             case cls.practifly:
+        #                 return "practifly-devops-int"
+        #             case _:
+        #                 raise ValueError(f"Not Implemented for product: {enum_value.value}")
+        #     case "production":
+        #         match enum_value:
+        #             case cls.veritable:
+        #                 return "veritable-devops-prod"
+        #             case cls.practifly:
+        #                 return "practifly-devops-prod"
+        #             case _:
+        #                 raise ValueError(f"Not Implemented for product: {enum_value.value}")
+        #     case _:
+        #         raise ValueError(f"Not Implemented for product: {enum_value.value}")
 
     @classmethod
     def get_domain(cls: "ProductEnum", enum_value: "ProductEnum") -> str:

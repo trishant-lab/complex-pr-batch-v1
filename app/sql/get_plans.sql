@@ -1,19 +1,29 @@
+WITH PlanFeaturesView AS (
+    SELECT
+        plancode,
+        product,
+        jsonb_agg(DISTINCT featurecode) AS "includedFeatures"
+    FROM
+        planfeatures
+    WHERE
+        isincluded IS true
+    GROUP BY
+        plancode, product
+)
+
 SELECT
+    p.product,
     p.plancode,
     p.description,
     p.details AS features,
-    jsonb_agg(DISTINCT pf.featurecode) AS "includedFeatures",
+    pf."includedFeatures",
     p.status,
     p.marketingtype,
     p.sortorder
 FROM
     plans p
 JOIN
-    planfeatures pf ON p.plancode = pf.plancode
-JOIN
-    features f ON pf.featurecode = f.featurecode
-WHERE
-    pf.isincluded IS true AND p.product = LOWER({{ product }})
+    PlanFeaturesView pf ON p.plancode = pf.plancode AND p.product = pf.product
 GROUP BY
-    p.plancode, p.status, p.marketingtype, p.sortorder, p.description, p.details
+    p.product, p.plancode, pf."includedFeatures"
 ;

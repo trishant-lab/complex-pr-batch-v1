@@ -113,11 +113,14 @@ async def provisioning(
     """
     Trigger provisioning workflow for the given product
     """
+    if product in ProductEnum.get_self_signup_products():
+        raise errors.SELF_SIGNUP_PRODUCT_PROVISIONING_NOT_ALLOWED.exc()
+
     product_details = await get_product(product=product)
     if not product_details:
         raise errors.PRODUCT_NOT_FOUND.exc()
 
-    provisioning_model = await validate_provisioning_details(
+    _, provisioning_model = await validate_provisioning_details(
         product=product, data=provisioning_details, schema=product_details.formSchema
     )
 
@@ -141,7 +144,7 @@ async def provisioning(
             status=(
                 TenantStatusEnum.Provisioning
                 if product_details.approvalRequired and skip_approval
-                else TenantStatusEnum.PendingApproval
+                else TenantStatusEnum.ApprovalPending
             ),
             approvedBy=user_id if skip_approval else None,
             formData=ijson_dumps(provisioning_details),
@@ -150,7 +153,7 @@ async def provisioning(
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
     onboard_schema = provisioning_model.model_dump()
-    onboard_schema["customerId"] = tenant_details.get("id")
+    onboard_schema["customerId"] = str(tenant_details.get("id"))
     await product_workflow.onboard(onboard_schema)
     logger.info(f"Triggered provisioning workflow for product: {product.value}")
 
@@ -167,7 +170,7 @@ async def provisioning(
         await product_workflow.approve(onboard_schema)
 
 
-@provisioning_router.post("/approveOrDecline/{product}", operation_id="approveOrDecline")
+@provisioning_router.post("/{product}/approveOrDecline", operation_id="approveOrDecline")
 async def approve_tenant(
     approval: bool,
     tenant_id: uuid.UUID,
@@ -183,18 +186,22 @@ async def approve_tenant(
 
     db: DBManager = await get_db_manager()
     response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))  # NOSONAR
+    if not response:
+        raise errors.TENANT_NOT_FOUND.exc()
+
     tenant_params = {"table": "customer", "payload": {'"approvedBy"': user_id}, "where": f"id='{tenant_id!s}'"}
     operator_params = {
         "table": "provisioningstatus",
-        "payload": {"status": TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined},
+        "payload": {"status": TenantStatusEnum.Provisioning if approval else TenantStatusEnum.ApprovalDeclined},
         "where": f"customerid='{tenant_id!s}'",
     }
     await db.execute_many([("put.sql", tenant_params), ("put.sql", operator_params)])
 
     data = ijson_loads(response["data"])
     product_schema = ijson_loads(response["schema"])
-    provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+    _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
     onboard_schema = provisioning_model.model_dump()
+    onboard_schema["customerId"] = str(tenant_id)
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     if approval:
@@ -230,7 +237,7 @@ async def approve_tenant(
         logger.info(f"Declined {response['product']} workflow for tenant: {response['tenantname']}")
 
 
-@provisioning_router.post("/retryProvisioning/{product}", operation_id="retryProvisioning")
+@provisioning_router.post("/{product}/retryProvisioning", operation_id="retryProvisioning")
 async def retry_provisioning(
     tenant_id: uuid.UUID,
     product: ProductEnum = Path(...),
@@ -248,24 +255,23 @@ async def retry_provisioning(
         response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))
         await db.fetch_one(
             "update_tenant.sql",
-            tenant_name=response["name"],
+            tenant_name=response["tenantname"],
             status=TenantStatusEnum.Provisioning.value,
             product=product.value,
         )
         product_schema = ijson_loads(response["schema"])
         data = ijson_loads(response["data"])
-        provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+        _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
         onboard_schema = provisioning_model.model_dump()
 
         onboard_schema["emailSent"] = True
-
+        onboard_schema["customerId"] = str(tenant_id)
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
         await product_workflow.onboard(onboard_schema)
 
         if product_details.approvalRequired:
             await product_workflow.approve(onboard_schema)
 
-        # await product_workflow.approve(schema)
         logger.info(f"Retried provisioning workflow for tenant: {response['tenantname']}")
     except Exception as e:
         logger.error(f"Error retrying provisioning: {e}")
@@ -403,7 +409,7 @@ async def get_latest_run_id_by_workflow_id(workflow_id: str) -> str | None:
     return None
 
 
-@provisioning_router.get("/workflowSteps/{product}", operation_id="workflowSteps")
+@provisioning_router.get("/{product}/workflowSteps", operation_id="workflowSteps")
 async def get_workflow_steps(
     tenant_id: uuid.UUID,
     product: ProductEnum = Path(...),

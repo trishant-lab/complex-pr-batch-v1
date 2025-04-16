@@ -5,6 +5,7 @@ from cryptography.fernet import Fernet
 from temporalio import workflow
 
 from app.cli.activity_util import run_activity
+from app.cli.k8s_util import ResourceKindEnum
 from app.cli.temporal.activities.cloudflare_setup import (
     CopyArtifactsToBucketActivity,
     CopyWebCoreToBucketActivity,
@@ -12,6 +13,10 @@ from app.cli.temporal.activities.cloudflare_setup import (
     CreateCloudflareDNSRecordActivity,
     LinkBucketToDomainActivity,
     PropagateDNSRecordActivity,
+)
+from app.cli.temporal.activities.deployment_pod_creation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
 )
 from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
@@ -60,8 +65,8 @@ from app.cli.temporal.activities.send_mail import (
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
+    StatefulSetPodDeletionActivity,
+    StatefulSetPodDeletionActivityModel,
 )
 from app.cli.temporal.activities.temporal_namespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
 from app.cli.temporal.activities.tenant_crd import (
@@ -91,7 +96,6 @@ from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 ProductName = "practifly"
-OnePasswordVaultName = "practifly"
 
 
 @workflow.defn(sandboxed=False)
@@ -102,7 +106,7 @@ class PractiflyOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -134,7 +138,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             PractiflyJobActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             CopyWebCoreToBucketActivity.defn,
-            KubernetesStatefulSetActivity.defn,
+            StatefulSetPodDeletionActivity.defn,
             UpdateTenantStatusActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             TenantCrdExistsActivity.defn,
@@ -142,6 +146,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             KeycloakCreateInternalUsersActivity.defn,
             CheckPodRunningStatusActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            KubernetesDeploymentActivity.defn,
         ]
 
     @classmethod
@@ -171,7 +176,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=TenantCrdExistsActivity,
                 arg=TenantCrdExistsActivityModel(
                     tenant=tenant,
-                    kind="PractiflyTenant",
+                    kind=ResourceKindEnum.PractiflyTenant,
                     product=ProductName,
                 ),
             )
@@ -195,15 +200,15 @@ class PractiflyOnboardingWorkflow(Workflow):
                 )
 
             # Wait for approval or denial
-            await workflow.wait_condition(lambda: self.approved or self.deny)
+            await workflow.wait_condition(lambda: self.approved or self.denied)
 
             # Update tenant status if request is declined
-            if self.deny:
+            if self.denied:
                 await run_activity(
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status=TenantStatusEnum.Declined,
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
                         product=ProductEnum.practifly,
                     ),
@@ -374,13 +379,14 @@ class PractiflyOnboardingWorkflow(Workflow):
                     payload=http_list,
                 ),
             )
+            one_password_vault = ProductEnum.get_onepassword_vault_name(ProductEnum.practifly)
             # insert fernet key into 1Password if it doesn't exist
             fernet_key = Fernet.generate_key().decode()
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=tenant,
-                    vault=OnePasswordVaultName,
+                    vault=one_password_vault,
                     server_item=f"practifly-tenant-config-{config.env.lower().strip()}",
                     key="fernet_key",
                     key_value=fernet_key,
@@ -474,10 +480,11 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = f"{tenant}"
+            realm_name = f"practifly_{tenant}"
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
+                    tenant=tenant,
                     realm_name=realm_name,
                     domain=practifly_config.domain_name,
                     template_path=TemplatePath,
@@ -488,7 +495,8 @@ class PractiflyOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
+                    client_name="app",
                     username=email,
                     email=email,
                     firstname=first_name,
@@ -502,7 +510,8 @@ class PractiflyOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
+                    client_name="app",
                     users=[
                         {
                             "username": "admin",
@@ -599,10 +608,20 @@ class PractiflyOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # statefulset pod creation for server
+            # delete statefulsets
+            for statefulset in ["practifly", "practifly-cli"]:
+                await run_activity(
+                    activity=StatefulSetPodDeletionActivity,
+                    arg=StatefulSetPodDeletionActivityModel(
+                        namespace=tenant,
+                        name=statefulset,
+                    ),
+                )
+
+            # deployment pod creation for server
             await run_activity(
-                activity=KubernetesStatefulSetActivity,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="practifly",
                     docker_image=docker_image,
@@ -680,8 +699,8 @@ class PractiflyOnboardingWorkflow(Workflow):
 
             # statefulset pod creation for cli
             await run_activity(
-                activity=KubernetesStatefulSetActivity,
-                arg=KubernetesStatefulSetActivityModel(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="practifly-cli",
                     docker_image=docker_image,
@@ -793,7 +812,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=SendAfterProvisioningMailActivity,
                 arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
                     tenant=tenant,
                     user_details={
                         "firstName": first_name,
@@ -812,7 +831,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=TenantCrdCreationActivity,
                 arg=TenantCrdCreationActivityModel(
                     tenant=tenant,
-                    kind="PractiflyTenant",
+                    kind=ResourceKindEnum.PractiflyTenant,
                     product=ProductName,
                     data=ijson_dumps(practifly),
                 ),
@@ -824,7 +843,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed,
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.practifly,
                 ),
@@ -839,8 +858,8 @@ class PractiflyOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Deny the workflow
         """
-        self.deny = True
+        self.denied = True

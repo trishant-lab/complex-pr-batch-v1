@@ -73,6 +73,33 @@ def leads_otp_verified(email: str, product: ProductEnum) -> None:
     _send_lead_msg(text, blocks, product)
 
 
+def leads_otp_sent(email: str, product: ProductEnum) -> None:
+    """
+    @param email:
+    send email to customer
+    """
+    text = "Customer requested OTP"
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": text,
+            },
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Email:* {email}",
+                },
+            ],
+        },
+    ]
+    _send_lead_msg(text, blocks, product)
+
+
 def leads_form_fill(customer: CustomerResponse, product: ProductEnum) -> None:
     """
     @param customer:

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Path
+from typing import TYPE_CHECKING
+
+from fastapi import APIRouter, Depends, Path, Query
 from lago_python_client.exceptions import LagoApiError
 from loguru import logger
 from pydantic import EmailStr
@@ -8,12 +10,16 @@ from app.core.db import DBManager, database
 from app.core.oauth2 import get_oauth_scheme
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.billing_models import OnboardingResponseModel
+from app.models.input_param_patterns import TOKEN_PATTERN
 from app.models.product import ProductEnum
 from app.route_utils.lead_slack_msg import leads_otp_verified
 from app.route_utils.product import validate_email_domain
 from app.route_utils.session_util import get_first_subscription_status, get_treated_email
 from app.route_utils.user_otp import UserOTP
 from app.route_utils.user_session import UserSession
+
+if TYPE_CHECKING:
+    from app.models.lago.customer import CustomerResponse
 
 router = APIRouter()
 
@@ -50,7 +56,9 @@ async def get_session(
     if customer_record:
         try:
             lago_client = get_lago_client(product)
-            customer = lago_client.customers().find(str(customer_record.pop("id"))).dict()
+            _customer: CustomerResponse = lago_client.customers().find(str(customer_record.pop("id")))
+            # use dict, lago_python_client.CustomerResponse is not V2 compatible
+            customer = _customer.dict(exclude={"billing_configuration"})  # type: ignore
         except LagoApiError as e:
             logger.error(e)
         if customer:
@@ -94,7 +102,9 @@ async def get_keycloak_session(
     operation_id="refreshSession",
     dependencies=[Depends(ResilientRateLimiter(times=3, minutes=1))],
 )
-async def refresh_session(email: EmailStr, token: str, product: ProductEnum = Path(...)) -> OnboardingResponseModel:
+async def refresh_session(
+    email: EmailStr, product: ProductEnum = Path(...), token: str = Query(..., regex=TOKEN_PATTERN)
+) -> OnboardingResponseModel:
     """
     Refreshes session token for user email
     """

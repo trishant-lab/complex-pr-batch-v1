@@ -6,7 +6,7 @@ class VeritableSpec(BaseSpec):
     VeritableSpec dataclass
     """
 
-    customerId: str | None = None
+    customerId: str
     emailSent: bool = False
     cliSpec: None | BaseResourceSpec = BaseResourceSpec()
 

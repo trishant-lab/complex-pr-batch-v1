@@ -32,12 +32,28 @@ class JeevesWorkflow(ProductWorkflow):
         deprovision method
         """
         from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
         from app.cli.temporal.starter import trigger_workflow
 
         await trigger_workflow(
-            workflow_input=JeevesSpec(**schema),
+            workflow_input=DeboardWorkflowInput(**schema),
             workflow=JeevesDeProvisioningWorkflow,
             queue=WorkerQueues.jeeves_deboarding,
+        )
+
+    @staticmethod
+    async def deploy(schema: dict) -> None:
+        """
+        deploy method
+        """
+        from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+        from app.cli.temporal.starter import trigger_workflow
+
+        schema["is_deployment"] = True
+        await trigger_workflow(
+            workflow_input=JeevesSpec(**schema),
+            workflow=JeevesOnboardingWorkflow,
+            queue=WorkerQueues.jeeves_onboarding,
         )
 
     @staticmethod
@@ -62,7 +78,7 @@ class JeevesWorkflow(ProductWorkflow):
 
         handle = await get_workflow_handle(workflow_input=JeevesSpec(**schema), workflow=JeevesOnboardingWorkflow)
 
-        await handle.signal(JeevesOnboardingWorkflow.deny)
+        await handle.signal(JeevesOnboardingWorkflow.decline)
 
     @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:
@@ -82,3 +98,33 @@ class JeevesWorkflow(ProductWorkflow):
         from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
 
         return JeevesOnboardingWorkflow.get_workflow_id(schema)
+
+    @staticmethod
+    async def approve_deprovisioning(schema: dict) -> None:
+        """
+        approve_deprovisioning method
+        """
+        from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.starter import get_workflow_handle
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=JeevesDeProvisioningWorkflow
+        )
+
+        await handle.signal(JeevesDeProvisioningWorkflow.approve)
+
+    @staticmethod
+    async def deny_deprovisioning(schema: dict) -> None:
+        """
+        deny_deprovisioning method
+        """
+        from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.starter import get_workflow_handle
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=JeevesDeProvisioningWorkflow
+        )
+
+        await handle.signal(JeevesDeProvisioningWorkflow.decline)

@@ -1,3 +1,4 @@
 UPDATE customer
-SET schema = {{schema_}}
+SET data = {{data}}
 WHERE id = {{tenant_id}}
+RETURNING data;

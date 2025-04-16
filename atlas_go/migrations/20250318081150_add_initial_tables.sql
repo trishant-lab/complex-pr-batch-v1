@@ -1,3 +1,7 @@
+CREATE SCHEMA IF NOT EXISTS "{{ .schema }}";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" schema public;
+CREATE EXTENSION IF NOT EXISTS "pg_uuidv7" schema public;
+
 -- Create product table
 CREATE TABLE product (
     name text NOT NULL,
@@ -10,10 +14,10 @@ CREATE TABLE product (
 
 -- Create email templates table
 CREATE TABLE emailtemplates (
-    id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     product text NOT NULL,  -- product name reference
     name text NOT NULL,
-    template jsonb,
+    template text,
     subject text,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("product") REFERENCES product("name"),
@@ -22,12 +26,12 @@ CREATE TABLE emailtemplates (
 
 -- Create customer table
 CREATE TABLE customer (
-    id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     product text NOT NULL,  -- product name reference
     tenantname text,
     orgname text,
     setupintent text,   -- payment method setup intent
-    email text,
+    email text NOT NULL, -- email of the requestor or customer
     source text,  -- source of signup request
     "approvedBy" uuid,
     schema jsonb,   -- product schema at tenant creation
@@ -112,7 +116,7 @@ CREATE TABLE provisioningstatus (
 
 -- Create subscription table
 CREATE TABLE subscription (
-    id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     name text,  -- subscription name
     customerid uuid NOT NULL,
     product text NOT NULL,  -- product name reference

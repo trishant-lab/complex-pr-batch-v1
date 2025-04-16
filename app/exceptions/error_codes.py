@@ -144,10 +144,10 @@ R1005 = {
 }
 
 R1006 = {
-    "statusCode": status.HTTP_403_FORBIDDEN,
-    "displayMessage": "Requested plan resource not found!",
+    "statusCode": status.HTTP_400_BAD_REQUEST,
+    "displayMessage": "Requested product plan resource not found!",
     "followUpAction": [],
-    "possibleResolutions": ["Please request with correct plan code"],
+    "possibleResolutions": ["Please request with correct product and plan code"],
 }
 
 
@@ -199,7 +199,7 @@ R1012 = {
 
 R1013 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
-    "displayMessage": "Invalid schema missing required fields mapping!",
+    "displayMessage": "{e}",
     "followUpAction": [],
     "possibleResolutions": ["Please check the schema and try again."],
 }
@@ -246,4 +246,11 @@ R1019 = {
     "displayMessage": "Tenant details cannot be updated!",
     "followUpAction": [],
     "possibleResolutions": ["Please contact support!"],
+}
+
+R1020 = {
+    "statusCode": status.HTTP_400_BAD_REQUEST,
+    "displayMessage": "Self signup products provisioning is not allowed through this endpoint!",
+    "followUpAction": [],
+    "possibleResolutions": ["Please use signup enterprise API endpoint!"],
 }

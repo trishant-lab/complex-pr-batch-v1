@@ -14,7 +14,7 @@ from app.models.enums import OnboardingStatus
 from app.models.input_param_patterns import TOKEN_PATTERN
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
-from app.route_utils.session_util import get_treated_email
+from app.route_utils.session_util import get_customer_tenant_details, get_treated_email
 from app.route_utils.user_session import UserSession
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ async def get_provisioning_status(
     if customer_id != customer_record["id"]:
         raise errors.INVALID_REQUEST.exc()
 
-    onboard_info: OnboardInfo = await get_customer_onboard_info(customer_id)
+    onboard_info: OnboardInfo = await get_customer_onboard_info(customer_id, product)
     invoice = fetch_subscription_invoice(onboard_info)
     _response = OnboardingResponseModel(
         onboardingStage=OnboardingStage(
@@ -67,6 +67,8 @@ async def get_provisioning_status(
     match onboard_info.onboard_status:
         case TenantStatusEnum.Provisioned:
             _response.status = OnboardingStatus.PROVISIONED
+            tenant_fqdn, _ = get_customer_tenant_details(product)
+            _response.domain = f"https://{onboard_info.tenant_name}.{tenant_fqdn}"
         case _:
             _response.status = OnboardingStatus.IN_PROGRESS
     return _response

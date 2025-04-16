@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, PostgresDsn
+from pydantic_core import MultiHostUrl
 
 
 class PostgresSettings(BaseModel):
@@ -11,14 +12,13 @@ class PostgresSettings(BaseModel):
     password: str = ""
     port: int = 5432
     host: str = ""
-
-    @property
-    def dsn(self: "PostgresSettings") -> str:
-        """Returns Postgres DSN"""
-        return f"postgres://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
-
     timezone: str = "Asia/Kolkata"
     schema_name: str = ""
+
+    @property
+    def dsn(self: "PostgresSettings") -> PostgresDsn:
+        """Returns Postgres DSN"""
+        return MultiHostUrl(f"postgres://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}")
 
 
 class Redis(BaseModel):
@@ -42,6 +42,7 @@ class SlackSettings(BaseModel):
 class Lago(BaseModel):
     api_url: str = ""
     api_key: str = ""
+    plan_code: str = ""
 
 
 class Stripe(BaseModel):
@@ -63,7 +64,6 @@ class SelfSignupSettings(BaseModel):
     """Base Settings for Self Signup Product"""
 
     signup_url: str = ""
-    billing_url: str = ""
     tenant_fqdn: str = ""
     domain_org: str = ""
 

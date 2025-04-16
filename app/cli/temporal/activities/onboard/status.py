@@ -40,7 +40,7 @@ class OnboardStatusActivity(Activity):
         @param activity_input:
         @return:
         """
-        return await get_customer_onboard_info(activity_input.customer_id)
+        return await get_customer_onboard_info(activity_input.customer_id, activity_input.product)
 
 
 class PollOnboardStatusActivity(Activity):
@@ -76,13 +76,13 @@ class PollOnboardStatusActivity(Activity):
         _step = PollOnboardStatusActivity._step
         _timeout = PollOnboardStatusActivity._timeout
 
-        activity_input = await get_customer_onboard_info(activity_input.customer_id)
+        activity_input = await get_customer_onboard_info(activity_input.customer_id, activity_input.product)
 
         while activity_input.onboard_status == TenantStatusEnum.Provisioning:
             activity_input.onboard_status = await get_operator_status(activity_input.customer_id)
 
             if activity_input.onboard_status == TenantStatusEnum.Provisioning and _time >= _timeout:
-                activity_input.onboard_status = TenantStatusEnum.Failed
+                activity_input.onboard_status = TenantStatusEnum.ProvisioningFailed
                 await update_operator_status(
                     activity_input.customer_id,
                     activity_input.onboard_status,

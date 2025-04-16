@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import Any
+from urllib.parse import urljoin
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
@@ -7,6 +8,7 @@ from temporalio import activity
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
+from app.cli.temporal.models.deboard import DeboardWorkflowInput
 from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
 from app.core.settings import AppSettings, get_settings
 
@@ -16,11 +18,11 @@ class NovuSetup:
     This class will be used to setup the Novu integration for Veritable
     """
 
-    def __init__(self: "NovuSetup", veritable: VeritableSpec) -> None:
+    def __init__(self: "NovuSetup", veritable: DeboardWorkflowInput) -> None:
         """
         Initialize the NovuSetup class
         """
-        self.veritable: VeritableSpec = veritable
+        self.veritable: DeboardWorkflowInput = veritable
         self.config: AppSettings = get_settings()
         self.token: str | None = None
         self.organization_token: str | None = None
@@ -68,7 +70,7 @@ class NovuSetup:
         """
         Get the access token for the Novu integration
         """
-        url: str = f"{self.config.veritable.novu_url}/v1/auth/login"
+        url: str = urljoin(self.config.veritable.novu_url, "/v1/auth/login")
 
         payload: dict[str, str] = {
             "email": self.config.veritable.novu_admin_user,
@@ -101,7 +103,7 @@ class NovuSetup:
         the first environment ID for use in subsequent API calls. The environment ID
         is required for many organization-specific operations.
         """
-        url: str = f"{self.config.veritable.novu_url}/v1/environments"
+        url: str = urljoin(self.config.veritable.novu_url, "/v1/environments")
 
         async with aiohttp.ClientSession() as session:
             res: aiohttp.ClientResponse = await session.get(
@@ -391,10 +393,10 @@ class VeritableNovuDeProvisionActivity(Activity):
 
     @staticmethod
     @activity.defn(name="VeritableNovuDeProvisionActivity")
-    async def defn(veritable: VeritableSpec) -> None:
+    async def defn(veritable: DeboardWorkflowInput) -> None:
         """
         Callable for the activity
         """
-        veritable = VeritableSpec.model_validate(veritable)
+        veritable = DeboardWorkflowInput.model_validate(veritable)
         novu_setup = NovuSetup(veritable=veritable)
         await novu_setup.de_provision()

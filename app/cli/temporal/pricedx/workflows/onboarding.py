@@ -20,7 +20,6 @@ from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
 )
-
 from app.cli.temporal.activities.k8s_config_map import (
     K8sConfigMapCreationActivity,
     K8sConfigMapCreationActivityModel,
@@ -104,8 +103,6 @@ from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperActivityModel,
 )
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.pricedx import TemplatePath
-from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 from app.cli.temporal.models.cloudflare import (
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivityModel,
@@ -114,13 +111,14 @@ from app.cli.temporal.models.cloudflare import (
     PropagateDNSRecordActivityModel,
     UpdateCORSForBucketActivityModel,
 )
+from app.cli.temporal.pricedx import TemplatePath
+from app.cli.temporal.pricedx.models.pricedx_spec import PricedxSpec
 from app.common import generate_password
 from app.core.ijson import ijson_loads
 from app.core.settings import AppSettings, PricedxSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
-
 
 ProductName = "pricedx"
 OnePasswordVaultName = "Pricedx"
@@ -134,7 +132,7 @@ class PricedxOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -221,15 +219,15 @@ class PricedxOnboardingWorkflow(Workflow):
 
             # Wait for approval or denial
             if not is_deployment:
-                await workflow.wait_condition(lambda: self.approved or self.deny)
+                await workflow.wait_condition(lambda: self.approved or self.denied)
 
             # Update tenant status if request is declined
-            if self.deny:
+            if self.denied:
                 await run_activity(
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status=TenantStatusEnum.Declined,
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
                         product=ProductEnum.pricedx,
                     ),
@@ -715,7 +713,7 @@ class PricedxOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed if not is_deployment else TenantStatusEnum.DeploymentFailed,
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.pricedx,
                 ),
@@ -737,8 +735,8 @@ class PricedxOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Signal to reject the workflow
         """
-        self.deny = True
+        self.denied = True

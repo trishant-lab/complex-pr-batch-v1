@@ -1,11 +1,11 @@
 {
-  "username": "<<customerEmail>>",
+  "username": "<<username>>",
   "enabled": true,
   "totp": false,
   "emailVerified": true,
-  "firstName": "<<customerUserName>>",
-  "lastName": "",
-  "email": "<<customerEmail>>",
+  "firstName": "<<firstname>>",
+  "lastName": "<<lastname>>",
+  "email": "<<email>>",
   "disableableCredentialTypes": [],
   "requiredActions": [],
   "notBefore": 0,
@@ -16,12 +16,5 @@
     "impersonate": true,
     "manage": true
   },
-  "credentials": [
-    {
-      "type": "password",
-      "temporary": true,
-      "value": "<<customerPassword>>"
-    }
-  ],
   "groups": ["vt-customer-admin"]
 }

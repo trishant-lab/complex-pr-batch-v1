@@ -85,7 +85,7 @@ class VeritableSchema(BaseFormSchema):
             "subtype": "text",
             "className": "form-control",
             "placeholder": "e.g. VER15",
-            "mapTo": "coupon_code",
+            "mapTo": "couponCode",
             "order": 12,
         },
     )
@@ -338,6 +338,21 @@ class PricedxSchema(BaseFormSchema):
     )
 
 
+class MuspellSchema(BaseFormSchema):
+    organization: str | None = Field(
+        default=None,
+        json_schema_extra={
+            "name": "organizationName",
+            "label": "Organization Name",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. Z Medical",
+            "mapTo": "organization",
+            "order": 4,
+        },
+    )
+
+
 ProductSchemaDataType = TypeVar(
     "ProductSchemaDataType",
     VeritableSchema,
@@ -348,6 +363,7 @@ ProductSchemaDataType = TypeVar(
     ZsegmentSchema,
     PenknifeSchema,
     PricedxSchema,
+    MuspellSchema,
 )
 
 PRODUCT_SCHEMA_MAP = {
@@ -359,4 +375,5 @@ PRODUCT_SCHEMA_MAP = {
     ProductEnum.zsegment: ZsegmentSchema,
     ProductEnum.penknife: PenknifeSchema,
     ProductEnum.pricedx: PricedxSchema,
+    ProductEnum.muspell: MuspellSchema,
 }

@@ -41,6 +41,7 @@ RECAPTCHA_FAILED: ServerErrorModel = ServerErrorModel.initialize(code="R1011")
 # provisioning
 INVALID_SCHEMA: ServerErrorModel = ServerErrorModel.initialize(code="R1013")
 REQUIRED_FIELD_MISSING: ServerErrorModel = ServerErrorModel.initialize(code="R1018")
+SELF_SIGNUP_PRODUCT_PROVISIONING_NOT_ALLOWED: ServerErrorModel = ServerErrorModel.initialize(code="R1020")
 
 # product
 PRODUCT_NOT_FOUND: ServerErrorModel = ServerErrorModel.initialize(code="R1003")

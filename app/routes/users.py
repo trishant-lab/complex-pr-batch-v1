@@ -204,7 +204,7 @@ async def post_user(
         "emailVerified": True,
     }
 
-    user_id: str = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm)
+    user_id = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm, exist_ok=False)
 
     update_roles(user_id=UUID(user_id), added_roles=user.roles, deleted_roles=None, config=config, kc_agent=kc_agent)
 
@@ -333,12 +333,12 @@ async def get_g_suite_users_list(_: dict = Depends(get_oauth_scheme())) -> list:
 
 
 @user_router.delete(
-    "",
+    "/{userId}",
     operation_id="deleteUser",
     summary="Deletes a user",
 )
 async def delete_user(
-    user_id: str,
+    user_id: str = Path(..., alias="userId"),
     _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """

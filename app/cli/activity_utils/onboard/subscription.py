@@ -63,7 +63,7 @@ async def terminate_failed_subscription(onboard_info: OnboardInfo) -> None:
         subscription_resp = SubscriptionResponse.from_lago(subscription_resp)
         if not subscription_resp.ending_at:
             ending_date = pendulum.parse(subscription_resp.created_at).add(months=1).subtract(days=1).isoformat()
-            subscription: Subscription = Subscription.model_validate(subscription_resp)
+            subscription: Subscription = Subscription.model_validate(subscription_resp.model_dump())
             subscription.ending_at = ending_date
             try:
                 lago_client.subscriptions().update(subscription, identifier=subscription.external_id)

@@ -69,7 +69,7 @@ async def assets_viewed_details(
     :return:
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
 
     try:
         result: list = await db.fetch_all(
@@ -116,7 +116,7 @@ async def assets_download_details(
     :return:
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
 
     try:
         result: list = await db.fetch_all(
@@ -160,7 +160,7 @@ async def assets_shared_details(
     Return total assets shared, number of users who shared assets and assets shared per user
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
 
     try:
         result: list = await db.fetch_all(
@@ -209,7 +209,7 @@ async def queries_details(
     :return:
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
 
     try:
         result: list = await db.fetch_all(
@@ -256,7 +256,7 @@ async def total_users_count(
     :return:
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
 
     try:
         result = await db.fetch_one(
@@ -296,7 +296,7 @@ async def session_duration_details(
     :return:
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
     try:
         result = await db.fetch_one(
             "total_sessions_and_avg_duration.sql",
@@ -335,7 +335,7 @@ async def assignments_created_details(
     :return:
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
     try:
         result = await db.fetch_all(
             "jeeves_reports_per_user.sql",
@@ -382,7 +382,7 @@ async def asset_upload_details(
     :return:
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
     try:
         result = await db.fetch_all(
             "jeeves_reports_per_user.sql",
@@ -424,7 +424,7 @@ async def asset_record_details(
     Return total assets recorded number and their average duration
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
     try:
         result = await db.fetch_all(
             "jeeves_reports_per_user.sql",
@@ -466,7 +466,7 @@ async def asset_tip_sheet_details(
     Return total assets tip sheet number and their average duration
     """
     config: AppSettings = get_settings()
-    db: DBManager = await get_db_manager()
+    db: DBManager = await get_db_manager(dsn=config.jeeves.postgres.dsn)
     try:
         result = await db.fetch_all(
             "jeeves_tip_sheet_reports_per_user.sql",

@@ -13,16 +13,18 @@ from app.core.product_settings.common import PostgresSettings, Redis, SlackSetti
 from app.core.product_settings.dexit import DexitSettings
 from app.core.product_settings.hdp import HDPSettings
 from app.core.product_settings.jeeves import JeevesSettings
+from app.core.product_settings.muspell_archive import MuspellArchiveSettings
 from app.core.product_settings.penknife import PenknifeSettings
 from app.core.product_settings.practifly import PractiflySettings
+from app.core.product_settings.pricedx import PricedxSettings
 from app.core.product_settings.veritable import VeritableSettings
 from app.core.product_settings.zsegment import ZSegmentSettings
-from app.core.product_settings.pricedx import PricedxSettings
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
     "jeeves.json",
     "dexit.json",
+    "muspell_archive.json",
     "penknife.json",
     "zsegment.json",
     "practifly.json",
@@ -33,6 +35,7 @@ PRODUCT_FILE_NAMES: Final[list[str]] = [
     "veritable.json",
     "jeeves.json",
     "dexit.json",
+    "muspell_archive.json",
     "penknife.json",
     "zsegment.json",
     "practifly.json",
@@ -189,10 +192,12 @@ class AppSettings(BaseSettings):
     env: str = os.getenv("DEPLOYMENT", "integration").lower()
     api_prefix: str = "/api/v1"
     client_code: str = "launchpad"
+    billing_url: str = ""
 
     keycloak: KeycloakSettings = KeycloakSettings()
     keycloak_prod: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
+    pg_super_admin: PostgresSettings = PostgresSettings()
     slack: SlackSettings = SlackSettings()
     sendgrid: SendGridSettings = SendGridSettings()
     cloudflare: CloudflareSettings = CloudflareSettings()
@@ -206,7 +211,7 @@ class AppSettings(BaseSettings):
     zsegment: ZSegmentSettings = ZSegmentSettings()
     practifly: PractiflySettings = PractiflySettings()
     pricedx: PricedxSettings = PricedxSettings()
-
+    muspell: MuspellArchiveSettings = MuspellArchiveSettings()
     temporal: TemporalSettings = TemporalSettings()
     s3_int: S3Settings = S3Settings()
     s3: S3Settings = S3Settings()
@@ -260,6 +265,7 @@ class IntegrationSettings(AppSettings):
     postgres: PostgresSettings = PostgresSettings()
     gsuite: GSuiteModel = GSuiteModel()
 
+    billing_url: str = "https://api-billing.314ecorp.tech"
     app_url: str = "https://launchpad.314ecorp.tech/sprint"
 
     model_config = ConfigDict(extra="ignore")
@@ -273,6 +279,7 @@ class ProductionSettings(AppSettings):
     keycloak: KeycloakSettings = KeycloakSettings()
     postgres: PostgresSettings = PostgresSettings()
 
+    billing_url: str = "https://api-billing.314ecorp.com"
     app_url: str = "https://launchpad.314ecorp.com"
     grafana_datasource_uid: str = "LTvkszRVk"
 

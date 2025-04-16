@@ -158,7 +158,7 @@ class JeevesOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -252,15 +252,15 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # Wait for approval or denial
             if not is_deployment:
-                await workflow.wait_condition(lambda: self.approved or self.deny)
+                await workflow.wait_condition(lambda: self.approved or self.denied)
 
             # Update tenant status if request is declined
-            if self.deny:
+            if self.denied:
                 await run_activity(
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status=TenantStatusEnum.Declined,
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
                         product=ProductEnum.jeeves,
                     ),
@@ -280,6 +280,28 @@ class JeevesOnboardingWorkflow(Workflow):
                     server_item="application-config",
                     secret_name="auth_secret",
                     secret_value=jeeves_config.auth_secret,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="keycloak_attribute_to_match_user",
+                    secret_value=jeeves_config.keycloak_attribute_to_match_user,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="ehr_field_to_match_user",
+                    secret_value=jeeves_config.ehr_field_to_match_user,
                 ),
             )
 
@@ -390,6 +412,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "realm",
                         "user_attribute",
                         "keycloak_role",
+                        "keycloak_group",
                         "user_role_mapping",
                         "matomo_log_visit",
                         "matomo_log_action",
@@ -400,6 +423,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "matomo_log_media_view",
                         "matomo_log_link_visit_action_view",
                         "federated_identity",
+                        "user_group_membership",
                     ],
                 ),
             )
@@ -758,27 +782,23 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             roles = [
-                "_access-manage-todos",
-                "_access-manage-alerts",
-                "_access-settings",
-                "_allow-delete-assets",
-                "_allow-add-edit-assets",
-                "_access-reports",
-                "_allow-view-assets",
-                "_JEEVESALL",
-                "_allow-conversion-tools",
-                "_access-screen-recorder",
                 "_allow-standalone-launch",
-                "_allow-publish-assets",
+                "_access-reports",
                 "_can-manage-activities",
-                "_allow-add-edit-courses",
-                "_allow-delete-courses",
-                "_allow-enroll-courses",
+                "_allow-view-assets",
                 "_allow-view-all-courses",
-                "_can-manage-users",
+                "_access-manage-todos",
                 "_access-users",
-                "_developer",
                 "_can-manage-groups",
+                "_allow-add-edit-assets",
+                "_allow-add-edit-courses",
+                "_allow-publish-assets",
+                "_allow-delete-assets",
+                "_allow-delete-courses",
+                "_can-manage-users",
+                "_access-settings",
+                "_developer",
+                "_JEEVESALL",
             ]
             # keycloak client roles setup
             await run_activity(
@@ -840,6 +860,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    group_path="Admin",
                 ),
             )
 
@@ -853,6 +874,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_name="keycloak_tenant_internal_user.json",
                     users=ijson_loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    group_path="Admin",
                 ),
             )
 
@@ -1106,35 +1128,29 @@ class JeevesOnboardingWorkflow(Workflow):
                     ),
                 )
 
-            # update tenant status
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(
-                    tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.jeeves
-                ),
-            )
-
-            # Commented for testing config changes.
-            # if not is_deployment:
-            #     await run_activity(
-            #         activity=JeevesSendAfterProvisioningMailActivity,
-            #         arg=JeevesSendAfterProvisioningMailActivityModel(
-            #             realm_name=realm_name,
-            #             client_id="jeeves",
-            #         ),
-            #     )
+            if not is_deployment:
+                # update tenant status
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
+                        tenant_name=tenant,
+                        status=TenantStatusEnum.Provisioned,
+                        product=ProductEnum.jeeves,
+                    ),
+                )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(
-                    tenant_name=tenant,
-                    status=TenantStatusEnum.Failed if not is_deployment else TenantStatusEnum.DeploymentFailed,
-                    error_msg=str(e),
-                    product=ProductEnum.jeeves,
-                ),
-            )
+            if not is_deployment:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
+                        tenant_name=tenant,
+                        status=TenantStatusEnum.ProvisioningFailed,
+                        error_msg=str(e),
+                        product=ProductEnum.jeeves,
+                    ),
+                )
             await run_activity(
                 activity=SlackNotificationActivity,
                 arg=SlackNotificationActivityModel(
@@ -1152,8 +1168,8 @@ class JeevesOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Signal to reject the workflow
         """
-        self.deny = True
+        self.denied = True

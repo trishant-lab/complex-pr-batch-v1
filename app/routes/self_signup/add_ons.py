@@ -8,6 +8,23 @@ router = APIRouter()
 
 
 @router.get(
+    "",
+    operation_id="getVeritableAddOns",
+    response_model=list[AddOnResponseModel],
+    summary="get Veritable Add Ons",
+    status_code=HTTP_200_OK,
+    deprecated=True,
+)
+def get_veritable_add_ons() -> list[AddOnResponseModel]:
+    """
+    :return: list of add-ons
+    """
+    from app.route_utils.addons_util import get_all_addons
+
+    return get_all_addons(ProductEnum.veritable)
+
+
+@router.get(
     "/{product}",
     operation_id="getAddOns",
     response_model=list[AddOnResponseModel],

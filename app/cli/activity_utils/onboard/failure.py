@@ -1,4 +1,5 @@
-from app.cli.temporal.models.onboard import OnboardInfo
+from app.cli.activity_utils.onboard.onboard_info import get_customer_onboard_info
+from app.cli.temporal.models.onboard import CustomerWorkflowInput
 from app.core.connections import get_lago_client
 from app.core.db import DBManager, get_db_manager
 from app.mail_templates import provisioning_failure_mail
@@ -27,11 +28,12 @@ async def send_customer_onboard_failure_mail(email: str, name: str, plan_name: s
     )
 
 
-async def onboard_failure(onboard_info: OnboardInfo) -> None:
+async def onboard_failure(activity_input: CustomerWorkflowInput) -> None:
     """
-    @param onboard_info:
+    @param activity_input:
     @return:
     """
+    onboard_info = await get_customer_onboard_info(activity_input.customer_id, activity_input.product)
     db: DBManager = await get_db_manager()
     errors = await db.fetch_one("get.sql", table="provisioningstatus", where=f"customerid='{onboard_info.customer_id}'")
     lago_client = get_lago_client(onboard_info.product)
@@ -50,9 +52,9 @@ async def onboard_failure(onboard_info: OnboardInfo) -> None:
     app_config = ProductEnum.get_product_settings(onboard_info.product)
 
     await send_mail(
-        to_email=app_config.sendgrid_support_mail,
+        to_email=app_config.sendgrid.support_mail,
         from_name=onboard_info.product.value,
-        email_from=app_config.sendgrid_from_mail,
+        email_from=app_config.sendgrid.email_from,
         subject=f"{onboard_info.tenant_name} provisioning {onboard_info.onboard_status.name}",
         content=content,
     )

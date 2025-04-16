@@ -11,6 +11,7 @@ from app.cli.temporal.core.log import log_error, log_info
 from app.common import generate_password
 from app.core.db import DBManager, get_db_manager
 from app.core.settings import AppSettings, get_settings
+from app.models.enums import EmailTemplateName
 from app.sendgrid_utils import send_mail
 from app.template_env import get_env
 
@@ -53,7 +54,9 @@ async def send_customer_password_mail(
     # get template
     try:
         response = await db.fetch_one(
-            "get_email_template_by_product.sql", product=product, template_name="AfterProvisioning"
+            "get_email_template_by_product.sql",
+            product=product,
+            template_name=EmailTemplateName.after_provisioning.value,
         )
         response = dict(response)
     except Exception as e:
@@ -129,7 +132,9 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
     # get template
     try:
         response = await db.fetch_one(
-            "get_email_template_by_product.sql", product=product, template_name="BeforeProvisioning"
+            "get_email_template_by_product.sql",
+            product=product,
+            template_name=EmailTemplateName.before_provisioning.value,
         )
         response = dict(response)
     except Exception as e:

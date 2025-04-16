@@ -31,11 +31,12 @@ class PenknifeWorkflow(ProductWorkflow):
         """
         deprovision method
         """
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
         from app.cli.temporal.penknife.workflows.deprovisioning import PenknifeDeProvisioningWorkflow
         from app.cli.temporal.starter import trigger_workflow
 
         await trigger_workflow(
-            workflow_input=PenknifeSpec(**schema),
+            workflow_input=DeboardWorkflowInput(**schema),
             workflow=PenknifeDeProvisioningWorkflow,
             queue=WorkerQueues.penknife_deboarding,
         )
@@ -62,7 +63,7 @@ class PenknifeWorkflow(ProductWorkflow):
 
         handle = await get_workflow_handle(workflow_input=PenknifeSpec(**schema), workflow=PenknifeOnboardingWorkflow)
 
-        await handle.signal(PenknifeOnboardingWorkflow.deny)
+        await handle.signal(PenknifeOnboardingWorkflow.decline)
 
     @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:

@@ -23,7 +23,7 @@ async def list_all_products(_: dict = Depends(get_oauth_scheme())) -> list[Produ
     return [ProductResponseModel.json_to_model(dict(resp)) for resp in response]
 
 
-@product_router.get("/getProductByName/{product}", operation_id="getProductByName", response_model=ProductResponseModel)
+@product_router.get("/{product}/getProductByName", operation_id="getProductByName", response_model=ProductResponseModel)
 async def get_product(product: ProductEnum = Path(...), _: dict = Depends(get_oauth_scheme())) -> ProductResponseModel:
     """
     @param product:
@@ -36,7 +36,7 @@ async def get_product(product: ProductEnum = Path(...), _: dict = Depends(get_oa
     return ProductResponseModel.json_to_model(dict(response))
 
 
-@product_router.post("/updateProductSchema/{product}", operation_id="updateProductSchema", response_model=dict)
+@product_router.post("/{product}/updateProductSchema", operation_id="updateProductSchema", response_model=dict)
 async def update_product_schema(
     product_schema: list[dict],
     product: ProductEnum = Path(...),
@@ -60,7 +60,7 @@ async def update_product_schema(
     return {"message": "Updated product schema successfully"}
 
 
-@product_router.get("/renderForm/{product}", operation_id="renderForm")
+@product_router.get("/{product}/renderForm", operation_id="renderForm")
 async def render_form(product: ProductEnum = Path(...), _: dict = Depends(get_oauth_scheme())) -> dict:
     """
     @param product:

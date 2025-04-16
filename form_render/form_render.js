@@ -2833,7 +2833,6 @@ envArg.forEach((data) => {
 								},
 								i = this.markup('input', null, r),
 								a = [
-									createTranslationTextSpan('formRender.other').outerHTML,
 									this.markup('input', null, o),
 								],
 								l = this.markup('label', a, { for: r.id }),
@@ -3516,179 +3515,42 @@ jQuery(($) => {
 			for (const file of files) {
 				const raw = fs.readFileSync(`${dir}/${file}`);
 				const formData = JSON.parse(raw);
+
 				let finalHtml = '';
 				let formRenderOpts = {};
 
 				for (let data of formData) {
-					switch (data.type) {
-						case 'signature':
-							signatureData(data);
-							break;
-						case 'headerField':
-							headerData(data);
-							break;
-						case 'paragraphField':
-							paragraphData(data);
-							break;
-						case 'hiddenField':
-							hiddenFieldData(data);
-							break;
-						case 'file':
-							fileData(data);
-							break;
-						case 'tenantName':
-							tenantNameData(data);
-							break;
-						case 'organization':
-							organizationData(data);
-							break;
+					if (data.mapTo) {
+						data['data-map-to'] = data.mapTo;
+						data['mapTo'] = null;
 					}
 				}
 
 				const markup = $('<div/>');
 
 				formRenderOpts = {
-					formData,
+					formData: formData,
 					layoutTemplates: {
 						default: function (
 							field,
 							label,
 							help,
-							data,
 							placeholder,
 							required,
-							progressBarBlock,
-							alertMessage,
 						) {
-							switch (data.subtype) {
-								case 'signature':
-									const signatureField = signature(data);
-									field = signatureField;
-									break;
-								case 'headerField':
-									const headerField = header(data);
-									field = headerField;
-									return $('<div class="form-group"></div>').append(field);
-								case 'paragraphField':
-									const paragraphField = paragraph(data);
-									field = paragraphField;
-									return $('<div class="form-group"></div>').append(field);
-								case 'tenantName':
-									const tenantNameField = tenantName(data);
-									field = tenantNameField;
-									return $('<div class="form-group"></div>').append(field);
-								case 'organization':
-									const organizationField = organization(data);
-									field = organizationField;
-									return $('<div class="form-group"></div>').append(field);
-							}
-							if (data.type === 'file') {
-								const metaData = fileMetaData(progressBarBlock, alertMessage, data);
-								progressBarBlock = metaData.progressBarBlock;
-								alertMessage = metaData.alertMessage;
-								data.acceptedType = data.accept?.replaceAll('.', '')?.replaceAll(',', ', ');
-								alertMessage.innerHTML = `${
-									createTranslationTextSpan('formRender.firstAlert').outerHTML
-								} <b>${data.fileSize} MB</b> (<b>${data.acceptedType}</b> ${
-									createTranslationTextSpan('formRender.secondAlert').outerHTML
-								})`;
-							}
 							return $('<div class="form-group"></div>').append(
 								label,
 								help,
 								field,
 								placeholder,
 								required,
-								progressBarBlock,
-								alertMessage,
+								$('<div class="field-message"><p></p></div>')
 							);
 						},
 					},
 				};
 
 				markup.formRender(formRenderOpts);
-
-				const script1 = `
-          let asterick=document.querySelectorAll(".formbuilder-required");
-          if(asterick.length>0){
-          asterick.forEach((ele)=>ele.innerText=" *");
-          }
-
-          let organizationLabel=document.getElementById("organization-label");
-          if(organizationLabel){
-          let x=document.createElement("span");
-          x.innerText="Organization";
-          organizationLabel.insertBefore(x,organizationLabel.firstChild);
-          }
-
-          let tenantNameLabel=document.getElementById("tenant-name-label");
-          if(tenantNameLabel){
-          let x=document.createElement("span");
-          x.innerText="Tenant Name";
-          tenantNameLabel.insertBefore(x,tenantNameLabel.firstChild);
-          }
-
-          function debounce(func, wait) {
-            let timeout;
-            return function(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        let suggestionsContainer = document.createElement("div");
-        suggestionsContainer.classList.add("suggestions-container");
-        let updateSuggestions = (suggestions) => {
-        if (suggestions.length === 0) {
-          suggestionsContainer.innerHTML = "";
-          return;
-        }
-        suggestionsContainer.innerHTML = "Suggestions: ";
-        suggestions.forEach((suggestion, index) => {
-      let suggestionItem = document.createElement("span");
-      suggestionItem.style.cursor = "pointer";
-      suggestionItem.style.color = "blue";
-      suggestionItem.innerText = suggestion;
-      suggestionItem.addEventListener("click", () => {
-        let tenantSuggestions = document.querySelector(".tenant-name-input");
-        tenantSuggestions.value = suggestion;
-      });
-      suggestionsContainer.appendChild(suggestionItem);
-      if (index < suggestions.length - 1) {
-        suggestionsContainer.appendChild(document.createTextNode(", "));
-      }
-     });
-      let tenantParentEle = document.getElementById("parent-div");
-      if (tenantParentEle) {
-        tenantParentEle.appendChild(suggestionsContainer);
-      }
-    };
-
-      async function fetchSuggestions(query) {
-            if (query.length > 2) {
-                try {
-                    let response = await fetch(\`https://launchpad.314ecorp.tech/api/v1/tenant/suggestTenantNames?organization=\${query}\`);
-                    let suggestions = await response.json();
-                    updateSuggestions(suggestions);
-                } catch (error) {
-                    console.error("Error fetching suggestions:", error);
-                }
-            } else {
-                updateSuggestions([]);
-            }
-        }
-
-        const debouncedFetchSuggestions = debounce(fetchSuggestions, 500);
-
-        document.querySelector(".organization-input").addEventListener("input", (event) => {
-            let query = event.target.value;
-            debouncedFetchSuggestions(query);
-        });
-        `;
 
 				finalHtml = `${markup.formRender('html')}`;
 
@@ -3698,11 +3560,8 @@ jQuery(($) => {
 
 				fs.writeFile(
 					`${outputDir}/${path.parse(file).name}.json`,
-					// use this for json output with tenantName suggestions
-					// JSON.stringify({ html: finalHtml, script: script1 }),
 					JSON.stringify({ html: finalHtml }),
 					(err) => {
-						// In case of a error throw err.
 						if (err) throw err;
 					},
 				);
@@ -3722,183 +3581,3 @@ jQuery(($) => {
 	};
 	readData();
 });
-
-const createTranslationTextSpan = (key) => {
-	const element = document.createElement('span');
-	element.classList.add('translation-text');
-	element.setAttribute('data-key', key);
-	return element;
-};
-
-const header = (data) => {
-	let parent = document.createElement(data.headerTag);
-	parent.classList.add('headerField');
-	parent.id = data['name'];
-	parent.innerHTML = data.content;
-	return parent;
-};
-
-const paragraph = (data) => {
-	let parent = document.createElement('p');
-	parent.classList.add('paragraphField');
-	parent.id = data['name'];
-	parent.innerHTML = data.content;
-	return parent;
-};
-
-const tenantName = (data) => {
-	const parent = document.createElement('div');
-	const label = document.createElement('label');
-	label.setAttribute('for', data.name);
-	label.setAttribute('id', 'tenant-name-label');
-
-	if (data.required) {
-		const asterisk = document.createElement('span');
-		asterisk.classList.add('formbuilder-required');
-		label.appendChild(asterisk);
-	}
-
-	const container = document.createElement('div');
-	container.id = 'parent-div';
-	const input = document.createElement('input');
-	input.type = 'text';
-	input.id = data.name;
-	input.name = data.name;
-	input.classList.add('tenant-name-input');
-	input.classList.add('form-control');
-	input.required = true;
-	input.ariaRequired = true;
-	input.placeholder = 'Enter the tenant name';
-
-	parent.appendChild(label);
-	parent.appendChild(input);
-	container.appendChild(parent);
-	return container;
-};
-
-const organization = (data) => {
-	const parent = document.createElement('div');
-	const label = document.createElement('label');
-
-	label.setAttribute('for', data.name);
-	label.setAttribute('id', 'organization-label');
-
-	if (data.required) {
-		const asterisk = document.createElement('span');
-		asterisk.classList.add('formbuilder-required');
-		label.appendChild(asterisk);
-	}
-
-	const input = document.createElement('input');
-	input.type = 'text';
-	input.id = data.name;
-	input.name = data.name;
-	input.classList.add('form-control');
-	input.classList.add('organization-input');
-	input.required = true;
-	input.ariaRequired = true;
-	input.placeholder = 'Enter the organization name';
-
-	parent.appendChild(label);
-	parent.appendChild(input);
-
-	return parent;
-};
-
-const signature = (data) => {
-	let parentDiv = document.createElement('div');
-	let canvas = document.createElement('canvas');
-	let clear = document.createElement('i');
-
-	canvas.id = data['name'];
-	canvas.classList.add('signature');
-	if (data.required === true) {
-		canvas.classList.add('mandatory');
-	}
-	canvas.style.border = '1px solid black';
-	canvas.width = '180';
-	canvas.height = '100';
-
-	clear.classList.add('fa-category', 'fa-arrows-rotate', 'fa-lg', 'clear');
-	clear.id = data['name'];
-
-	parentDiv.append(canvas);
-	parentDiv.append(clear);
-	return parentDiv;
-};
-
-const signatureData = (data) => {
-	let isrequired = data.required;
-	data['className'] = 'form-control';
-	data['type'] = 'text';
-	data['subtype'] = 'signature';
-	data['required'] = isrequired;
-};
-
-const headerData = (data) => {
-	let isrequired = data.required;
-	data['className'] = 'form-control';
-	data['type'] = 'text';
-	data['subtype'] = 'headerField';
-	data['required'] = isrequired;
-};
-
-const paragraphData = (data) => {
-	let isrequired = data.required;
-	data['className'] = 'form-control';
-	data['type'] = 'text';
-	data['subtype'] = 'paragraphField';
-	data['required'] = isrequired;
-};
-
-const hiddenFieldData = (data) => {
-	data['type'] = 'hidden';
-	data['value'] = '';
-	data['access'] = false;
-	data['className'] = 'hidden-field';
-	delete data['label'];
-	delete data['required'];
-	delete data['subtype'];
-};
-
-const tenantNameData = (data) => {
-	let isrequired = data.required;
-	data['className'] = 'form-control';
-	data['type'] = 'text';
-	data['subtype'] = 'tenantName';
-	data['required'] = isrequired;
-};
-
-const organizationData = (data) => {
-	let isrequired = data.required;
-	data['className'] = 'form-control';
-	data['type'] = 'text';
-	data['subtype'] = 'organization';
-	data['required'] = isrequired;
-};
-
-const fileData = (data) => {
-	const defaultClasses = data.className;
-	data['className'] = `${defaultClasses} file`;
-};
-
-const fileMetaData = (progressBarBlock, alertMessage, data) => {
-	progressBarBlock = document.createElement('div');
-	progressBarBlock['className'] = 'progressBarBlock';
-	progressBar = document.createElement('progress');
-	progressBar['value'] = '0';
-	progressBar['max'] = '100';
-	progressBar['id'] = `progress-bar-${data.name}`;
-	progressBar['className'] = 'progress-bar';
-	message = document.createElement('div');
-	message['id'] = `status-${data.name}`;
-	message['className'] = 'status';
-	progressBarBlock.appendChild(progressBar);
-	progressBarBlock.appendChild(message);
-
-	alertMessage = document.createElement('p');
-	return {
-		progressBarBlock: progressBarBlock,
-		alertMessage: alertMessage,
-	};
-};

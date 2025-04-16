@@ -197,7 +197,9 @@ async def onboard_payment_failure(onboard_info: OnboardInfo) -> None:
     customer = CustomerResponse.from_lago(customer_resp)
 
     stripe_customer_id = customer.billing_configuration.provider_customer_id
-    stripe_failure_reason = await get_stripe_failure_status(stripe_customer_id, onboard_info.invoice.lago_id)
+    stripe_failure_reason = await get_stripe_failure_status(
+        stripe_customer_id, onboard_info.invoice.lago_id, onboard_info.product
+    )
     if _existing_invoice:
         await db.execute(
             "put.sql",

@@ -30,7 +30,7 @@ from app.route_utils.session_util import get_first_subscription_status, get_trea
 from app.route_utils.subscriptions import create_setup_intent
 from app.route_utils.tenant_suggestions import get_existing_tenant_names
 from app.route_utils.user_session import UserSession
-from app.routes.self_signup.subscriptions import create_subscription
+from app.routes.self_signup.subscriptions import _create_subscription
 
 if TYPE_CHECKING:
     from app.models.lago.coupon import CouponResponse
@@ -47,6 +47,8 @@ async def reconcile_subscription(
     customer_id: uuid.UUID,
     subscription_plan: str,
     product: ProductEnum,
+    schema: list[dict],
+    signup_details: dict,
 ) -> None:
     """
     Terminate failed subscription of a customer
@@ -56,6 +58,8 @@ async def reconcile_subscription(
         "payload": {
             "tenantname": customer.tenant.lower(),
             "orgname": customer.legal_name,
+            "schema": ijson_dumps(schema),
+            "data": ijson_dumps(signup_details),
         },
         "where": f"email='{customer.email!s}' AND product='{product.value.lower()}'",
     }
@@ -103,6 +107,8 @@ async def reconcile_subscription(
 
 
 async def update_existing_customer(
+    schema: list[dict],
+    signup_details: dict,
     customer_record: dict,
     customer: CustomerModel,
     plan_code: str,
@@ -113,16 +119,18 @@ async def update_existing_customer(
     find lago customer, check its intent status.
     If intent is successful, trigger provisioning
     """
-    await reconcile_subscription(db, customer, customer_record["id"], plan_code, product)
+    await reconcile_subscription(db, customer, customer_record["id"], plan_code, product, schema, signup_details)
 
     customer.external_id = str(customer_record["id"])
 
     lago_client = get_lago_client(product)
     lago_customer_resp = lago_client.customers().find(customer.external_id)
     lago_customer = CustomerResponse.from_lago(lago_customer_resp)
-
     updated_customer = update_customer_model(
-        CustomerModel.model_validate(lago_customer.model_dump(exclude_unset=True)), customer
+        CustomerModel.model_validate(
+            lago_customer.model_dump(exclude_unset=True) | {"product": product.value, "tenant": customer.tenant}
+        ),
+        customer,
     )
 
     try:
@@ -139,7 +147,9 @@ async def update_existing_customer(
     )
     if intent.status in {"success", "succeeded"}:
         return (
-            await create_subscription(customer.email, intent.payment_method, product, db),
+            await _create_subscription(
+                product=product, email=customer.email, payment_method_id=intent.payment_method, db=db
+            ),
             lago_customer,
         )
     # update if setup intent is canceled
@@ -147,6 +157,7 @@ async def update_existing_customer(
 
 
 async def create_new_customer(
+    schema: list[dict],
     customer: CustomerModel,
     form_data: dict,
     plan_code: str,
@@ -170,6 +181,7 @@ async def create_new_customer(
         "orgname": customer.legal_name,
         "product": product.value,
         "data": ijson_dumps(form_data),
+        "schema": ijson_dumps(schema),
     }
     subscription_params = {
         "name": ACTIVE_SUBSCRIPTION_NAME,
@@ -225,7 +237,7 @@ async def create_customer(
     @param db:
     @return:
     """
-    customer = await validate_provisioning_details(product=product, data=signup_details)
+    schema, customer = await validate_provisioning_details(product=product, data=signup_details)
     customer.email = get_treated_email(customer.email)
     validate_email_domain(product=product, email=customer.email)
     await UserSession.validate_session(product=product, email=customer.email, session_token=token)
@@ -258,18 +270,21 @@ async def create_customer(
         )
     except ValidationError as e:
         logger.error(f"Invalid schema: {e.errors()}")
-        raise errors.INVALID_SCHEMA.exc()
+        error_message = [error["msg"] for error in e.errors()]
+        raise errors.INVALID_SCHEMA.exc(e=error_message)
 
     if customer_record:
-        response, lago_customer = await update_existing_customer(customer_record, customer, plan_code, product, db)
+        response, lago_customer = await update_existing_customer(
+            schema, signup_details, customer_record, customer, plan_code, product, db
+        )
     else:
-        response, lago_customer = await create_new_customer(customer, signup_details, plan_code, product, db)
+        response, lago_customer = await create_new_customer(schema, customer, signup_details, plan_code, product, db)
 
     if coupon:
         apply_coupon(lago_customer.external_id, coupon, product)
 
     leads_form_fill(lago_customer, product)
-    _customer_response = ijson_loads(lago_customer.model_dump_json()) | dict(
+    _customer_response = ijson_loads(lago_customer.model_dump_json(exclude={"billing_configuration"})) | dict(
         tenant_name=customer.tenant,
         email=customer.email,
         plancode=plan_code,
@@ -286,7 +301,7 @@ async def create_customer(
 async def create_enterprise_customer(
     signup_details: dict,
     product: ProductEnum = Path(...),
-    plan_code: str = Query(...),
+    plan_code: str = Query(default="ee_m_v1"),
     db: DBManager = Depends(database),
     _: dict = Depends(get_oauth_scheme()),
 ) -> None:
@@ -296,7 +311,7 @@ async def create_enterprise_customer(
     @param db:
     @return:
     """
-    customer = await validate_provisioning_details(product=product, data=signup_details)
+    schema, customer = await validate_provisioning_details(product=product, data=signup_details)
     validate_email_domain(product=product, email=customer.email)
     tenant_names = await get_existing_tenant_names(
         product,
@@ -320,7 +335,8 @@ async def create_enterprise_customer(
         )
     except ValidationError as e:
         logger.error(f"Invalid schema: {e.errors()}")
-        raise errors.INVALID_SCHEMA.exc()
+        error_message = [error["msg"] for error in e.errors()]
+        raise errors.INVALID_SCHEMA.exc(e=error_message)
 
     customer_params = {
         "tenantname": customer.tenant.lower(),
@@ -329,6 +345,7 @@ async def create_enterprise_customer(
         "orgname": customer.legal_name,
         "product": product.value,
         "data": ijson_dumps(signup_details),
+        "schema": ijson_dumps(schema),
     }
     subscription_params = {
         "name": ACTIVE_SUBSCRIPTION_NAME,

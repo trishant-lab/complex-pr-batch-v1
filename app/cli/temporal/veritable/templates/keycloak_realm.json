@@ -1,5 +1,5 @@
 {
-  "realm": "veritable_<<tenant>>",
+  "realm": "<<realm_name>>",
   "displayName": "",
   "displayNameHtml": "",
   "notBefore": 0,
@@ -369,7 +369,7 @@
       "clientRoles": {},
       "name": "vt-customer-admin",
       "path": "/vt-customer-admin",
-      "realmRoles": "<<customerRealmRoles>>",
+      "realmRoles": <<customerRealmRoles | safe>>,
       "subGroups": []
     },
     {
@@ -440,13 +440,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/veritable_<<tenant>>/account/",
+      "baseUrl": "/realms/<<realm_name>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/veritable_<<tenant>>/account/*"
+        "/realms/<<realm_name>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -605,10 +605,14 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
+        "http://<<tenant>>.api.veritable.<<domain_org>>/*",
+        "https://<<tenant>>.api.veritable.<<domain_org>>/*",
         "http://<<tenant>>.veritable.<<domain_org>>/*",
         "https://<<tenant>>.veritable.<<domain_org>>/*"
       ],
       "webOrigins": [
+        "https://<<tenant>>.api.veritable.<<domain_org>>",
+        "http://<<tenant>>.api.veritable.<<domain_org>>",
         "https://<<tenant>>.veritable.<<domain_org>>",
         "http://<<tenant>>.veritable.<<domain_org>>"
       ],
@@ -758,13 +762,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/veritable_<<tenant>>/console/",
+      "baseUrl": "/admin/<<realm_name>>/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/veritable_<<tenant>>/console/*"
+        "/admin/<<realm_name>>/console/*"
       ],
       "webOrigins": [
         "+"
@@ -1331,7 +1335,7 @@
     "ssl": "",
     "user": "apikey"
   },
-  "loginTheme": "veritable",
+  "loginTheme": "314e-login-theme",
   "eventsEnabled": true,
   "eventsListeners": [
     "jboss-logging"

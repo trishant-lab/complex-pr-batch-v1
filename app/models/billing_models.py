@@ -16,7 +16,7 @@ from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 
 COUNTRY_CODES = ["US", "IN", "CA", "MX"]
-RESERVED_TENANT_NAMES = {"auth", "accounts", "get"}
+RESERVED_TENANT_NAMES = {"auth", "accounts", "get", "forms", "launchpad"}
 
 
 class PhoneNumber(str):
@@ -29,10 +29,14 @@ class PhoneNumber(str):
         _source_type: Any | None = None,
     ) -> CoreSchema:
         """Define the core schema for phone number validation"""
-        return core_schema.str_schema(serialization=core_schema.plain_serializer_function_ser_schema(cls.validate))
+        return core_schema.no_info_wrap_validator_function(
+            cls.validate,
+            core_schema.str_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(cls.validate),
+        )
 
     @classmethod
-    def validate(cls: "PhoneNumber", v: str) -> "PhoneNumber":
+    def validate(cls: "PhoneNumber", v: str, info: Any = None) -> "PhoneNumber":
         """
         Remove spaces
         @param v:
@@ -52,6 +56,8 @@ class CustomerResponseModel(Customer):
     plancode: str
     email: EmailStr
     tenant_name: str | None = Field(pattern=TENANT_NAME_PATTERN)
+    form_schema: str | None = Field(None, serialization_alias="schema", validation_alias="schema")
+    form_data: str | None = Field(None, serialization_alias="data", validation_alias="data")
 
 
 class OnboardingStage(BaseModel):
@@ -90,9 +96,10 @@ class AddOnResponseModel(BaseModel):
 
         from app.route_utils.addons_util import get_addon_name, get_addon_price
 
-        data["name"] = get_addon_name(data["product"], data["code"])
-        data["price"] = get_addon_price(data["product"], data["code"], data["plancode"])
-        data["code"] = ProductEnum.get_add_on_enum(data["product"])(data["code"])
+        product = ProductEnum(data["product"])
+        data["name"] = get_addon_name(product, data["code"])
+        data["price"] = get_addon_price(product, data["code"], data["plancode"])
+        data["code"] = ProductEnum.get_add_on_enum(product)(data["code"])
         return AddOnResponseModel.model_validate(data)
 
 
@@ -118,14 +125,14 @@ class PlanResponseModel(BaseModel):
 
 class CustomCustomerBillingConfiguration(CustomerBillingConfiguration):
     payment_provider: str = Field(default=Provider.STRIPE.value)
-    sync: bool = Field(default=True)
+    sync: bool | None = Field(default=True)
     sync_with_provider: bool = Field(default=True)
 
 
 class CustomerModel(Customer):
     external_id: str | None = None
     email: EmailStr
-    tenant: str = Field(pattern=TENANT_NAME_PATTERN)
+    tenant: str | None = Field(pattern=TENANT_NAME_PATTERN)
     billing_configuration: CustomCustomerBillingConfiguration = CustomCustomerBillingConfiguration()
     phone: PhoneNumber | None = None
     legal_name: str
@@ -133,11 +140,14 @@ class CustomerModel(Customer):
 
     @field_validator("tenant")
     @classmethod
-    def validate_tenant_name(cls: "CustomerModel", tenant: str) -> str:
+    def validate_tenant_name(cls: "CustomerModel", tenant: str | None) -> str | None:
         """
         @param tenant:
         @return:
         """
+        if tenant is None:
+            return None
+
         if tenant.lower() in RESERVED_TENANT_NAMES:
             raise ValueError("Invalid tenant name!")
 
@@ -171,9 +181,10 @@ class CustomerModel(Customer):
         set url based on tenant name
         """
         tenant = values.get("tenant")
-        app_config = ProductEnum.get_product_settings(values.get("product"))
         if tenant:
+            app_config = ProductEnum.get_product_settings(values.get("product"))
             values["url"] = f"https://{tenant}.{app_config.tenant_fqdn}"
+
         return values
 
 

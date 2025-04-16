@@ -25,6 +25,14 @@ class ProductWorkflow(abc.ABC):
         raise NotImplementedError
 
     @staticmethod
+    @abc.abstractmethod
+    async def deploy(schema: dict) -> None:
+        """
+        Deploy a product
+        """
+        raise NotImplementedError
+
+    @staticmethod
     async def approve(schema: dict) -> None:
         """
         Approve a product
@@ -35,6 +43,13 @@ class ProductWorkflow(abc.ABC):
     async def approve_deprovisioning(schema: dict) -> None:
         """
         Approve deprovisioning a product
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    async def deny_deprovisioning(schema: dict) -> None:
+        """
+        Deny deprovisioning a product
         """
         raise NotImplementedError
 

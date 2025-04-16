@@ -15,25 +15,27 @@ async def prefetch_plans() -> None:
     @return:
     """
     db: DBManager = await get_db_manager()
+    plans = await db.fetch_all("get_plans.sql")
 
     global _ACTIVE_PLAN_CODES
     global _PLANS_CACHE
-    for product in ProductEnum:
-        plans = await db.fetch_all("get_plans.sql", product=product.value)
-        _PLANS_CACHE[product.value] = {}
-        _ACTIVE_PLAN_CODES[product.value] = []
-        for plan in plans:
-            if plan["status"] == PlanStatus.active.value:
-                _ACTIVE_PLAN_CODES[product.value].append(plan["plancode"])
-            addons = await get_plan_addons(plan["plancode"], product, db)
-            _PLANS_CACHE[product.value][plan["plancode"]] = {
-                "code": plan["plancode"],
-                "description": plan["description"],
-                "features": ijson_loads(plan["features"]),
-                "popular": MarketingType(plan["marketingtype"]) == MarketingType.popular,
-                "addons": addons,
-                "includedFeatures": ijson_loads(plan["includedFeatures"]),
-            }
+    for plan in plans or []:
+        product = ProductEnum(plan["product"])
+        if not _PLANS_CACHE.get(product.value):
+            _PLANS_CACHE[product.value] = {}
+        if not _ACTIVE_PLAN_CODES.get(product.value):
+            _ACTIVE_PLAN_CODES[product.value] = []
+        if plan["status"] == PlanStatus.active.value:
+            _ACTIVE_PLAN_CODES[product.value].append(plan["plancode"])
+        addons = get_plan_addons(plan["plancode"], product)
+        _PLANS_CACHE[product.value][plan["plancode"]] = {
+            "code": plan["plancode"],
+            "description": plan["description"],
+            "features": ijson_loads(plan["features"]),
+            "popular": MarketingType(plan["marketingtype"]) == MarketingType.popular,
+            "addons": addons,
+            "includedFeatures": ijson_loads(plan["includedFeatures"]),
+        }
 
 
 def get_plans_info(product: ProductEnum, codes: list[str] | None = None) -> list[dict]:
@@ -42,7 +44,11 @@ def get_plans_info(product: ProductEnum, codes: list[str] | None = None) -> list
     @return:
     """
     if not codes:
+        if not _ACTIVE_PLAN_CODES.get(product.value):
+            return []
         codes = _ACTIVE_PLAN_CODES[product.value]
+    if not _PLANS_CACHE.get(product.value):
+        return []
     return [_PLANS_CACHE[product.value][code] for code in codes]
 
 

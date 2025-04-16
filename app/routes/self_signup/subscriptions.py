@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, Query
 from pydantic.networks import EmailStr
 
 from app.cli.temporal.models.onboard import CustomerWorkflowInput
@@ -13,12 +13,15 @@ from app.exceptions import errors
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.billing_models import OnboardingResponseModel
 from app.models.enums import OnboardingStatus
+from app.models.input_param_patterns import TOKEN_PATTERN
 from app.models.lago.customer import CustomerResponse
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.route_utils.lead_slack_msg import leads_add_payment_details
+from app.route_utils.product import validate_email_domain
 from app.route_utils.session_util import get_first_subscription_status, get_treated_email
 from app.route_utils.subscriptions import update_default_payment_method
+from app.route_utils.user_session import UserSession
 
 router = APIRouter()
 
@@ -31,9 +34,10 @@ router = APIRouter()
     dependencies=[Depends(ResilientRateLimiter(seconds=5))],
 )
 async def create_subscription(
-    email: EmailStr,
-    payment_method_id: str,
     product: ProductEnum = Path(...),
+    email: EmailStr = Query(...),
+    payment_method_id: str = Query(...),
+    token: str = Query(..., pattern=TOKEN_PATTERN),
     db: DBManager = Depends(database),
 ) -> OnboardingResponseModel | None:
     """
@@ -43,6 +47,17 @@ async def create_subscription(
     @return:
     """
     email = get_treated_email(email)
+    validate_email_domain(product=product, email=email)
+    await UserSession.validate_session(product=product, email=email, session_token=token)
+    return await _create_subscription(product=product, email=email, payment_method_id=payment_method_id, db=db)
+
+
+async def _create_subscription(
+    product: ProductEnum,
+    email: EmailStr,
+    payment_method_id: str,
+    db: DBManager,
+) -> OnboardingResponseModel | None:
     provisioned, customer = await get_first_subscription_status(email, db, product)
     if provisioned:
         return provisioned

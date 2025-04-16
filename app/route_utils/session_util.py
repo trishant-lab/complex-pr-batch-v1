@@ -11,7 +11,7 @@ from app.core.settings import get_settings
 from app.mail_templates.main import sign_in_detected
 from app.models.billing_models import OnboardingResponseModel
 from app.models.enums import OnboardingStatus
-from app.models.lago.customer import Customer
+from app.models.lago.customer import CustomerResponse
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.sendgrid_utils import send_mail
@@ -130,7 +130,7 @@ async def get_first_subscription_status(
             customer_domain = f"https://{tenantname}.{tenant_fqdn}"
             lago_client = get_lago_client(product)
             customer_resp = lago_client.customers().find(str(customer_record["id"]))
-            customer = Customer.from_lago(customer_resp)
+            customer = CustomerResponse.from_lago(customer_resp)
             mail_content = sign_in_detected(name=customer.name, env_link=customer_domain, product=product)
             await send_mail(
                 to_email=customer_record["email"],
@@ -142,7 +142,7 @@ async def get_first_subscription_status(
             return OnboardingResponseModel(status=OnboardingStatus.PROVISIONED, domain=customer_domain), None
         if provisioning_status in {
             TenantStatusEnum.Provisioning,
-            TenantStatusEnum.Failed,
+            TenantStatusEnum.ProvisioningFailed,
         }:
             return OnboardingResponseModel(status=OnboardingStatus.IN_PROGRESS), None
     return None, customer_record

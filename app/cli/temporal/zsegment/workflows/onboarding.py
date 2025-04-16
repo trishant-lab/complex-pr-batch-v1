@@ -129,7 +129,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -211,15 +211,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 )
 
             # Wait for approval or denial
-            await workflow.wait_condition(lambda: self.approved or self.deny)
+            await workflow.wait_condition(lambda: self.approved or self.denied)
 
             # Update tenant status if request is declined
-            if self.deny:
+            if self.denied:
                 await run_activity(
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status=TenantStatusEnum.Declined,
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
                         product=ProductEnum.zsegment,
                     ),
@@ -474,8 +474,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
             lago_customer_id = uuid4()
             lago_subscription_id = uuid4()
             lago_plan_code = pydash.get(zsegment, "planName", "Free")
-            lago_api_key = zsegment_config.lago_api_key
-            lago_api_url = zsegment_config.lago_api_url
+            lago_api_key = zsegment_config.lago.api_key
+            lago_api_url = zsegment_config.lago.api_url
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
@@ -525,8 +525,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "keycloakSecret": installer_secret,
                         "redpandaBrokerUrl": zsegment_config.redpanda_broker,
                         "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": zsegment_config.lago_api_url,
-                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoUrl": zsegment_config.lago.api_url,
+                        "lagoKey": zsegment_config.lago.api_key,
                         "lagoCustomerId": lago_customer_id,
                         "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",  # NOSONAR
                         "victoriaMetricsUrl": zsegment_config.victoria_metrics_url,
@@ -563,8 +563,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "tenantName": tenant,
                         "redpandaBrokerUrl": zsegment_config.redpanda_broker,
                         "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": zsegment_config.lago_api_url,
-                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoUrl": zsegment_config.lago.api_url,
+                        "lagoKey": zsegment_config.lago.api_key,
                         "lagoCustomerId": lago_customer_id,
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
@@ -941,7 +941,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed,
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.zsegment,
                 ),
@@ -956,8 +956,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Signal to reject the workflow
         """
-        self.deny = True
+        self.denied = True

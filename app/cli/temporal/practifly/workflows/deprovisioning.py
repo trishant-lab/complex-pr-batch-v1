@@ -4,6 +4,7 @@ import pydash
 from temporalio import workflow
 
 from app.cli.activity_util import run_activity
+from app.cli.k8s_util import ResourceKindEnum
 from app.cli.temporal.activities.cloudflare_setup import (
     DeleteCloudflareBucketActivity,
     DeleteCloudflareDNSRecordActivity,
@@ -13,6 +14,7 @@ from app.cli.temporal.activities.database_migration_job import (
     DeleteDatabaseMigrationJobActivity,
     DeleteDatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
 from app.cli.temporal.activities.k8s_config_map import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     DeleteKubernetesIstioVirtualServiceActivity,
@@ -44,7 +46,7 @@ from app.cli.temporal.models.cloudflare import (
     DeleteCloudflareDNSRecordActivityModel,
     DeleteFilesFromCloudflareActivityModel,
 )
-from app.cli.temporal.practifly.models.practifly_spec import PractiflySpec
+from app.cli.temporal.models.deboard import DeboardWorkflowInput
 from app.core.settings import AppSettings, PractiflySettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
@@ -58,7 +60,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -80,28 +82,29 @@ class PractiflyDeProvisioningWorkflow(Workflow):
             DeleteFilesFromCloudflareActivity.defn,
             DeleteTemporalNamespaceActivity.defn,
             TenantCrdDeletionActivity.defn,
+            DeploymentDeletionActivity.defn,
         ]
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", practifly: PractiflySpec) -> str:
+    def get_workflow_id(cls: "Workflow", practifly: DeboardWorkflowInput) -> str:
         """
         Return workflow id
         """
-        return f"practifly_deprovisioning_workflow_{pydash.get(practifly, 'tenant')}"
+        return f"practifly_deprovisioning_workflow_{pydash.get(practifly, 'tenant_name')}"
 
     @workflow.run
-    async def run(self: "Workflow", practifly: PractiflySpec) -> None:
+    async def run(self: "Workflow", practifly: DeboardWorkflowInput) -> None:
         """
         Entry point for workflow
         """
         config: AppSettings = get_settings()
         practifly_config: PractiflySettings = config.practifly
-        tenant = pydash.get(practifly, "tenant")
+        tenant = pydash.get(practifly, "tenant_name")
 
         # Wait for approval or denial
-        await workflow.wait_condition(lambda: self.approved or self.deny)
+        await workflow.wait_condition(lambda: self.approved or self.denied)
 
-        if self.deny:
+        if self.denied:
             return
 
         try:
@@ -155,6 +158,13 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 await run_activity(
                     activity=StatefulSetPodDeletionActivity,
                     arg=StatefulSetPodDeletionActivityModel(
+                        namespace=tenant,
+                        name=stateful_set,
+                    ),
+                )
+                await run_activity(
+                    activity=DeploymentDeletionActivity,
+                    arg=DeploymentDeletionActivityModel(
                         namespace=tenant,
                         name=stateful_set,
                     ),
@@ -259,7 +269,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 activity=TenantCrdDeletionActivity,
                 arg=TenantCrdDeletionActivityModel(
                     tenant=tenant,
-                    kind="PractiflyTenant",
+                    kind=ResourceKindEnum.PractiflyTenant,
                     product="practifly",
                 ),
             )
@@ -270,7 +280,7 @@ class PractiflyDeProvisioningWorkflow(Workflow):
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status=TenantStatusEnum.Failed,
+                    status=TenantStatusEnum.DeprovisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.practifly,
                 ),
@@ -285,8 +295,8 @@ class PractiflyDeProvisioningWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Deny the workflow
         """
-        self.deny = True
+        self.denied = True
