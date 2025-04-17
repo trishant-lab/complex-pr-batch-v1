@@ -7,18 +7,8 @@ from cloudflare import AsyncCloudflare
 from cloudflare.types.r2 import TemporaryCredentialCreateResponse
 from loguru import logger
 
-from app.cli.temporal.core.base import LaunchpadCLIBaseModel
+from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 from app.core.settings import APP_CONFIG, AppSettings, get_settings
-
-
-class CloudflareBucketCredentials(LaunchpadCLIBaseModel):
-    """
-    CloudflareBucketCredentials
-    """
-
-    access_key: str | None = None
-    secret_key: str | None = None
-    exists: bool
 
 
 def get_cloudflare_sdk_client(config: AppSettings) -> AsyncCloudflare:
