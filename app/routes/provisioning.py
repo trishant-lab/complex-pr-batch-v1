@@ -422,7 +422,11 @@ async def get_workflow_steps(
     try:
         db: DBManager = await get_db_manager()
         response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))
-        data = ijson_loads(response["data"])
+        data = {
+            "tenant": response["tenantname"],
+            "email": response["email"],
+            "product": response["product"],
+        }
     except Exception as e:
         logger.error(f"Error fetching tenant: {e}")
         raise errors.TENANT_NOT_FOUND.exc()
