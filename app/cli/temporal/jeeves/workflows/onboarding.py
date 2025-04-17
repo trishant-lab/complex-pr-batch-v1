@@ -202,12 +202,13 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordCreateOrUpdateActivity.defn,
             OnePasswordGetActivity.defn,
             CheckPodRunningStatusActivity.defn,
-            SlackNotificationActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
             JeevesSendAfterProvisioningMailActivity.defn,
             UpdateCORSForBucketActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            JeevesFetchLatestTagActivity.defn,
+            KeycloakCreateGroupActivity.defn,
             JeevesFetchLatestTagActivity.defn,
             KeycloakCreateGroupActivity.defn,
         ]
@@ -579,6 +580,12 @@ class JeevesOnboardingWorkflow(Workflow):
                     retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
                     start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
                 )
+                image_tag = "production"
+                server_image_tag = await workflow.execute_activity(
+                    activity=JeevesFetchLatestTagActivity.defn,
+                    retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
+                    start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
+                )
                 dest_dir = f"{bucket_name}/"
 
             docker_image = f"registry.314ecorp.tech/jeeves-app:{server_image_tag}"
@@ -791,6 +798,10 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_access-users",
                 "_can-manage-groups",
                 "_allow-add-edit-assets",
+                "_allow-view-assets",
+                "_allow-view-all-courses",
+                "_access-manage-todos",
+                "_can-manage-groups",
                 "_allow-add-edit-courses",
                 "_allow-publish-assets",
                 "_allow-delete-assets",

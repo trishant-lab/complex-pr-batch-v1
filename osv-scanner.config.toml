@@ -2,7 +2,6 @@
 id = "GHSA-79v4-65xg-pq4g"
 reason = "vulnerability related to cryptography"
 
-
 [[IgnoredVulns]]
 id = "GHSA-cpwx-vrp4-4pq7"
 reason = "vulnerability related to jinja2"
