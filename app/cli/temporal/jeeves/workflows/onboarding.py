@@ -202,12 +202,13 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordCreateOrUpdateActivity.defn,
             OnePasswordGetActivity.defn,
             CheckPodRunningStatusActivity.defn,
-            SlackNotificationActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
             JeevesSendAfterProvisioningMailActivity.defn,
             UpdateCORSForBucketActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            JeevesFetchLatestTagActivity.defn,
+            KeycloakCreateGroupActivity.defn,
             JeevesFetchLatestTagActivity.defn,
             KeycloakCreateGroupActivity.defn,
         ]
@@ -232,6 +233,7 @@ class JeevesOnboardingWorkflow(Workflow):
         email = pydash.get(jeeves, "email")
         tenant = pydash.get(jeeves, "tenant")
         is_deployment = pydash.get(jeeves, "is_deployment")
+        ehr_used = pydash.get(jeeves, "whichEhrDoesYourCompanyUse")
         ehr_used = pydash.get(jeeves, "whichEhrDoesYourCompanyUse")
 
         try:
@@ -413,6 +415,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "user_attribute",
                         "keycloak_role",
                         "keycloak_group",
+                        "keycloak_group",
                         "user_role_mapping",
                         "matomo_log_visit",
                         "matomo_log_action",
@@ -572,7 +575,15 @@ class JeevesOnboardingWorkflow(Workflow):
             repo_name = "jeeves-ui"
             image_tag = server_image_tag = "sprint"
             dest_dir = f"{bucket_name}/{image_tag}"
+            image_tag = server_image_tag = "sprint"
+            dest_dir = f"{bucket_name}/{image_tag}"
             if config.env == "production":
+                image_tag = "production"
+                server_image_tag = await workflow.execute_activity(
+                    activity=JeevesFetchLatestTagActivity.defn,
+                    retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
+                    start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
+                )
                 image_tag = "production"
                 server_image_tag = await workflow.execute_activity(
                     activity=JeevesFetchLatestTagActivity.defn,
@@ -581,6 +592,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 )
                 dest_dir = f"{bucket_name}/"
 
+            docker_image = f"registry.314ecorp.tech/jeeves-app:{server_image_tag}"
             docker_image = f"registry.314ecorp.tech/jeeves-app:{server_image_tag}"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
@@ -784,7 +796,14 @@ class JeevesOnboardingWorkflow(Workflow):
             roles = [
                 "_allow-standalone-launch",
                 "_access-reports",
+                "_access-reports",
                 "_can-manage-activities",
+                "_allow-view-assets",
+                "_allow-view-all-courses",
+                "_access-manage-todos",
+                "_access-users",
+                "_can-manage-groups",
+                "_allow-add-edit-assets",
                 "_allow-view-assets",
                 "_allow-view-all-courses",
                 "_access-manage-todos",
@@ -794,7 +813,13 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_allow-add-edit-courses",
                 "_allow-publish-assets",
                 "_allow-delete-assets",
+                "_allow-publish-assets",
+                "_allow-delete-assets",
                 "_allow-delete-courses",
+                "_can-manage-users",
+                "_access-settings",
+                "_developer",
+                "_JEEVESALL",
                 "_can-manage-users",
                 "_access-settings",
                 "_developer",
