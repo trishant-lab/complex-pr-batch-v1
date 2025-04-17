@@ -96,5 +96,20 @@
         "match": [
             {"uri": {"prefix": "/"}}
         ]
+    },
+    {
+        "name": "veritable-log-collect",
+        "route": [
+            {
+                "destination": {
+                    "host": "grafana-agent.monitoring-system.svc.cluster.local",
+                    "port": {"number": 12347}
+                }
+            }
+        ],
+        "match": [
+            {"uri": {"prefix": "/logcollect"}}
+        ],
+        "rewrite": {"uri": "/collect"}
     }
 ]
