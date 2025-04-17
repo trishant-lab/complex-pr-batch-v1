@@ -279,14 +279,14 @@ async def retry_provisioning(
 
 
 class Logs(BaseModel):
-    loglevel: str
-    log: str
+    loglevel: str | None = None
+    log: str | None = None
 
 
 class WorkflowSteps(BaseModel):
     activityName: str
     status: str
-    logs: list[Logs]
+    logs: list[Logs] | None = None
 
 
 async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetime.datetime) -> dict:
