@@ -1,17 +1,19 @@
 from collections.abc import Callable
-import orjson
-from temporalio import workflow
-import pydash
 
-from app.cli.temporal.activities.dnsSetup import DnsSetupActivity, DnsSetupActivityModel
-from app.cli.temporal.activities.k8sIstioVirtualService import (
+import pydash
+from temporalio import workflow
+
+from app.cli.activity_util import run_activity
+from app.cli.temporal.activities.dns_setup import DnsSetupActivity, DnsSetupActivityModel
+from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
-from app.cli.temporal.activities.keycloakSetup import (
+from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
+from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
+from app.cli.temporal.activities.keycloak_setup import (
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
@@ -21,45 +23,41 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
-from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
+from app.cli.temporal.activities.one_password import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+)
+from app.cli.temporal.activities.postgres_setup import (
+    PostgresDatabaseCreationActivity,
+    PostgresDatabaseCreationActivityModel,
+    PostgresGrantAccessToUserActivity,
+    PostgresGrantAccessToUserActivityModel,
+    PostgresUserCreationActivity,
+    PostgresUserCreationActivityModel,
+)
+from app.cli.temporal.activities.pvc_setup import PVCSetupActivity, PVCSetupActivityModel
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
-from app.cli.temporal.activities.sendMail import (
+from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.statefulSetPodCreation import (
+from app.cli.temporal.activities.stateful_set_pod_creation import (
     KubernetesStatefulSetActivity,
     KubernetesStatefulSetActivityModel,
 )
-from app.cli.temporal.activities.uiSetup import UiSetupActivity, UiSetupActivityModel
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.ui_setup import UiSetupActivity, UiSetupActivityModel
+from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.core.base import Workflow
-
-from app.cli.temporal.activities.postgresSetup import (
-    PostgresDatabaseCreationActivity,
-    PostgresDatabaseCreationActivityModel,
-    PostgresUserCreationActivity,
-    PostgresGrantAccessToUserActivityModel,
-    PostgresGrantAccessToUserActivity,
-    PostgresUserCreationActivityModel,
-)
-
-from app.cli.temporal.activities.onePassword import (
-    OnePasswordCreateOrUpdateActivity,
-    OnePasswordCreateOrUpdateActivityModel,
-)
-
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.hdp import TemplatePath
-from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
-
-
+from app.cli.temporal.hdp.models.hdp_spec import HDPSpec
 from app.common import generate_password
+from app.core.ijson import ijson_loads
 from app.core.settings import AppSettings, HDPSettings, get_settings
+from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
-
 
 ProductName = "hdp"
 OnePasswordVaultName = "hdp"
@@ -73,7 +71,7 @@ class HDPOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -126,8 +124,8 @@ class HDPOnboardingWorkflow(Workflow):
 
         try:
             if not pydash.get(hdp, "emailSent"):
-                await workflow.execute_activity(
-                    activity=SendBeforeProvisioningMailActivity.defn,
+                await run_activity(
+                    activity=SendBeforeProvisioningMailActivity,
                     arg=SendBeforeProvisioningMailActivityModel(
                         user_details={
                             "firstName": first_name,
@@ -138,25 +136,21 @@ class HDPOnboardingWorkflow(Workflow):
                         from_name=hdp_config.sender_name,
                         email_from=hdp_config.sender_email,
                     ),
-                    retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
                 )
 
             # Wait for approval or denial
-            await workflow.wait_condition(lambda: self.approved or self.deny)
+            await workflow.wait_condition(lambda: self.approved or self.denied)
 
             # Update tenant status if request is declined
-            if self.deny:
-                await workflow.execute_activity(
-                    activity=UpdateTenantStatusActivity.defn,
-                    arg=TenantStatus(
+            if self.denied:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status="Declined",
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
-                        product=ProductName,
+                        product=ProductEnum.hdp,
                     ),
-                    start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
-                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
             postgres_database_name = f"hdp_{tenant}"
@@ -170,8 +164,8 @@ class HDPOnboardingWorkflow(Workflow):
             kestra_password = generate_password(20)
             superset_password = generate_password(20)
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -179,12 +173,10 @@ class HDPOnboardingWorkflow(Workflow):
                     secret_name="hdp_pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -192,12 +184,10 @@ class HDPOnboardingWorkflow(Workflow):
                     secret_name="kestra_pg_password",
                     secret_value=kestra_postgres_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -205,12 +195,10 @@ class HDPOnboardingWorkflow(Workflow):
                     secret_name="kestra_password",
                     secret_value=kestra_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -218,86 +206,70 @@ class HDPOnboardingWorkflow(Workflow):
                     secret_name="superset_password",
                     secret_value=superset_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             # create postgres database for hdp
-            await workflow.execute_activity(
-                activity=PostgresDatabaseCreationActivity.defn,
+            await run_activity(
+                activity=PostgresDatabaseCreationActivity,
                 arg=PostgresDatabaseCreationActivityModel(
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresDatabaseCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresDatabaseCreationActivity.get_timeout(),
             )
 
             # create postgres database for kestra
-            await workflow.execute_activity(
-                activity=PostgresDatabaseCreationActivity.defn,
+            await run_activity(
+                activity=PostgresDatabaseCreationActivity,
                 arg=PostgresDatabaseCreationActivityModel(
                     database_name=kestra_postgres_database_name,
                 ),
-                retry_policy=PostgresDatabaseCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresDatabaseCreationActivity.get_timeout(),
             )
 
             # create postgres user for hdp
-            await workflow.execute_activity(
-                activity=PostgresUserCreationActivity.defn,
+            await run_activity(
+                activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     password=postgres_password,
                 ),
-                retry_policy=PostgresUserCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
             )
 
             # create postgres user for kestra
-            await workflow.execute_activity(
-                activity=PostgresUserCreationActivity.defn,
+            await run_activity(
+                activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=kestra_postgres_username,
                     database_name=kestra_postgres_database_name,
                     password=kestra_postgres_password,
                 ),
-                retry_policy=PostgresUserCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     username=kestra_postgres_username,
                     database_name=kestra_postgres_database_name,
                 ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=K8sNamespaceCreationActivity.defn,
+            await run_activity(
+                activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(
                     namespace=tenant,
                 ),
-                retry_policy=K8sNamespaceCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
             )
 
             # secret setup for docker registry
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="registrycred",
@@ -306,26 +278,22 @@ class HDPOnboardingWorkflow(Workflow):
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for redis password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="cache-secret",
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # setup redis
             redis_tenant_password = generate_password(length=20)
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -333,19 +301,15 @@ class HDPOnboardingWorkflow(Workflow):
                     secret_name="redis_password",
                     secret_value=redis_tenant_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=RedisSetupActivity.defn,
+            await run_activity(
+                activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
                     namespace=tenant,
                     product=ProductName,
                     redis_tenant_password=redis_tenant_password,
                 ),
-                retry_policy=RedisSetupActivity.get_retry_policy(),
-                start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
             tenant_config = "tenant-config.json"
@@ -364,8 +328,8 @@ class HDPOnboardingWorkflow(Workflow):
                     "template_file_name": f"{config.env}-kestra-config.tmpl.yml",
                 },
             ]:
-                await workflow.execute_activity(
-                    activity=K8sConfigMapCreationActivity.defn,
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
@@ -374,20 +338,16 @@ class HDPOnboardingWorkflow(Workflow):
                         bucket_name="hdp-config",
                         template_payload={"tenant": tenant},
                     ),
-                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
                 )
 
             # dns setup
-            await workflow.execute_activity(
-                activity=DnsSetupActivity.defn,
+            await run_activity(
+                activity=DnsSetupActivity,
                 arg=DnsSetupActivityModel(
                     cname=config.google_dns_cname,
                     fqdn=f"{tenant}.{hdp_config.domain_name}.",
                     zone_name=hdp_config.zone_name,
                 ),
-                retry_policy=DnsSetupActivity.get_retry_policy(),
-                start_to_close_timeout=DnsSetupActivity.get_timeout(),
             )
 
             # ui setup
@@ -403,16 +363,14 @@ class HDPOnboardingWorkflow(Workflow):
 
             bundle_path = "bundle/dist"
 
-            await workflow.execute_activity(
-                activity=UiSetupActivity.defn,
+            await run_activity(
+                activity=UiSetupActivity,
                 arg=UiSetupActivityModel(
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
                     bundle_name="bundle.zip",
                 ),
-                retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=UiSetupActivity.get_timeout(),
             )
 
             # superset ui setup
@@ -420,35 +378,31 @@ class HDPOnboardingWorkflow(Workflow):
             superset_bundle_path = "bundle/static"
             superset_dest_dir = f"{tenant}.{hdp_config.domain_name}/static"
 
-            await workflow.execute_activity(
-                activity=UiSetupActivity.defn,
+            await run_activity(
+                activity=UiSetupActivity,
                 arg=UiSetupActivityModel(
                     src_object_name=superset_src_object_name,
                     dest_dir=superset_dest_dir,
                     bundle_path=superset_bundle_path,
                     bundle_name="bundle_superset.zip",
                 ),
-                retry_policy=UiSetupActivity.get_retry_policy(),
-                start_to_close_timeout=UiSetupActivity.get_timeout(),
             )
 
             realm_name = tenant
             # keycloak realm setup
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
                     realm_name=realm_name,
                     domain=hdp_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                 ),
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
             # keycloak client setup
-            await workflow.execute_activity(
-                activity=KeycloakClientSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
                 arg=KeycloakClientSetupActivityModel(
                     tenant=tenant,
                     realm_name=realm_name,
@@ -456,8 +410,6 @@ class HDPOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_hdp_client.json",
                 ),
-                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
             roles = [
@@ -490,20 +442,18 @@ class HDPOnboardingWorkflow(Workflow):
                 "_can-delete-dataset",
             ]
             # keycloak client roles setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateClientRolesActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateClientRolesActivity,
                 arg=KeycloakCreateClientRolesActivityModel(
                     client_name="hdp",
                     realm_name=realm_name,
                     roles=roles,
                 ),
-                retry_policy=KeycloakCreateClientRolesActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
             )
 
             # keycloak tenant customer admin user setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
                     client_name="hdp",
@@ -514,20 +464,16 @@ class HDPOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                 ),
-                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
             # kubernetes service
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="hdp",
                     ports={"http": 8000},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
             template_env = get_env(template_path=TemplatePath)
@@ -535,7 +481,7 @@ class HDPOnboardingWorkflow(Workflow):
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
-            http_list = orjson.loads(output)
+            http_list = ijson_loads(output)
             if config.env != "production":
                 http_list.append(
                     {
@@ -546,32 +492,28 @@ class HDPOnboardingWorkflow(Workflow):
                 )
 
             # kubernetes virtual service
-            await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.{hdp_config.domain_name}",
                     service_name="hdp-vs",
                     payload=http_list,
                 ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
             # pvc setup for hdp
-            await workflow.execute_activity(
-                activity=PVCSetupActivity.defn,
+            await run_activity(
+                activity=PVCSetupActivity,
                 arg=PVCSetupActivityModel(
                     tenant=tenant,
                     pvc_name="hdp-volume",
                 ),
-                retry_policy=PVCSetupActivity.get_retry_policy(),
-                start_to_close_timeout=PVCSetupActivity.get_timeout(),
             )
 
             # statefulset pod creation for hdp api
-            await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
+            await run_activity(
+                activity=KubernetesStatefulSetActivity,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
                     name="hdp",
@@ -643,24 +585,20 @@ class HDPOnboardingWorkflow(Workflow):
                         }
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
             # pvc setup for hdp
-            await workflow.execute_activity(
-                activity=PVCSetupActivity.defn,
+            await run_activity(
+                activity=PVCSetupActivity,
                 arg=PVCSetupActivityModel(
                     tenant=tenant,
                     pvc_name="kestra-volume",
                 ),
-                retry_policy=PVCSetupActivity.get_retry_policy(),
-                start_to_close_timeout=PVCSetupActivity.get_timeout(),
             )
 
             # statefulset pod creation for kestra
-            await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
+            await run_activity(
+                activity=KubernetesStatefulSetActivity,
                 arg=KubernetesStatefulSetActivityModel(
                     namespace=tenant,
                     name="kestra",
@@ -719,21 +657,17 @@ class HDPOnboardingWorkflow(Workflow):
                         },
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
             # update tenant status
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.hdp),
             )
 
             # send mail
-            await workflow.execute_activity(
-                activity=SendAfterProvisioningMailActivity.defn,
+            await run_activity(
+                activity=SendAfterProvisioningMailActivity,
                 arg=SendAfterProvisioningMailActivityModel(
                     realm_name=realm_name,
                     tenant=tenant,
@@ -747,13 +681,11 @@ class HDPOnboardingWorkflow(Workflow):
                     from_name=hdp_config.sender_name,
                     email_from=hdp_config.sender_email,
                 ),
-                retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
             )
 
             # job to deploy dashboard
-            # await workflow.execute_activity(
-            #     activity=JobActivity.defn,
+            # await run_activity(
+            #     activity=JobActivity,
             #     arg=JobActivityModel(
             #         namespace=tenant,
             #         job_name="hdp-dashboard-deploy",
@@ -773,22 +705,18 @@ class HDPOnboardingWorkflow(Workflow):
             #         job_type="dashboard",
             #         product=ProductName,
             #     ),
-            #     retry_policy=JobActivity.get_retry_policy(),
-            #     start_to_close_timeout=JobActivity.get_timeout(),
             # )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status="Failed",
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
-                    product=ProductName,
+                    product=ProductEnum.hdp,
                 ),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
 
@@ -800,8 +728,8 @@ class HDPOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Signal to reject the workflow
         """
-        self.deny = True
+        self.denied = True

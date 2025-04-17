@@ -12,7 +12,7 @@
     "redirectUris": [
         "https://jeeves-agent.<<chatwoot_domain>>/*",
         "https://<<tenant>>.<<domain>>/*",
-        "https://auth.314ecorp.com/auth/realms/help/broker/jeeves-<<tenant>>/endpoint"
+      "https://auth.314ecorp.com/auth/realms/help/broker/jeeves-<<tenant>>/endpoint"
     ],
     "webOrigins": [
         "https://jeeves-agent.<<chatwoot_domain>>",

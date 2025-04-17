@@ -3,7 +3,7 @@ name: "Build And Deploy Launchpad App"
 on:
   workflow_dispatch:
   push:
-    branches: ["sprint", "production"]
+    branches: ["development", "sprint", "production"]
     paths-ignore:
         - ".github/workflows/**"
 
@@ -37,7 +37,7 @@ jobs:
           ./docker-build.sh ${{ github.ref_name }} --push
 
       - name: Deploy to Kubernetes
-        if: github.ref_name == 'sprint'
+        if: github.ref_name == 'development' || github.ref_name == 'sprint'
         run: |
           kubectl rollout restart deployment launchpad -n launchpad
           kubectl rollout restart deployment launchpad-cli -n launchpad

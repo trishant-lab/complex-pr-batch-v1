@@ -1,33 +1,32 @@
 from collections.abc import Callable
 
-import orjson
 import pydash
 from cryptography.fernet import Fernet
 from temporalio import workflow
 
-from app.cli.temporal.activities.cloudflareSetup import (
+from app.cli.activity_util import run_activity
+from app.cli.k8s_util import ResourceKindEnum
+from app.cli.temporal.activities.cloudflare_setup import (
     CopyArtifactsToBucketActivity,
-    CopyArtifactsToBucketActivityModel,
     CopyWebCoreToBucketActivity,
-    CopyWebCoreToBucketActivityModel,
     CreateCloudflareBucketActivity,
-    CreateCloudflareBucketActivityModel,
     CreateCloudflareDNSRecordActivity,
-    CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
-    LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivity,
-    PropagateDNSRecordActivityModel,
 )
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
-from app.cli.temporal.activities.k8sIstioVirtualService import (
+from app.cli.temporal.activities.deployment_pod_creation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
+)
+from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.keycloakSetup import (
+from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
+from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
+from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
+from app.cli.temporal.activities.keycloak_setup import (
     KeycloakCreateInternalUsersActivity,
     KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
@@ -35,11 +34,11 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
-from app.cli.temporal.activities.onePassword import (
+from app.cli.temporal.activities.one_password import (
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
 )
-from app.cli.temporal.activities.postgresSetup import (
+from app.cli.temporal.activities.postgres_setup import (
     PostgresDatabaseCreationActivity,
     PostgresDatabaseCreationActivityModel,
     PostgresGrantAccessToUserActivity,
@@ -51,42 +50,52 @@ from app.cli.temporal.activities.postgresSetup import (
     PostgresUserCreationFromSecretActivity,
     PostgresUserCreationFromSecretActivityModel,
 )
-from app.cli.temporal.activities.practiflyJob import (
+from app.cli.temporal.activities.practifly_job import (
     PractiflyJobActivity,
     PractiflyJobActivityModel,
 )
-from app.cli.temporal.activities.pvcSetup import PVCSetupActivity, PVCSetupActivityModel
+from app.cli.temporal.activities.pvc_setup import PVCSetupActivity, PVCSetupActivityModel
 from app.cli.temporal.activities.redis import RedisSetupFromSecretActivity, RedisSetupFromSecretActivityModel
-from app.cli.temporal.activities.sendMail import (
+from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.statefulSetPodCreation import (
+from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    KubernetesStatefulSetActivity,
-    KubernetesStatefulSetActivityModel,
+    StatefulSetPodDeletionActivity,
+    StatefulSetPodDeletionActivityModel,
 )
-from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
-from app.cli.temporal.activities.tenantCrd import (
+from app.cli.temporal.activities.temporal_namespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
+from app.cli.temporal.activities.tenant_crd import (
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
     TenantCrdExistsActivity,
     TenantCrdExistsActivityModel,
 )
-from app.cli.temporal.activities.updateTenantStatus import TenantStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.models.cloudflare import (
+    CopyArtifactsToBucketActivityModel,
+    CopyWebCoreToBucketActivityModel,
+    CreateCloudflareBucketActivityModel,
+    CreateCloudflareDNSRecordActivityModel,
+    LinkBucketToDomainActivityModel,
+    PropagateDNSRecordActivityModel,
+)
 from app.cli.temporal.practifly import TemplatePath
-from app.cli.temporal.practifly.models.practiflySpec import PractiflyJobEnum, PractiflySpec
+from app.cli.temporal.practifly.models.practifly_spec import PractiflyJobEnum, PractiflySpec
 from app.common import generate_password
+from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.settings import AppSettings, PractiflySettings, get_settings
+from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 ProductName = "practifly"
-OnePasswordVaultName = "practifly"
 
 
 @workflow.defn(sandboxed=False)
@@ -97,7 +106,7 @@ class PractiflyOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -129,7 +138,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             PractiflyJobActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             CopyWebCoreToBucketActivity.defn,
-            KubernetesStatefulSetActivity.defn,
+            StatefulSetPodDeletionActivity.defn,
             UpdateTenantStatusActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             TenantCrdExistsActivity.defn,
@@ -137,6 +146,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             KeycloakCreateInternalUsersActivity.defn,
             CheckPodRunningStatusActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            KubernetesDeploymentActivity.defn,
         ]
 
     @classmethod
@@ -162,23 +172,21 @@ class PractiflyOnboardingWorkflow(Workflow):
 
         try:
             # get tenant crd
-            tenant_crd_exists: bool = await workflow.execute_activity(
-                activity=TenantCrdExistsActivity.defn,
+            tenant_crd_exists: bool = await run_activity(
+                activity=TenantCrdExistsActivity,
                 arg=TenantCrdExistsActivityModel(
                     tenant=tenant,
-                    kind="PractiflyTenant",
+                    kind=ResourceKindEnum.PractiflyTenant,
                     product=ProductName,
                 ),
-                retry_policy=TenantCrdExistsActivity.get_retry_policy(),
-                start_to_close_timeout=TenantCrdExistsActivity.get_timeout(),
             )
 
             if tenant_crd_exists:
                 raise ValueError(f"Tenant {tenant} already exists")  # noqa: TRY301
 
             if not pydash.get(practifly, "emailSent"):
-                await workflow.execute_activity(
-                    activity=SendBeforeProvisioningMailActivity.defn,
+                await run_activity(
+                    activity=SendBeforeProvisioningMailActivity,
                     arg=SendBeforeProvisioningMailActivityModel(
                         user_details={
                             "firstName": first_name,
@@ -189,25 +197,21 @@ class PractiflyOnboardingWorkflow(Workflow):
                         from_name=practifly_config.sender_name,
                         email_from=practifly_config.sender_email,
                     ),
-                    retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
                 )
 
             # Wait for approval or denial
-            await workflow.wait_condition(lambda: self.approved or self.deny)
+            await workflow.wait_condition(lambda: self.approved or self.denied)
 
             # Update tenant status if request is declined
-            if self.deny:
-                await workflow.execute_activity(
-                    activity=UpdateTenantStatusActivity.defn,
-                    arg=TenantStatus(
+            if self.denied:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status="Declined",
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
-                        product=ProductName,
+                        product=ProductEnum.practifly,
                     ),
-                    start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
-                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
             postgres_schema_name = tenant
@@ -225,7 +229,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag)
 
-            http_list = orjson.loads(output)
+            http_list = ijson_loads(output)
             if config.env != "production":
                 http_list.append(
                     {
@@ -236,102 +240,86 @@ class PractiflyOnboardingWorkflow(Workflow):
                 )
 
             # kubernetes namespace creation
-            await workflow.execute_activity(
-                activity=K8sNamespaceCreationActivity.defn,
+            await run_activity(
+                activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(
                     namespace=tenant,
                 ),
-                retry_policy=K8sNamespaceCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
             )
 
             # secret setup for redis password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name=redis_secret_name,
                     string_data={"password": redis_tenant_password},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for postgres password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name=postgres_secret_name,
                     string_data={"password": postgres_password},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # create postgres database
-            await workflow.execute_activity(
-                activity=PostgresDatabaseCreationActivity.defn,
+            await run_activity(
+                activity=PostgresDatabaseCreationActivity,
                 arg=PostgresDatabaseCreationActivityModel(
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresDatabaseCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresDatabaseCreationActivity.get_timeout(),
             )
 
             # create postgres user for practifly
-            await workflow.execute_activity(
-                activity=PostgresUserCreationFromSecretActivity.defn,
+            await run_activity(
+                activity=PostgresUserCreationFromSecretActivity,
                 arg=PostgresUserCreationFromSecretActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     secret_name=postgres_secret_name,
                     namespace=tenant,
                 ),
-                retry_policy=PostgresUserCreationFromSecretActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationFromSecretActivity.get_timeout(),
             )
 
             # create postgres user in supavisor for practifly
-            await workflow.execute_activity(
-                activity=PostgresSupavisorPollUserActivity.defn,
+            await run_activity(
+                activity=PostgresSupavisorPollUserActivity,
                 arg=PostgresSupavisorPollUserActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     db_password=postgres_password,
                     template_path=TemplatePath,
                 ),
-                retry_policy=PostgresSupavisorPollUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSupavisorPollUserActivity.get_timeout(),
             )
 
             # create postgres schema
-            await workflow.execute_activity(
-                activity=PostgresSchemaCreationActivity.defn,
+            await run_activity(
+                activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresSchemaCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSchemaCreationActivity.get_timeout(),
             )
 
             # grant access to postgres user
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
             # secret setup for docker registry
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="registrycred",
@@ -340,82 +328,69 @@ class PractiflyOnboardingWorkflow(Workflow):
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for redis master password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="cache-secret",
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # setup redis
-            await workflow.execute_activity(
-                activity=RedisSetupFromSecretActivity.defn,
+            await run_activity(
+                activity=RedisSetupFromSecretActivity,
                 arg=RedisSetupFromSecretActivityModel(
                     namespace=tenant,
                     product=ProductName,
                     secret_name=redis_secret_name,
                 ),
-                retry_policy=RedisSetupFromSecretActivity.get_retry_policy(),
-                start_to_close_timeout=RedisSetupFromSecretActivity.get_timeout(),
             )
 
             # pvc setup
-            await workflow.execute_activity(
-                activity=PVCSetupActivity.defn,
+            await run_activity(
+                activity=PVCSetupActivity,
                 arg=PVCSetupActivityModel(
                     tenant=tenant,
                     pvc_name="practifly-pvc",
                 ),
-                retry_policy=PVCSetupActivity.get_retry_policy(),
-                start_to_close_timeout=PVCSetupActivity.get_timeout(),
             )
 
             # kubernetes service
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="practifly",
                     ports={"http": 8000},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
             # kubernetes virtual service
-            await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.api.{practifly_config.domain_name}",
                     service_name="practifly-vs",
                     payload=http_list,
                 ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
+            one_password_vault = ProductEnum.get_onepassword_vault_name(ProductEnum.practifly)
             # insert fernet key into 1Password if it doesn't exist
             fernet_key = Fernet.generate_key().decode()
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=tenant,
-                    vault=OnePasswordVaultName,
+                    vault=one_password_vault,
                     server_item=f"practifly-tenant-config-{config.env.lower().strip()}",
                     key="fernet_key",
                     key_value=fernet_key,
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             common_config = "common-config.json"
@@ -453,8 +428,8 @@ class PractiflyOnboardingWorkflow(Workflow):
                     "template_file_name": f"{config.env}-provisioning-config.tmpl.json",
                 },
             ]:
-                await workflow.execute_activity(
-                    activity=K8sConfigMapCreationActivity.defn,
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
@@ -466,74 +441,62 @@ class PractiflyOnboardingWorkflow(Workflow):
                         },
                         destination_file_name=config_map["key"],
                     ),
-                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
                 )
 
             # dns setup
-            await workflow.execute_activity(
-                activity=CreateCloudflareDNSRecordActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{practifly_config.domain_name}",
                     zone_id=practifly_config.zone_id,
                     content=config.k8s_cname,
                 ),
-                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
             # create bucket
             bucket_name = f"{tenant}.{practifly_config.domain_name}"
             bucket_name = bucket_name.replace(".", "-")
-            await workflow.execute_activity(
-                activity=CreateCloudflareBucketActivity.defn,
-                arg=CreateCloudflareBucketActivityModel(
-                    bucket_name=bucket_name,
-                ),
-                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
+            await run_activity(
+                activity=CreateCloudflareBucketActivity,
+                arg=CreateCloudflareBucketActivityModel(bucket_name=bucket_name),
             )
 
             # link bucket to custom domain
-            await workflow.execute_activity(
-                activity=LinkBucketToDomainActivity.defn,
+            await run_activity(
+                activity=LinkBucketToDomainActivity,
                 arg=LinkBucketToDomainActivityModel(
                     bucket_name=bucket_name,
                     domain_name=f"{tenant}.{practifly_config.domain_name}",
                     zone_id=practifly_config.zone_id,
                 ),
-                retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
-                start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
             # propagate the dns record
-            await workflow.execute_activity(
-                activity=PropagateDNSRecordActivity.defn,
+            await run_activity(
+                activity=PropagateDNSRecordActivity,
                 arg=PropagateDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{practifly_config.domain_name}",
                 ),
-                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             # keycloak realm setup
-            realm_name = f"{tenant}"
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
+            realm_name = f"practifly_{tenant}"
+            await run_activity(
+                activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
+                    tenant=tenant,
                     realm_name=realm_name,
                     domain=practifly_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                 ),
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
+                    client_name="app",
                     username=email,
                     email=email,
                     firstname=first_name,
@@ -541,15 +504,14 @@ class PractiflyOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_customer_admin.json",
                 ),
-                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
             # keycloak tenant internal admin user setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateInternalUsersActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
+                    client_name="app",
                     users=[
                         {
                             "username": "admin",
@@ -561,23 +523,19 @@ class PractiflyOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_admin.json",
                 ),
-                retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
             )
 
             # temporal namespace creation
-            await workflow.execute_activity(
-                activity=TemporalNamespaceActivity.defn,
+            await run_activity(
+                activity=TemporalNamespaceActivity,
                 arg=TemporalNamespaceActivityModel(
                     namespace=f"practifly_{tenant}",
                 ),
-                retry_policy=TemporalNamespaceActivity.get_retry_policy(),
-                start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
             )
 
             # vm pod scraper for server
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="practifly-metrics",
@@ -585,13 +543,11 @@ class PractiflyOnboardingWorkflow(Workflow):
                     path="/metrics/",
                     interval="5s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # vm pod scraper
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="practifly-cli-metrics",
@@ -599,20 +555,16 @@ class PractiflyOnboardingWorkflow(Workflow):
                     path="/metrics/",
                     interval="5s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # alembic job
-            await workflow.execute_activity(
-                activity=PractiflyJobActivity.defn,
+            await run_activity(
+                activity=PractiflyJobActivity,
                 arg=PractiflyJobActivityModel(
                     tenant=tenant,
                     image_tag=image_tag,
                     job_type=PractiflyJobEnum.PROVISIONING,
                 ),
-                retry_policy=PractiflyJobActivity.get_retry_policy(),
-                start_to_close_timeout=PractiflyJobActivity.get_timeout(),
             )
 
             repo_name = "practifly-ui"
@@ -628,8 +580,8 @@ class PractiflyOnboardingWorkflow(Workflow):
             bundle_path = "bundle/dist"
 
             # copy artifacts to bucket
-            await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
+            await run_activity(
+                activity=CopyArtifactsToBucketActivity,
                 arg=CopyArtifactsToBucketActivityModel(
                     bucket_name=bucket_name,
                     src_object_name=src_object_name,
@@ -638,8 +590,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                     bundle_name="bundle.zip",
                     tenant=tenant,
                 ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
             src_object_name = f"practifly-web-core/{image_tag}/release.zip"
@@ -647,8 +597,8 @@ class PractiflyOnboardingWorkflow(Workflow):
             dest_dir = f"{web_core_bucket_name}/{bucket_name}"
 
             # copy webcore to bucket
-            await workflow.execute_activity(
-                activity=CopyWebCoreToBucketActivity.defn,
+            await run_activity(
+                activity=CopyWebCoreToBucketActivity,
                 arg=CopyWebCoreToBucketActivityModel(
                     src_object_name=src_object_name,
                     tenant=tenant,
@@ -656,14 +606,22 @@ class PractiflyOnboardingWorkflow(Workflow):
                     bundle_name="release.zip",
                     dest_dir=dest_dir,
                 ),
-                retry_policy=CopyWebCoreToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyWebCoreToBucketActivity.get_timeout(),
             )
 
-            # statefulset pod creation for server
-            await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+            # delete statefulsets
+            for statefulset in ["practifly", "practifly-cli"]:
+                await run_activity(
+                    activity=StatefulSetPodDeletionActivity,
+                    arg=StatefulSetPodDeletionActivityModel(
+                        namespace=tenant,
+                        name=statefulset,
+                    ),
+                )
+
+            # deployment pod creation for server
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="practifly",
                     docker_image=docker_image,
@@ -737,14 +695,12 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "IS_CLI", "value": "FALSE"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
             # statefulset pod creation for cli
-            await workflow.execute_activity(
-                activity=KubernetesStatefulSetActivity.defn,
-                arg=KubernetesStatefulSetActivityModel(
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="practifly-cli",
                     docker_image=docker_image,
@@ -832,35 +788,31 @@ class PractiflyOnboardingWorkflow(Workflow):
                         {"name": "IS_CLI", "value": "TRUE"},
                     ],
                 ),
-                retry_policy=KubernetesStatefulSetActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesStatefulSetActivity.get_timeout(),
             )
 
             # check pod running status
             for pod in ["practifly", "practifly-cli"]:
-                await workflow.execute_activity(
-                    activity=CheckPodRunningStatusActivity.defn,
+                await run_activity(
+                    activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(
                         namespace=tenant,
                         name=pod,
                     ),
-                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
-                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
 
             # update tenant status
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
+                    tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.practifly
+                ),
             )
 
             # send mail
-            await workflow.execute_activity(
-                activity=SendAfterProvisioningMailActivity.defn,
+            await run_activity(
+                activity=SendAfterProvisioningMailActivity,
                 arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
                     tenant=tenant,
                     user_details={
                         "firstName": first_name,
@@ -872,35 +824,29 @@ class PractiflyOnboardingWorkflow(Workflow):
                     from_name=practifly_config.sender_name,
                     email_from=practifly_config.sender_email,
                 ),
-                retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
             )
 
             # create tenant crd
-            await workflow.execute_activity(
-                activity=TenantCrdCreationActivity.defn,
+            await run_activity(
+                activity=TenantCrdCreationActivity,
                 arg=TenantCrdCreationActivityModel(
                     tenant=tenant,
-                    kind="PractiflyTenant",
+                    kind=ResourceKindEnum.PractiflyTenant,
                     product=ProductName,
-                    data=orjson.dumps(practifly),
+                    data=ijson_dumps(practifly),
                 ),
-                retry_policy=TenantCrdCreationActivity.get_retry_policy(),
-                start_to_close_timeout=TenantCrdCreationActivity.get_timeout(),
             )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status="Failed",
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
-                    product=ProductName,
+                    product=ProductEnum.practifly,
                 ),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
 
@@ -912,8 +858,8 @@ class PractiflyOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Deny the workflow
         """
-        self.deny = True
+        self.denied = True

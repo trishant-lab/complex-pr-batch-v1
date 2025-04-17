@@ -69,6 +69,13 @@ class Workflow(abc.ABC):
         """
         pass
 
+    @staticmethod
+    def decline(self: "Workflow") -> None:
+        """
+        Signal the workflow
+        """
+        pass
+
 
 class ScheduleWorkflow(abc.ABC):
     @staticmethod

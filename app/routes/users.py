@@ -5,23 +5,24 @@ from uuid import UUID
 
 import aiohttp
 import jwt
-import orjson
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from keycloak import urls_patterns
 from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.status import HTTP_204_NO_CONTENT, HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_204_NO_CONTENT
 
-from app.cli.keycloakUtils import KeycloakAdminClient
+from app.cli.keycloak_utils import KeycloakAdminClient
+from app.core.ijson import ijson_dumps
 from app.core.oauth2 import get_oauth_scheme
 from app.core.settings import AppSettings, get_settings
+from app.exceptions import errors
 from app.models.users import (
-    RoleResponseModel,
-    UserResponseModel,
     CreateUserRequestModel,
-    UpdateUserRequestModel,
     GSuiteUser,
+    RoleResponseModel,
+    UpdateUserRequestModel,
+    UserResponseModel,
 )
 
 user_router = APIRouter()
@@ -50,7 +51,7 @@ def get_roles(kc_agent: KeycloakAdminClient, user_id: UUID, config: AppSettings)
     summary="Returns all users in the keycloak realm",
 )
 async def get_keycloak_users(
-    user_id: None | str = None, _: dict = Depends(get_oauth_scheme())
+    user_id: str | None = None, _: dict = Depends(get_oauth_scheme())
 ) -> list[UserResponseModel]:
     """
     Returns all users in the keycloak realm
@@ -73,30 +74,6 @@ async def get_keycloak_users(
         )
         for user in users
     ]
-
-
-@user_router.get(
-    "/getUserById",
-    response_model=UserResponseModel,
-    operation_id="getUserById",
-    summary="Returns user by id",
-)
-async def get_user_by_id(user_id: str, _: dict = Depends(get_oauth_scheme())) -> UserResponseModel:
-    """
-    Returns user by id
-    :param user_id:
-    :param _: dict:
-    :return:
-    """
-    config: AppSettings = get_settings()
-
-    keycloak_admin_client = KeycloakAdminClient(config=config.keycloak)
-
-    user = keycloak_admin_client.get_user(user_id=user_id, realm_name=config.keycloak.realm)
-
-    return UserResponseModel.json_to_model(
-        {"roles": get_roles(kc_agent=keycloak_admin_client, user_id=user["id"], config=config), **user}
-    )
 
 
 def fetch_assignable_roles(keycloak_admin_client: KeycloakAdminClient, config: AppSettings) -> list:
@@ -136,6 +113,33 @@ def get_assignable_roles(
     return fetch_assignable_roles(keycloak_admin_client=keycloak_admin_client, config=config)
 
 
+@user_router.get(
+    "/{userId}",
+    response_model=UserResponseModel,
+    operation_id="getUserById",
+    summary="Returns user by id",
+)
+async def get_user_by_id(
+    user_id: str = Path(..., alias="userId"),
+    _: dict = Depends(get_oauth_scheme()),
+) -> UserResponseModel:
+    """
+    Returns user by id
+    :param user_id:
+    :param _: dict:
+    :return:
+    """
+    config: AppSettings = get_settings()
+
+    keycloak_admin_client = KeycloakAdminClient(config=config.keycloak)
+
+    user = keycloak_admin_client.get_user(user_id=user_id, realm_name=config.keycloak.realm)
+
+    return UserResponseModel.json_to_model(
+        {"roles": get_roles(kc_agent=keycloak_admin_client, user_id=user["id"], config=config), **user}
+    )
+
+
 def get_roles_data(kc_agent: KeycloakAdminClient, config: AppSettings, roles_data: list[RoleResponseModel]) -> list:
     """
     function to get the complete data for given roles
@@ -164,15 +168,15 @@ def update_roles(
     added_roles = (get_roles_data(kc_agent=kc_agent, config=config, roles_data=added_roles)) if added_roles else None
 
     if deleted_roles:
-        response = kc_agent.kc_client.connection.raw_delete(url, data=orjson.dumps(deleted_roles))
+        response = kc_agent.kc_client.connection.raw_delete(url, data=ijson_dumps(deleted_roles))
         if response.status_code != HTTP_204_NO_CONTENT:
             logger.error("Error while Updating Role")
-            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error while Updating Role")
+            raise errors.UPDATE_ROLE_ERROR.exc()
     if added_roles:
-        response = kc_agent.kc_client.connection.raw_post(url, data=orjson.dumps(added_roles))
+        response = kc_agent.kc_client.connection.raw_post(url, data=ijson_dumps(added_roles))
         if response.status_code != HTTP_204_NO_CONTENT:
             logger.error("Error while Adding Role")
-            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error while Adding Role")
+            raise errors.ADD_ROLE_ERROR.exc()
 
 
 @user_router.post(
@@ -200,7 +204,7 @@ async def post_user(
         "emailVerified": True,
     }
 
-    user_id: str = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm)
+    user_id = kc_agent.create_user(user_config=payload, realm_name=config.keycloak.realm, exist_ok=False)
 
     update_roles(user_id=UUID(user_id), added_roles=user.roles, deleted_roles=None, config=config, kc_agent=kc_agent)
 
@@ -329,12 +333,12 @@ async def get_g_suite_users_list(_: dict = Depends(get_oauth_scheme())) -> list:
 
 
 @user_router.delete(
-    "",
+    "/{userId}",
     operation_id="deleteUser",
     summary="Deletes a user",
 )
 async def delete_user(
-    user_id: str,
+    user_id: str = Path(..., alias="userId"),
     _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """

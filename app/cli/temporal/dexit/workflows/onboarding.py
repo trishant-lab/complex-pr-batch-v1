@@ -1,92 +1,124 @@
 from collections.abc import Callable
 from datetime import timedelta
 
-import orjson
 import pydash
 from temporalio import workflow
 
-from app.cli.temporal.activities.cloudflareSetup import (
+from app.cli.activity_util import run_activity
+from app.cli.temporal.activities.cloudflare_setup import (
     CopyArtifactsToBucketActivity,
-    CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivity,
-    CreateCloudflareBucketActivityModel,
+    CreateCloudflareBucketCredentialsActivity,
     CreateCloudflareDNSRecordActivity,
-    CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivity,
-    LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivity,
-    PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivity,
 )
-from app.cli.temporal.activities.databaseMigrationJob import (
+from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
-from app.cli.temporal.activities.dexitNovuSetup import DexitNovuSetupActivity
-from app.cli.temporal.activities.faxSetup import FaxSetupActivity
-from app.cli.temporal.activities.k8sIstioVirtualService import (
+from app.cli.temporal.activities.deployment_pod_creation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
+)
+from app.cli.temporal.activities.dexit_novu_setup import DexitNovuSetupActivity
+from app.cli.temporal.activities.dexit_zsegment_creation import ZSegmentSetupActivity
+from app.cli.temporal.activities.fax_setup import FaxSetupActivity
+from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
+from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8sSecret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
-from app.cli.temporal.activities.k8sService import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.k8sconfigMap import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
-from app.cli.temporal.activities.k8snamespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
-from app.cli.temporal.activities.keycloakSetup import (
-    KeycloakRealmSetupActivity,
-    KeycloakRealmSetupActivityModel,
+from app.cli.temporal.activities.k8s_namespace import (
+    K8sNamespaceCreationActivity,
+    K8sNamespaceCreationActivityModel,
+)
+from app.cli.temporal.activities.k8s_secret import (
+    K8sSecretCreationActivity,
+    K8sSecretCreationActivityModel,
+)
+from app.cli.temporal.activities.k8s_service import (
+    KubernetesServiceActivity,
+    KubernetesServiceActivityModel,
+)
+from app.cli.temporal.activities.keycloak_setup import (
+    DexitKeycloakCreateIDPFlowActivity,
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
     KeycloakCreateClientRolesActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
+    KeycloakRealmSetupActivity,
+    KeycloakRealmSetupActivityModel,
     KeycloakServiceAccountSetupActivity,
     KeycloakServiceAccountSetupActivityModel,
 )
-from app.cli.temporal.activities.onePassword import (
+from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
 )
-from app.cli.temporal.activities.postgresSetup import (
-    PostgresUserCreationActivity,
-    PostgresUserCreationActivityModel,
-    PostgresSchemaCreationActivity,
-    PostgresSchemaCreationActivityModel,
-    PostgresGrantAccessToUserActivity,
-    PostgresGrantAccessToUserActivityModel,
+from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
     MatomoUserMappingActivity,
     MatomoUserMappingActivityModel,
-    PostgresGrantAllPrivilegesOnTableActivity,
-    PostgresGrantAllPrivilegesOnTableActivityModel,
     PostgresDatabaseCreationActivity,
     PostgresDatabaseCreationActivityModel,
+    PostgresGrantAccessToUserActivity,
+    PostgresGrantAccessToUserActivityModel,
+    PostgresGrantAllPrivilegesOnTableActivity,
+    PostgresGrantAllPrivilegesOnTableActivityModel,
+    PostgresSchemaCreationActivity,
+    PostgresSchemaCreationActivityModel,
+    PostgresUserCreationActivity,
+    PostgresUserCreationActivityModel,
 )
-from app.cli.temporal.activities.sendMail import (
+from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.statefulSetPodCreation import (
+from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
 )
-from app.cli.temporal.activities.deploymentPodCreation import (
-    KubernetesDeploymentActivity,
-    KubernetesDeploymentActivityModel,
+from app.cli.temporal.activities.temporal_namespace import (
+    TemporalNamespaceActivity,
+    TemporalNamespaceActivityModel,
 )
-from app.cli.temporal.activities.temporalNamespace import TemporalNamespaceActivity, TemporalNamespaceActivityModel
-from app.cli.temporal.activities.temporalSearchAtrributesCreation import (
+from app.cli.temporal.activities.temporal_search_atrributes_creation import (
     TemporalSearchAttributesCreationActivity,
     TemporalSearchAttributesCreationActivityModel,
 )
-from app.cli.temporal.activities.updateTenantStatus import UpdateTenantStatusActivity, TenantStatus
-from app.cli.temporal.activities.vmPodScrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
-from app.cli.temporal.dexit import TemplatePath
-from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.activities.update_tenant_status import (
+    TenantCliStatus,
+    UpdateTenantStatusActivity,
+)
+from app.cli.temporal.activities.vm_pod_scrapper import (
+    VMPodScrapperActivity,
+    VMPodScrapperActivityModel,
+)
 from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.dexit import TemplatePath
+from app.cli.temporal.dexit.models.dexit_spec import DexitSpec
+from app.cli.temporal.models.cloudflare import (
+    CopyArtifactsToBucketActivityModel,
+    CreateCloudflareBucketActivityModel,
+    CreateCloudflareBucketCredentialsActivityModel,
+    CreateCloudflareDNSRecordActivityModel,
+    LinkBucketToDomainActivityModel,
+    PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivityModel,
+)
+from app.cli.temporal.zsegment.models.zsegment_spec import ZSegmentSpec
 from app.common import generate_password
-from app.core.settings import AppSettings, get_settings, DexitSettings
+from app.core.ijson import ijson_loads
+from app.core.settings import AppSettings, DexitSettings, get_settings
+from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 ProductName = "dexit"
@@ -101,7 +133,7 @@ class DexitOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:
@@ -165,18 +197,17 @@ class DexitOnboardingWorkflow(Workflow):
         tenant = pydash.get(dexit, "tenant")
 
         try:
-            await workflow.wait_condition(lambda: self.approved or self.deny)
+            await workflow.wait_condition(lambda: self.approved or self.denied)
 
-            if self.deny:
-                await workflow.execute_activity(
-                    activity=UpdateTenantStatusActivity.defn,
-                    arg=TenantStatus(
+            if self.denied:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
                         tenant_name=pydash.get(dexit, "tenant"),
-                        status="Declined",
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
-                        product=ProductName,
+                        product=ProductEnum.dexit,
                     ),
-                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                     start_to_close_timeout=timedelta(seconds=120),
                 )
                 return
@@ -191,8 +222,8 @@ class DexitOnboardingWorkflow(Workflow):
             docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
             server_item = "production-config" if config.env == "production" else "integration-config"
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
@@ -200,44 +231,36 @@ class DexitOnboardingWorkflow(Workflow):
                     secret_name="pg_dicom_password",
                     secret_value=dicom_database_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             # create postgres database for dicom
-            await workflow.execute_activity(
-                activity=PostgresDatabaseCreationActivity.defn,
+            await run_activity(
+                activity=PostgresDatabaseCreationActivity,
                 arg=PostgresDatabaseCreationActivityModel(
                     database_name=dicom_database_name,
                 ),
-                retry_policy=PostgresDatabaseCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresDatabaseCreationActivity.get_timeout(),
             )
 
             # create postgres user for dicom
-            await workflow.execute_activity(
-                activity=PostgresUserCreationActivity.defn,
+            await run_activity(
+                activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=dicom_database_name,
                     database_name=dicom_database_name,
                     password=dicom_database_password,
                 ),
-                retry_policy=PostgresUserCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     username=dicom_database_name,
                     database_name=dicom_database_name,
                 ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
@@ -245,65 +268,53 @@ class DexitOnboardingWorkflow(Workflow):
                     secret_name="pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresUserCreationActivity.defn,
+            await run_activity(
+                activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     password=postgres_password,
                 ),
-                retry_policy=PostgresUserCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresSchemaCreationActivity.defn,
+            await run_activity(
+                activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresSchemaCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSchemaCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=KeycloakUserMappingActivity.defn,
+            await run_activity(
+                activity=KeycloakUserMappingActivity,
                 arg=KeycloakUserMappingActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=KeycloakUserMappingActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakUserMappingActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=MatomoUserMappingActivity.defn,
+            await run_activity(
+                activity=MatomoUserMappingActivity,
                 arg=MatomoUserMappingActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=MatomoUserMappingActivity.get_retry_policy(),
-                start_to_close_timeout=MatomoUserMappingActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAllPrivilegesOnTableActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnTableActivity,
                 arg=PostgresGrantAllPrivilegesOnTableActivityModel(
                     database_name=postgres_database_name,
                     username=postgres_username,
@@ -319,22 +330,16 @@ class DexitOnboardingWorkflow(Workflow):
                         "matomo_log_link_visit_action",
                     ],
                 ),
-                retry_policy=PostgresGrantAllPrivilegesOnTableActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAllPrivilegesOnTableActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=K8sNamespaceCreationActivity.defn,
-                arg=K8sNamespaceCreationActivityModel(
-                    namespace=tenant,
-                ),
-                retry_policy=K8sNamespaceCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
+            await run_activity(
+                activity=K8sNamespaceCreationActivity,
+                arg=K8sNamespaceCreationActivityModel(namespace=tenant),
             )
 
             # secret setup for docker registry
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="registrycred",
@@ -343,43 +348,29 @@ class DexitOnboardingWorkflow(Workflow):
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # setup novu
-            await workflow.execute_activity(
-                activity=DexitNovuSetupActivity.defn,
-                arg=dexit,
-                retry_policy=DexitNovuSetupActivity.get_retry_policy(),
-                start_to_close_timeout=DexitNovuSetupActivity.get_timeout(),
-            )
+            await run_activity(activity=DexitNovuSetupActivity, arg=dexit)
 
             # fax setup
-            await workflow.execute_activity(
-                activity=FaxSetupActivity.defn,
-                arg=dexit,
-                retry_policy=FaxSetupActivity.get_retry_policy(),
-                start_to_close_timeout=FaxSetupActivity.get_timeout(),
-            )
+            await run_activity(activity=FaxSetupActivity, arg=dexit)
 
             realm_name = tenant
             # keycloak realm setup
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
                     realm_name=realm_name,
                     domain=dexit_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                 ),
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
             # keycloak client setup
-            await workflow.execute_activity(
-                activity=KeycloakClientSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
                 arg=KeycloakClientSetupActivityModel(
                     tenant=tenant,
                     realm_name=realm_name,
@@ -387,8 +378,6 @@ class DexitOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_dexit_client.json",
                 ),
-                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
             roles = [
@@ -411,25 +400,24 @@ class DexitOnboardingWorkflow(Workflow):
                 "_reports",
                 "_document-review",
                 "_manage-workflow",
+                "_internal-admin",
             ]
 
             # keycloak client roles setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateClientRolesActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateClientRolesActivity,
                 arg=KeycloakCreateClientRolesActivityModel(
                     client_name="dexit",
                     realm_name=realm_name,
                     roles=roles,
                 ),
-                retry_policy=KeycloakCreateClientRolesActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
             )
 
             # Create Service account
             client_secret = generate_password(length=32)
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=tenant,
                     server_item=server_item,
@@ -437,12 +425,10 @@ class DexitOnboardingWorkflow(Workflow):
                     secret_name="service_account_secret",
                     secret_value=client_secret,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=KeycloakServiceAccountSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakServiceAccountSetupActivity,
                 arg=KeycloakServiceAccountSetupActivityModel(
                     tenant=tenant,
                     domain=dexit_config.domain_name,
@@ -451,8 +437,22 @@ class DexitOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_service_account.json",
                 ),
-                retry_policy=KeycloakServiceAccountSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakServiceAccountSetupActivity.get_timeout(),
+            )
+
+            # Create IDP mappers
+            await workflow.execute_activity(
+                activity=DexitKeycloakCreateIDPFlowActivity.defn,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name="dexithelp",
+                    domain=dexit_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="dexithelp_instance_idp_flow.json",
+                    template_payload={"idp_config": dexit_config.idp_config, "auth_url": config.keycloak.auth_url},
+                    is_prod=True,
+                ),
+                retry_policy=DexitKeycloakCreateIDPFlowActivity.get_retry_policy(),
+                start_to_close_timeout=DexitKeycloakCreateIDPFlowActivity.get_timeout(),
             )
 
             # keycloak tenant customer admin user setup
@@ -468,11 +468,10 @@ class DexitOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_user.json",
                 ),
-                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
             tenant_config = "tenant-config.json"
+            mlops_config = "mlops-config.json"
             env_config = "env-config.json"
             dicom_config = "dicom-config.json"
             vector_config = "vector-config.toml"
@@ -484,6 +483,11 @@ class DexitOnboardingWorkflow(Workflow):
                     "name": "dexit-tenant-config",
                     "key": tenant_config,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-mlops-config",
+                    "key": mlops_config,
+                    "template_file_name": f"{config.env}-mlops-config.tmpl.json",
                 },
                 {
                     "name": "dexit-env-config",
@@ -501,8 +505,8 @@ class DexitOnboardingWorkflow(Workflow):
                     "template_file_name": f"{config.env}-vector-config.tmpl.toml",
                 },
             ]:
-                await workflow.execute_activity(
-                    activity=K8sConfigMapCreationActivity.defn,
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
@@ -511,53 +515,65 @@ class DexitOnboardingWorkflow(Workflow):
                         bucket_name="dexit-config",
                         template_payload={"tenant": tenant},
                     ),
-                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
                 )
 
             # dns setup for api
-            await workflow.execute_activity(
-                activity=CreateCloudflareDNSRecordActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{dexit_config.domain_name}",
                     zone_id=dexit_config.zone_id,
                     content=config.k8s_cname,
                 ),
-                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
             # create bucket
             bucket_name = f"{tenant}-{dexit_config.domain_name.replace('.', '-')}"
-            await workflow.execute_activity(
-                activity=CreateCloudflareBucketActivity.defn,
-                arg=CreateCloudflareBucketActivityModel(
-                    bucket_name=bucket_name,
-                ),
-                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
+            await run_activity(
+                activity=CreateCloudflareBucketActivity,
+                arg=CreateCloudflareBucketActivityModel(bucket_name=bucket_name),
             )
 
             # link bucket to custom domain
-            await workflow.execute_activity(
-                activity=LinkBucketToDomainActivity.defn,
+            await run_activity(
+                activity=LinkBucketToDomainActivity,
                 arg=LinkBucketToDomainActivityModel(
                     bucket_name=bucket_name,
                     domain_name=f"{tenant}.{dexit_config.domain_name}",
                     zone_id=dexit_config.zone_id,
                 ),
-                retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
-                start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
+            )
+
+            # update cors for bucket
+            await run_activity(
+                activity=UpdateCORSForBucketActivity,
+                arg=UpdateCORSForBucketActivityModel(
+                    bucket_name=bucket_name,
+                    rules=[
+                        {
+                            "allowed": {
+                                "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                "origins": ["*"],
+                                "headers": [
+                                    "Authorization",
+                                    "content-type",
+                                    "x-amz-*",
+                                    "traceparent",
+                                    "x-highlight-request",
+                                ],
+                            },
+                            "exposeHeaders": ["ETag", "Location", "Content-Disposition"],
+                        }
+                    ],
+                ),
             )
 
             # propagate the dns record
-            await workflow.execute_activity(
-                activity=PropagateDNSRecordActivity.defn,
+            await run_activity(
+                activity=PropagateDNSRecordActivity,
                 arg=PropagateDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{dexit_config.domain_name}",
                 ),
-                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             # ui setup
@@ -574,8 +590,8 @@ class DexitOnboardingWorkflow(Workflow):
             bundle_path = "bundle/dist/admin"
 
             # copy artifacts to bucket
-            await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
+            await run_activity(
+                activity=CopyArtifactsToBucketActivity,
                 arg=CopyArtifactsToBucketActivityModel(
                     bucket_name=bucket_name,
                     src_object_name=src_object_name,
@@ -588,9 +604,50 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
+            credentials = await run_activity(
+                activity=CreateCloudflareBucketCredentialsActivity,
+                arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=bucket_name, read_only=False),
+            )
+
+            # s3 bucket name added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_bucket_name",
+                    key_value=bucket_name,
+                ),
+            )
+
+            # s3 access key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_access_key",
+                    key_value=credentials["access_key"],
+                ),
+            )
+
+            # s3 secret key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="s3_secret_key",
+                    key_value=credentials["secret_key"],
+                ),
+            )
+
             # atlas job
-            await workflow.execute_activity(
-                activity=DatabaseMigrationJobActivity.defn,
+            await run_activity(
+                activity=DatabaseMigrationJobActivity,
                 arg=DatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="dexit-atlas-migration-job",
@@ -606,6 +663,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "dexit-mlops-config",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                     ],
                     volumes=[
                         {
@@ -620,6 +682,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "key": tenant_config,
                             "path": tenant_config,
                         },
+                        {
+                            "name": "dexit-mlops-config",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
+                        },
                     ],
                     container_envs=[
                         {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
@@ -632,20 +700,16 @@ class DexitOnboardingWorkflow(Workflow):
                     job_type="atlas",
                     product=ProductName,
                 ),
-                retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
-                start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
             )
 
             # kubernetes service
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="dexit",
                     ports={"http": 8000},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
             template_env = get_env(template_path=TemplatePath)
@@ -653,7 +717,7 @@ class DexitOnboardingWorkflow(Workflow):
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
-            http_list = orjson.loads(output)
+            http_list = ijson_loads(output)
             if config.env != "production":
                 http_list.append(
                     {
@@ -664,21 +728,19 @@ class DexitOnboardingWorkflow(Workflow):
                 )
 
             # kubernetes virtual service
-            await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.api.{dexit_config.domain_name}",
                     service_name="dexit-vs",
                     payload=http_list,
                 ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
             # statefulset pod creation for server
-            await workflow.execute_activity(
-                activity=KubernetesDeploymentActivity.defn,
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="dexit",
@@ -703,6 +765,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "mlops-volume",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                     ],
                     volumes=[
                         {
@@ -717,6 +784,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "key": tenant_config,
                             "path": tenant_config,
                         },
+                        {
+                            "name": "mlops-volume",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
+                        },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
@@ -730,13 +803,11 @@ class DexitOnboardingWorkflow(Workflow):
                         {"name": "CLI", "value": "FALSE"},
                     ],
                 ),
-                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # statefulset pod creation for cli
-            await workflow.execute_activity(
-                activity=KubernetesDeploymentActivity.defn,
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="dexit-worker",
@@ -761,6 +832,11 @@ class DexitOnboardingWorkflow(Workflow):
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "mlops-volume",
+                            "mount_path": f"/{config_dir}/{mlops_config}",
+                            "sub_path": mlops_config,
+                        },
                         {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
                     ],
                     volumes=[
@@ -775,6 +851,12 @@ class DexitOnboardingWorkflow(Workflow):
                             "config_map_name": "dexit-tenant-config",
                             "key": tenant_config,
                             "path": tenant_config,
+                        },
+                        {
+                            "name": "mlops-volume",
+                            "config_map_name": "dexit-mlops-config",
+                            "key": mlops_config,
+                            "path": mlops_config,
                         },
                         {
                             "name": "vector-volume",
@@ -794,13 +876,11 @@ class DexitOnboardingWorkflow(Workflow):
                         {"name": "CLI", "value": "TRUE"},
                     ],
                 ),
-                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # statefulset pod creation for dicom
-            await workflow.execute_activity(
-                activity=KubernetesDeploymentActivity.defn,
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="dexit-dicom",
@@ -837,25 +917,21 @@ class DexitOnboardingWorkflow(Workflow):
                         {"name": "RELEASE_VERSION", "value": image_tag},
                     ],
                 ),
-                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # kubernetes service for dicom
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="dexit-dicom",
                     ports={"http": 8042},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
             # vm pod scraper
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="dexit-metrics",
@@ -863,34 +939,28 @@ class DexitOnboardingWorkflow(Workflow):
                     path="/metrics/",
                     interval="15s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # temporal namespace creation
-            await workflow.execute_activity(
-                activity=TemporalNamespaceActivity.defn,
+            await run_activity(
+                activity=TemporalNamespaceActivity,
                 arg=TemporalNamespaceActivityModel(
                     namespace=f"dexit_{tenant}",
                 ),
-                retry_policy=TemporalNamespaceActivity.get_retry_policy(),
-                start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
             )
 
             # temporal search attributes creation
-            await workflow.execute_activity(
-                activity=TemporalSearchAttributesCreationActivity.defn,
+            await run_activity(
+                activity=TemporalSearchAttributesCreationActivity,
                 arg=TemporalSearchAttributesCreationActivityModel(
                     namespace=f"dexit_{tenant}",
                 ),
-                retry_policy=TemporalSearchAttributesCreationActivity.get_retry_policy(),
-                start_to_close_timeout=TemporalSearchAttributesCreationActivity.get_timeout(),
             )
 
             # check pod running status
             for pod in ["dexit", "dexit-worker", "dexit-dicom"]:
-                await workflow.execute_activity(
-                    activity=CheckPodRunningStatusActivity.defn,
+                await run_activity(
+                    activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(
                         namespace=tenant,
                         name=pod,
@@ -899,17 +969,21 @@ class DexitOnboardingWorkflow(Workflow):
                     start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
 
+            # zsegment onboarding
+            await run_activity(
+                activity=ZSegmentSetupActivity,
+                arg=ZSegmentSpec(tenant=tenant, email=email, firstName=first_name, lastName=last_name),
+            )
+
             # update tenant status
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.dexit),
             )
 
             # send mail
-            await workflow.execute_activity(
-                activity=SendAfterProvisioningMailActivity.defn,
+            await run_activity(
+                activity=SendAfterProvisioningMailActivity,
                 arg=SendAfterProvisioningMailActivityModel(
                     realm_name=realm_name,
                     tenant=tenant,
@@ -923,21 +997,18 @@ class DexitOnboardingWorkflow(Workflow):
                     from_name=dexit_config.sender_name,
                     email_from=dexit_config.sender_email,
                 ),
-                retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
             )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
                     tenant_name=pydash.get(dexit, "tenant"),
-                    status="Failed",
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
-                    product=ProductName,
+                    product=ProductEnum.dexit,
                 ),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 start_to_close_timeout=timedelta(seconds=120),
             )
             raise e
@@ -950,8 +1021,8 @@ class DexitOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Signal to reject the workflow
         """
-        self.deny = True
+        self.denied = True

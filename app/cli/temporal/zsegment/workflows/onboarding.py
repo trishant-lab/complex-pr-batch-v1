@@ -1,55 +1,50 @@
 from collections.abc import Callable
 from uuid import uuid4
 
-from app.cli.temporal.activities.dropletSetup import (
+import pydash
+from temporalio import workflow
+
+from app.cli.activity_util import run_activity
+from app.cli.temporal.activities.cloudflare_setup import (
+    CopyArtifactsToBucketActivity,
+    CreateCloudflareBucketActivity,
+    CreateCloudflareDNSRecordActivity,
+    LinkBucketToDomainActivity,
+    PropagateDNSRecordActivity,
+)
+from app.cli.temporal.activities.deployment_pod_creation import (
+    KubernetesDeploymentActivity,
+    KubernetesDeploymentActivityModel,
+)
+from app.cli.temporal.activities.droplet_setup import (
     CreateDropletActivity,
 )
-from app.cli.temporal.activities.serviceAccountSetup import (
-    CreateKubernetesResourcesActivity,
-    CreateKubernetesResourcesActivityModel,
+from app.cli.temporal.activities.gitea_service import (
+    GiteaProperties,
+    GiteaService,
+    GiteaSetupActivity,
 )
-from temporalio import workflow
-import pydash
-import orjson
-
-from app.cli.temporal.activities.cloudflareSetup import (
-    CopyArtifactsToBucketActivity,
-    CopyArtifactsToBucketActivityModel,
-    CreateCloudflareBucketActivity,
-    CreateCloudflareBucketActivityModel,
-    CreateCloudflareDNSRecordActivity,
-    CreateCloudflareDNSRecordActivityModel,
-    LinkBucketToDomainActivity,
-    LinkBucketToDomainActivityModel,
-    PropagateDNSRecordActivity,
-    PropagateDNSRecordActivityModel,
+from app.cli.temporal.activities.k8s_config_map import (
+    K8sConfigMapCreationActivity,
+    K8sConfigMapCreationActivityModel,
 )
-
-from app.cli.temporal.activities.k8snamespace import (
-    K8sNamespaceCreationActivity,
-    K8sNamespaceCreationActivityModel,
-)
-from app.cli.temporal.activities.lago_service import LagoSetupActivity, LagoProperties
-from app.cli.temporal.activities.onePassword import (
-    OnePasswordCreateOrUpdateActivity,
-    OnePasswordCreateOrUpdateActivityModel,
-    OnePasswordGetActivity,
-    OnePasswordGetActivityModel,
-)
-from app.cli.temporal.activities.redpanda_service import RedpandaProperties
-from app.cli.temporal.activities.sendMail import (
-    SendAfterProvisioningMailActivity,
-    SendAfterProvisioningMailActivityModel,
-    SendBeforeProvisioningMailActivity,
-    SendBeforeProvisioningMailActivityModel,
-)
-
-from app.cli.temporal.activities.k8sIstioVirtualService import (
+from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
-
-from app.cli.temporal.activities.keycloakSetup import (
+from app.cli.temporal.activities.k8s_namespace import (
+    K8sNamespaceCreationActivity,
+    K8sNamespaceCreationActivityModel,
+)
+from app.cli.temporal.activities.k8s_secret import (
+    K8sSecretCreationActivity,
+    K8sSecretCreationActivityModel,
+)
+from app.cli.temporal.activities.k8s_service import (
+    KubernetesServiceActivity,
+    KubernetesServiceActivityModel,
+)
+from app.cli.temporal.activities.keycloak_setup import (
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
@@ -59,63 +54,62 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
 )
-
-from app.cli.temporal.activities.postgresSetup import (
-    PostgresSchemaCreationActivityModel,
-    PostgresSchemaCreationActivity,
-    PostgresUserCreationActivity,
-    PostgresGrantAccessToUserActivityModel,
+from app.cli.temporal.activities.lago_service import LagoProperties, LagoSetupActivity
+from app.cli.temporal.activities.one_password import (
+    OnePasswordCreateOrUpdateActivity,
+    OnePasswordCreateOrUpdateActivityModel,
+    OnePasswordGetActivity,
+    OnePasswordGetActivityModel,
+)
+from app.cli.temporal.activities.postgres_setup import (
     PostgresGrantAccessToUserActivity,
+    PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
+    PostgresSchemaCreationActivity,
+    PostgresSchemaCreationActivityModel,
+    PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
-)
-
-from app.cli.temporal.activities.statefulSetPodCreation import (
-    CheckPodRunningStatusActivity,
-    CheckPodRunningStatusActivityModel,
-)
-
-from app.cli.temporal.activities.deploymentPodCreation import (
-    KubernetesDeploymentActivity,
-    KubernetesDeploymentActivityModel,
-)
-
-from app.cli.temporal.zsegment import TemplatePath
-from app.cli.temporal.activities.k8sconfigMap import (
-    K8sConfigMapCreationActivity,
-    K8sConfigMapCreationActivityModel,
-)
-from app.cli.temporal.activities.k8sSecret import (
-    K8sSecretCreationActivity,
-    K8sSecretCreationActivityModel,
 )
 from app.cli.temporal.activities.redis import (
     RedisSetupActivity,
     RedisSetupActivityModel,
 )
-from app.cli.temporal.activities.redpanda_service import RedpandaSetupActivity
-from app.cli.temporal.activities.k8sService import (
-    KubernetesServiceActivity,
-    KubernetesServiceActivityModel,
+from app.cli.temporal.activities.redpanda_service import RedpandaProperties, RedpandaSetupActivity
+from app.cli.temporal.activities.send_mail import (
+    SendAfterProvisioningMailActivity,
+    SendAfterProvisioningMailActivityModel,
+    SendBeforeProvisioningMailActivity,
+    SendBeforeProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.vmPodScrapper import (
+from app.cli.temporal.activities.service_account_setup import (
+    CreateKubernetesResourcesActivity,
+    CreateKubernetesResourcesActivityModel,
+)
+from app.cli.temporal.activities.stateful_set_pod_creation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
+)
+from app.cli.temporal.activities.update_tenant_status import (
+    TenantCliStatus,
+    UpdateTenantStatusActivity,
+)
+from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperActivity,
     VMPodScrapperActivityModel,
 )
-
-from app.cli.temporal.activities.updateTenantStatus import (
-    TenantStatus,
-    UpdateTenantStatusActivity,
-)
 from app.cli.temporal.core.base import Workflow
-
-from app.cli.temporal.activities.gitea_service import (
-    GiteaSetupActivity,
-    GiteaProperties,
-    GiteaService,
+from app.cli.temporal.models.cloudflare import (
+    CopyArtifactsToBucketActivityModel,
+    CreateCloudflareBucketActivityModel,
+    CreateCloudflareDNSRecordActivityModel,
+    LinkBucketToDomainActivityModel,
+    PropagateDNSRecordActivityModel,
 )
-from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
-
+from app.cli.temporal.zsegment import TemplatePath
+from app.cli.temporal.zsegment.models.zsegment_spec import ZSegmentSpec
+from app.core.ijson import ijson_loads
+from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
 
 with workflow.unsafe.imports_passed_through():
     from app.common import generate_password
@@ -135,7 +129,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -202,8 +196,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
 
         try:
             if not pydash.get(zsegment, "emailSent"):
-                await workflow.execute_activity(
-                    activity=SendBeforeProvisioningMailActivity.defn,
+                await run_activity(
+                    activity=SendBeforeProvisioningMailActivity,
                     arg=SendBeforeProvisioningMailActivityModel(
                         user_details={
                             "firstName": first_name,
@@ -214,25 +208,21 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         from_name=zsegment_config.sender_name,
                         email_from=zsegment_config.sender_email,
                     ),
-                    retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
                 )
 
             # Wait for approval or denial
-            await workflow.wait_condition(lambda: self.approved or self.deny)
+            await workflow.wait_condition(lambda: self.approved or self.denied)
 
             # Update tenant status if request is declined
-            if self.deny:
-                await workflow.execute_activity(
-                    activity=UpdateTenantStatusActivity.defn,
-                    arg=TenantStatus(
+            if self.denied:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status="Declined",
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
-                        product=ProductName,
+                        product=ProductEnum.zsegment,
                     ),
-                    start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
-                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
 
             # postgres setup
@@ -244,8 +234,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
             api_docker_image = f"registry.314ecorp.tech/zsegment-api:{image_tag}"
             engine_docker_image = f"registry.314ecorp.tech/zsegment-engine:{image_tag}"
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -253,59 +243,49 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     secret_name="pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresUserCreationActivity.defn,
+            await run_activity(
+                activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     password=postgres_password,
                 ),
-                retry_policy=PostgresUserCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresSchemaCreationActivity.defn,
+            await run_activity(
+                activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresSchemaCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSchemaCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            installer_secret = await workflow.execute_activity(
-                activity=OnePasswordGetActivity.defn,
+            installer_secret = await run_activity(
+                activity=OnePasswordGetActivity,
                 arg=OnePasswordGetActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
                     vault=OnePasswordVaultName,
                     secret_name="installer_secret",
                 ),
-                retry_policy=OnePasswordGetActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
             )
 
             installer_secret = generate_password(length=20) if not installer_secret else installer_secret
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -313,13 +293,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     secret_name="installer_secret",
                     secret_value=installer_secret,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
             # keycloak realm setup
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
                     realm_name=realm_name,
                     domain=zsegment_config.domain_name,
@@ -327,13 +305,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     template_name="keycloak_realm.json",
                     installer_secret=installer_secret,
                 ),
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
             # keycloak client setup
-            await workflow.execute_activity(
-                activity=KeycloakClientSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
                 arg=KeycloakClientSetupActivityModel(
                     tenant=tenant,
                     realm_name=realm_name,
@@ -341,13 +317,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_client.json",
                 ),
-                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
             # keycloak client setup
-            await workflow.execute_activity(
-                activity=KeycloakClientSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
                 arg=KeycloakClientSetupActivityModel(
                     tenant="installer",
                     realm_name=realm_name,
@@ -358,8 +332,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "installer_secret": installer_secret,
                     },
                 ),
-                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
             roles = [
@@ -375,20 +347,18 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 "_manage-tasks",
             ]
             # keycloak client roles setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateClientRolesActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateClientRolesActivity,
                 arg=KeycloakCreateClientRolesActivityModel(
                     client_name="zsegment",
                     realm_name=realm_name,
                     roles=roles,
                 ),
-                retry_policy=KeycloakCreateClientRolesActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
             )
 
             # keycloak tenant customer admin user setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
                     client_name="zsegment",
@@ -399,22 +369,18 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                 ),
-                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=K8sNamespaceCreationActivity.defn,
+            await run_activity(
+                activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(
                     namespace=tenant,
                 ),
-                retry_policy=K8sNamespaceCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
             )
 
             # secret setup for docker registry
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="registrycred",
@@ -423,27 +389,23 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for redis password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="cache-secret",
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # setup redis
             redis_tenant_password = generate_password(length=20)
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -451,26 +413,22 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     secret_name="redis_password",
                     secret_value=redis_tenant_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=RedisSetupActivity.defn,
+            await run_activity(
+                activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
                     namespace=tenant,
                     product=ProductName,
                     redis_tenant_password=redis_tenant_password,
                 ),
-                retry_policy=RedisSetupActivity.get_retry_policy(),
-                start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
             ## setup redpanda
             redpanda_tenant_password = generate_password(length=20)
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -478,12 +436,10 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     secret_name="redpanda_password",
                     secret_value=redpanda_tenant_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=RedpandaSetupActivity.defn,
+            await run_activity(
+                activity=RedpandaSetupActivity,
                 arg=RedpandaProperties(
                     tenant=tenant,
                     environment=config.env,
@@ -493,8 +449,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     tenant_password=redpanda_tenant_password,
                     admin_api_base_url=zsegment_config.redpanda_admin_api_base_url,
                 ),
-                retry_policy=RedpandaSetupActivity.get_retry_policy(),
-                start_to_close_timeout=RedpandaSetupActivity.get_timeout(),
             )
 
             # setup gitea
@@ -503,8 +457,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
             gitea_admin_password = zsegment_config.gitea_admin_password
             gitea_template_owner = zsegment_config.gitea_template_owner
 
-            await workflow.execute_activity(
-                activity=GiteaSetupActivity.defn,
+            await run_activity(
+                activity=GiteaSetupActivity,
                 arg=GiteaProperties(
                     tenant=tenant,
                     email=email,
@@ -514,19 +468,17 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     template_repo="ZSegmentTemplate",
                     template_owner=gitea_template_owner,
                 ),
-                retry_policy=GiteaSetupActivity.get_retry_policy(),
-                start_to_close_timeout=GiteaSetupActivity.get_timeout(),
             )
 
             # setup lago
             lago_customer_id = uuid4()
             lago_subscription_id = uuid4()
-            lago_plan_code = pydash.get(zsegment, "PlanName", "Free")
-            lago_api_key = zsegment_config.lago_api_key
-            lago_api_url = zsegment_config.lago_api_url
+            lago_plan_code = pydash.get(zsegment, "planName", "Free")
+            lago_api_key = zsegment_config.lago.api_key
+            lago_api_url = zsegment_config.lago.api_url
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     server_item="application-config",
@@ -534,12 +486,10 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     secret_name="lago_customer_id",
                     secret_value=str(lago_customer_id),
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=LagoSetupActivity.defn,
+            await run_activity(
+                activity=LagoSetupActivity,
                 arg=LagoProperties(
                     tenant=tenant,
                     customer_id=lago_customer_id,
@@ -550,8 +500,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     api_key=lago_api_key,
                     api_url=lago_api_url,
                 ),
-                retry_policy=LagoSetupActivity.get_retry_policy(),
-                start_to_close_timeout=LagoSetupActivity.get_timeout(),
             )
 
             gitea_username = GiteaService.extract_username(email)
@@ -561,8 +509,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
             engine_config = "engine-config.json"
             config_dir = "config"
 
-            await workflow.execute_activity(
-                activity=K8sConfigMapCreationActivity.defn,
+            await run_activity(
+                activity=K8sConfigMapCreationActivity,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="zsegment-api-config",
@@ -577,8 +525,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "keycloakSecret": installer_secret,
                         "redpandaBrokerUrl": zsegment_config.redpanda_broker,
                         "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": zsegment_config.lago_api_url,
-                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoUrl": zsegment_config.lago.api_url,
+                        "lagoKey": zsegment_config.lago.api_key,
                         "lagoCustomerId": lago_customer_id,
                         "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",  # NOSONAR
                         "victoriaMetricsUrl": zsegment_config.victoria_metrics_url,
@@ -600,13 +548,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         ),
                     },
                 ),
-                retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
             )
 
             # setup engine-dev-config
-            await workflow.execute_activity(
-                activity=K8sConfigMapCreationActivity.defn,
+            await run_activity(
+                activity=K8sConfigMapCreationActivity,
                 arg=K8sConfigMapCreationActivityModel(
                     namespace=tenant,
                     name="zsegment-engine-config",
@@ -617,8 +563,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "tenantName": tenant,
                         "redpandaBrokerUrl": zsegment_config.redpanda_broker,
                         "redpandaPassword": redpanda_tenant_password,
-                        "lagoUrl": zsegment_config.lago_api_url,
-                        "lagoKey": zsegment_config.lago_api_key,
+                        "lagoUrl": zsegment_config.lago.api_url,
+                        "lagoKey": zsegment_config.lago.api_key,
                         "lagoCustomerId": lago_customer_id,
                         "postgresUrl": zsegment_config.postgres_url,
                         "postgresSecret": postgres_password,
@@ -628,65 +574,51 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "giteaUserName": gitea_username,
                     },
                 ),
-                retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
             )
 
             # dns setup for api
-            await workflow.execute_activity(
-                activity=CreateCloudflareDNSRecordActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{zsegment_config.domain_name}",
                     zone_id=zsegment_config.zone_id,
                     content=config.k8s_cname,
                 ),
-                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
             # dns setup for code server
-            await workflow.execute_activity(
-                activity=CreateCloudflareDNSRecordActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.cs.{zsegment_config.domain_name}",
                     zone_id=zsegment_config.zone_id,
                     content=config.k8s_cname,
                 ),
-                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
             # create bucket
             bucket_name = f"{tenant}-{zsegment_config.domain_name.replace('.', '-')}"
-            await workflow.execute_activity(
-                activity=CreateCloudflareBucketActivity.defn,
-                arg=CreateCloudflareBucketActivityModel(
-                    bucket_name=bucket_name,
-                ),
-                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
+            await run_activity(
+                activity=CreateCloudflareBucketActivity,
+                arg=CreateCloudflareBucketActivityModel(bucket_name=bucket_name),
             )
 
             # link bucket to custom domain
-            await workflow.execute_activity(
-                activity=LinkBucketToDomainActivity.defn,
+            await run_activity(
+                activity=LinkBucketToDomainActivity,
                 arg=LinkBucketToDomainActivityModel(
                     bucket_name=bucket_name,
                     domain_name=f"{tenant}.{zsegment_config.domain_name}",
                     zone_id=zsegment_config.zone_id,
                 ),
-                retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
-                start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
             # propagate the dns record
-            await workflow.execute_activity(
-                activity=PropagateDNSRecordActivity.defn,
+            await run_activity(
+                activity=PropagateDNSRecordActivity,
                 arg=PropagateDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{zsegment_config.domain_name}",
                 ),
-                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             # ui setup
@@ -703,8 +635,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
             bundle_path = "bundle/dist"
 
             # copy artifacts to bucket
-            await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
+            await run_activity(
+                activity=CopyArtifactsToBucketActivity,
                 arg=CopyArtifactsToBucketActivityModel(
                     bucket_name=bucket_name,
                     src_object_name=src_object_name,
@@ -713,8 +645,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     bundle_name="bundle.zip",
                     tenant=tenant,
                 ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
             # docs
@@ -722,8 +652,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
             docs_src_object_name = f"{repo_name}/docs/dist.zip"
 
             docs_bundle_path = "bundle/dist"
-            await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
+            await run_activity(
+                activity=CopyArtifactsToBucketActivity,
                 arg=CopyArtifactsToBucketActivityModel(
                     bucket_name=bucket_name,
                     src_object_name=docs_src_object_name,
@@ -732,13 +662,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     bundle_name="dist.zip",
                     tenant=tenant,
                 ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
             # statefulset pod creation for server
-            await workflow.execute_activity(  # yha htao
-                activity=KubernetesDeploymentActivity.defn,
+            await run_activity(  # yha htao
+                activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="zsegment-api",
@@ -786,12 +714,10 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
-                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=KubernetesDeploymentActivity.defn,
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="zsegment-engine",
@@ -839,39 +765,33 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
-                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # create droplet
             # template = template_env.get_template("dropletInitScript.sh")
             # init_script = template.render(debUrl=zsegment_config.deb_url)
-            # ip_address: str = await workflow.execute_activity(
-            #     activity=CreateDropletActivity.defn,
+            # ip_address: str = await run_activity(
+            #     activity=CreateDropletActivity,
             #     arg=CreateDropletActivityModel(
             #         name=tenant,
             #         product=ProductName,
             #         script=init_script,
             #     ),
-            #     retry_policy=CreateDropletActivity.get_retry_policy(),
-            #     start_to_close_timeout=CreateDropletActivity.get_timeout(),
             # )
 
             # # setup dns
-            # await workflow.execute_activity(
-            #     activity=CreateCloudflareDNSRecordActivity.defn,
+            # await run_activity(
+            #     activity=CreateCloudflareDNSRecordActivity,
             #     arg=CreateCloudflareDNSRecordActivityModel(
             #         domain_name=f"{tenant}.droplet.{zsegment_config.domain_name}",
             #         zone_id=zsegment_config.zone_id,
             #         content=ip_address,
             #     ),
-            #     retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-            #     start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             # )
 
             # vm pod scraper
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="zsegment-api-metrics",
@@ -879,12 +799,10 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     path="/api/v1/actuator/prometheus",
                     interval="5s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="zsegment-engine-metrics",
@@ -892,86 +810,72 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     path="/api/v1/actuator/prometheus",
                     interval="5s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # kubernetes service
             # For Dev
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-api",
                     ports={"http": 8090, "grpc": 6565},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-engine",
                     ports={"http": 8089},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="zsegment-api-grpc-nodeport",
                     selector="zsegment-api",
                     ports={"grpc": 6565},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
             # For Prod
-            # await workflow.execute_activity(
-            #     activity=KubernetesServiceActivity.defn,
+            # await run_activity(
+            #     activity=KubernetesServiceActivity,
             #     arg=KubernetesServiceActivityModel(
             #         namespace=tenant,
             #         service_name="zsegment-api-prod",
             #         ports={"http": 8090, "grpc": 6565},
             #     ),
-            #     retry_policy=KubernetesServiceActivity.get_retry_policy(),
-            #     start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             # )
 
-            # await workflow.execute_activity(
-            #     activity=KubernetesServiceActivity.defn,
+            # await run_activity(
+            #     activity=KubernetesServiceActivity,
             #     arg=KubernetesServiceActivityModel(
             #         namespace=tenant,
             #         service_name="zsegment-engine-prod",
             #         ports={"http": 8089},
             #     ),
-            #     retry_policy=KubernetesServiceActivity.get_retry_policy(),
-            #     start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             # )
 
-            # await workflow.execute_activity(
-            #     activity=KubernetesServiceActivity.defn,
+            # await run_activity(
+            #     activity=KubernetesServiceActivity,
             #     arg=KubernetesServiceActivityModel(
             #         namespace=tenant,
             #         service_name="zsegment-api-prod-grpc-nodeport",
             #         selector="zsegment-api-prod",
             #         ports={"grpc": 6565},
             #     ),
-            #     retry_policy=KubernetesServiceActivity.get_retry_policy(),
-            #     start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             # )
 
             # VS for dev
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
-            http_list = orjson.loads(output)
+            http_list = ijson_loads(output)
             if config.env != "production":
                 http_list.append(
                     {
@@ -980,48 +884,42 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "redirect": {"uri": f"/{image_tag}/"},
                     }
                 )
-            await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.api.{zsegment_config.domain_name}",
                     service_name="zsegment-api-vs",
                     payload=http_list,
                 ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=CreateKubernetesResourcesActivity.defn,
+            await run_activity(
+                activity=CreateKubernetesResourcesActivity,
                 arg=CreateKubernetesResourcesActivityModel(namespace=tenant),
-                retry_policy=CreateKubernetesResourcesActivity.get_retry_policy(),
-                start_to_close_timeout=CreateKubernetesResourcesActivity.get_timeout(),
             )
 
             # check pod running status
             for pod in ["zsegment-api", "zsegment-engine"]:
-                await workflow.execute_activity(
-                    activity=CheckPodRunningStatusActivity.defn,
+                await run_activity(
+                    activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(
                         namespace=tenant,
                         name=pod,
                     ),
-                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
-                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
 
             # update tenant status
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status="Completed", product=ProductName),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
+                    tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.zsegment
+                ),
             )
 
             # send mail
-            await workflow.execute_activity(
-                activity=SendAfterProvisioningMailActivity.defn,
+            await run_activity(
+                activity=SendAfterProvisioningMailActivity,
                 arg=SendAfterProvisioningMailActivityModel(
                     realm_name=realm_name,
                     tenant=tenant,
@@ -1035,22 +933,18 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     from_name=zsegment_config.sender_name,
                     email_from=zsegment_config.sender_email,
                 ),
-                retry_policy=SendAfterProvisioningMailActivity.get_retry_policy(),
-                start_to_close_timeout=SendAfterProvisioningMailActivity.get_timeout(),
             )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
                     tenant_name=tenant,
-                    status="Failed",
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
-                    product=ProductName,
+                    product=ProductEnum.zsegment,
                 ),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
 
@@ -1062,8 +956,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Signal to reject the workflow
         """
-        self.deny = True
+        self.denied = True

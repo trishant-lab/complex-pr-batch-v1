@@ -6,7 +6,7 @@ spec:
   version: v1
   metadata:
     - name: redisHost
-      value: cache-new.<<tenant>>.svc.cluster.local:6379
+      value: cache.<<tenant>>.svc.cluster.local:6379
     - name: redisPassword
       value: {{ op://314e DevOps/integration/cache/cache-admin-password }}
     - name: actorStateStore #Specifies whether the state store is being used for actor state data.

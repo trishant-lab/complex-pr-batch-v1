@@ -3,9 +3,9 @@
   "enabled": true,
   "totp": false,
   "emailVerified": true,
-  "firstName": "<<username>>",
-  "lastName": "",
-  "email": "support@veritable.app",
+  "firstName": "<<firstname>>",
+  "lastName": "<<lastname>>",
+  "email": "<<email>>",
   "access": {
     "manageGroupMembership": true,
     "view": true,

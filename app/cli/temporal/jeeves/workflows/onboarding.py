@@ -1,13 +1,19 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-import orjson
 import pydash
 from temporalio import workflow
 
-from app.cli.temporal.activities.aiVoiceSetup import AiVoiceSetupActivity, AiVoiceSetupActivityModel
-from app.cli.temporal.activities.chatwootSetup import ChatwootSetupActivity, ChatwootSetupActivityModel
-from app.cli.temporal.activities.cloudflareSetup import (
+from app.cli.activity_util import run_activity
+from app.cli.temporal.activities.ai_voice_setup import (
+    AiVoiceSetupActivity,
+    AiVoiceSetupActivityModel,
+)
+from app.cli.temporal.activities.chatwoot_setup import (
+    ChatwootSetupActivity,
+    ChatwootSetupActivityModel,
+)
+from app.cli.temporal.activities.cloudflare_setup import (
     CopyArtifactsToBucketActivity,
     CreateCloudflareBucketActivity,
     CreateCloudflareBucketCredentialsActivity,
@@ -16,39 +22,39 @@ from app.cli.temporal.activities.cloudflareSetup import (
     PropagateDNSRecordActivity,
     UpdateCORSForBucketActivity,
 )
-from app.cli.temporal.activities.databaseMigrationJob import (
+from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
-from app.cli.temporal.activities.deploymentPodCreation import (
+from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
 )
-from app.cli.temporal.activities.jeevesFetchLatestTag import (
+from app.cli.temporal.activities.jeeves_fetch_latest_tag import (
     JeevesFetchLatestTagActivity,
 )
-from app.cli.temporal.activities.jeevesNovuSetup import JeevesNovuSetupActivity
-from app.cli.temporal.activities.k8sconfigMap import (
+from app.cli.temporal.activities.jeeves_novu_setup import JeevesNovuSetupActivity
+from app.cli.temporal.activities.k8s_config_map import (
     K8sConfigMapCreationActivity,
     K8sConfigMapCreationActivityModel,
 )
-from app.cli.temporal.activities.k8sIstioVirtualService import (
+from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8snamespace import (
+from app.cli.temporal.activities.k8s_namespace import (
     K8sNamespaceCreationActivity,
     K8sNamespaceCreationActivityModel,
 )
-from app.cli.temporal.activities.k8sSecret import (
+from app.cli.temporal.activities.k8s_secret import (
     K8sSecretCreationActivity,
     K8sSecretCreationActivityModel,
 )
-from app.cli.temporal.activities.k8sService import (
+from app.cli.temporal.activities.k8s_service import (
     KubernetesServiceActivity,
     KubernetesServiceActivityModel,
 )
-from app.cli.temporal.activities.keycloakSetup import (
+from app.cli.temporal.activities.keycloak_setup import (
     JeevesKeycloakCreateIDPFlowActivity,
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
@@ -64,7 +70,7 @@ from app.cli.temporal.activities.keycloakSetup import (
     KeycloakRealmSetupActivityModel,
     get_ehr_based_idp_template,
 )
-from app.cli.temporal.activities.onePassword import (
+from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
     OnePasswordGetActivity,
@@ -72,7 +78,7 @@ from app.cli.temporal.activities.onePassword import (
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
 )
-from app.cli.temporal.activities.postgresSetup import (
+from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
     MatomoUserMappingActivity,
@@ -92,32 +98,36 @@ from app.cli.temporal.activities.redis import (
     RedisSetupActivity,
     RedisSetupActivityModel,
 )
-from app.cli.temporal.activities.sendMail import (
+from app.cli.temporal.activities.send_mail import (
     JeevesSendAfterProvisioningMailActivity,
     SendBeforeProvisioningMailActivity,
     SendBeforeProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.statefulSetPodCreation import (
+from app.cli.temporal.activities.slack_notification_activity import (
+    SlackNotificationActivity,
+    SlackNotificationActivityModel,
+)
+from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
 )
-from app.cli.temporal.activities.temporalNamespace import (
+from app.cli.temporal.activities.temporal_namespace import (
     TemporalNamespaceActivity,
     TemporalNamespaceActivityModel,
 )
-from app.cli.temporal.activities.updateTenantStatus import (
-    TenantStatus,
+from app.cli.temporal.activities.update_tenant_status import (
+    TenantCliStatus,
     UpdateTenantStatusActivity,
 )
-from app.cli.temporal.activities.vespaJob import VespaJobActivity
-from app.cli.temporal.activities.vmPodScrapper import (
+from app.cli.temporal.activities.vespa_job import VespaJobActivity
+from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperActivity,
     VMPodScrapperActivityModel,
 )
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.jeeves import TemplatePath
-from app.cli.temporal.jeeves.models.jeevesSpec import JeevesSpec
-from app.cli.temporal.activities.cloudflareSetup import (
+from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec
+from app.cli.temporal.models.cloudflare import (
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivityModel,
     CreateCloudflareBucketCredentialsActivityModel,
@@ -127,13 +137,14 @@ from app.cli.temporal.activities.cloudflareSetup import (
     UpdateCORSForBucketActivityModel,
 )
 from app.common import generate_password
+from app.core.ijson import ijson_loads
 from app.core.settings import AppSettings, JeevesSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 if TYPE_CHECKING:
-    from app.cli.cloudflareUtils import CloudflareBucketCredentials
+    from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 
 ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
@@ -147,7 +158,7 @@ class JeevesOnboardingWorkflow(Workflow):
 
     def __init__(self: "Workflow") -> None:
         self.approved: bool = False
-        self.deny: bool = False
+        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -198,6 +209,8 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordInsertIfNotExistsActivity.defn,
             JeevesFetchLatestTagActivity.defn,
             KeycloakCreateGroupActivity.defn,
+            JeevesFetchLatestTagActivity.defn,
+            KeycloakCreateGroupActivity.defn,
         ]
 
     @classmethod
@@ -224,8 +237,8 @@ class JeevesOnboardingWorkflow(Workflow):
 
         try:
             if not pydash.get(jeeves, "emailSent") and not is_deployment:
-                await workflow.execute_activity(
-                    activity=SendBeforeProvisioningMailActivity.defn,
+                await run_activity(
+                    activity=SendBeforeProvisioningMailActivity,
                     arg=SendBeforeProvisioningMailActivityModel(
                         user_details={
                             "firstName": first_name,
@@ -236,26 +249,22 @@ class JeevesOnboardingWorkflow(Workflow):
                         from_name=jeeves_config.sender_name,
                         email_from=jeeves_config.sender_email,
                     ),
-                    retry_policy=SendBeforeProvisioningMailActivity.get_retry_policy(),
-                    start_to_close_timeout=SendBeforeProvisioningMailActivity.get_timeout(),
                 )
 
             # Wait for approval or denial
             if not is_deployment:
-                await workflow.wait_condition(lambda: self.approved or self.deny)
+                await workflow.wait_condition(lambda: self.approved or self.denied)
 
             # Update tenant status if request is declined
-            if self.deny:
-                await workflow.execute_activity(
-                    activity=UpdateTenantStatusActivity.defn,
-                    arg=TenantStatus(
+            if self.denied:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
                         tenant_name=tenant,
-                        status="Declined",
+                        status=TenantStatusEnum.ApprovalDeclined,
                         error_msg="Request Declined",
-                        product=ProductName,
+                        product=ProductEnum.jeeves,
                     ),
-                    start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
-                    retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
                 )
                 return
 
@@ -264,8 +273,8 @@ class JeevesOnboardingWorkflow(Workflow):
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -273,36 +282,41 @@ class JeevesOnboardingWorkflow(Workflow):
                     secret_name="auth_secret",
                     secret_value=jeeves_config.auth_secret,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="keycloak_attribute_to_match_user",
-                    secret_value=jeeves_config.auth_secret,
+                    secret_value=jeeves_config.keycloak_attribute_to_match_user,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresUserCreationActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="ehr_field_to_match_user",
+                    secret_value=jeeves_config.ehr_field_to_match_user,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     password=postgres_password,
                 ),
-                retry_policy=PostgresUserCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresUserCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -310,12 +324,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     secret_name="pg_password",
                     secret_value=postgres_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -323,24 +335,20 @@ class JeevesOnboardingWorkflow(Workflow):
                     secret_name="atlas_pg_dsn",
                     secret_value=jeeves_config.atlas_pg_dsn_template.format(tenant=tenant, password=postgres_password),
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresSupavisorPollUserActivity.defn,
+            await run_activity(
+                activity=PostgresSupavisorPollUserActivity,
                 arg=PostgresSupavisorPollUserActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                     db_password=postgres_password,
                     template_path=TemplatePath,
                 ),
-                retry_policy=PostgresSupavisorPollUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSupavisorPollUserActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -348,23 +356,19 @@ class JeevesOnboardingWorkflow(Workflow):
                     secret_name="pg_dsn",
                     secret_value=jeeves_config.pg_dsn_template.format(tenant=tenant, password=postgres_password),
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresSchemaCreationActivity.defn,
+            await run_activity(
+                activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresSchemaCreationActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresSchemaCreationActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -372,43 +376,35 @@ class JeevesOnboardingWorkflow(Workflow):
                     secret_name="db_schema_name",
                     secret_value=postgres_schema_name,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAccessToUserActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=PostgresGrantAccessToUserActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAccessToUserActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=KeycloakUserMappingActivity.defn,
+            await run_activity(
+                activity=KeycloakUserMappingActivity,
                 arg=KeycloakUserMappingActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=KeycloakUserMappingActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakUserMappingActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=MatomoUserMappingActivity.defn,
+            await run_activity(
+                activity=MatomoUserMappingActivity,
                 arg=MatomoUserMappingActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
-                retry_policy=MatomoUserMappingActivity.get_retry_policy(),
-                start_to_close_timeout=MatomoUserMappingActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=PostgresGrantAllPrivilegesOnTableActivity.defn,
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnTableActivity,
                 arg=PostgresGrantAllPrivilegesOnTableActivityModel(
                     database_name=postgres_database_name,
                     username=postgres_username,
@@ -431,22 +427,16 @@ class JeevesOnboardingWorkflow(Workflow):
                         "user_group_membership",
                     ],
                 ),
-                retry_policy=PostgresGrantAllPrivilegesOnTableActivity.get_retry_policy(),
-                start_to_close_timeout=PostgresGrantAllPrivilegesOnTableActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=K8sNamespaceCreationActivity.defn,
-                arg=K8sNamespaceCreationActivityModel(
-                    namespace=tenant,
-                ),
-                retry_policy=K8sNamespaceCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sNamespaceCreationActivity.get_timeout(),
+            await run_activity(
+                activity=K8sNamespaceCreationActivity,
+                arg=K8sNamespaceCreationActivityModel(namespace=tenant),
             )
 
             # secret setup for docker registry
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="registrycred",
@@ -455,57 +445,47 @@ class JeevesOnboardingWorkflow(Workflow):
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # secret setup for redis password
-            await workflow.execute_activity(
-                activity=K8sSecretCreationActivity.defn,
+            await run_activity(
+                activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
                     name="cache-secret",
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
-                retry_policy=K8sSecretCreationActivity.get_retry_policy(),
-                start_to_close_timeout=K8sSecretCreationActivity.get_timeout(),
             )
 
             # setup chatwoot
-            await workflow.execute_activity(
-                activity=ChatwootSetupActivity.defn,
+            await run_activity(
+                activity=ChatwootSetupActivity,
                 arg=ChatwootSetupActivityModel(
                     tenant=tenant,
                     product=ProductName,
                     config=jeeves_config,
                 ),
-                retry_policy=ChatwootSetupActivity.get_retry_policy(),
-                start_to_close_timeout=ChatwootSetupActivity.get_timeout(),
             )
 
             # setup novu
-            await workflow.execute_activity(
-                activity=JeevesNovuSetupActivity.defn,
+            await run_activity(
+                activity=JeevesNovuSetupActivity,
                 arg=jeeves,
-                retry_policy=JeevesNovuSetupActivity.get_retry_policy(),
-                start_to_close_timeout=JeevesNovuSetupActivity.get_timeout(),
             )
 
             # setup redis
             redis_tenant_password = generate_password(length=20)
-            await workflow.execute_activity(
-                activity=RedisSetupActivity.defn,
+            await run_activity(
+                activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
                     namespace=tenant,
                     product=ProductName,
                     redis_tenant_password=redis_tenant_password,
                 ),
-                retry_policy=RedisSetupActivity.get_retry_policy(),
-                start_to_close_timeout=RedisSetupActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -513,12 +493,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     secret_name="redis_password",
                     secret_value=redis_tenant_password,
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordCreateOrUpdateActivity.defn,
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -526,12 +504,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     secret_name="redis_dsn",
                     secret_value=jeeves_config.redis_dsn_template.format(tenant=tenant),
                 ),
-                retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -539,48 +515,40 @@ class JeevesOnboardingWorkflow(Workflow):
                     key="org_domains",
                     key_value="",
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # dns setup for api
-            await workflow.execute_activity(
-                activity=CreateCloudflareDNSRecordActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
                     zone_id=jeeves_config.zone_id,
                     content=config.k8s_cname,
                 ),
-                retry_policy=CreateCloudflareDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareDNSRecordActivity.get_timeout(),
             )
 
             # create bucket
             bucket_name = f"{tenant}-{jeeves_config.domain_name.replace('.', '-')}"
-            await workflow.execute_activity(
-                activity=CreateCloudflareBucketActivity.defn,
+            await run_activity(
+                activity=CreateCloudflareBucketActivity,
                 arg=CreateCloudflareBucketActivityModel(
                     bucket_name=bucket_name, location_hint=jeeves_config.location_hint
                 ),
-                retry_policy=CreateCloudflareBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareBucketActivity.get_timeout(),
             )
 
             # link bucket to custom domain
-            await workflow.execute_activity(
-                activity=LinkBucketToDomainActivity.defn,
+            await run_activity(
+                activity=LinkBucketToDomainActivity,
                 arg=LinkBucketToDomainActivityModel(
                     bucket_name=bucket_name,
                     domain_name=f"{tenant}.{jeeves_config.domain_name}",
                     zone_id=jeeves_config.zone_id,
                 ),
-                retry_policy=LinkBucketToDomainActivity.get_retry_policy(),
-                start_to_close_timeout=LinkBucketToDomainActivity.get_timeout(),
             )
 
             # update cors for bucket
-            await workflow.execute_activity(
-                activity=UpdateCORSForBucketActivity.defn,
+            await run_activity(
+                activity=UpdateCORSForBucketActivity,
                 arg=UpdateCORSForBucketActivityModel(
                     bucket_name=bucket_name,
                     rules=[
@@ -600,14 +568,18 @@ class JeevesOnboardingWorkflow(Workflow):
                         }
                     ],
                 ),
-                retry_policy=UpdateCORSForBucketActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateCORSForBucketActivity.get_timeout(),
             )
 
             repo_name = "jeeves-ui"
             image_tag = server_image_tag = "sprint"
             dest_dir = f"{bucket_name}/{image_tag}"
             if config.env == "production":
+                image_tag = "production"
+                server_image_tag = await workflow.execute_activity(
+                    activity=JeevesFetchLatestTagActivity.defn,
+                    retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
+                    start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
+                )
                 image_tag = "production"
                 server_image_tag = await workflow.execute_activity(
                     activity=JeevesFetchLatestTagActivity.defn,
@@ -623,8 +595,8 @@ class JeevesOnboardingWorkflow(Workflow):
             bundle_path = "bundle/dist/admin"
 
             # copy artifacts to bucket
-            await workflow.execute_activity(
-                activity=CopyArtifactsToBucketActivity.defn,
+            await run_activity(
+                activity=CopyArtifactsToBucketActivity,
                 arg=CopyArtifactsToBucketActivityModel(
                     bucket_name=bucket_name,
                     src_object_name=src_object_name,
@@ -633,20 +605,16 @@ class JeevesOnboardingWorkflow(Workflow):
                     bundle_name="bundle.zip",
                     tenant=tenant,
                 ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            credentials: CloudflareBucketCredentials = await workflow.execute_activity(
-                activity=CreateCloudflareBucketCredentialsActivity.defn,
+            credentials: CloudflareBucketCredentials = await run_activity(
+                activity=CreateCloudflareBucketCredentialsActivity,
                 arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=bucket_name, read_only=False),
-                retry_policy=CreateCloudflareBucketCredentialsActivity.get_retry_policy(),
-                start_to_close_timeout=CreateCloudflareBucketCredentialsActivity.get_timeout(),
             )
 
             # cdn base url added to onepassword
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -654,13 +622,11 @@ class JeevesOnboardingWorkflow(Workflow):
                     key="base_url_cdn",
                     key_value=f"https://{tenant}.{jeeves_config.domain_name}",
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # s3 media bucket name added to onepassword
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -668,12 +634,34 @@ class JeevesOnboardingWorkflow(Workflow):
                     key="s3_media_bucket_name",
                     key_value=bucket_name,
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            # s3 access key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_access_key",
+                    key_value=credentials.access_key,
+                ),
+            )
+
+            # s3 secret key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_secret_key",
+                    key_value=credentials.secret_key,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -681,70 +669,34 @@ class JeevesOnboardingWorkflow(Workflow):
                     key="s3_ui_bucket_name",
                     key_value=bucket_name,
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
+            )
+            # s3 access key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_ui_bucket_access_key",
+                    key_value=credentials.access_key,
+                ),
             )
 
-            # s3 access key added to onepassword
-            if all([credentials.access_key, credentials.secret_key]):
-                await workflow.execute_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity.defn,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item="application-config",
-                        key="s3_access_key",
-                        key_value=credentials.access_key,
-                    ),
-                    retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                    start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
-                )
-
-                # s3 secret key added to onepassword
-                await workflow.execute_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity.defn,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item="application-config",
-                        key="s3_secret_key",
-                        key_value=credentials.secret_key,
-                    ),
-                    retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                    start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
-                )
-
-                # s3 access key added to onepassword
-                await workflow.execute_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity.defn,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item="application-config",
-                        key="s3_ui_bucket_access_key",
-                        key_value=credentials.access_key,
-                    ),
-                    retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                    start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
-                )
-
-                # s3 secret key added to onepassword
-                await workflow.execute_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity.defn,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item="application-config",
-                        key="s3_ui_bucket_secret_key",
-                        key_value=credentials.secret_key,
-                    ),
-                    retry_policy=OnePasswordCreateOrUpdateActivity.get_retry_policy(),
-                    start_to_close_timeout=OnePasswordCreateOrUpdateActivity.get_timeout(),
-                )
+            # s3 secret key added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="s3_ui_bucket_secret_key",
+                    key_value=credentials.secret_key,
+                ),
+            )
 
             # additional required onepassword configs
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -752,12 +704,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     key="base_ui_url",
                     key_value=jeeves_config.base_ui_url.format(tenant=tenant),
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -765,12 +715,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     key="mpd_api",
                     key_value=jeeves_config.mpd_api.format(tenant=tenant),
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=OnePasswordInsertIfNotExistsActivity.defn,
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
@@ -778,8 +726,6 @@ class JeevesOnboardingWorkflow(Workflow):
                     key="s3_mpd_api",
                     key_value=jeeves_config.s3_mpd_api.format(tenant=tenant),
                 ),
-                retry_policy=OnePasswordInsertIfNotExistsActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordInsertIfNotExistsActivity.get_timeout(),
             )
 
             # setup configmaps
@@ -800,8 +746,8 @@ class JeevesOnboardingWorkflow(Workflow):
                     "template_file_name": f"{config.env}-rclone.tmpl.conf",
                 },
             ]:
-                await workflow.execute_activity(
-                    activity=K8sConfigMapCreationActivity.defn,
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
                     arg=K8sConfigMapCreationActivityModel(
                         namespace=tenant,
                         name=config_map["name"],
@@ -810,14 +756,12 @@ class JeevesOnboardingWorkflow(Workflow):
                         cloudflare_r2_folder_path="jeeves-config",
                         template_payload={"tenant": tenant},
                     ),
-                    retry_policy=K8sConfigMapCreationActivity.get_retry_policy(),
-                    start_to_close_timeout=K8sConfigMapCreationActivity.get_timeout(),
                 )
 
             realm_name = tenant
             # keycloak realm setup
-            await workflow.execute_activity(
-                activity=KeycloakRealmSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
                     realm_name=realm_name,
                     domain=jeeves_config.domain_name,
@@ -829,13 +773,11 @@ class JeevesOnboardingWorkflow(Workflow):
                         "smtp_password": jeeves_config.keycloak_smtp_password,
                     },
                 ),
-                retry_policy=KeycloakRealmSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakRealmSetupActivity.get_timeout(),
             )
 
             # keycloak client setup
-            await workflow.execute_activity(
-                activity=KeycloakClientSetupActivity.defn,
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
                 arg=KeycloakClientSetupActivityModel(
                     tenant=tenant,
                     realm_name=realm_name,
@@ -844,8 +786,6 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_name="keycloak_jeeves_client.json",
                     template_payload={"chatwoot_domain": jeeves_config.chatwoot_domain},
                 ),
-                retry_policy=KeycloakClientSetupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakClientSetupActivity.get_timeout(),
             )
 
             roles = [
@@ -858,6 +798,10 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_access-users",
                 "_can-manage-groups",
                 "_allow-add-edit-assets",
+                "_allow-view-assets",
+                "_allow-view-all-courses",
+                "_access-manage-todos",
+                "_can-manage-groups",
                 "_allow-add-edit-courses",
                 "_allow-publish-assets",
                 "_allow-delete-assets",
@@ -868,33 +812,29 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_JEEVESALL",
             ]
             # keycloak client roles setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateClientRolesActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateClientRolesActivity,
                 arg=KeycloakCreateClientRolesActivityModel(
                     client_name="jeeves",
                     realm_name=realm_name,
                     roles=roles,
                 ),
-                retry_policy=KeycloakCreateClientRolesActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateClientRolesActivity.get_timeout(),
             )
 
             # keycloak user group setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateGroupActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateGroupActivity,
                 arg=KeycloakCreateGroupActivityModel(
                     realm_name=realm_name,
                     client_name="jeeves",
                     template_path=TemplatePath,
                     template_name="keycloak_user_group.json",
                 ),
-                retry_policy=KeycloakCreateGroupActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateGroupActivity.get_timeout(),
             )
 
             # Create IDP mappers
-            await workflow.execute_activity(
-                activity=JeevesKeycloakCreateIDPFlowActivity.defn,
+            await run_activity(
+                activity=JeevesKeycloakCreateIDPFlowActivity,
                 arg=KeycloakClientSetupActivityModel(
                     tenant=tenant,
                     realm_name=realm_name,
@@ -903,12 +843,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_name=get_ehr_based_idp_template(ehr=ehr_used),
                     template_payload={"idp_config": jeeves_config.idp_config},
                 ),
-                retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
-                start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=JeevesKeycloakCreateIDPFlowActivity.defn,
+            await run_activity(
+                activity=JeevesKeycloakCreateIDPFlowActivity,
                 arg=KeycloakClientSetupActivityModel(
                     tenant=tenant,
                     realm_name="help",
@@ -918,13 +856,11 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_payload={"idp_config": jeeves_config.idp_config, "auth_url": config.keycloak.auth_url},
                     is_prod=True,
                 ),
-                retry_policy=JeevesKeycloakCreateIDPFlowActivity.get_retry_policy(),
-                start_to_close_timeout=JeevesKeycloakCreateIDPFlowActivity.get_timeout(),
             )
 
             # keycloak tenant customer admin user setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
                     client_name="jeeves",
@@ -937,29 +873,25 @@ class JeevesOnboardingWorkflow(Workflow):
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     group_path="Admin",
                 ),
-                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
             # keycloak internal users setup
-            await workflow.execute_activity(
-                activity=KeycloakCreateInternalUsersActivity.defn,
+            await run_activity(
+                activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
                     realm_name=realm_name,
                     client_name="jeeves",
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=orjson.loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
+                    users=ijson_loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     group_path="Admin",
                 ),
-                retry_policy=KeycloakCreateInternalUsersActivity.get_retry_policy(),
-                start_to_close_timeout=KeycloakCreateInternalUsersActivity.get_timeout(),
             )
 
             # atlas job
-            await workflow.execute_activity(
-                activity=DatabaseMigrationJobActivity.defn,
+            await run_activity(
+                activity=DatabaseMigrationJobActivity,
                 arg=DatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="jeeves-db-schema-migration-job",
@@ -990,28 +922,22 @@ class JeevesOnboardingWorkflow(Workflow):
                     job_type="atlas",
                     product=ProductName,
                 ),
-                retry_policy=DatabaseMigrationJobActivity.get_retry_policy(),
-                start_to_close_timeout=DatabaseMigrationJobActivity.get_timeout(),
             )
 
             # vespa job
-            await workflow.execute_activity(
-                activity=VespaJobActivity.defn,
+            await run_activity(
+                activity=VespaJobActivity,
                 arg=jeeves,
-                retry_policy=VespaJobActivity.get_retry_policy(),
-                start_to_close_timeout=VespaJobActivity.get_timeout(),
             )
 
             # kubernetes service
-            await workflow.execute_activity(
-                activity=KubernetesServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
                     service_name="jeeves",
                     ports={"http": 8000},
                 ),
-                retry_policy=KubernetesServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesServiceActivity.get_timeout(),
             )
 
             template_env = get_env(template_path=TemplatePath)
@@ -1019,7 +945,7 @@ class JeevesOnboardingWorkflow(Workflow):
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
-            http_list = orjson.loads(output)
+            http_list = ijson_loads(output)
             if config.env != "production":
                 http_list.append(
                     {
@@ -1030,33 +956,29 @@ class JeevesOnboardingWorkflow(Workflow):
                 )
 
             # kubernetes virtual service
-            await workflow.execute_activity(
-                activity=KubernetesIstioVirtualServiceActivity.defn,
+            await run_activity(
+                activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
                     namespace=tenant,
                     host=f"{tenant}.api.{jeeves_config.domain_name}",
                     service_name="jeeves-vs",
                     payload=http_list,
                 ),
-                retry_policy=KubernetesIstioVirtualServiceActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesIstioVirtualServiceActivity.get_timeout(),
             )
 
-            dynamic_url_hash_key = await workflow.execute_activity(
-                activity=OnePasswordGetActivity.defn,
+            dynamic_url_hash_key = await run_activity(
+                activity=OnePasswordGetActivity,
                 arg=OnePasswordGetActivityModel(
                     tenant="INTEGRATION_COMMON_CONFIG" if config.env != "production" else "PRODUCTION_COMMON_CONFIG",
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="dynamic_url_hash_key",
                 ),
-                retry_policy=OnePasswordGetActivity.get_retry_policy(),
-                start_to_close_timeout=OnePasswordGetActivity.get_timeout(),
             )
 
             # deployment pod creation for server
-            await workflow.execute_activity(
-                activity=KubernetesDeploymentActivity.defn,
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="jeeves",
@@ -1105,13 +1027,11 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
-                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # deployment pod creation for cli
-            await workflow.execute_activity(
-                activity=KubernetesDeploymentActivity.defn,
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
                     namespace=tenant,
                     name="jeeves-worker",
@@ -1159,13 +1079,11 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
-                retry_policy=KubernetesDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=KubernetesDeploymentActivity.get_timeout(),
             )
 
             # vm pod scraper
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="jeeves-metrics",
@@ -1173,12 +1091,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     path="/metrics/",
                     interval="15s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
-            await workflow.execute_activity(
-                activity=VMPodScrapperActivity.defn,
+            await run_activity(
+                activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="jeeves-worker-metrics",
@@ -1186,85 +1102,72 @@ class JeevesOnboardingWorkflow(Workflow):
                     path="/metrics/",
                     interval="15s",
                 ),
-                retry_policy=VMPodScrapperActivity.get_retry_policy(),
-                start_to_close_timeout=VMPodScrapperActivity.get_timeout(),
             )
 
             # temporal namespace creation
-            await workflow.execute_activity(
-                activity=TemporalNamespaceActivity.defn,
+            await run_activity(
+                activity=TemporalNamespaceActivity,
                 arg=TemporalNamespaceActivityModel(
                     namespace=f"jeeves_{tenant}",
                 ),
-                retry_policy=TemporalNamespaceActivity.get_retry_policy(),
-                start_to_close_timeout=TemporalNamespaceActivity.get_timeout(),
             )
 
             # ai voice setup
-            await workflow.execute_activity(
-                activity=AiVoiceSetupActivity.defn,
+            await run_activity(
+                activity=AiVoiceSetupActivity,
                 arg=AiVoiceSetupActivityModel(
                     tenant=tenant,
                     config=jeeves_config,
                 ),
-                retry_policy=AiVoiceSetupActivity.get_retry_policy(),
-                start_to_close_timeout=AiVoiceSetupActivity.get_timeout(),
             )
 
             # propagate the dns record
-            await workflow.execute_activity(
-                activity=PropagateDNSRecordActivity.defn,
+            await run_activity(
+                activity=PropagateDNSRecordActivity,
                 arg=PropagateDNSRecordActivityModel(
                     domain_name=f"{tenant}.api.{jeeves_config.domain_name}",
                 ),
-                retry_policy=PropagateDNSRecordActivity.get_retry_policy(),
-                start_to_close_timeout=PropagateDNSRecordActivity.get_timeout(),
             )
 
             # check pod running status
             for pod in ["jeeves", "jeeves-worker"]:
-                await workflow.execute_activity(
-                    activity=CheckPodRunningStatusActivity.defn,
+                await run_activity(
+                    activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(
                         namespace=tenant,
                         name=pod,
                     ),
-                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
-                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
 
-            # update tenant status
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(tenant_name=tenant, status=TenantStatusEnum.Completed, product=ProductEnum.jeeves),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
-            )
-
-            # Commented for testing config changes.
-            # if not is_deployment:
-            #     await workflow.execute_activity(
-            #         activity=JeevesSendAfterProvisioningMailActivity.defn,
-            #         arg=JeevesSendAfterProvisioningMailActivityModel(
-            #             realm_name=realm_name,
-            #             client_id="jeeves",
-            #         ),
-            #         retry_policy=JeevesSendAfterProvisioningMailActivity.get_retry_policy(),
-            #         start_to_close_timeout=JeevesSendAfterProvisioningMailActivity.get_timeout(),
-            #     )
+            if not is_deployment:
+                # update tenant status
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
+                        tenant_name=tenant,
+                        status=TenantStatusEnum.Provisioned,
+                        product=ProductEnum.jeeves,
+                    ),
+                )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await workflow.execute_activity(
-                activity=UpdateTenantStatusActivity.defn,
-                arg=TenantStatus(
-                    tenant_name=tenant,
-                    status=TenantStatusEnum.Failed if not is_deployment else TenantStatusEnum.DeploymentFailed,
-                    error_msg=str(e),
-                    product=ProductEnum.jeeves,
+            if not is_deployment:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
+                        tenant_name=tenant,
+                        status=TenantStatusEnum.ProvisioningFailed,
+                        error_msg=str(e),
+                        product=ProductEnum.jeeves,
+                    ),
+                )
+            await run_activity(
+                activity=SlackNotificationActivity,
+                arg=SlackNotificationActivityModel(
+                    product=ProductName,
+                    error_message=str(e),
                 ),
-                retry_policy=UpdateTenantStatusActivity.get_retry_policy(),
-                start_to_close_timeout=UpdateTenantStatusActivity.get_timeout(),
             )
             raise e
 
@@ -1276,8 +1179,8 @@ class JeevesOnboardingWorkflow(Workflow):
         self.approved = True
 
     @workflow.signal
-    async def deny(self: "Workflow") -> None:
+    async def decline(self: "Workflow") -> None:
         """
         Signal to reject the workflow
         """
-        self.deny = True
+        self.denied = True

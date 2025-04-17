@@ -1,56 +1,68 @@
-import uuid
 from datetime import datetime
-from enum import Enum
+from enum import IntEnum
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+
+from app.core.ijson import ijson_loads
+from app.models.product import ProductEnum
 
 
-class TenantStatusEnum(str, Enum):
-    PendingApproval = "PendingApproval"
-    Approved = "Approved"
-    Declined = "Declined"
-    Provisioning = "Provisioning"
-    Completed = "Completed"
-    Failed = "Failed"
-    DeProvisioning = "DeProvisioning"
-    DeProvisioned = "DeProvisioned"
-    DeploymentFailed = "DeploymentFailed"
+class TenantStatusEnum(IntEnum):
+    NotApplicable = -2
+    Stale = 0
+    ApprovalPending = 3
+    ApprovalDeclined = -3
+    Approved = 4
+    Provisioning = 1
+    ProvisioningFailed = -1
+    Provisioned = 2
+    DeProvisioning = 5
+    DeProvisioned = 6
+    DeprovisioningFailed = -4
+
+    @classmethod
+    def can_update_tenant(cls, status: "TenantStatusEnum") -> bool:
+        """
+        Returns True if the tenant details can be updated
+        """
+        return status in [cls.ApprovalDeclined, cls.NotApplicable, cls.Stale, cls.ApprovalPending]
 
 
 class TenantCreateRequestModel(BaseModel):
-    name: str
-    product: uuid.UUID
+    tenantname: str
+    email: EmailStr
+    product: ProductEnum
+    formSchema: str
     status: TenantStatusEnum
-    source: None | str = None
-    requestor: dict
-    approvedBy: None | str = None
-    schema_: str
-
-
-class RequestorModel(BaseModel):
-    id: str
-    username: str
-    email: str
-    organization: str
+    orgname: str | None = None
+    source: str | None = None
+    approvedBy: str | None = None
+    formData: str
 
 
 class TenantResponseModel(BaseModel):
-    id: uuid.UUID
+    id: UUID
     name: str
     status: TenantStatusEnum
-    source: None | str = None
-    requestor: None | dict = None
-    product_schema: None | dict = None
-    approvedBy: None | str = None
+    orgname: str | None = None
+    email: EmailStr | None = None
+    source: str | None = None
+    formSchema: list[dict] | None = None
+    formData: dict | None = None
+    approvedBy: UUID | None = None
     created: datetime
-    provisionedDateTime: None | datetime = None
+    provisionedDateTime: datetime | None = None
 
-
-class UpdateRequestorModel(BaseModel):
-    tenant_id: uuid.UUID
-    username: str
-    email: str
-    organization: str
+    @classmethod
+    def json_to_model(cls, value: dict) -> "TenantResponseModel":
+        """
+        Convert db response to model
+        """
+        value["formData"] = ijson_loads(value["data"]) if value.get("data") else None
+        value["formSchema"] = ijson_loads(value["schema"]) if value.get("schema") else None
+        value["name"] = value.get("tenantname")
+        return cls(**value)
 
 
 class SuggestTenantNamesResponseModel(BaseModel):

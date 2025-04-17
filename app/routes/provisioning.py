@@ -4,39 +4,38 @@ import uuid
 from typing import TYPE_CHECKING
 
 import aiohttp
-import orjson
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Path
+from fastapi import APIRouter, BackgroundTasks, Depends, Path
 from loguru import logger
-from pydantic import ValidationError, BaseModel
+from pydantic import BaseModel
 from starlette.requests import Request
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
-from temporalio.client import WorkflowHandle
 from temporalio import client
-from temporalio.api.workflowservice.v1 import (
-    ListWorkflowExecutionsRequest,
-    ListArchivedWorkflowExecutionsRequest,
-    GetWorkflowExecutionHistoryRequest,
-    GetWorkflowExecutionHistoryResponse,
-)
 from temporalio.api.common.v1 import WorkflowExecution
 from temporalio.api.enums.v1 import EventType
+from temporalio.api.workflowservice.v1 import (
+    GetWorkflowExecutionHistoryRequest,
+    GetWorkflowExecutionHistoryResponse,
+    ListArchivedWorkflowExecutionsRequest,
+    ListWorkflowExecutionsRequest,
+)
+from temporalio.client import WorkflowHandle
 
-from .product import get_product
-from .tenant import create_tenant, TenantCreateRequestModel, get_valid_tenant_names
-from ..core.db import get_db_manager, DBManager
-from ..core.oauth2 import get_oauth_scheme
-from ..core.settings import get_settings, AppSettings
-from ..models.product import ProductEnum
-from ..models.tenant import TenantStatusEnum
-from ..slack_utils import send_slack_msg
+from app.core.db import DBManager, get_db_manager
+from app.core.ijson import ijson_dumps, ijson_loads
+from app.core.oauth2 import get_oauth_scheme
+from app.core.settings import AppSettings, get_settings
+from app.exceptions import errors
+from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
+from app.route_utils.product import validate_email_domain, validate_provisioning_details
+from app.routes.product import get_product
+from app.routes.tenant import TenantCreateRequestModel, create_tenant, get_existing_tenant_names
+from app.slack_utils import send_slack_msg
 
 provisioning_router = APIRouter()
 
-GET_TENANT_SQL = "getTenant.sql"
-
 
 if TYPE_CHECKING:
-    from ..cli.workflowbase import ProductWorkflow
+    from app.cli.base_workflow import ProductWorkflow
 
 
 async def send_slack_notification(product: ProductEnum, schema: dict, approval_required: bool, tenant_id: str) -> None:
@@ -45,7 +44,11 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
     """
     config: AppSettings = get_settings()
     schema_details = "\n".join(
-        [f"{key}: {value}" for key, value in schema.items() if value and key != "termsAndConditions[]"]
+        [
+            f"{key}: {value}"
+            for key, value in schema.items()
+            if value and key in ["firstName", "lastName", "organization", "email"]
+        ]
     )
     text = f"A new {product.value} tenant has been requested by \n {schema_details}"
     blocks = [
@@ -92,170 +95,118 @@ async def send_slack_notification(product: ProductEnum, schema: dict, approval_r
 
     blocks.append({"type": "divider"})
 
-    send_slack_msg(text=text, blocks=blocks)
-
-
-@provisioning_router.get(
-    "/validateEmail",
-    operation_id="validateEmail",
-)
-def validate_email(email: str) -> None:
-    """
-    Validate email address
-    """
-    # List of public domains to exclude
-    public_domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
-
-    # Regular expression for basic email validation
-    email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-
-    if not re.match(email_regex, email):
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST, detail="Invalid email address, Please provide a valid work email address"
-        )
-
-    # Extract the domain part of the email
-    domain = email.split("@")[1]
-
-    # Check if the domain is in the list of public domains
-    if domain in public_domains:
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST, detail="Invalid email address, Please provide a valid work email address"
-        )
-
-
-async def prepare_schema(product: ProductEnum, schema: dict) -> dict:
-    """
-    Prepare schema
-    """
-    email = schema.get("workEmail") if schema.get("workEmail") else schema.get("email")
-    schema["email"] = email
-
-    company_domain: str = email.split("@")[1].split(".")[0]
-
-    prefix = "portal"
-    existing_tenant_names = await get_valid_tenant_names(
-        product=product, tenant_names=[company_domain.lower(), f"{prefix}{company_domain.lower()}"]
-    )
-
-    if existing_tenant_names:
-        raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
-            detail="An active free trial exists for your organization. Please contact the admin to gain access.",
-        )
-
-    # if not company_domain[0].isdigit():
-    #     tenant_name = company_domain
-    # else:
-    #     tenant_name = f"{prefix}{company_domain}"
-
-    tenant_name = company_domain
-
-    schema["tenant"] = tenant_name if schema.get("tenant") is None else schema.get("tenant")
-
-    return schema
+    send_slack_msg(product=product, text=text, blocks=blocks)
 
 
 @provisioning_router.post(
-    "",
+    "/{product}",
     operation_id="provisioning",
 )
 async def provisioning(
-    product: ProductEnum,
-    schema: dict,
+    provisioning_details: dict,
     request: Request,
+    product: ProductEnum = Path(...),
     skip_approval: bool = False,
     background_tasks: BackgroundTasks = BackgroundTasks(),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
     Trigger provisioning workflow for the given product
     """
-    try:
-        schema: dict = await prepare_schema(product=product, schema=schema)
+    if product in ProductEnum.get_self_signup_products():
+        raise errors.SELF_SIGNUP_PRODUCT_PROVISIONING_NOT_ALLOWED.exc()
 
-        product_model = ProductEnum.get_input_model_class(product)
-        product_model.model_validate(schema)
-    except ValidationError as e:
-        logger.error(f"Invalid schema: {e.errors()}")
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Invalid schema")
-
-    user_id: dict = request.scope.get("user", {}).get("sub")
     product_details = await get_product(product=product)
     if not product_details:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
-    product_details = dict(product_details)
+        raise errors.PRODUCT_NOT_FOUND.exc()
 
+    _, provisioning_model = await validate_provisioning_details(
+        product=product, data=provisioning_details, schema=product_details.formSchema
+    )
+
+    validate_email_domain(product=product, email=provisioning_model.email)
+    existing_tenant_names = await get_existing_tenant_names(
+        product=product, email=None, tenant_names=[provisioning_model.tenant.lower()]
+    )
+
+    if existing_tenant_names:
+        raise errors.ALREADY_ALLOCATED_TENANT_NAME.exc()
+
+    user_id: str = request.scope.get("user", {}).get("sub")
     # Create tenant
     tenant_details = await create_tenant(
         TenantCreateRequestModel(
-            name=schema.get("tenant"),
-            product=product_details["id"],
-            status=TenantStatusEnum.Provisioning
-            if product_details["approvalRequired"] and skip_approval
-            else TenantStatusEnum.PendingApproval,
-            requestor={
-                "userName": f"{schema.get('firstName')} {schema.get('lastName')}",
-                "email": schema.get("email"),
-                "organization": schema.get("organization"),
-                "contactNumber": schema.get("contactNumber"),
-            },
+            tenantname=provisioning_model.tenant.lower(),
+            email=provisioning_model.email,
+            orgname=provisioning_model.organization,
+            product=product,
+            formSchema=ijson_dumps(product_details.formSchema),
+            status=(
+                TenantStatusEnum.Provisioning
+                if product_details.approvalRequired and skip_approval
+                else TenantStatusEnum.ApprovalPending
+            ),
             approvedBy=user_id if skip_approval else None,
-            schema_=orjson.dumps(schema).decode("utf-8"),
+            formData=ijson_dumps(provisioning_details),
         ),
     )
 
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
-    await product_workflow.onboard(schema)
+    onboard_schema = provisioning_model.model_dump()
+    onboard_schema["customerId"] = str(tenant_details.get("id"))
+    await product_workflow.onboard(onboard_schema)
     logger.info(f"Triggered provisioning workflow for product: {product.value}")
 
     background_tasks.add_task(
         send_slack_notification,
         product=product,
-        schema=schema,
-        approval_required=True if product_details["approvalRequired"] and not skip_approval else False,
+        schema=onboard_schema,
+        approval_required=True if product_details.approvalRequired and not skip_approval else False,
         tenant_id=tenant_details.get("id"),
     )
 
-    if product_details["approvalRequired"] and skip_approval:
+    if product_details.approvalRequired and skip_approval:
         logger.info(f"Skipping approval for product: {product.value}")
-        await product_workflow.approve(schema)
+        await product_workflow.approve(onboard_schema)
 
 
-@provisioning_router.post("/approveOrDecline/{product}", operation_id="approveOrDecline")
+@provisioning_router.post("/{product}/approveOrDecline", operation_id="approveOrDecline")
 async def approve_tenant(
     approval: bool,
     tenant_id: uuid.UUID,
     request: Request,
     tenant_name: None | str = None,
     product: ProductEnum = Path(...),
-    _param: dict = Depends(get_oauth_scheme()),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
     Approve tenant
     """
-    config: AppSettings = get_settings()
     user_id: dict = request.scope.get("user", {}).get("sub")
-    try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one(GET_TENANT_SQL, tenant_id=str(tenant_id))
-        await db.fetch_one(
-            "approveTenant.sql",
-            tenant_id=str(tenant_id),
-            user_id=user_id,
-            status=TenantStatusEnum.Provisioning if approval else TenantStatusEnum.Declined,
-        )
 
-    except Exception as e:
-        logger.error(f"Error approving tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error approving tenant")
+    db: DBManager = await get_db_manager()
+    response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))  # NOSONAR
+    if not response:
+        raise errors.TENANT_NOT_FOUND.exc()
 
-    schema = orjson.loads(response["schema"])
+    tenant_params = {"table": "customer", "payload": {'"approvedBy"': user_id}, "where": f"id='{tenant_id!s}'"}
+    operator_params = {
+        "table": "provisioningstatus",
+        "payload": {"status": TenantStatusEnum.Provisioning if approval else TenantStatusEnum.ApprovalDeclined},
+        "where": f"customerid='{tenant_id!s}'",
+    }
+    await db.execute_many([("put.sql", tenant_params), ("put.sql", operator_params)])
 
+    data = ijson_loads(response["data"])
+    product_schema = ijson_loads(response["schema"])
+    _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+    onboard_schema = provisioning_model.model_dump()
+    onboard_schema["customerId"] = str(tenant_id)
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
     if approval:
-        if tenant_name and schema["tenant"] != tenant_name:
-            workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=schema)
+        if tenant_name and onboard_schema["tenant"] != tenant_name:
+            workflow_handle: WorkflowHandle = await product_workflow.get_workflow_handle(schema=onboard_schema)
 
             response = await workflow_handle.describe()
 
@@ -264,81 +215,78 @@ async def approve_tenant(
                 await workflow_handle.terminate()
 
             # start the workflow
-            schema["tenant"] = tenant_name
+            data["tenant"] = tenant_name
             await db.fetch_one(
-                "updateTenantName.sql",
+                "update_tenant_name.sql",
                 tenant_id=str(tenant_id),
                 tenant_name=tenant_name,
-                product_schema=orjson.dumps(schema).decode("utf-8"),
+                product_schema=ijson_dumps(data),
             )
 
-            schema["emailSent"] = True
-            await product_workflow.onboard(schema)
-            await product_workflow.approve(schema)
+            onboard_schema["tenant"] = tenant_name
+            onboard_schema["emailSent"] = True
+            await product_workflow.onboard(onboard_schema)
+            await product_workflow.approve(onboard_schema)
 
         else:
-            await product_workflow.approve(schema)
-            logger.info(f"Approved {response['product_name']} workflow for tenant: {response['name']}")
+            await product_workflow.approve(onboard_schema)
+            logger.info(f"Approved {response['product']} workflow for tenant: {response['tenantname']}")
 
     else:
-        await product_workflow.decline(schema)
-        logger.info(f"Declined {response['product_name']} workflow for tenant: {response['name']}")
+        await product_workflow.decline(onboard_schema)
+        logger.info(f"Declined {response['product']} workflow for tenant: {response['tenantname']}")
 
 
-@provisioning_router.post("/retryProvisioning/{product}", operation_id="retryProvisioning")
+@provisioning_router.post("/{product}/retryProvisioning", operation_id="retryProvisioning")
 async def retry_provisioning(
     tenant_id: uuid.UUID,
     product: ProductEnum = Path(...),
-    _param: dict = Depends(get_oauth_scheme()),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> None:
     """
     Retry provisioning
     """
-    config: AppSettings = get_settings()
-
     product_details = await get_product(product=product)
     if not product_details:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="Product not found")
+        raise errors.PRODUCT_NOT_FOUND.exc()
 
     try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one(GET_TENANT_SQL, tenant_id=str(tenant_id))
+        db: DBManager = await get_db_manager()
+        response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))
         await db.fetch_one(
-            "updateTenant.sql",
-            tenant_name=response["name"],
+            "update_tenant.sql",
+            tenant_name=response["tenantname"],
             status=TenantStatusEnum.Provisioning.value,
             product=product.value,
         )
-        schema = orjson.loads(response["schema"])
-        schema["emailSent"] = True
+        product_schema = ijson_loads(response["schema"])
+        data = ijson_loads(response["data"])
+        _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+        onboard_schema = provisioning_model.model_dump()
 
-        product_details = dict(product_details)
-
+        onboard_schema["emailSent"] = True
+        onboard_schema["customerId"] = str(tenant_id)
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
-        await product_workflow.onboard(schema)
+        await product_workflow.onboard(onboard_schema)
 
-        if product_details["approvalRequired"]:
-            await product_workflow.approve(schema)
+        if product_details.approvalRequired:
+            await product_workflow.approve(onboard_schema)
 
-        # await product_workflow.approve(schema)
-        logger.info(f"Retried provisioning workflow for tenant: {response['name']}")
+        logger.info(f"Retried provisioning workflow for tenant: {response['tenantname']}")
     except Exception as e:
         logger.error(f"Error retrying provisioning: {e}")
-        raise HTTPException(
-            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error retrying provisioning",
-        )
+        raise errors.RETRY_PROVISIONING_ERROR.exc(e=e)
 
 
 class Logs(BaseModel):
-    loglevel: str
-    log: str
+    loglevel: str | None = None
+    log: str | None = None
 
 
 class WorkflowSteps(BaseModel):
     activityName: str
     status: str
-    logs: list[Logs]
+    logs: list[Logs] | None = None
 
 
 async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetime.datetime) -> dict:
@@ -352,7 +300,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
     from_ = int(from_.timestamp()) * 1000
     to_ = int(datetime.datetime.now().timestamp()) * 1000
 
-    payload = orjson.dumps(
+    payload = ijson_dumps(
         {
             "queries": [
                 {
@@ -370,7 +318,7 @@ async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetim
             "from": str(from_),
             "to": str(to_),
         }
-    ).decode()
+    )
 
     async with aiohttp.ClientSession() as session:
         response = await session.post(url, headers=headers, data=payload, timeout=aiohttp.ClientTimeout(total=120))
@@ -461,34 +409,38 @@ async def get_latest_run_id_by_workflow_id(workflow_id: str) -> str | None:
     return None
 
 
-@provisioning_router.get("/workflowSteps/{product}", operation_id="workflowSteps")
+@provisioning_router.get("/{product}/workflowSteps", operation_id="workflowSteps")
 async def get_workflow_steps(
     tenant_id: uuid.UUID,
     product: ProductEnum = Path(...),
-    _param: dict = Depends(get_oauth_scheme()),
+    _: dict = Depends(get_oauth_scheme()),
 ) -> list[WorkflowSteps]:
     """
     Get workflow steps and logs
     """
     config: AppSettings = get_settings()
     try:
-        db: DBManager = await get_db_manager(config.postgres.dsn)
-        response = await db.fetch_one(GET_TENANT_SQL, tenant_id=str(tenant_id))
-        schema = orjson.loads(response["schema"])
+        db: DBManager = await get_db_manager()
+        response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))
+        data = {
+            "tenant": response["tenantname"],
+            "email": response["email"],
+            "product": response["product"],
+        }
     except Exception as e:
         logger.error(f"Error fetching tenant: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching tenant")
+        raise errors.TENANT_NOT_FOUND.exc()
 
     try:
         product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
 
-        workflow_id: str = product_workflow.get_workflow_id(schema)
+        workflow_id: str = product_workflow.get_workflow_id(data)
         run_id: str = await get_latest_run_id_by_workflow_id(workflow_id)
 
         workflow_response: GetWorkflowExecutionHistoryResponse = await fetch_workflow_history(workflow_id, run_id)
     except Exception as e:
         logger.error(f"Error fetching workflow history: {e}")
-        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail="Error fetching workflow history")
+        raise errors.WORKFLOW_HISTORY_FETCH_ERROR.exc(e=e)
 
     workflow_steps = {}
     for event in workflow_response.history.events:

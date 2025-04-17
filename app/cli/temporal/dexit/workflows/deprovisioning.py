@@ -1,9 +1,10 @@
 from collections.abc import Callable
 
+import pydash
 from temporalio import workflow
 
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.dexit.models.dexitSpec import DexitSpec
+from app.cli.temporal.models.deboard import DeboardWorkflowInput
 
 
 @workflow.defn
@@ -20,71 +21,64 @@ class DexitDeProvisioningWorkflow(Workflow):
         return []
 
     @classmethod
-    def get_workflow_id(cls: "Workflow", workflow_input: DexitSpec) -> str | None:
+    def get_workflow_id(cls: "Workflow", workflow_input: DeboardWorkflowInput) -> str | None:
         """
         Return unique workflow id from workflow input, guarantees exactly one execution of workflow
         - Add combination of one or more fields from `workflow_input` to uniquely identify workflow
         """
-        return f"de_provisioning_{workflow_input.tenant}"
+        return f"dexit_deprovisioning_workflow_{pydash.get(workflow_input, 'tenant_name')}"
 
     @workflow.run
-    async def run(self: "Workflow", workflow_input: DexitSpec) -> None:
+    async def run(self: "Workflow", workflow_input: DeboardWorkflowInput) -> None:
         """
         Entry point for workflow
         """
         pass
         # delete k8s service
-        # await workflow.execute_activity(
-        #     DeleteKubernetesServiceActivity.defn,
+        # await run_activity(
+        #     activity=DeleteKubernetesServiceActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteKubernetesServiceActivity.get_retry_policy(),
         # )
 
         # # delete k8s virtual service
-        # await workflow.execute_activity(
-        #     DeleteKubernetesVirtualServiceActivity.defn,
+        # await run_activity(
+        #     activity=DeleteKubernetesVirtualServiceActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteKubernetesVirtualServiceActivity.get_retry_policy(),
         # )
 
         # # delete provisioning job
-        # await workflow.execute_activity(
-        #     DeleteProvisioningJobActivity.defn,
+        # await run_activity(
+        #     activity=DeleteProvisioningJobActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteProvisioningJobActivity.get_retry_policy(),
         # )
 
         # # delete deployment
-        # await workflow.execute_activity(
-        #     DeleteDeploymentActivity.defn,
+        # await run_activity(
+        #     activity=DeleteDeploymentActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteDeploymentActivity.get_retry_policy(),
         # )
 
         # # delete config map
-        # await workflow.execute_activity(
-        #     DeleteConfigMapActivity.defn,
+        # await run_activity(
+        #     activity=DeleteConfigMapActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteConfigMapActivity.get_retry_policy(),
         # )
 
         # # drop ui bundles
-        # await workflow.execute_activity(
-        #     DropUIBundlesActivity.defn,
+        # await run_activity(
+        #     activity=DropUIBundlesActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DropUIBundlesActivity.get_retry_policy(),
         # )
 
         # # delete dns
-        # await workflow.execute_activity(
-        #     DeleteDNSActivity.defn,
+        # await run_activity(
+        #     activity=DeleteDNSActivity,
         #     arg=workflow_input,
         #     start_to_close_timeout=timedelta(seconds=120),
-        #     retry_policy=DeleteDNSActivity.get_retry_policy(),
         # )

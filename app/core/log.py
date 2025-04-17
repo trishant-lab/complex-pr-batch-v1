@@ -1,15 +1,9 @@
-from __future__ import annotations
-import os
+import logging
 import sys
-import typing
 from collections.abc import Callable
 from typing import Any
 
 from loguru import logger
-
-
-if typing.TYPE_CHECKING:
-    from loguru import Logger
 
 
 def patch(logger_method: Callable) -> Callable:
@@ -18,7 +12,7 @@ def patch(logger_method: Callable) -> Callable:
     kwargs   :   key word args passed at the time of logging , all parameters except message
     """
 
-    def patched(self: Logger, message: str, *args: Any, **kwargs: Any) -> None:
+    def patched(self: Any, message: str, *args: Any, **kwargs: Any) -> None:
         self = self.opt(depth=1).bind(**kwargs)
         logger_method(self, message, *args, **kwargs)
 
@@ -30,37 +24,44 @@ for log_method in ("trace", "debug", "info", "error", "warning", "critical"):
     setattr(logger.__class__, log_method, patch(method))
 
 
-def format(record) -> str:  # noqa ANN001, loguru.Record
+def log_format(record: dict[str, str | dict | int]) -> str:
     """
     format the log message with the string 'format_'
     """
-    format_ = 'time={time}   loglevel={level}   filename={name}   line={line}   message="{message}"  '
-    if "action" in record["extra"].keys():
-        format_ += 'action="{extra[action]}"  '
-    if "status" in record["extra"].keys():
-        format_ += 'status="{extra[status]}"  '
-    if "detail" in record["extra"].keys():
-        format_ += 'detail="{extra[detail]}"  '
-    if "exception" in record["extra"].keys():
-        format_ += 'exception="{extra[exception]}"  '
-    for keys in record["extra"].keys():
-        if keys not in {"action", "status", "detail", "exception"}:
-            format_ += f'{keys}="{{extra[{keys}]}}"   '
+    format_ = 'time={time}   loglevel={level}   filename={name}   line={line}   message="{message}"   '
+
+    for key in ["requestID", "workflowType", "workflowID", "workflowRunID", "traceID", "spanID"]:
+        if record["extra"].get(key):
+            format_ += f"{key}={{extra[{key}]}}   "
+
     return format_ + "\n"
 
 
-logger.remove()
-logger.add(sys.stderr, format=format)
-
-
-def setup_logging(log_dir: str, log_file_path: str) -> None:
+def log_filter(record: dict) -> bool:
     """
-    log file handler to the sink location
-    rotation   :  time of new file creation
-    format     :  format of the log message
-    log_file_path: path of the log file to be stored
+    Filters out logs
     """
-    if not os.path.isdir(log_dir):
-        os.makedirs(log_dir)
+    message: str = record.get("message") or ""
+    if message.startswith("OPTIONS") or message.__contains__("/metrics"):
+        return False
+    return True
 
-    logger.add(sink=log_file_path, rotation="00:00", format=format)
+
+def __disable_logging(name: str) -> None:
+    """
+    disable logging
+    """
+    __logger = logging.getLogger(name)
+    __logger.disabled = True
+
+
+def configure_logging() -> None:
+    """
+    Configure logging
+    """
+    __disable_logging("uvicorn.access")
+    logger.remove()
+    logger.add(sys.stderr, format=log_format, filter=log_filter, enqueue=True)
+
+
+configure_logging()

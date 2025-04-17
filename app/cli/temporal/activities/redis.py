@@ -13,7 +13,10 @@ from kubernetes.client import (
     V1KeyToPath,
     V1LocalObjectReference,
     V1ObjectMeta,
+    V1Pod,
+    V1PodList,
     V1PodSpec,
+    V1PodStatus,
     V1PodTemplateSpec,
     V1SecretKeySelector,
     V1Service,
@@ -23,15 +26,12 @@ from kubernetes.client import (
     V1StatefulSetSpec,
     V1Volume,
     V1VolumeMount,
-    V1PodList,
-    V1Pod,
-    V1PodStatus,
 )
-
 from kubernetes.dynamic.exceptions import ConflictError
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
+from app.cli.k8s_resource_base_class import K8sResourceBaseClass
 from app.cli.k8s_util import (
     ResourceKindEnum,
     api_client,
@@ -39,9 +39,8 @@ from app.cli.k8s_util import (
     get_k8s_core_v1_api_client,
     get_resource,
 )
-from app.cli.k8sResourceBaseClass import K8sResourceBaseClass
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_info, log_error
+from app.cli.temporal.core.log import log_error, log_info
 
 CACHE_HOST = "cache.{tenant}.svc.cluster.local"
 CACHE_PORT = 6379
@@ -134,7 +133,11 @@ class CacheConfigMap:
                 ),
             )
         else:
-            data = {"port": CACHE_PORT, "bind": "0.0.0.0", f"namespace.{product}": redis_tenant_password}  # noqa: S104  #nosec
+            data = {
+                "port": CACHE_PORT,
+                "bind": "0.0.0.0",  # noqa: S104
+                f"namespace.{product}": redis_tenant_password,
+            }  # nosec
             self.core_v1_api.create_namespaced_config_map(
                 namespace=self.namespace,
                 body=V1ConfigMap(

@@ -1,9 +1,8 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.temporal.hdp.models.hdpSpec import HDPSpec
-from app.cli.workflowbase import ProductWorkflow
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.hdp.models.hdp_spec import HDPSpec
 from app.core.cli_settings import WorkerQueues
-
 
 ProductName = "hdp"
 
@@ -39,8 +38,8 @@ class HdpWorkflow(ProductWorkflow):
         """
         approve method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=HDPSpec(**schema), workflow=HDPOnboardingWorkflow)
 
@@ -51,20 +50,20 @@ class HdpWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(workflow_input=HDPSpec(**schema), workflow=HDPOnboardingWorkflow)
 
-        await handle.signal(HDPOnboardingWorkflow.deny)
+        await handle.signal(HDPOnboardingWorkflow.decline)
 
     @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         return await get_workflow_handle(workflow_input=HDPSpec(**schema), workflow=HDPOnboardingWorkflow)
 

@@ -1,7 +1,7 @@
 from temporalio.client import WorkflowHandle
 
-from app.cli.temporal.zsegment.models.zsegmentSpec import ZSegmentSpec
-from app.cli.workflowbase import ProductWorkflow
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.zsegment.models.zsegment_spec import ZSegmentSpec
 from app.core.cli_settings import WorkerQueues
 
 ProductName = "zsegment"
@@ -17,8 +17,8 @@ class ZSegmentWorkflow(ProductWorkflow):
         """
         onboard method
         """
-        from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
+        from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
         await trigger_workflow(
             workflow_input=ZSegmentSpec(**schema),
@@ -55,7 +55,7 @@ class ZSegmentWorkflow(ProductWorkflow):
 
         handle = await get_workflow_handle(workflow_input=ZSegmentSpec(**schema), workflow=ZSegmentOnboardingWorkflow)
 
-        await handle.signal(ZSegmentOnboardingWorkflow.deny)
+        await handle.signal(ZSegmentOnboardingWorkflow.decline)
 
     @staticmethod
     async def get_workflow_handle(schema: dict) -> WorkflowHandle:

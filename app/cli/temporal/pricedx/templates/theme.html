@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .content-container {
+        background-color: #ffffff;
+        text-align: center;
+        margin: 30px auto;
+        max-width: 600px;
+        overflow: auto;
+        height: auto;
+      }
+      .header {
+        font-size: 24px;
+        font-weight: 600;
+        color: #fff;
+        padding: 16px 0;
+        background-color: #2563eb;
+      }
+      .container {
+        background: #f0f0f0;
+        text-align: center;
+        padding: 16px 0;
+      }
+      .container img {
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+  <body style="background: #f6f6f6">
+    <div class="content-container">
+      <div class="header">Team Pricedx</div>
+      <div style="margin: 28px 28px; text-align: left">{{ body | safe }}</div>
+      <div class="container">
+        <div>
+          <p style="color: #434343; font-weight: 300; margin: 0px">
+            (C) 2025 314e Corporation. All rights reserved.
+          </p>
+          <p style="color: #434343; font-weight: 300; margin: 5px 0px">
+            This email is sent by
+            <a href="https://www.314e.com">314e Corporation</a>,
+          </p>
+          <p style="color: #434343; font-weight: 300; margin: 5px 0px">
+            301 Oxford Valley Rd., Ste 1303B, Yardley, PA 19067
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

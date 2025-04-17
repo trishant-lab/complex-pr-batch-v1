@@ -1,0 +1,3 @@
+"""
+Self signup routes
+"""
