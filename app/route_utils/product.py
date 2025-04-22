@@ -60,7 +60,7 @@ async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
 
 async def validate_provisioning_details(
     product: ProductEnum, data: dict, schema: list[dict] | None = None
-) -> ProductSchemaDataType:
+) -> tuple[list[dict], ProductSchemaDataType]:
     """
     Validate provisioning details
     """
@@ -86,14 +86,15 @@ async def validate_provisioning_details(
         product_schema = PRODUCT_SCHEMA_MAP[product]
         provisioning_model = product_schema.model_validate(model_data)
     except ValidationError as e:
-        raise errors.INVALID_SCHEMA.exc(errors=e.errors())
+        error_message = [error["msg"] for error in e.errors()]
+        raise errors.INVALID_SCHEMA.exc(e=error_message)
 
-    return provisioning_model
+    return schema, provisioning_model
 
 
 # Map form field types to Pydantic types
 TYPE_MAPPING = {
-    "text": (str, EmailStr),
+    "text": (str, EmailStr, PhoneNumber),
     "email": (str, EmailStr),
     "number": (int, float, PhoneNumber),
     "select": (str, Enum),

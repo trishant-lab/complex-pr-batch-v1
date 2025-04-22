@@ -73,7 +73,6 @@ from app.cli.temporal.activities.tenant_crd import (
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
 )
-from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
 from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
@@ -91,7 +90,6 @@ from app.common import generate_password
 from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.settings import AppSettings, VeritableSettings, get_settings
 from app.models.product import ProductEnum
-from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 if TYPE_CHECKING:
@@ -112,7 +110,6 @@ class VeritableDeploymentWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            UpdateTenantStatusActivity.defn,
             K8sNamespaceCreationActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             PostgresUserCreationActivity.defn,
@@ -515,10 +512,11 @@ class VeritableDeploymentWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = f"{tenant}"
+            realm_name = f"veritable_{tenant}"
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
+                    tenant=tenant,
                     realm_name=realm_name,
                     domain=veritable_config.domain_name,
                     template_path=TemplatePath,
@@ -879,16 +877,6 @@ class VeritableDeploymentWorkflow(Workflow):
                 ),
             )
 
-            # update tenant status
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(
-                    tenant_name=tenant,
-                    status=TenantStatusEnum.Deployed,
-                    product=ProductEnum.veritable,
-                ),
-            )
-
             # check pod running status
             for pod in ["veritable", "veritable-cli"]:
                 await run_activity(
@@ -912,13 +900,4 @@ class VeritableDeploymentWorkflow(Workflow):
 
         except Exception as e:
             workflow.logger.error(f"Error in deployment workflow: {e}")
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(
-                    tenant_name=tenant,
-                    status=TenantStatusEnum.DeploymentFailed,
-                    error_msg=str(e),
-                    product=ProductEnum.veritable,
-                ),
-            )
             raise e

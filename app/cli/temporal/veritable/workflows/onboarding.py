@@ -520,10 +520,11 @@ class VeritableOnboardingWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = f"{tenant}"
+            realm_name = f"veritable_{tenant}"
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
+                    tenant=tenant,
                     realm_name=realm_name,
                     domain=veritable_config.domain_name,
                     template_path=TemplatePath,
@@ -540,7 +541,7 @@ class VeritableOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=f"veritable_{tenant}",
+                    realm_name=realm_name,
                     client_name="app",
                     username=veritable.email,
                     email=veritable.email,
@@ -555,11 +556,11 @@ class VeritableOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
-                    realm_name=f"veritable_{tenant}",
+                    realm_name=realm_name,
                     client_name="app",
                     users=[
                         {
-                            "username": "admin",
+                            "username": veritable_config.sendgrid.support_mail,
                             "email": veritable_config.sendgrid.support_mail,
                             "firstname": "Admin",
                             "lastname": "",

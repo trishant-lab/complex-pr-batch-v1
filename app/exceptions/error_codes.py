@@ -199,7 +199,7 @@ R1012 = {
 
 R1013 = {
     "statusCode": status.HTTP_400_BAD_REQUEST,
-    "displayMessage": "Invalid schema missing required fields mapping!",
+    "displayMessage": "{e}",
     "followUpAction": [],
     "possibleResolutions": ["Please check the schema and try again."],
 }

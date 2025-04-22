@@ -120,7 +120,7 @@ async def provisioning(
     if not product_details:
         raise errors.PRODUCT_NOT_FOUND.exc()
 
-    provisioning_model = await validate_provisioning_details(
+    _, provisioning_model = await validate_provisioning_details(
         product=product, data=provisioning_details, schema=product_details.formSchema
     )
 
@@ -199,7 +199,7 @@ async def approve_tenant(
 
     data = ijson_loads(response["data"])
     product_schema = ijson_loads(response["schema"])
-    provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+    _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
     onboard_schema = provisioning_model.model_dump()
     onboard_schema["customerId"] = str(tenant_id)
     product_workflow: ProductWorkflow = ProductEnum.get_class(product)()
@@ -261,7 +261,7 @@ async def retry_provisioning(
         )
         product_schema = ijson_loads(response["schema"])
         data = ijson_loads(response["data"])
-        provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
+        _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=product_schema)
         onboard_schema = provisioning_model.model_dump()
 
         onboard_schema["emailSent"] = True
@@ -279,14 +279,14 @@ async def retry_provisioning(
 
 
 class Logs(BaseModel):
-    loglevel: str
-    log: str
+    loglevel: str | None = None
+    log: str | None = None
 
 
 class WorkflowSteps(BaseModel):
     activityName: str
     status: str
-    logs: list[Logs]
+    logs: list[Logs] | None = None
 
 
 async def get_grafana_logs(config: AppSettings, workflow_id: str, from_: datetime.datetime) -> dict:
@@ -422,7 +422,11 @@ async def get_workflow_steps(
     try:
         db: DBManager = await get_db_manager()
         response = await db.fetch_one("get_tenant.sql", tenant_id=str(tenant_id))
-        data = ijson_loads(response["data"])
+        data = {
+            "tenant": response["tenantname"],
+            "email": response["email"],
+            "product": response["product"],
+        }
     except Exception as e:
         logger.error(f"Error fetching tenant: {e}")
         raise errors.TENANT_NOT_FOUND.exc()

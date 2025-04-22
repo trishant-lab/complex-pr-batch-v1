@@ -29,10 +29,11 @@ async def deploy_workflow(tenant_name: str, product: ProductEnum) -> None:
         schema = ijson_loads(response["schema"])
 
         try:
-            provisioning_model = await validate_provisioning_details(product=product, data=data, schema=schema)
+            _, provisioning_model = await validate_provisioning_details(product=product, data=data, schema=schema)
         except ValidationError as e:
             logger.error(f"Invalid schema: {e.errors()}")
-            raise errors.INVALID_SCHEMA.exc(e=e)
+            error_message = [error["msg"] for error in e.errors()]
+            raise errors.INVALID_SCHEMA.exc(e=error_message)
 
         deploy_schema = provisioning_model.model_dump()
         deploy_schema["customerId"] = str(response["id"])

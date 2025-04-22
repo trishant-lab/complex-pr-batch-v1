@@ -10,17 +10,10 @@
 ### Creating new migration file
 ```atlas migrate new {descriptive_name}```
 
-### Set Atlas Token
-export ATLAS_TOKEN={...}
-
 ### Usage
 - To print queries
     ```
     atlas migrate apply --env prod --tx-mode all --dry-run
-    ```
-- Dry run, execute queires & abort transaction
-    ```
-    atlas migrate apply --env prod --tx-mode all --dry-run --var dry_run=true
     ```
 - To run migrations
     ```

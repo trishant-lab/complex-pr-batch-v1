@@ -1,5 +1,5 @@
 {
-  "realm": "veritable_<<tenant>>",
+  "realm": "<<realm_name>>",
   "displayName": "",
   "displayNameHtml": "",
   "notBefore": 0,
@@ -440,13 +440,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/veritable_<<tenant>>/account/",
+      "baseUrl": "/realms/<<realm_name>>/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/veritable_<<tenant>>/account/*"
+        "/realms/<<realm_name>>/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -762,13 +762,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/veritable_<<tenant>>/console/",
+      "baseUrl": "/admin/<<realm_name>>/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/veritable_<<tenant>>/console/*"
+        "/admin/<<realm_name>>/console/*"
       ],
       "webOrigins": [
         "+"

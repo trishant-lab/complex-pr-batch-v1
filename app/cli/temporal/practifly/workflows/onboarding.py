@@ -480,10 +480,11 @@ class PractiflyOnboardingWorkflow(Workflow):
             )
 
             # keycloak realm setup
-            realm_name = f"{tenant}"
+            realm_name = f"practifly_{tenant}"
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
                 arg=KeycloakRealmSetupActivityModel(
+                    tenant=tenant,
                     realm_name=realm_name,
                     domain=practifly_config.domain_name,
                     template_path=TemplatePath,
@@ -494,7 +495,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
                     client_name="app",
                     username=email,
                     email=email,
@@ -509,7 +510,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
                     client_name="app",
                     users=[
                         {
@@ -811,7 +812,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=SendAfterProvisioningMailActivity,
                 arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=f"practifly_{tenant}",
+                    realm_name=realm_name,
                     tenant=tenant,
                     user_details={
                         "firstName": first_name,
