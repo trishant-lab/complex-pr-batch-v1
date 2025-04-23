@@ -953,7 +953,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            dynamic_url_hash_key = await run_activity(
+            await run_activity(
                 activity=OnePasswordGetActivity,
                 arg=OnePasswordGetActivityModel(
                     tenant="INTEGRATION_COMMON_CONFIG" if config.env != "production" else "PRODUCTION_COMMON_CONFIG",
@@ -1005,6 +1005,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
+                        {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
                     ],
                 ),
