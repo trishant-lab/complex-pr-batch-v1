@@ -31,6 +31,7 @@ from app.cli.temporal.jeeves.template_main import (
     get_assignment_updated_custom_email,
     get_feedback_created_custom_email,
     get_layout_content,
+    get_review_comment_added_custom_email,
 )
 from app.core.settings import AppSettings, get_settings
 from app.one_password_util import OnePasswordUtil
@@ -529,6 +530,22 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             "config": config,
             "novu_api_key": novu_api_key,
             "digest": False,
+        },
+        {
+            "event_name": "jeeves-review-comment-added",
+            "custom_email": get_review_comment_added_custom_email,
+            "email_subject": "New Review Comment on an asset",
+            "chat_content": (
+                "A new review comment has been posted on an asset {{asset.asset_title}}.\n"
+                "Remarks: {{review.review_note}}\n"
+                "Link to edit the asset: {{asset.asset_link}}"
+            ),
+            "inapp_content": (
+                "A new review comment has been posted on "
+                "an asset {{asset.asset_title}}.<br />Remarks: {{review.review_note}}"
+            ),
+            "config": config,
+            "novu_api_key": novu_api_key,
         },
     ]
     await asyncio.gather(

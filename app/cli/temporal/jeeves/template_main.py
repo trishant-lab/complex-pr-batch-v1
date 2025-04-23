@@ -134,3 +134,10 @@ def get_feedback_created_custom_email() -> str:
     Get the custom email for the Novu notifications
     """
     return get_template_from_file("novu/feedback_created_mail.html")
+
+
+def get_review_comment_added_custom_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return get_template_from_file("novu/review_comment_added_mail.html")
