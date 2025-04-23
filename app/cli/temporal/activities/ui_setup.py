@@ -9,7 +9,8 @@ import zipfile
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
-from app.s3_utils import copy_files_to_s3, download_file_from_storage, get_opendal_operator
+from app.s3_utils import copy_files_to_s3, download_file_from_storage
+from app.utils.s3_operations import get_s3_client
 
 
 class UiSetupActivityModel(LaunchpadCLIBaseModel):
@@ -56,7 +57,7 @@ class UiSetupActivity(Activity):
 
         environment: str = config.env
 
-        s3_int_client = get_opendal_operator(
+        s3_int_client = get_s3_client(
             access_key=config.s3_int.access_key,
             secret_key=config.s3_int.secret_key,
             endpoint=config.s3_int.endpoint,
@@ -65,7 +66,7 @@ class UiSetupActivity(Activity):
 
         try:
             with tempfile.TemporaryDirectory() as tmp_dir:
-                download_file_from_storage(
+                await download_file_from_storage(
                     object_name=activity_model.src_object_name,
                     file_path=f"{tmp_dir}/{activity_model.bundle_name}",
                     storage_client=s3_int_client,

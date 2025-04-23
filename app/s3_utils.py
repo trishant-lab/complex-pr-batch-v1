@@ -7,66 +7,23 @@ import tempfile
 
 from app.cli.temporal.muspell import TemplatePath
 from app.template_env import get_env
-from opendal import Operator
 from loguru import logger
 
 from app.core.settings import AppSettings, get_settings
+from app.utils.file_operations import get_opendal_file_client
+from app.utils.s3_operations import OpendalS3Client
 
 
-def get_opendal_operator(access_key: str, secret_key: str, endpoint: str, bucket_name: str) -> Operator:
-    """
-    Get OpenDAL operator
-    """
-    return Operator(
-        scheme="s3",
-        bucket=bucket_name,
-        region="auto",
-        endpoint=endpoint,
-        access_key_id=access_key,
-        secret_access_key=secret_key,
-    )
-
-
-def get_opendal_operator_with_session_token(
-    access_key: str, secret_key: str, endpoint: str, session_token: str, bucket_name: str
-) -> Operator:
-    """
-    Get OpenDAL operator with session token
-    """
-    return Operator(
-        scheme="s3",
-        bucket=bucket_name,
-        region="auto",
-        endpoint=endpoint,
-        access_key_id=access_key,
-        secret_access_key=secret_key,
-        session_token=session_token,
-    )
-
-
-def upload_file_to_storage(file_path: str, object_name: str, bucket_name: str, storage_client: Operator) -> None:
-    """
-    Upload file using OpenDAL
-    """
-    try:
-        with open(file_path, "rb") as f:
-            content_type = mimetypes.guess_type(str(file_path))[0] or ""
-            storage_client.write(f"{bucket_name}/{object_name}", f.read(), content_type=content_type)
-        logger.info(f"uploaded objects to s3 path: {object_name}")
-    except Exception as e:
-        logger.error(f"failed to upload file to s3 object name: {object_name}, error: {e}")
-
-
-def download_file_from_storage(object_name: str, file_path: str, storage_client: Operator) -> str | None:
+async def download_file_from_storage(object_name: str, file_path: str, storage_client: OpendalS3Client) -> str | None:
     """
     Download file using OpenDAL
     """
     base_dir: str = file_path.rsplit("/", 1)[0]
     Path(base_dir).mkdir(parents=True, exist_ok=True)
     try:
-        data = storage_client.read(object_name)
-        with open(file_path, "wb") as f:
-            f.write(data)
+        data = await storage_client.get_file_content(object_name)
+        opendal_file_operations = get_opendal_file_client()
+        await opendal_file_operations.write_file(file_path, data)
         logger.info(f"getting objects from s3: {object_name}")
         return object_name
     except Exception as e:
@@ -74,8 +31,8 @@ def download_file_from_storage(object_name: str, file_path: str, storage_client:
         raise e
 
 
-def check_file_count(
-    storage_client: Operator,
+async def check_file_count(
+    storage_client: OpendalS3Client,
     bucket_name: str,
     local_file_count: int,
     prefix: str | None = None,
@@ -91,7 +48,7 @@ def check_file_count(
             path = f"{prefix}"
 
         # OpenDAL's list method returns an async iterator of entries
-        entries = storage_client.scan(path)
+        entries = await storage_client.scan_files(path)
         storage_file_count = sum(1 for _ in entries)
 
         logger.info(f"Bucket {bucket_name}: Local files: {local_file_count} Storage Files: {storage_file_count}")
@@ -105,8 +62,8 @@ def check_file_count(
         # raise RuntimeError(msg)
 
 
-def sync_and_verify_files(
-    op: Operator,
+async def sync_and_verify_files(
+    op: "OpendalS3Client",
     input_path: str,
     bucket_name: str,
     dest_dir: str,
@@ -133,17 +90,22 @@ def sync_and_verify_files(
                 key = f"{dest_dir.split('/')[-1]}/{key}" if bucket_name in dest_dir else f"{bucket_name}/{key}"
                 try:
                     # Read file content and upload
-                    with open(str(file_path), "rb") as local_file:
-                        content = local_file.read()
-                        content_type = mimetypes.guess_type(str(file_path))[0] or ""
-                        op.write(key, content, content_type=content_type)
+                    opendal_file_operations = get_opendal_file_client()
+                    content = await opendal_file_operations.read_file(str(file_path))
+                    content_type = mimetypes.guess_type(str(file_path))[0] or ""
+                    await op.upload_object(
+                        path=key,
+                        file_name=key.split("/")[-1],
+                        content_type=content_type,
+                        file_content=content.encode(),
+                    )
                     local_file_count += 1
                 except Exception as e:
                     logger.error(f"Failed to upload {key}: {e}")
                     raise RuntimeError(f"Error uploading {key}: {e}")
 
         # Verify file count
-        check_file_count(
+        await check_file_count(
             storage_client=op,
             bucket_name=bucket_name,
             local_file_count=local_file_count,
@@ -154,21 +116,6 @@ def sync_and_verify_files(
         msg = f"Error syncing files for {bucket_name}: {e}"
         logger.error(msg)
         raise RuntimeError(msg)
-
-
-def mirror_files_to_cloudflare(
-    tenant: str, input_path: str, output_path: str, endpoint: str, access_key: str, secret_key: str, session_token: str
-) -> None:
-    """
-    Copy objects from local to cloudflare
-    """
-    session_token = base64.b64decode(session_token).decode("utf-8")
-    url = endpoint.split("://")[1]
-    command = (
-        f"MC_HOST_launchpad_{tenant}=https://{access_key}:{secret_key}:{session_token}@{url} "
-        f"mc mirror --remove --overwrite {input_path} launchpad_{tenant}/{output_path}"
-    )
-    os.system(command)  # nosec
 
 
 def copy_files_to_cloudflare(
