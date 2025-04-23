@@ -915,8 +915,6 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
                     ],
                     argument="python3 /app/provisioning/atlas_migration.py",
                     job_type="atlas",
@@ -966,7 +964,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            dynamic_url_hash_key = await run_activity(
+            await run_activity(
                 activity=OnePasswordGetActivity,
                 arg=OnePasswordGetActivityModel(
                     tenant="INTEGRATION_COMMON_CONFIG" if config.env != "production" else "PRODUCTION_COMMON_CONFIG",
@@ -1016,15 +1014,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
+                        {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
-                        {"name": "TIKA_SERVER_ENDPOINT", "value": jeeves_config.tika_server_endpoint},
-                        {"name": "DYNAMIC_URL_HASH_KEY", "value": dynamic_url_hash_key},
-                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
             )
@@ -1071,12 +1064,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},
-                        {"name": "TIKA_SERVER_ENDPOINT", "value": jeeves_config.tika_server_endpoint},
-                        {"name": "DYNAMIC_URL_HASH_KEY", "value": dynamic_url_hash_key},
-                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
             )
