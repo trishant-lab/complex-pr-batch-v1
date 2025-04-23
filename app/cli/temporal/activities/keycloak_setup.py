@@ -14,6 +14,8 @@ from app.one_password_util import OnePasswordUtil
 from app.template_env import get_env
 from app.utils.file_operations import get_opendal_file_client
 
+JINJA_ENV_AUTOESCAPE: str = "jinja_env.autoescape"
+
 
 def template_render(
     template_path: str,
@@ -25,9 +27,9 @@ def template_render(
     """
     jinja_env: jinja2.Environment = get_env(template_path=template_path)
     template = jinja_env.get_template(template_name)
-    if template_payload and "jinja_env.autoescape" in template_payload:
-        jinja_env.autoescape = template_payload["jinja_env.autoescape"]
-        del template_payload["jinja_env.autoescape"]
+    if template_payload and JINJA_ENV_AUTOESCAPE in template_payload:
+        jinja_env.autoescape = template_payload[JINJA_ENV_AUTOESCAPE]
+        del template_payload[JINJA_ENV_AUTOESCAPE]
     return template.render(**(template_payload if template_payload else {}))
 
 
@@ -149,7 +151,7 @@ def create_client_roles(
         keycloak_client.create_client_role(client_id=client_uuid, role_config={"name": role}, realm_name=realm_name)
 
 
-def create_tenant_customer_admin_user(
+def create_keycloak_user(
     realm_name: str,
     client_name: str,
     username: str,
@@ -158,11 +160,13 @@ def create_tenant_customer_admin_user(
     lastname: str,
     template_path: str,
     template_name: str,
-    group_path: str | None,
     roles: list[str] | None = None,
-) -> None:
+    group_path: str | None = None,
+    client_id: str | None = None,
+    client_roles: list[dict] | None = None,
+) -> str:
     """
-    Create tenant customer admin user
+    Create keycloak user
     """
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
@@ -178,28 +182,59 @@ def create_tenant_customer_admin_user(
     )
 
     keycloak_client.create_user(ijson_loads(user_config), realm_name)
-
-    client_uuid = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
-
-    client_roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=realm_name)
-
     user_id = keycloak_client.get_user_id(username=username, realm_name=realm_name)
-    keycloak_client.assign_client_role(
-        client_id=client_uuid,
-        user_id=user_id,
-        roles=(
-            [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
-            if roles
-            else client_roles
-        ),
-        realm_name=realm_name,
-    )
+    if roles:
+        client_id = client_id or keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+        client_roles = client_roles or keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
+
+        keycloak_client.assign_client_role(
+            client_id=client_id,
+            user_id=user_id,
+            roles=(
+                [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
+                if roles
+                else client_roles
+            ),
+            realm_name=realm_name,
+        )
+
     if group_path:
         keycloak_client.assign_group(
-            user_id=user_id,
             realm_name=realm_name,
+            user_id=user_id,
             group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
         )
+
+    return user_id
+
+
+def create_tenant_customer_admin_user(
+    realm_name: str,
+    client_name: str,
+    username: str,
+    email: str,
+    firstname: str,
+    lastname: str,
+    template_path: str,
+    template_name: str,
+    group_path: str | None,
+    roles: list[str] | None = None,
+) -> None:
+    """
+    Create tenant customer admin user
+    """
+    create_keycloak_user(
+        realm_name=realm_name,
+        client_name=client_name,
+        username=username,
+        email=email,
+        firstname=firstname,
+        lastname=lastname,
+        template_path=template_path,
+        template_name=template_name,
+        group_path=group_path,
+        roles=roles,
+    )
 
 
 def create_internal_users(
@@ -221,38 +256,21 @@ def create_internal_users(
     client_roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
 
     for user in users:
-        user_config = template_render(
+        create_keycloak_user(
+            realm_name=realm_name,
+            client_name=client_name,
+            username=user["username"],
+            email=user["email"],
+            firstname=user["firstname"],
+            lastname=user["lastname"],
             template_path=template_path,
             template_name=template_name,
-            template_payload={
-                "username": user["username"],
-                "email": user["email"],
-                "firstname": user["firstname"],
-                "lastname": user["lastname"],
-            },
-        )
-
-        keycloak_client.create_user(ijson_loads(user_config), realm_name)
-
-        log_info(f"Keycloak internal user {user['username']} created successfully")
-        user_id = keycloak_client.get_user_id(username=user["username"], realm_name=realm_name)
-
-        keycloak_client.assign_client_role(
+            roles=roles,
+            group_path=group_path,
             client_id=client_id,
-            user_id=user_id,
-            roles=(
-                [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
-                if roles
-                else client_roles
-            ),
-            realm_name=realm_name,
+            client_roles=client_roles,
         )
-        if group_path:
-            keycloak_client.assign_group(
-                realm_name=realm_name,
-                user_id=user_id,
-                group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
-            )
+        log_info(f"Keycloak internal user {user['username']} created successfully")
 
 
 async def create_keycloak_group(
@@ -260,6 +278,7 @@ async def create_keycloak_group(
     client_name: str,
     template_path: str,
     template_name: str,
+    parent_group_name: str | None = None,
 ) -> None:
     """
     Create keycloak group
@@ -270,14 +289,22 @@ async def create_keycloak_group(
 
     opendal_file_operations = get_opendal_file_client()
     user_groups = ijson_loads(await opendal_file_operations.read_file_str(f"{template_path}/{template_name}"))
-
+    parent_group_id = (
+        keycloak_client.get_group_id_by_path(realm_name=realm_name, path=parent_group_name)
+        if parent_group_name
+        else None
+    )
     for group_name, roles in user_groups.items():
-        keycloak_client.create_group(payload={"name": group_name}, realm_name=realm_name)
+        keycloak_client.create_group(payload={"name": group_name}, realm_name=realm_name, parent_id=parent_group_id)
         client_roles = {
             role["id"]: role["name"]
             for role in keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
         }
-        group_id = keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_name)
+        group_id = (
+            keycloak_client.get_group_id_by_path(realm_name=realm_name, path=f"{parent_group_name}/{group_name}")
+            if parent_group_name
+            else keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_name)
+        )
         if client_roles and set(roles).issubset(set(client_roles.values())):
             keycloak_client.assign_role_to_group(
                 group_id=group_id,
@@ -359,6 +386,31 @@ def create_jeeves_idp_flow(
         log_error(f"Failed to create Keycloak idp and flows for {tenant=} with error: {e=}")
         return
     log_info(f"Keycloak idp and flows for {tenant} created successfully.")
+
+
+async def create_organisation(
+    realm_name: str,
+    tenant: str,
+    template_name: str,
+    template_path: str,
+    is_prod: bool,
+    template_payload: dict | None,
+) -> None:
+    """
+    Create jeeves organisation flow
+    """
+    payload: str = template_render(
+        template_path=template_path, template_name=template_name, template_payload=template_payload
+    )
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager(is_prod=is_prod)
+    keycloak_client.create_organisation(realm_name=realm_name, payload=payload)
+    organisation_details: list = keycloak_client.get_all_organisations(realm_name=realm_name)
+    organisation_id: str = next(
+        organisation["id"] for organisation in organisation_details if organisation["name"] == tenant
+    )
+    keycloak_client.add_organisation_idp(
+        realm_name=realm_name, organization_id=organisation_id, idp_alias=f"jeeves-{tenant}"
+    )
 
 
 def create_dexit_idp_flow(
@@ -1015,6 +1067,7 @@ class KeycloakCreateGroupActivityModel(LaunchpadCLIBaseModel):
     client_name: str
     template_path: str
     template_name: str
+    parent_group_name: str | None = None
 
 
 class KeycloakCreateGroupActivity(Activity):
@@ -1047,6 +1100,57 @@ class KeycloakCreateGroupActivity(Activity):
             client_name=activity_model.client_name,
             template_path=activity_model.template_path,
             template_name=activity_model.template_name,
+            parent_group_name=activity_model.parent_group_name,
         )
 
         log_info("Created keycloak Groups successfully")
+
+
+class KeycloakOrganisationSetupActivityModel(LaunchpadCLIBaseModel):
+    """
+    KeycloakOrganisationSetupActivityModel
+    """
+
+    realm_name: str
+    tenant: str
+    template_name: str
+    template_path: str
+    is_prod: bool = False
+    template_payload: dict | None = None
+
+
+class KeycloakOrganisationSetupActivity(Activity):
+    """
+    KeycloakOrganisationSetupActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakOrganisationSetupActivity")
+    async def defn(activity_model: KeycloakOrganisationSetupActivityModel) -> None:
+        """
+        Create keycloak organisation
+        """
+        await create_organisation(
+            realm_name=activity_model.realm_name,
+            tenant=activity_model.tenant,
+            template_name=activity_model.template_name,
+            template_path=activity_model.template_path,
+            template_payload=activity_model.template_payload,
+            is_prod=activity_model.is_prod,
+        )
+
+        log_info("Created keycloak Organisation successfully")

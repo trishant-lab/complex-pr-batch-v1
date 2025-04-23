@@ -8,6 +8,7 @@ from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.ai_voice_setup import (
     AiVoiceSetupActivity,
     AiVoiceSetupActivityModel,
+    CopyThumbnailTemplateActivity,
 )
 from app.cli.temporal.activities.chatwoot_setup import (
     ChatwootSetupActivity,
@@ -69,6 +70,7 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
     get_ehr_based_idp_template,
+    KeycloakOrganisationSetupActivity,
 )
 from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
@@ -85,8 +87,13 @@ from app.cli.temporal.activities.postgres_setup import (
     MatomoUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
+    PostgresGrantAllPrivilegesActivityModel,
+    PostgresGrantAllPrivilegesOnFunctionsActivity,
+    PostgresGrantAllPrivilegesOnSchemaActivity,
+    PostgresGrantAllPrivilegesOnSequencesActivity,
     PostgresGrantAllPrivilegesOnTableActivity,
     PostgresGrantAllPrivilegesOnTableActivityModel,
+    PostgresGrantAllPrivilegesOnTablesActivity,
     PostgresSchemaCreationActivity,
     PostgresSchemaCreationActivityModel,
     PostgresSupavisorPollUserActivity,
@@ -212,6 +219,12 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakCreateGroupActivity.defn,
             JeevesFetchLatestTagActivity.defn,
             KeycloakCreateGroupActivity.defn,
+            KeycloakOrganisationSetupActivity.defn,
+            CopyThumbnailTemplateActivity.defn,
+            PostgresGrantAllPrivilegesOnSchemaActivity.defn,
+            PostgresGrantAllPrivilegesOnSequencesActivity.defn,
+            PostgresGrantAllPrivilegesOnTablesActivity.defn,
+            PostgresGrantAllPrivilegesOnFunctionsActivity.defn,
         ]
 
     @classmethod
@@ -235,6 +248,7 @@ class JeevesOnboardingWorkflow(Workflow):
         tenant = pydash.get(jeeves, "tenant")
         is_deployment = pydash.get(jeeves, "is_deployment")
         ehr_used = pydash.get(jeeves, "whichEhrDoesYourCompanyUse")
+        customer_domain: str = pydash.get(jeeves, "customerDomain")
 
         try:
             if not pydash.get(jeeves, "emailSent") and not is_deployment:
@@ -304,6 +318,17 @@ class JeevesOnboardingWorkflow(Workflow):
                     server_item="application-config",
                     secret_name="ehr_field_to_match_user",
                     secret_value=jeeves_config.ehr_field_to_match_user,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="keycloak_auth_url",
+                    secret_value=f"https://{tenant}.{jeeves_config.domain_name}",
                 ),
             )
 
@@ -426,7 +451,45 @@ class JeevesOnboardingWorkflow(Workflow):
                         "matomo_log_link_visit_action_view",
                         "federated_identity",
                         "user_group_membership",
+                        "assetevents",
+                        "usersearches",
                     ],
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnTablesActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnSequencesActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnFunctionsActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnSchemaActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
                 ),
             )
 
@@ -562,7 +625,6 @@ class JeevesOnboardingWorkflow(Workflow):
                                     "content-type",
                                     "x-amz-*",
                                     "traceparent",
-                                    "x-highlight-request",
                                 ],
                             },
                             "exposeHeaders": ["ETag", "Location"],
@@ -790,19 +852,17 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             roles = [
+                "_access-broadcast",
+                "_access-assignment",
+                "_access-analytics",
+                "_access-setting",
+                "_allow-add-edit-asset",
+                "_allow-delete-asset",
+                "_allow-publish-asset",
                 "_allow-standalone-launch",
-                "_allow-view-assets",
-                "_allow-add-edit-assets",
-                "_allow-delete-assets",
-                "_allow-publish-assets",
-                "_access-manage-assignment",
-                "_access-broadcasts",
-                "_access-users",
-                "_access-reports",
-                "_can-manage-activities",
-                "_can-manage-groups",
-                "_can-manage-users",
-                "_access-settings",
+                "_allow-view-asset",
+                "_access-user-list",
+                "_can-manage-user",
                 "_developer",
                 "_JEEVESALL",
             ]
@@ -817,6 +877,16 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
+            await run_activity(
+                activity=KeycloakCreateGroupActivity,
+                arg=KeycloakCreateGroupActivityModel(
+                    realm_name=realm_name,
+                    client_name="jeeves",
+                    template_path=TemplatePath,
+                    template_name="keycloak_jeeves_group.json",
+                ),
+            )
+
             # keycloak user group setup
             await run_activity(
                 activity=KeycloakCreateGroupActivity,
@@ -825,6 +895,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     client_name="jeeves",
                     template_path=TemplatePath,
                     template_name="keycloak_user_group.json",
+                    parent_group_name=ProductName,
                 ),
             )
 
@@ -849,10 +920,26 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="help_instance_idp_flow.json",
-                    template_payload={"idp_config": jeeves_config.idp_config, "auth_url": config.keycloak.auth_url},
+                    template_payload={
+                        "idp_config": jeeves_config.idp_config,
+                        "auth_url": config.keycloak.auth_url,
+                        "customer_domain": customer_domain or "",
+                    },
                     is_prod=True,
                 ),
             )
+            # if customer_domain:
+            #     await run_activity(
+            #         activity=KeycloakOrganisationSetupActivity,
+            #         arg=KeycloakOrganisationSetupActivityModel(
+            #             tenant=tenant,
+            #             realm_name="help",
+            #             template_path=TemplatePath,
+            #             template_name="keycloak_organisation.json",
+            #             template_payload={"tenant": tenant, "customer_domain": customer_domain},
+            #             is_prod=True,
+            #         ),
+            #     )
 
             # keycloak tenant customer admin user setup
             await run_activity(
@@ -867,7 +954,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
-                    group_path="Admin",
+                    group_path=f"{ProductName}/Admin",
                 ),
             )
 
@@ -913,9 +1000,15 @@ class JeevesOnboardingWorkflow(Workflow):
                             "firstname": "System",
                             "lastname": "User",
                         },
+                        {
+                            "username": "sumanth.sm@314ecorp.com",
+                            "email": "sumanth.sm@314ecorp.com",
+                            "firstname": "Sumanth",
+                            "lastname": "S M",
+                        },
                     ],
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
-                    group_path="Admin",
+                    group_path=f"{ProductName}/Admin",
                 ),
             )
 
@@ -1111,17 +1204,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            await run_activity(
-                activity=VMPodScrapperActivity,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="jeeves-worker-metrics",
-                    app="jeeves-worker",
-                    path="/metrics/",
-                    interval="15s",
-                ),
-            )
-
             # temporal namespace creation
             await run_activity(
                 activity=TemporalNamespaceActivity,
@@ -1133,6 +1215,14 @@ class JeevesOnboardingWorkflow(Workflow):
             # ai voice setup
             await run_activity(
                 activity=AiVoiceSetupActivity,
+                arg=AiVoiceSetupActivityModel(
+                    tenant=tenant,
+                    config=jeeves_config,
+                ),
+            )
+
+            await run_activity(
+                activity=CopyThumbnailTemplateActivity,
                 arg=AiVoiceSetupActivityModel(
                     tenant=tenant,
                     config=jeeves_config,
