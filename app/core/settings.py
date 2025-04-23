@@ -1,3 +1,4 @@
+import asyncio
 import os
 import tempfile
 from functools import lru_cache, partial
@@ -19,6 +20,7 @@ from app.core.product_settings.practifly import PractiflySettings
 from app.core.product_settings.pricedx import PricedxSettings
 from app.core.product_settings.veritable import VeritableSettings
 from app.core.product_settings.zsegment import ZSegmentSettings
+from app.utils.file_operations import get_opendal_file_client
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
@@ -300,16 +302,25 @@ def get_settings() -> AppSettings:
     default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
 
     combined_config = dict()
+    loop = asyncio.get_event_loop()
     for file in CONFIG_FILE_NAMES:
         if file in PRODUCT_FILE_NAMES:
             product = file.split(".")[0]
             try:
-                combined_config[product] = ijson_loads(open(os.path.join(config_dir, file)).read())
+                opendal_file_operations = get_opendal_file_client()
+                combined_config[product] = ijson_loads(
+                    loop.run_until_complete(opendal_file_operations.read_file(os.path.join(config_dir, file)))
+                )
             except Exception as e:
                 logger.error(f"Error while loading config for {product}: {e}")
         else:
             try:
-                combined_config.update(ijson_loads(open(os.path.join(config_dir, file)).read()))
+                opendal_file_operations = get_opendal_file_client()
+                combined_config.update(
+                    ijson_loads(
+                        loop.run_until_complete(opendal_file_operations.read_file(os.path.join(config_dir, file)))
+                    )
+                )
             except Exception:
                 logger.error(f"found inadequate config file - {file}, returning default settings!")
                 return default_settings

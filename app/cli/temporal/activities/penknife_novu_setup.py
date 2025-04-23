@@ -15,6 +15,7 @@ from app.cli.temporal.penknife.models.penknife_spec import PenknifeSpec
 from app.core.ijson import ijson_loads
 from app.core.settings import AppSettings, get_settings
 from app.one_password_util import OnePasswordUtil
+from app.utils.file_operations import get_opendal_file_client
 
 
 def get_default_notification_group_id(config: AppSettings, novu_api_key: str) -> str | None:
@@ -166,8 +167,9 @@ async def create_novu_workflow_templates(template_path: str, config: AppSettings
 
     template_names: list = list_novu_notification_template(config=config, novu_api_key=novu_api_key)
     template_names: set = set(template_names)
-    with open(template_path) as file:
-        json_data = file.read()
+
+    opendal_file_operations = get_opendal_file_client()
+    json_data = await opendal_file_operations.read_file(template_path)
 
     data: list[dict] = ijson_loads(json_data)
     for workflow_ in data:

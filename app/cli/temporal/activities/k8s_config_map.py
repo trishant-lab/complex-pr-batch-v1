@@ -11,8 +11,10 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
 from app.one_password_util import secret_inject
-from app.s3_utils import download_file_from_storage, get_opendal_operator
+from app.s3_utils import download_file_from_storage
 from app.template_env import get_env
+from app.utils.file_operations import get_opendal_file_client
+from app.utils.s3_operations import get_s3_client
 
 
 class K8sConfigMapCreationActivityModel(LaunchpadCLIBaseModel):
@@ -72,14 +74,14 @@ class K8sConfigMapCreationActivity(Activity):
         else:
             with TemporaryDirectory() as temp_dir:
                 s3_client = (
-                    get_opendal_operator(
+                    get_s3_client(
                         access_key=app_config.s3_int.access_key,
                         secret_key=app_config.s3_int.secret_key,
                         endpoint=app_config.s3_int.endpoint,
                         bucket_name=bucket_name,
                     )
                     if activity_model.cloudflare_r2_folder_path is None
-                    else get_opendal_operator(
+                    else get_s3_client(
                         access_key=app_config.cloudflare.r2_access_key,
                         secret_key=app_config.cloudflare.r2_secret_key,
                         endpoint=app_config.cloudflare.r2_endpoint,
@@ -93,7 +95,7 @@ class K8sConfigMapCreationActivity(Activity):
                     else template_file_name
                 )
 
-                download_file_from_storage(
+                await download_file_from_storage(
                     object_name=object_name,
                     file_path=f"{temp_dir}/{template_file_name}",
                     storage_client=s3_client,
@@ -104,8 +106,8 @@ class K8sConfigMapCreationActivity(Activity):
                 template = template_env.get_template(template_file_name)
                 output = template.render(**activity_model.template_payload)
 
-                with open(f"{temp_dir}/{template_file_name}", "w") as f:
-                    f.write(output)
+                opendal_file_operations = get_opendal_file_client()
+                await opendal_file_operations.write_file(f"{temp_dir}/{template_file_name}", output)
 
                 # inject secret into tenant-config.json from 1Password
                 secret_inject(
@@ -114,9 +116,9 @@ class K8sConfigMapCreationActivity(Activity):
                 )
 
                 data = {
-                    activity_model.destination_file_name: open(
+                    activity_model.destination_file_name: await opendal_file_operations.read_file(
                         f"{temp_dir}/{activity_model.destination_file_name}"
-                    ).read()
+                    )
                 }
 
         body = V1ConfigMap(
@@ -189,8 +191,8 @@ class K8sConfigMapCreatFromTemplateActivity(Activity):
                 template = template_env.get_template(template_file_name)
                 output = template.render(**activity_model.template_payload)
 
-                with open(f"{temp_dir}/{template_file_name}", "w") as f:
-                    f.write(output)
+                opendal_file_operations = get_opendal_file_client()
+                await opendal_file_operations.write_file(f"{temp_dir}/{template_file_name}", output)
 
                 # inject secret into tenant-config.json from 1Password
                 secret_inject(
@@ -199,7 +201,7 @@ class K8sConfigMapCreatFromTemplateActivity(Activity):
                 )
 
                 data = {
-                    activity_model.destination_file_name: open(
+                    activity_model.destination_file_name: await opendal_file_operations.read_file(
                         f"{temp_dir}/{activity_model.destination_file_name}"
                     ).read()
                 }

@@ -14,6 +14,7 @@ from app.core.settings import AppSettings, get_settings
 from app.models.enums import EmailTemplateName
 from app.sendgrid_utils import send_mail
 from app.template_env import get_env
+from app.utils.file_operations import get_opendal_file_client
 
 
 async def provisioning_success_mail(name: str, email: str, link: str, password: str, email_template: str) -> str:
@@ -26,8 +27,8 @@ async def provisioning_success_mail(name: str, email: str, link: str, password: 
     @return:
     """
     with TemporaryDirectory() as temp_dir:
-        with open(f"{temp_dir}/provisioning_success_mail.html", "w") as f:
-            f.write(email_template)
+        opendal_file_operations = get_opendal_file_client()
+        await opendal_file_operations.write_file(f"{temp_dir}/provisioning_success_mail.html", email_template)
 
         template_env = get_env(template_path=temp_dir)
         template_env.variable_start_string = "{{"
@@ -144,8 +145,8 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
     subject = response["subject"]
 
     with TemporaryDirectory() as temp_dir:
-        with open(f"{temp_dir}/before_provisioning_mail.html", "w") as f:
-            f.write(response["template"])
+        opendal_file_operations = get_opendal_file_client()
+        await opendal_file_operations.write_file(f"{temp_dir}/before_provisioning_mail.html", response["template"])
 
         template_env = get_env(template_path=temp_dir)
         template_env.variable_start_string = "{{"

@@ -13,6 +13,7 @@ from app.cli.temporal.core.log import log_info
 from app.core.ijson import ijson_loads
 from app.core.settings import JeevesSettings, get_settings
 from app.one_password_util import OnePasswordUtil
+from app.utils.file_operations import get_opendal_file_client
 
 CONTENT_TYPE = "application/json"
 
@@ -303,14 +304,16 @@ class ChatwootSetup:
             existing_attrs = await response.json() if response.status == 200 else []
             existing_keys = {attr.get("attribute_key") for attr in existing_attrs}
 
-        with open(
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json",
-            ),
-            "rb",
-        ) as file:
-            data = ijson_loads(file.read())
+        opendal_file_operations = get_opendal_file_client()
+        data = ijson_loads(
+            await opendal_file_operations.read_file(
+                os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)),
+                    f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json",
+                )
+            )
+        )
+
         for attr in data:
             attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
             if attr["attribute_key"] in existing_keys:

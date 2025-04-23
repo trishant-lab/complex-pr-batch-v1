@@ -33,9 +33,7 @@ async def run_workers(worker_process: str) -> None:
             Worker(
                 client,
                 workflow_runner=SandboxedWorkflowRunner(
-                    restrictions=SandboxRestrictions.default.with_passthrough_modules(
-                        "app", "loguru", "__buitins__.open"
-                    ),
+                    restrictions=SandboxRestrictions.default.with_passthrough_modules("app", "loguru"),
                 ),
                 task_queue=queue,
                 workflows=workflow_objs,

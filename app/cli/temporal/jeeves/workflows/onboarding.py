@@ -142,6 +142,7 @@ from app.core.settings import AppSettings, JeevesSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
+from app.utils.file_operations import get_opendal_file_client
 
 if TYPE_CHECKING:
     from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
@@ -876,6 +877,7 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # keycloak internal users setup
+            opendal_file_operations = get_opendal_file_client()
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
@@ -883,7 +885,9 @@ class JeevesOnboardingWorkflow(Workflow):
                     client_name="jeeves",
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=ijson_loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
+                    users=ijson_loads(
+                        await opendal_file_operations.read_file(f"{TemplatePath}/{config.env}_internal_users.json")
+                    ),
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     group_path="Admin",
                 ),

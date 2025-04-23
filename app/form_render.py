@@ -3,12 +3,13 @@ import subprocess
 import tempfile
 
 from app.core.db import DBManager, get_db_manager
+from app.utils.file_operations import get_opendal_file_client
 from app.core.ijson import ijson_loads
 
 SCRIPT_PATH: str = os.path.join(os.path.join(os.path.dirname(__file__), "../form_render/form_render.js"))
 
 
-def render_form(tmp_dir: str) -> dict:
+async def render_form(tmp_dir: str) -> dict:
     """
     :param tmp_dir:
     :return:
@@ -21,8 +22,9 @@ def render_form(tmp_dir: str) -> dict:
     args_ = ["node", SCRIPT_PATH, f"inputDir={form_path}", f"outputDir={html_render_path}", f"i18Path={i18n_path}"]
     subprocess.run(args_, check=True)
 
-    with open(os.path.join(html_render_path, "form.json")) as f:
-        return ijson_loads(f.read())
+    opendal_file_operations = get_opendal_file_client()
+    form_json = await opendal_file_operations.read_file(os.path.join(html_render_path, "form.json"))
+    return ijson_loads(form_json)
 
 
 async def form_render_for_product(product: str) -> dict:
@@ -39,7 +41,7 @@ async def form_render_for_product(product: str) -> dict:
     os.makedirs(os.path.join(tmp_dir, "i18n"), exist_ok=True)
     os.makedirs(os.path.join(tmp_dir, "form/html_render"), exist_ok=True)
 
-    with open(os.path.join(tmp_dir, "form/source/form.json"), "w") as f:
-        f.write(response["product_schema"])
+    opendal_file_operations = get_opendal_file_client()
+    await opendal_file_operations.write_file(os.path.join(tmp_dir, "form/source/form.json"), response["product_schema"])
 
-    return render_form(tmp_dir)
+    return await render_form(tmp_dir)

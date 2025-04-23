@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import shutil
@@ -6,18 +7,20 @@ from configparser import ConfigParser
 import app
 from app.core.cli_settings import get_workers_config
 from app.core.settings import CONFIG_FILE_NAMES
+from app.utils.file_operations import get_opendal_file_client
 
 
-def get_config_env_dict() -> dict:
+async def get_config_env_dict() -> dict:
     """
     get config env dict
     """
+    opendal_file_operations = get_opendal_file_client()
     config_dir = os.getenv("APP_CONFIG_DIR", "/")
     config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES and "settings" in x.name]
-    return json.loads(open(config_files[0]).read()) if config_files else {}
+    return json.loads(await opendal_file_operations.read_file(config_files[0])) if config_files else {}
 
 
-def write_supervisor_workers_conf() -> None:
+async def write_supervisor_workers_conf() -> None:
     """
     write supervisor workers config
     """
@@ -58,9 +61,10 @@ def write_supervisor_workers_conf() -> None:
         **common_config_dict,
     }
 
-    with open(file_path, "w") as configfile:
-        worker_config.write(configfile)
+    opendal_file_operations = get_opendal_file_client()
+    await opendal_file_operations.write_file(file_path, worker_config)
 
 
 if __name__ == "__main__":
-    write_supervisor_workers_conf()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(write_supervisor_workers_conf())
