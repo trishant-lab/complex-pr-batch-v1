@@ -333,21 +333,21 @@ class ChatwootSetup:
         Setup the Chatwoot environment
         """
         # Create Chatwoot Account If not exists
-        account_id = self.onepassword_util.get_key("chatwoot_account_id")
+        account_id = await self.onepassword_util.get_key("chatwoot_account_id")
         if not account_id:
             account_id = await self.create_chatwoot_account()
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_account_id", value=str(account_id))
+            await self.onepassword_util.insert_if_not_exists(key="chatwoot_account_id", value=str(account_id))
             log_info(f"chatwoot account created successfully : {self.tenant}")
 
         # Create Chatwoot User If not exists
-        api_key = self.onepassword_util.get_key("chatwoot_api_key")
+        api_key = await self.onepassword_util.get_key("chatwoot_api_key")
         if not api_key:
             user = await self.create_chatwoot_user()
             log_info(f"chatwoot user created successfully : {self.tenant}")
             await self.add_user_to_account(user_id=user["id"], account_id=account_id)
             log_info(f"chatwoot user added to account successfully : {self.tenant}")
 
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_api_key", value=user["access_token"])
+            await self.onepassword_util.insert_if_not_exists(key="chatwoot_api_key", value=user["access_token"])
             api_key = user["access_token"]
 
         # Create Chatwoot Agent Bot If not exists
@@ -355,7 +355,7 @@ class ChatwootSetup:
 
         if not agents:
             agent_bot = await self.create_account_agent_bot(user_api_key=api_key, account_id=account_id)
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_bot_token", value=agent_bot["access_token"])
+            await self.onepassword_util.insert_if_not_exists(key="chatwoot_bot_token", value=agent_bot["access_token"])
             agent_bot_id = agent_bot["id"]
         else:
             agent_bot = agents[0]
@@ -467,7 +467,7 @@ class DeleteChatwootAccountActivity(Activity):
             server_item="application-config",
             vault=activity_model.vault,
         )
-        account_id = onepassword_util.get_key("chatwoot_account_id")
+        account_id = await onepassword_util.get_key("chatwoot_account_id")
         if not account_id:
             logger.error(f"chatwoot account not found : {activity_model.tenant}")
             raise RuntimeError(f"chatwoot account not found : {activity_model.tenant}")

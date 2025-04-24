@@ -35,7 +35,7 @@ class SlackNotifier:
                 error_message = f"{self.error_message} :{self.product} - {exception_msg}"
             else:
                 error_message = f"{self.error_message} :{self.product}"
-            send_slack_msg(text=error_message, blocks=[])
+            send_slack_msg(product=self.product, text=error_message, blocks=[])
         except SlackApiError as slack_error:
             logger.error(f"Failed to send Slack notification: {slack_error}")
             return False

@@ -1,14 +1,21 @@
-import subprocess
+import asyncio
 from loguru import logger
 
 
-def secret_inject(source_file_path: str, destination_path: "str") -> None:
+async def secret_inject(source_file_path: str, destination_path: "str") -> None:
     """
     Inject secrets from 1Password into a file
     """
     commands = ["op", "inject", "--force", "-i", source_file_path, "-o", destination_path]
-    process = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
-    _stdout, stderr = process.communicate(timeout=60)
+
+    process = await asyncio.create_subprocess_exec(
+        *commands,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        stdin=asyncio.subprocess.DEVNULL,
+    )
+
+    _stdout, stderr = await process.communicate()
 
     if process.returncode != 0:
         output = f"Error: {stderr.decode()}"
@@ -24,7 +31,7 @@ class OnePasswordUtil:
         self.server_item = server_item
         self.vault = vault
 
-    def create_login_item(self: "OnePasswordUtil", url: str, username: str, password: str) -> None:
+    async def create_login_item(self: "OnePasswordUtil", url: str, username: str, password: str) -> None:
         """
         Create a login item in 1Password
         """
@@ -42,23 +49,31 @@ class OnePasswordUtil:
             f"username={username}",
             f"password={password}",
         ]
-        process = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
-        _stdout, stderr = process.communicate(timeout=10)
+        process = await asyncio.create_subprocess_exec(
+            *commands,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.DEVNULL,
+        )
+        _stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
             output = f"Error: {stderr.decode()}"
             logger.error(output)
             raise RuntimeError(output)
 
-    def get_key(self: "OnePasswordUtil", key: str) -> None | str:
+    async def get_key(self: "OnePasswordUtil", key: str) -> None | str:
         """
         Get a key-value pair from a 1Password item
         """
         get_command = ["op", "item", "get", self.server_item, "--fields", f"{self.tenant}.{key}", "--vault", self.vault]
-        process = subprocess.Popen(
-            get_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
+        process = await asyncio.create_subprocess_exec(
+            *get_command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.DEVNULL,
         )
-        stdout, stderr = process.communicate(timeout=10)
+        stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
             output = f"Error: {stderr.decode()}"
@@ -67,15 +82,18 @@ class OnePasswordUtil:
 
         return stdout.decode().strip()
 
-    def insert_if_not_exists(self: "OnePasswordUtil", key: str, value: str) -> None:
+    async def insert_if_not_exists(self: "OnePasswordUtil", key: str, value: str) -> None:
         """
         Insert a key-value pair into a 1Password item if it does not exist
         """
         get_command = ["op", "item", "get", self.server_item, "--fields", f"{self.tenant}.{key}", "--vault", self.vault]
-        process = subprocess.Popen(
-            get_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
+        process = await asyncio.create_subprocess_exec(
+            *get_command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.DEVNULL,
         )
-        _stdout, stderr = process.communicate(timeout=10)
+        _stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
             if f'"{self.tenant}.{key}" isn\'t a field in the "{self.server_item}" item' not in stderr.decode():
@@ -84,10 +102,13 @@ class OnePasswordUtil:
                 raise RuntimeError(output)
 
             commands = ["op", "--vault", self.vault, "item", "edit", self.server_item, f"{self.tenant}.{key}={value}"]
-            process = subprocess.Popen(
-                commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
+            process = await asyncio.create_subprocess_exec(
+                *commands,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                stdin=asyncio.subprocess.DEVNULL,
             )
-            _stdout, stderr = process.communicate(timeout=10)
+            _stdout, stderr = await process.communicate()
 
             if process.returncode != 0:
                 output = f"Error: {stderr.decode()}"
@@ -97,13 +118,18 @@ class OnePasswordUtil:
         else:
             logger.info(f"{key} already exists in {self.server_item} item")
 
-    def create_or_replace(self: "OnePasswordUtil", key: str, value: str) -> None:
+    async def create_or_replace(self: "OnePasswordUtil", key: str, value: str) -> None:
         """
         Create or replace a 1Password item
         """
         commands = ["op", "--vault", self.vault, "item", "edit", self.server_item, f"{self.tenant}.{key}={value}"]
-        process = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
-        _stdout, stderr = process.communicate(timeout=10)
+        process = await asyncio.create_subprocess_exec(
+            *commands,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.DEVNULL,
+        )
+        _stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
             output = f"Error: {stderr.decode()}"

@@ -751,7 +751,7 @@ class NovuSetup:
         api_keys = await self.get_environment_api_key(token=organization_token)
 
         # store in 1Password
-        OnePasswordUtil(
+        await OnePasswordUtil(
             tenant=f"Jeeves_{self.jeeves.tenant}",
             server_item="application-config",
             vault="Jeeves",

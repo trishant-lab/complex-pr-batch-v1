@@ -781,11 +781,11 @@ class KeycloakCreateIDPFlowActivity(Activity):
         jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
         template = jinja_env.get_template(activity_model.template_name)
 
-        googleclientid = OnePasswordUtil(
+        googleclientid = await OnePasswordUtil(
             tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
         ).get_key("provider_client_id")
 
-        googlesecret = OnePasswordUtil(
+        googlesecret = await OnePasswordUtil(
             tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
         ).get_key("provider_client_secret")
 

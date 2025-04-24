@@ -355,7 +355,7 @@ class NovuSetup:
         api_keys = await self.get_organization_api_key(token=organization_token)
 
         # store in 1Password
-        OnePasswordUtil(
+        await OnePasswordUtil(
             tenant=self.dexit.tenant,
             server_item=server_item,
             vault="Dexit",

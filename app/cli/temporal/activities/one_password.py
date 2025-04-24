@@ -48,7 +48,7 @@ class OnePasswordCreateOrUpdateActivity(Activity):
         """
         Callable for the activity
         """
-        OnePasswordUtil(
+        await OnePasswordUtil(
             tenant=activity_input.tenant,
             server_item=activity_input.server_item,
             vault=activity_input.vault,
@@ -91,7 +91,7 @@ class OnePasswordGetActivity(Activity):
         """
         Callable for the activity
         """
-        return OnePasswordUtil(
+        return await OnePasswordUtil(
             tenant=activity_input.tenant,
             server_item=activity_input.server_item,
             vault=activity_input.vault,
@@ -144,8 +144,8 @@ class OnePasswordInsertIfNotExistsActivity(Activity):
         )
 
         # Try to get existing key
-        existing_key = op_util.get_key(activity_input.key)
+        existing_key = await op_util.get_key(activity_input.key)
 
         if all([existing_key is None, activity_input.key_value is not None]):
             # Create or update the key
-            op_util.create_or_replace(activity_input.key, activity_input.key_value)
+            await op_util.create_or_replace(activity_input.key, activity_input.key_value)

@@ -1,4 +1,4 @@
-from asyncio import subprocess
+import asyncio
 import base64
 import mimetypes
 import os
@@ -181,40 +181,56 @@ def copy_files_to_s3(
     os.system(f"mc copy {input_path} launchpad/{output_path}")  # nosec
 
 
-def create_minio_user(config: AppSettings, access_key: str, secret_key: str) -> tuple[str, str]:
+async def create_minio_user(config: AppSettings, access_key: str, secret_key: str) -> tuple[str, str]:
     """
     Create a Minio user using mc client via subprocess
     """
     try:
         # Configure mc client
-        subprocess.run(
-            ["mc", "alias", "set", "minio", config.s3_int.endpoint, config.s3_int.access_key, config.s3_int.secret_key],
+        await asyncio.create_subprocess_exec(
+            *[
+                "mc",
+                "alias",
+                "set",
+                "minio",
+                config.s3_int.endpoint,
+                config.s3_int.access_key,
+                config.s3_int.secret_key,
+            ],
             check=True,
             capture_output=True,
         )
 
         # Create user
-        subprocess.run(["mc", "admin", "user", "add", "minio", access_key, secret_key], check=True, capture_output=True)
+        await asyncio.create_subprocess_exec(
+            *["mc", "admin", "user", "add", "minio", access_key, secret_key],
+            check=True,
+            capture_output=True,
+        )
 
         logger.info(f"Created Minio user {access_key} successfully")
         return access_key, secret_key
 
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to create Minio user: {e.stderr.decode()}")
-        raise MinioUserCreationError(f"Failed to create Minio user: {e.stderr.decode()}")
+    except Exception as e:
+        logger.error(f"Failed to create Minio user: {e}")
+        raise MinioUserCreationError(f"Failed to create Minio user: {e}")
 
 
-def create_minio_bucket(config: AppSettings, bucket_name: str, region_name: str) -> None:
+async def create_minio_bucket(config: AppSettings, bucket_name: str, region_name: str) -> None:
     """
     Create a Minio bucket using mc client via subprocess
     """
-    subprocess.run(
-        ["mc", "alias", "set", "minio", config.s3_int.endpoint, config.s3_int.access_key, config.s3_int.secret_key],
+    await asyncio.create_subprocess_exec(
+        *["mc", "alias", "set", "minio", config.s3_int.endpoint, config.s3_int.access_key, config.s3_int.secret_key],
         check=True,
         capture_output=True,
     )
 
-    subprocess.run(["mc", "mb", "--region", region_name, f"minio/{bucket_name}"], check=True, capture_output=True)
+    await asyncio.create_subprocess_exec(
+        *["mc", "mb", "--region", region_name, f"minio/{bucket_name}"],
+        check=True,
+        capture_output=True,
+    )
 
     logger.info(f"Created Minio bucket '{bucket_name}' in region '{region_name}' successfully")
 
@@ -225,8 +241,16 @@ async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
     """
     config: AppSettings = get_settings()
 
-    subprocess.run(
-        ["mc", "alias", "set", "minio", config.s3_int.endpoint, config.s3_int.access_key, config.s3_int.secret_key],
+    await asyncio.create_subprocess_exec(
+        *[
+            "mc",
+            "alias",
+            "set",
+            "minio",
+            config.s3_int.endpoint,
+            config.s3_int.access_key,
+            config.s3_int.secret_key,
+        ],
         check=True,
         capture_output=True,
     )
@@ -244,15 +268,15 @@ async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
 
         try:
             # Create the policy using mc admin
-            subprocess.run(
-                ["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
+            await asyncio.create_subprocess_exec(
+                *["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
                 check=True,
                 capture_output=True,
             )
 
             # Attach the policy to the user
-            subprocess.run(
-                ["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
+            await asyncio.create_subprocess_exec(
+                *["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
                 check=True,
                 capture_output=True,
             )
