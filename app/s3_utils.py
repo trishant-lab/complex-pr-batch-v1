@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import mimetypes
 import os
@@ -11,6 +10,7 @@ from loguru import logger
 from app.core.settings import AppSettings, get_settings
 from app.utils.file_operations import get_opendal_file_client
 from app.utils.s3_operations import OpendalS3Client
+from app.utils.subprocess_execution import run_command
 
 
 async def download_file_from_storage(object_name: str, file_path: str, storage_client: OpendalS3Client) -> str | None:
@@ -187,8 +187,8 @@ async def create_minio_user(config: AppSettings, access_key: str, secret_key: st
     """
     try:
         # Configure mc client
-        await asyncio.create_subprocess_exec(
-            *[
+        await run_command(
+            [
                 "mc",
                 "alias",
                 "set",
@@ -202,8 +202,8 @@ async def create_minio_user(config: AppSettings, access_key: str, secret_key: st
         )
 
         # Create user
-        await asyncio.create_subprocess_exec(
-            *["mc", "admin", "user", "add", "minio", access_key, secret_key],
+        await run_command(
+            ["mc", "admin", "user", "add", "minio", access_key, secret_key],
             check=True,
             capture_output=True,
         )
@@ -220,13 +220,13 @@ async def create_minio_bucket(config: AppSettings, bucket_name: str, region_name
     """
     Create a Minio bucket using mc client via subprocess
     """
-    await asyncio.create_subprocess_exec(
+    await run_command(
         *["mc", "alias", "set", "minio", config.s3_int.endpoint, config.s3_int.access_key, config.s3_int.secret_key],
         check=True,
         capture_output=True,
     )
 
-    await asyncio.create_subprocess_exec(
+    await run_command(
         *["mc", "mb", "--region", region_name, f"minio/{bucket_name}"],
         check=True,
         capture_output=True,
@@ -241,8 +241,8 @@ async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
     """
     config: AppSettings = get_settings()
 
-    await asyncio.create_subprocess_exec(
-        *[
+    await run_command(
+        [
             "mc",
             "alias",
             "set",
@@ -268,15 +268,15 @@ async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
 
         try:
             # Create the policy using mc admin
-            await asyncio.create_subprocess_exec(
-                *["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
+            await run_command(
+                ["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
                 check=True,
                 capture_output=True,
             )
 
             # Attach the policy to the user
-            await asyncio.create_subprocess_exec(
-                *["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
+            await run_command(
+                ["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
                 check=True,
                 capture_output=True,
             )

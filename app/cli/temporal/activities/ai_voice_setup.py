@@ -1,4 +1,3 @@
-import asyncio
 from datetime import timedelta
 from shlex import split
 
@@ -9,6 +8,7 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 from app.core.settings import JeevesSettings
 from app.one_password_util import OnePasswordUtil
+from app.utils.subprocess_execution import run_command
 
 
 async def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:
@@ -33,15 +33,9 @@ async def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:
     source_folder_path: str = f"r2/{config.r2_bucket}/jeeves-config/ai_voices/"
     ui_bucket_dest_folder_path: str = f"r2_ui_bucket/{ui_bucket_name}/jeeves/{tenant}/voices/"
 
-    await asyncio.create_subprocess_exec(
-        *split(f"mc alias set r2 {config.r2_url} {config.r2_access_key} {config.r2_secret}"), check=True
-    )
-    await asyncio.create_subprocess_exec(
-        *split(f"mc alias set r2_ui_bucket {config.r2_url} {ui_access_key} {ui_secret_key}"), check=True
-    )
-    await asyncio.create_subprocess_exec(
-        *split(f"mc cp -r {source_folder_path} {ui_bucket_dest_folder_path}"), check=True
-    )
+    await run_command(["mc", "alias", "set", "r2", config.r2_url, config.r2_access_key, config.r2_secret])
+    await run_command(split(f"mc alias set r2_ui_bucket {config.r2_url} {ui_access_key} {ui_secret_key}"))
+    await run_command(split(f"mc cp -r {source_folder_path} {ui_bucket_dest_folder_path}"))
     log_info("AI voices are added successfully.")
 
 

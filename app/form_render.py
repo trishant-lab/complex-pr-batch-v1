@@ -1,9 +1,9 @@
-import asyncio
 import os
 
 from app.core.db import DBManager, get_db_manager
 from app.utils.file_operations import get_opendal_file_client
 from app.core.ijson import ijson_loads
+from app.utils.subprocess_execution import run_command
 
 SCRIPT_PATH: str = os.path.join(os.path.join(os.path.dirname(__file__), "../form_render/form_render.js"))
 
@@ -20,10 +20,7 @@ async def render_form(tmp_dir: str) -> dict:
     os.makedirs(html_render_path, exist_ok=True)
     args_ = ["node", SCRIPT_PATH, f"inputDir={form_path}", f"outputDir={html_render_path}", f"i18Path={i18n_path}"]
 
-    await asyncio.create_subprocess_exec(
-        *args_,
-        check=True,
-    )
+    await run_command(args_)
 
     opendal_file_operations = get_opendal_file_client()
     form_json = await opendal_file_operations.read_file(os.path.join(html_render_path, "form.json"))

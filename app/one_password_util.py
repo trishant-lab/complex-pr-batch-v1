@@ -1,5 +1,6 @@
-import asyncio
 from loguru import logger
+
+from app.utils.subprocess_execution import run_command
 
 
 async def secret_inject(source_file_path: str, destination_path: "str") -> None:
@@ -8,21 +9,7 @@ async def secret_inject(source_file_path: str, destination_path: "str") -> None:
     """
     commands = ["op", "inject", "--force", "-i", source_file_path, "-o", destination_path]
 
-    process = await asyncio.create_subprocess_exec(
-        *commands,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        stdin=asyncio.subprocess.DEVNULL,
-    )
-
-    _stdout, stderr = await process.communicate()
-
-    if process.returncode != 0:
-        output = f"Error: {stderr.decode()}"
-        logger.error(output)
-        raise RuntimeError(output)
-
-    logger.info(f"Secrets injected into {destination_path}")
+    await run_command(commands)
 
 
 class OnePasswordUtil:
@@ -49,71 +36,29 @@ class OnePasswordUtil:
             f"username={username}",
             f"password={password}",
         ]
-        process = await asyncio.create_subprocess_exec(
-            *commands,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            stdin=asyncio.subprocess.DEVNULL,
-        )
-        _stdout, stderr = await process.communicate()
-
-        if process.returncode != 0:
-            output = f"Error: {stderr.decode()}"
-            logger.error(output)
-            raise RuntimeError(output)
+        await run_command(commands)
 
     async def get_key(self: "OnePasswordUtil", key: str) -> None | str:
         """
         Get a key-value pair from a 1Password item
         """
         get_command = ["op", "item", "get", self.server_item, "--fields", f"{self.tenant}.{key}", "--vault", self.vault]
-        process = await asyncio.create_subprocess_exec(
-            *get_command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            stdin=asyncio.subprocess.DEVNULL,
-        )
-        stdout, stderr = await process.communicate()
-
-        if process.returncode != 0:
-            output = f"Error: {stderr.decode()}"
-            logger.error(output)
-            return None
-
-        return stdout.decode().strip()
+        key_value, _ = await run_command(get_command)
+        return key_value.strip()
 
     async def insert_if_not_exists(self: "OnePasswordUtil", key: str, value: str) -> None:
         """
         Insert a key-value pair into a 1Password item if it does not exist
         """
         get_command = ["op", "item", "get", self.server_item, "--fields", f"{self.tenant}.{key}", "--vault", self.vault]
-        process = await asyncio.create_subprocess_exec(
-            *get_command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            stdin=asyncio.subprocess.DEVNULL,
+
+        _, return_code = await run_command(
+            get_command, expected_error=f'"{self.tenant}.{key}" isn\'t a field in the "{self.server_item}" item'
         )
-        _stdout, stderr = await process.communicate()
 
-        if process.returncode != 0:
-            if f'"{self.tenant}.{key}" isn\'t a field in the "{self.server_item}" item' not in stderr.decode():
-                output = f"Unexpected Error: {stderr.decode()}"
-                logger.error(output)
-                raise RuntimeError(output)
-
+        if return_code != 0:
             commands = ["op", "--vault", self.vault, "item", "edit", self.server_item, f"{self.tenant}.{key}={value}"]
-            process = await asyncio.create_subprocess_exec(
-                *commands,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                stdin=asyncio.subprocess.DEVNULL,
-            )
-            _stdout, stderr = await process.communicate()
-
-            if process.returncode != 0:
-                output = f"Error: {stderr.decode()}"
-                logger.error(output)
-                raise RuntimeError(output)
+            await run_command(commands)
 
         else:
             logger.info(f"{key} already exists in {self.server_item} item")
@@ -123,15 +68,5 @@ class OnePasswordUtil:
         Create or replace a 1Password item
         """
         commands = ["op", "--vault", self.vault, "item", "edit", self.server_item, f"{self.tenant}.{key}={value}"]
-        process = await asyncio.create_subprocess_exec(
-            *commands,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            stdin=asyncio.subprocess.DEVNULL,
-        )
-        _stdout, stderr = await process.communicate()
 
-        if process.returncode != 0:
-            output = f"Error: {stderr.decode()}"
-            logger.error(output)
-            raise RuntimeError(output)
+        await run_command(commands)
