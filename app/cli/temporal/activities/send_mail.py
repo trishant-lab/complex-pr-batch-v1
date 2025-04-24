@@ -1,6 +1,5 @@
 import os
 from datetime import timedelta
-from tempfile import TemporaryDirectory
 
 from temporalio import activity
 from temporalio.common import RetryPolicy
@@ -26,9 +25,13 @@ async def provisioning_success_mail(name: str, email: str, link: str, password: 
     @param email_template:
     @return:
     """
-    with TemporaryDirectory() as temp_dir:
-        opendal_file_operations = get_opendal_file_client()
-        await opendal_file_operations.write_file(f"{temp_dir}/provisioning_success_mail.html", email_template)
+    opendal_file_operations = get_opendal_file_client()
+
+    async with opendal_file_operations.temp_dir() as temp_dir:
+        await opendal_file_operations.write_file(
+            os.path.join(opendal_file_operations.tempdir_root, temp_dir, "provisioning_success_mail.html"),
+            email_template,
+        )
 
         template_env = get_env(template_path=temp_dir)
         template_env.variable_start_string = "{{"
@@ -144,9 +147,12 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
 
     subject = response["subject"]
 
-    with TemporaryDirectory() as temp_dir:
-        opendal_file_operations = get_opendal_file_client()
-        await opendal_file_operations.write_file(f"{temp_dir}/before_provisioning_mail.html", response["template"])
+    opendal_file_operations = get_opendal_file_client()
+    async with opendal_file_operations.temp_dir() as temp_dir:
+        await opendal_file_operations.write_file(
+            os.path.join(opendal_file_operations.tempdir_root, temp_dir, "before_provisioning_mail.html"),
+            response["template"],
+        )
 
         template_env = get_env(template_path=temp_dir)
         template_env.variable_start_string = "{{"
