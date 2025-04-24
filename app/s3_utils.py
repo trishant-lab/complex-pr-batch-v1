@@ -197,15 +197,11 @@ async def create_minio_user(config: AppSettings, access_key: str, secret_key: st
                 config.s3_int.access_key,
                 config.s3_int.secret_key,
             ],
-            check=True,
-            capture_output=True,
         )
 
         # Create user
         await run_command(
             ["mc", "admin", "user", "add", "minio", access_key, secret_key],
-            check=True,
-            capture_output=True,
         )
 
         logger.info(f"Created Minio user {access_key} successfully")
@@ -222,14 +218,10 @@ async def create_minio_bucket(config: AppSettings, bucket_name: str, region_name
     """
     await run_command(
         *["mc", "alias", "set", "minio", config.s3_int.endpoint, config.s3_int.access_key, config.s3_int.secret_key],
-        check=True,
-        capture_output=True,
     )
 
     await run_command(
         *["mc", "mb", "--region", region_name, f"minio/{bucket_name}"],
-        check=True,
-        capture_output=True,
     )
 
     logger.info(f"Created Minio bucket '{bucket_name}' in region '{region_name}' successfully")
@@ -250,9 +242,7 @@ async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
             config.s3_int.endpoint,
             config.s3_int.access_key,
             config.s3_int.secret_key,
-        ],
-        check=True,
-        capture_output=True,
+        ]
     )
 
     template_env = get_env(template_path=TemplatePath)
@@ -270,15 +260,11 @@ async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
             # Create the policy using mc admin
             await run_command(
                 ["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
-                check=True,
-                capture_output=True,
             )
 
             # Attach the policy to the user
             await run_command(
                 ["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
-                check=True,
-                capture_output=True,
             )
 
             logger.info(f"Attached policy to user {access_key} successfully")
