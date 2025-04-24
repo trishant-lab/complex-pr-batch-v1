@@ -230,17 +230,7 @@ async def create_user(properties: RedpandaProperties) -> bool:
                 log_info(f"Created user for tenant {properties.tenant}")
                 return True
     except aiohttp.ClientResponseError as e:
-        log_error(
-            f"Unexpected error occurred while creating user for tenant {properties.tenant}: {e}",
-            request_info=aiohttp.RequestInfo(
-                url=f"{properties.admin_api_base_url}/v1/security/users",
-                method="POST",
-                headers={"Content-Type": "application/json"},
-            ),
-            history=(),
-            status=response.status,
-            message=f"Failed to create user for tenant {properties.tenant}",
-        )
+        log_error(f"Unexpected error occurred while creating user for tenant {properties.tenant}: {e}")
         return False
 
 

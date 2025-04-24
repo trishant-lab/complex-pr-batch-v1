@@ -113,7 +113,7 @@ class K8sConfigMapCreationActivity(Activity):
                 )
 
                 # inject secret into tenant-config.json from 1Password
-                secret_inject(
+                await secret_inject(
                     source_file_path=os.path.join(opendal_file_operations.tempdir_root, temp_dir, template_file_name),
                     destination_path=os.path.join(
                         opendal_file_operations.tempdir_root,
@@ -209,7 +209,7 @@ class K8sConfigMapCreatFromTemplateActivity(Activity):
                 )
 
                 # inject secret into tenant-config.json from 1Password
-                secret_inject(
+                await secret_inject(
                     source_file_path=os.path.join(opendal_file_operations.tempdir_root, temp_dir, template_file_name),
                     destination_path=os.path.join(
                         opendal_file_operations.tempdir_root,

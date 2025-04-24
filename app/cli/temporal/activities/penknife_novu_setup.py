@@ -359,7 +359,7 @@ class NovuSetup:
         api_keys = await self.get_organization_api_key(token=organization_token)
 
         # store in 1Password
-        OnePasswordUtil(
+        await OnePasswordUtil(
             tenant=f"PENKNIFE_{self.penknife.tenant}",
             server_item="application-config",
             vault="Penknife",

@@ -124,8 +124,8 @@ class FaxSetup:
             server_item=self.server_item,
             vault="Dexit",
         )
-        one_password.insert_if_not_exists(key="fax_account_id", value=subaccount["sid"])
-        one_password.insert_if_not_exists(key="fax_api_token", value=subaccount_token["token"])
+        await one_password.insert_if_not_exists(key="fax_account_id", value=subaccount["sid"])
+        await one_password.insert_if_not_exists(key="fax_api_token", value=subaccount_token["token"])
 
         # Set up LaML bin with new credentials
         self.laml_url = f"https://314e.signalwire.com/api/laml/2010-04-01/Accounts/{subaccount['sid']}/LamlBins"
@@ -148,7 +148,7 @@ class FaxSetup:
             raise aiohttp.ClientError(f"API createLamlBin Error '{content['message']}'")
 
         # store in 1Password
-        one_password.insert_if_not_exists(key="fax_url", value=content["request_url"])
+        await one_password.insert_if_not_exists(key="fax_url", value=content["request_url"])
 
         log_info(f"Fax setup completed for tenant: {self.dexit.tenant}")
 
