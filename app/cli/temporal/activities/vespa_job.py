@@ -1,5 +1,5 @@
+import os
 import shutil
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -96,8 +96,11 @@ class VespaDeleteActivity(Activity):
             zip_path: Path = Path(config.jeeves.vespa_application_path, "application.zip")
             if zip_path.exists():
                 zip_path.unlink()
-                with tempfile.TemporaryDirectory() as temp_directory:
-                    temp_application_path: Path = Path(temp_directory, "application")
+                opendal_file_operations = get_opendal_file_client()
+                async with opendal_file_operations.temp_dir() as temp_directory:
+                    temp_application_path = os.path.join(
+                        opendal_file_operations.tempdir_root, temp_directory, "application"
+                    )
                     shutil.copytree(config.jeeves.vespa_application_path, temp_application_path)
                     shutil.make_archive(
                         str(zip_path.with_suffix("")),

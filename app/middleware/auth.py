@@ -1,8 +1,4 @@
-from functools import lru_cache
-
 import aiohttp
-import jwt
-import requests
 from casbin.enforcer import Enforcer
 from fastapi.responses import ORJSONResponse
 from httpx import AsyncClient
@@ -10,7 +6,7 @@ from starlette.requests import Request
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app.core.settings import AppSettings, get_settings, get_security_config
+from app.core.settings import AppSettings, get_security_config, get_settings
 
 config: AppSettings = get_settings()
 
@@ -33,38 +29,6 @@ def get_token(request: Request) -> tuple[str, str]:
     authorization: str = request.headers.get("Authorization")
     scheme, token = authorization.split(" ") if authorization else (None, None)
     return scheme, token
-
-
-@lru_cache(maxsize=1)
-def get_keycloak_key() -> str:
-    """
-    Retrieves the certificate from keycloak jwks_uri. Parses the certificate and returns the public key from it
-    """
-    from cryptography.hazmat.backends import default_backend
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.x509 import load_pem_x509_certificate
-
-    r: requests.Response = requests.get(security_config["jwks_uri"], timeout=60)
-    rsa256_key: dict = filter(lambda x: x["alg"] == "RS256", r.json()["keys"]).__next__()
-    certificate: str = f"-----BEGIN CERTIFICATE-----\n{rsa256_key['x5c'][0]}\n-----END CERTIFICATE-----"
-    cert_obj = load_pem_x509_certificate(certificate.encode(), default_backend())
-    return (
-        cert_obj.public_key()
-        .public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.PKCS1)
-        .decode()
-    )
-
-
-def get_user(token: str) -> dict:
-    """
-    get user
-    """
-    try:
-        key: str = get_keycloak_key()
-        audience: list = ["account", "broker", "realm-management"]
-        return jwt.decode(token, key=key, algorithms="RS256", aud=audience)
-    except jwt.PyJWTError:
-        raise CredentialException("Invalid token")
 
 
 class AuthenticationMiddleware:

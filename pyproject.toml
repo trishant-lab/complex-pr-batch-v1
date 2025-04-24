@@ -60,6 +60,7 @@ supervisor = "^4.2.5"
 psutil = "^7.0.0"
 mysql-connector-python = "^9.2.0"
 aiofiles = "^24.1.0"
+uuid7 = "0.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"

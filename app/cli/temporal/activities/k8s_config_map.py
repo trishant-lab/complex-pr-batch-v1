@@ -1,5 +1,5 @@
 from datetime import timedelta
-from tempfile import TemporaryDirectory
+import os
 
 from kubernetes.client import V1ConfigMap, V1ObjectMeta
 from kubernetes.dynamic.exceptions import NotFoundError
@@ -72,7 +72,8 @@ class K8sConfigMapCreationActivity(Activity):
                 activity_model.destination_file_name: activity_model.data,
             }
         else:
-            with TemporaryDirectory() as temp_dir:
+            opendal_file_operations = get_opendal_file_client()
+            async with opendal_file_operations.temp_dir() as temp_dir:
                 s3_client = (
                     get_s3_client(
                         access_key=app_config.s3_int.access_key,
@@ -97,7 +98,7 @@ class K8sConfigMapCreationActivity(Activity):
 
                 await download_file_from_storage(
                     object_name=object_name,
-                    file_path=f"{temp_dir}/{template_file_name}",
+                    file_path=os.path.join(opendal_file_operations.tempdir_root, temp_dir, template_file_name),
                     storage_client=s3_client,
                 )
 
@@ -107,17 +108,27 @@ class K8sConfigMapCreationActivity(Activity):
                 output = template.render(**activity_model.template_payload)
 
                 opendal_file_operations = get_opendal_file_client()
-                await opendal_file_operations.write_file(f"{temp_dir}/{template_file_name}", output)
+                await opendal_file_operations.write_file(
+                    os.path.join(opendal_file_operations.tempdir_root, temp_dir, template_file_name), output
+                )
 
                 # inject secret into tenant-config.json from 1Password
                 secret_inject(
-                    source_file_path=f"{temp_dir}/{template_file_name}",
-                    destination_path=f"{temp_dir}/{activity_model.destination_file_name}",
+                    source_file_path=os.path.join(opendal_file_operations.tempdir_root, temp_dir, template_file_name),
+                    destination_path=os.path.join(
+                        opendal_file_operations.tempdir_root,
+                        temp_dir,
+                        activity_model.destination_file_name,
+                    ),
                 )
 
                 data = {
                     activity_model.destination_file_name: await opendal_file_operations.read_file(
-                        f"{temp_dir}/{activity_model.destination_file_name}"
+                        os.path.join(
+                            opendal_file_operations.tempdir_root,
+                            temp_dir,
+                            activity_model.destination_file_name,
+                        )
                     )
                 }
 
@@ -185,25 +196,36 @@ class K8sConfigMapCreatFromTemplateActivity(Activity):
                 activity_model.destination_file_name: activity_model.data,
             }
         else:
-            with TemporaryDirectory() as temp_dir:
+            opendal_file_operations = get_opendal_file_client()
+            async with opendal_file_operations.temp_dir() as temp_dir:
                 template_env = get_env(template_path=activity_model.template_path)
 
                 template = template_env.get_template(template_file_name)
                 output = template.render(**activity_model.template_payload)
 
                 opendal_file_operations = get_opendal_file_client()
-                await opendal_file_operations.write_file(f"{temp_dir}/{template_file_name}", output)
+                await opendal_file_operations.write_file(
+                    os.path.join(opendal_file_operations.tempdir_root, temp_dir, template_file_name), output
+                )
 
                 # inject secret into tenant-config.json from 1Password
                 secret_inject(
-                    source_file_path=f"{temp_dir}/{template_file_name}",
-                    destination_path=f"{temp_dir}/{activity_model.destination_file_name}",
+                    source_file_path=os.path.join(opendal_file_operations.tempdir_root, temp_dir, template_file_name),
+                    destination_path=os.path.join(
+                        opendal_file_operations.tempdir_root,
+                        temp_dir,
+                        activity_model.destination_file_name,
+                    ),
                 )
 
                 data = {
                     activity_model.destination_file_name: await opendal_file_operations.read_file(
-                        f"{temp_dir}/{activity_model.destination_file_name}"
-                    ).read()
+                        os.path.join(
+                            opendal_file_operations.tempdir_root,
+                            temp_dir,
+                            activity_model.destination_file_name,
+                        )
+                    )
                 }
 
         body = V1ConfigMap(

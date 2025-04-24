@@ -1,6 +1,5 @@
 import os
 import subprocess
-import tempfile
 
 from app.core.db import DBManager, get_db_manager
 from app.utils.file_operations import get_opendal_file_client
@@ -35,13 +34,15 @@ async def form_render_for_product(product: str) -> dict:
 
     response = await db.fetch_one("get_product_schema.sql", product=product)
 
-    tmp_dir: str = tempfile.gettempdir()
+    opendal_file_client = get_opendal_file_client()
+    async with opendal_file_client.temp_dir() as tmp_dir:
+        os.makedirs(os.path.join(tmp_dir, "form/source"), exist_ok=True)
+        os.makedirs(os.path.join(tmp_dir, "i18n"), exist_ok=True)
+        os.makedirs(os.path.join(tmp_dir, "form/html_render"), exist_ok=True)
 
-    os.makedirs(os.path.join(tmp_dir, "form/source"), exist_ok=True)
-    os.makedirs(os.path.join(tmp_dir, "i18n"), exist_ok=True)
-    os.makedirs(os.path.join(tmp_dir, "form/html_render"), exist_ok=True)
+        await opendal_file_client.write_file(
+            os.path.join(opendal_file_client.tempdir_root, tmp_dir, "form/source/form.json"),
+            response["product_schema"],
+        )
 
-    opendal_file_operations = get_opendal_file_client()
-    await opendal_file_operations.write_file(os.path.join(tmp_dir, "form/source/form.json"), response["product_schema"])
-
-    return await render_form(tmp_dir)
+        return await render_form(os.path.join(opendal_file_client.tempdir_root, tmp_dir))

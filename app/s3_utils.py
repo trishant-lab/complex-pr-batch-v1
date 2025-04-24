@@ -3,7 +3,6 @@ import base64
 import mimetypes
 import os
 from pathlib import Path
-import tempfile
 
 from app.cli.temporal.muspell import TemplatePath
 from app.template_env import get_env
@@ -220,7 +219,7 @@ def create_minio_bucket(config: AppSettings, bucket_name: str, region_name: str)
     logger.info(f"Created Minio bucket '{bucket_name}' in region '{region_name}' successfully")
 
 
-def attach_minio_policy(bucket_name: str, access_key: str) -> None:
+async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
     """
     Create a Minio policy and attach it to a user using mc client via subprocess
     """
@@ -237,30 +236,32 @@ def attach_minio_policy(bucket_name: str, access_key: str) -> None:
     rendered_policy = policy_template.render(bucket_name=bucket_name)
 
     # Use a temporary file with context manager to ensure cleanup
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as temp_file:
-        temp_file.write(rendered_policy)
+
+    opendal_file_operations = get_opendal_file_client()
+    async with opendal_file_operations.temp_file() as temp_file:
+        await temp_file.write(rendered_policy.encode())
         temp_file_path = temp_file.name
 
-    try:
-        # Create the policy using mc admin
-        subprocess.run(
-            ["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
-            check=True,
-            capture_output=True,
-        )
+        try:
+            # Create the policy using mc admin
+            subprocess.run(
+                ["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
+                check=True,
+                capture_output=True,
+            )
 
-        # Attach the policy to the user
-        subprocess.run(
-            ["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
-            check=True,
-            capture_output=True,
-        )
+            # Attach the policy to the user
+            subprocess.run(
+                ["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
+                check=True,
+                capture_output=True,
+            )
 
-        logger.info(f"Attached policy to user {access_key} successfully")
-    finally:
-        # Ensure the temporary file is removed even if an exception occurs
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
+            logger.info(f"Attached policy to user {access_key} successfully")
+        finally:
+            # Ensure the temporary file is removed even if an exception occurs
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
 
 
 class MinioUserCreationError(Exception):

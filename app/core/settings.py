@@ -1,10 +1,10 @@
 import asyncio
 import os
-import tempfile
+
 from functools import lru_cache, partial
 from typing import Final
 
-import requests
+import httpx
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
@@ -240,7 +240,7 @@ class AppSettings(BaseSettings):
 
     app_url: str = "https://launchpad.314ecorp.tech/sprint"
 
-    log_path: str = "/var/log" if os.getuid() == 0 else tempfile.gettempdir()
+    log_path: str = "/var/log" if os.getuid() == 0 else get_opendal_file_client().tempdir_root
     log_file_path: str = os.path.join(log_path, "launchpad_app.log")
 
     gsuite: GSuiteModel = GSuiteModel()
@@ -342,7 +342,7 @@ def get_security_config() -> dict:
     Returns keycloak endpoints
     """
     settings: AppSettings = get_settings()
-    return requests.get(settings.keycloak.wellknown_url, timeout=60).json()
+    return httpx.get(settings.keycloak.wellknown_url, timeout=60).json()
 
 
 APP_CONFIG: AppSettings = get_settings()
