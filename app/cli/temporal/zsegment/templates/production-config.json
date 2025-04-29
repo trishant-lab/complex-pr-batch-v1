@@ -1,0 +1,22 @@
+{
+  "domain_name": "zsegment.com",
+  "zone_name": "e314ecom",
+  "zone_id": "d7f047cbb2957e4375504f46d4e2b8a5",
+  "redpanda_broker": "redpanda-0.redpanda.redpanda-system.svc.cluster.local:9092",
+  "redpanda_admin_username": "superuser",
+  "redpanda_admin_password": "PKa3YWvzD6buGie43eknsYWZ",
+  "redpanda_admin_api_base_url": "http://redpanda-0.redpanda.redpanda-system.svc.cluster.local:9644",
+  "keycloak_auth_server_url": "https://auth.314ecorp.com/auth",
+  "gitea_base_url": "http://gitea-http.gitea.svc.cluster.local:3000/api/v1/",
+  "gitea_admin_username": "gitea_admin_production",
+  "gitea_admin_password": "8R2eDgxZk941jtPGwSj8",
+  "gitea_template_owner": "gitea_template_owner",
+  "lago_api_url": "http://lago-api.lago.svc.cluster.local:3000",
+  "lago_plan_code": "Free",
+  "lago_api_key": "740a93a6-ca63-418a-b610-e295153b59ab",
+  "postgres_url": "db-cluster-ha.postgres16.svc.cluster.local",
+  "sender_name": "314e Support",
+  "sender_email": "developer@314ecorp.com",
+  "victoria_metrics_url": "http://vmselect-vmcluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus",
+  "temporal_zsegment_onboarding_task_queue": "temporal_zsegment_onboarding_task_queue"
+}
