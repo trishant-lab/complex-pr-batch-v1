@@ -1,11 +1,11 @@
-import asyncio
 import os
 import shutil
 from configparser import ConfigParser
+from io import StringIO
 
 import app
 from app.core.cli_settings import get_workers_config
-from app.core.ijson import ijson_dumps, ijson_loads
+from app.core.ijson import ijson_loads
 from app.core.settings import CONFIG_FILE_NAMES
 from app.utils.file_operations import get_opendal_file_client
 
@@ -20,7 +20,7 @@ async def get_config_env_dict() -> dict:
     return ijson_loads(await opendal_file_operations.read_file(config_files[0])) if config_files else {}
 
 
-async def write_supervisor_workers_conf() -> None:
+def write_supervisor_workers_conf() -> None:
     """
     write supervisor workers config
     """
@@ -62,9 +62,10 @@ async def write_supervisor_workers_conf() -> None:
     }
 
     opendal_file_operations = get_opendal_file_client()
-    await opendal_file_operations.write_file(file_path, ijson_dumps(worker_config))
+    config_string: StringIO = StringIO()
+    worker_config.write(config_string)
+    opendal_file_operations.write_file_sync(file_path, config_string.getvalue())
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(write_supervisor_workers_conf())
+    write_supervisor_workers_conf()

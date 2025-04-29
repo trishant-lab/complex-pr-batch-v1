@@ -32,6 +32,13 @@ class OpendalFileOperations:
         async with await self.a_client.open(file_path, mode) as file:
             return await file.read()
 
+    def write_file_sync(self, file_path: str, content: bytes | str, mode: str = "wb") -> None:
+        """
+        Write a file to the local file system using client
+        """
+        with self.client.open(file_path, mode) as file:
+            file.write(content) if isinstance(content, bytes) else file.write(content.encode())
+
     async def write_file(self, file_path: str, content: bytes | str, mode: str = "wb") -> None:
         """
         Write a file to the local file system using a_client
