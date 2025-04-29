@@ -12,26 +12,32 @@ class OpendalFileOperations:
         """
         Initialize the OpendalFileOperations class
         """
-        self.a_client = opendal.AsyncOperator(
-            scheme="fs",
-            root="/",
-        )
-        # Store the temp dir root
+        self.client = opendal.Operator(scheme="fs", root="/")
+        self.a_client = opendal.AsyncOperator(scheme="fs", root="/")
         self.tempdir_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "temp"))
-        # Ensure the base temp directory exists
         os.makedirs(self.tempdir_root, exist_ok=True)
-        self.tempdir_client = opendal.AsyncOperator(
-            scheme="fs",
-            root=self.tempdir_root,
-        )
+        self.tempdir_client = opendal.AsyncOperator(scheme="fs", root=self.tempdir_root)
+
+    def read_file_sync(self, file_path: str, mode: str = "rb") -> bytes:
+        """
+        Read a file from the local file system using client
+        """
+        with self.client.open(file_path, mode) as file:
+            return file.read()
 
     async def read_file(self, file_path: str, mode: str = "rb") -> bytes:
         """
         Read a file from the local file system using a_client
         """
-        # This uses self.a_client rooted at /
         async with await self.a_client.open(file_path, mode) as file:
             return await file.read()
+
+    def write_file_sync(self, file_path: str, content: bytes | str, mode: str = "wb") -> None:
+        """
+        Write a file to the local file system using client
+        """
+        with self.client.open(file_path, mode) as file:
+            file.write(content) if isinstance(content, bytes) else file.write(content.encode())
 
     async def write_file(self, file_path: str, content: bytes | str, mode: str = "wb") -> None:
         """
