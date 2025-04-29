@@ -12,10 +12,18 @@ class OpendalFileOperations:
         """
         Initialize the OpendalFileOperations class
         """
+        self.client = opendal.Operator(scheme="fs", root="/")
         self.a_client = opendal.AsyncOperator(scheme="fs", root="/")
         self.tempdir_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "temp"))
         os.makedirs(self.tempdir_root, exist_ok=True)
         self.tempdir_client = opendal.AsyncOperator(scheme="fs", root=self.tempdir_root)
+
+    def read_file_sync(self, file_path: str, mode: str = "rb") -> bytes:
+        """
+        Read a file from the local file system using client
+        """
+        with self.client.open(file_path, mode) as file:
+            return file.read()
 
     async def read_file(self, file_path: str, mode: str = "rb") -> bytes:
         """

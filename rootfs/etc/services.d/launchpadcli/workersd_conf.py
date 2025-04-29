@@ -1,9 +1,9 @@
+import asyncio
 import os
 import shutil
 from configparser import ConfigParser
 
 import app
-from app.common import run_async_task
 from app.core.cli_settings import get_workers_config
 from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.settings import CONFIG_FILE_NAMES
@@ -66,4 +66,5 @@ async def write_supervisor_workers_conf() -> None:
 
 
 if __name__ == "__main__":
-    run_async_task(write_supervisor_workers_conf())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(write_supervisor_workers_conf())

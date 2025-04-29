@@ -7,7 +7,6 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
 
-from app.common import run_async_task
 from app.core.ijson import ijson_loads
 from app.core.product_settings.common import PostgresSettings, Redis, SlackSettings
 from app.core.product_settings.dexit import DexitSettings
@@ -306,13 +305,13 @@ def get_settings() -> AppSettings:
         if file in PRODUCT_FILE_NAMES:
             product = file.split(".")[0]
             try:
-                file_content = run_async_task(fs_client.read_file, os.path.join(config_dir, file))
+                file_content = fs_client.read_file_sync(os.path.join(config_dir, file))
                 combined_config.update({product: ijson_loads(file_content)})
             except Exception as e:
                 logger.error(f"Error while loading config for {product}: {e}")
         else:
             try:
-                file_content = run_async_task(fs_client.read_file, os.path.join(config_dir, file))
+                file_content = fs_client.read_file_sync(os.path.join(config_dir, file))
                 combined_config.update(ijson_loads(file_content))
             except Exception:
                 logger.error(f"found inadequate config file - {file}, returning default settings!")
