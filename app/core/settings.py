@@ -1,6 +1,4 @@
-import asyncio
 import os
-
 from functools import lru_cache, partial
 from typing import Final
 
@@ -9,6 +7,7 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
 
+from app.common import run_async_task
 from app.core.ijson import ijson_loads
 from app.core.product_settings.common import PostgresSettings, Redis, SlackSettings
 from app.core.product_settings.dexit import DexitSettings
@@ -302,28 +301,21 @@ def get_settings() -> AppSettings:
     default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
 
     combined_config = dict()
-    loop = asyncio.get_event_loop()
+    fs_client = get_opendal_file_client()
     for file in CONFIG_FILE_NAMES:
         if file in PRODUCT_FILE_NAMES:
             product = file.split(".")[0]
             try:
-                opendal_file_operations = get_opendal_file_client()
-                combined_config[product] = ijson_loads(
-                    loop.run_until_complete(opendal_file_operations.read_file(os.path.join(config_dir, file)))
-                )
+                file_content = run_async_task(fs_client.read_file, os.path.join(config_dir, file))
+                combined_config.update({product: ijson_loads(file_content)})
             except Exception as e:
                 logger.error(f"Error while loading config for {product}: {e}")
         else:
             try:
-                opendal_file_operations = get_opendal_file_client()
-                combined_config.update(
-                    ijson_loads(
-                        loop.run_until_complete(opendal_file_operations.read_file(os.path.join(config_dir, file)))
-                    )
-                )
+                file_content = run_async_task(fs_client.read_file, os.path.join(config_dir, file))
+                combined_config.update(ijson_loads(file_content))
             except Exception:
                 logger.error(f"found inadequate config file - {file}, returning default settings!")
-                return default_settings
 
     import pydash as py_
 
