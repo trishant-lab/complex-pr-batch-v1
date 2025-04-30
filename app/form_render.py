@@ -37,9 +37,9 @@ async def form_render_for_product(product: str) -> dict:
 
     opendal_file_client = get_opendal_file_client()
     async with opendal_file_client.temp_dir() as tmp_dir:
-        os.makedirs(os.path.join(tmp_dir, "form/source"), exist_ok=True)
-        os.makedirs(os.path.join(tmp_dir, "i18n"), exist_ok=True)
-        os.makedirs(os.path.join(tmp_dir, "form/html_render"), exist_ok=True)
+        os.makedirs(os.path.join(opendal_file_client.tempdir_root, tmp_dir, "form/source"), exist_ok=True)
+        os.makedirs(os.path.join(opendal_file_client.tempdir_root, tmp_dir, "i18n"), exist_ok=True)
+        os.makedirs(os.path.join(opendal_file_client.tempdir_root, tmp_dir, "form/html_render"), exist_ok=True)
 
         await opendal_file_client.write_file(
             os.path.join(opendal_file_client.tempdir_root, tmp_dir, "form/source/form.json"),
