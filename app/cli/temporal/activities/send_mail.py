@@ -28,12 +28,13 @@ async def provisioning_success_mail(name: str, email: str, link: str, password: 
     opendal_file_operations = get_opendal_file_client()
 
     async with opendal_file_operations.temp_dir() as temp_dir:
+        temp_dir_path = os.path.join(opendal_file_operations.tempdir_root, temp_dir)
         await opendal_file_operations.write_file(
-            os.path.join(opendal_file_operations.tempdir_root, temp_dir, "provisioning_success_mail.html"),
+            os.path.join(temp_dir_path, "provisioning_success_mail.html"),
             email_template,
         )
 
-        template_env = get_env(template_path=temp_dir)
+        template_env = get_env(template_path=temp_dir_path)
         template_env.variable_start_string = "{{"
         template_env.variable_end_string = "}}"
         template = template_env.get_template("provisioning_success_mail.html")
@@ -149,12 +150,12 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
 
     opendal_file_operations = get_opendal_file_client()
     async with opendal_file_operations.temp_dir() as temp_dir:
+        temp_dir_path = os.path.join(opendal_file_operations.tempdir_root, temp_dir)
         await opendal_file_operations.write_file(
-            os.path.join(opendal_file_operations.tempdir_root, temp_dir, "before_provisioning_mail.html"),
-            response["template"],
+            os.path.join(temp_dir_path, "before_provisioning_mail.html"), response["template"]
         )
 
-        template_env = get_env(template_path=temp_dir)
+        template_env = get_env(template_path=temp_dir_path)
         template_env.variable_start_string = "{{"
         template_env.variable_end_string = "}}"
         template = template_env.get_template("before_provisioning_mail.html")
