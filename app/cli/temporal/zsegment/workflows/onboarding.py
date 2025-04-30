@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from uuid import uuid4
+import os
 
 import pydash
 from temporalio import workflow
@@ -116,6 +117,8 @@ with workflow.unsafe.imports_passed_through():
     from app.core.settings import AppSettings, ZSegmentSettings, get_settings
     from app.template_env import get_env
 
+# Import the GrafanaDashboard components
+from app.cli.temporal.activities.grafana_dashboard import GrafanaDashboardActivity, GrafanaDashboardProperties
 
 ProductName = "zsegment"
 OnePasswordVaultName = "zsegment"
@@ -932,6 +935,31 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     product=ProductName,
                     from_name=zsegment_config.sender_name,
                     email_from=zsegment_config.sender_email,
+                ),
+            )
+
+            grafana_api_url = "https://grafana.314ecorp.tech"
+            grafana_api_key = "sa-1-zsegment_viewer-8da9e5ee-1b4d-44e4-a950-ebf34fda5ba6"
+            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_spring.json")
+
+            await run_activity(
+                activity=GrafanaDashboardActivity,
+                arg=GrafanaDashboardProperties(
+                    tenant=tenant,
+                    grafana_url=grafana_api_url,
+                    api_key=grafana_api_key,
+                    template_path=grafana_template_path,
+                ),
+            )
+            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_camel.json")
+
+            await run_activity(
+                activity=GrafanaDashboardActivity,
+                arg=GrafanaDashboardProperties(
+                    tenant=tenant,
+                    grafana_url=grafana_api_url,
+                    api_key=grafana_api_key,
+                    template_path=grafana_template_path,
                 ),
             )
 
