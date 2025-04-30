@@ -75,3 +75,11 @@ class ZSegmentWorkflow(ProductWorkflow):
         from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
 
         return ZSegmentOnboardingWorkflow.get_workflow_id(schema)
+    
+
+    @staticmethod
+    async def deploy(schema: dict) -> None:
+        """
+        Deploy a product
+        """
+        raise NotImplementedError("ZSegment deployment is not implemented")
