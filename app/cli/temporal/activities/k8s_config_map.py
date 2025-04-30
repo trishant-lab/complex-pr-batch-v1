@@ -102,7 +102,7 @@ class K8sConfigMapCreationActivity(Activity):
                     storage_client=s3_client,
                 )
 
-                template_env = get_env(template_path=temp_dir)
+                template_env = get_env(template_path=os.path.join(opendal_file_operations.tempdir_root, temp_dir))
 
                 template = template_env.get_template(template_file_name)
                 output = template.render(**activity_model.template_payload)
