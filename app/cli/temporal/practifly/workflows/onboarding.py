@@ -215,7 +215,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                 )
 
             postgres_schema_name = tenant
-            postgres_database_name = f"{ProductName}-{config.env}"
+            postgres_database_name = "practifly"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
             postgres_secret_name = f"{ProductName}-postgres"
