@@ -1,9 +1,8 @@
 import os
-import tempfile
 from functools import lru_cache, partial
 from typing import Final
 
-import requests
+import httpx
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings
@@ -19,6 +18,7 @@ from app.core.product_settings.practifly import PractiflySettings
 from app.core.product_settings.pricedx import PricedxSettings
 from app.core.product_settings.veritable import VeritableSettings
 from app.core.product_settings.zsegment import ZSegmentSettings
+from app.utils.file_operations import get_opendal_file_client
 
 CONFIG_FILE_NAMES: Final[list[str]] = [
     "settings.json",
@@ -238,7 +238,7 @@ class AppSettings(BaseSettings):
 
     app_url: str = "https://launchpad.314ecorp.tech/sprint"
 
-    log_path: str = "/var/log" if os.getuid() == 0 else tempfile.gettempdir()
+    log_path: str = "/var/log" if os.getuid() == 0 else get_opendal_file_client().tempdir_root
     log_file_path: str = os.path.join(log_path, "launchpad_app.log")
 
     gsuite: GSuiteModel = GSuiteModel()
@@ -300,19 +300,21 @@ def get_settings() -> AppSettings:
     default_settings = ProductionSettings() if deployment == "production" else IntegrationSettings()
 
     combined_config = dict()
+    fs_client = get_opendal_file_client()
     for file in CONFIG_FILE_NAMES:
         if file in PRODUCT_FILE_NAMES:
             product = file.split(".")[0]
             try:
-                combined_config[product] = ijson_loads(open(os.path.join(config_dir, file)).read())
+                file_content = fs_client.read_file_sync_str(os.path.join(config_dir, file))
+                combined_config.update({product: ijson_loads(file_content)})
             except Exception as e:
                 logger.error(f"Error while loading config for {product}: {e}")
         else:
             try:
-                combined_config.update(ijson_loads(open(os.path.join(config_dir, file)).read()))
+                file_content = fs_client.read_file_sync_str(os.path.join(config_dir, file))
+                combined_config.update(ijson_loads(file_content))
             except Exception:
                 logger.error(f"found inadequate config file - {file}, returning default settings!")
-                return default_settings
 
     import pydash as py_
 
@@ -331,7 +333,7 @@ def get_security_config() -> dict:
     Returns keycloak endpoints
     """
     settings: AppSettings = get_settings()
-    return requests.get(settings.keycloak.wellknown_url, timeout=60).json()
+    return httpx.get(settings.keycloak.wellknown_url, timeout=60).json()
 
 
 APP_CONFIG: AppSettings = get_settings()

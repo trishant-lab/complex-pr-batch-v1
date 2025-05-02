@@ -10,6 +10,7 @@ from cryptography.x509 import load_pem_x509_certificate
 from loguru import logger
 
 from app.cli.temporal.core.exceptions import NonRetryableException
+from app.utils.file_operations import get_opendal_file_client
 from app.core.settings import get_settings
 from app.mail_templates.main import kube_config_expiry_mail
 from app.sendgrid_utils import send_mail
@@ -25,7 +26,9 @@ async def check_kube_config_certificate_expiry() -> None:
     if not os.path.isfile(path):
         msg = f"File not found at path - {path}"
         raise NonRetryableException(msg)
-    _y = yaml.safe_load(open(path))
+    opendal_file_operations = get_opendal_file_client()
+    file_content = await opendal_file_operations.read_file(path)
+    _y = yaml.safe_load(file_content)
     cert_data = pydash.get(_y, "users.0.user.client-certificate-data")
     cert_bytes = base64.b64decode(cert_data)
     load_pem_x509_certificate(cert_bytes, default_backend())

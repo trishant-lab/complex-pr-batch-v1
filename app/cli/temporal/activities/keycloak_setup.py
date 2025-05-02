@@ -12,6 +12,7 @@ from app.core.ijson import ijson_loads
 from app.core.settings import AppSettings, get_settings
 from app.one_password_util import OnePasswordUtil
 from app.template_env import get_env
+from app.utils.file_operations import get_opendal_file_client
 
 
 def template_render(
@@ -254,7 +255,7 @@ def create_internal_users(
             )
 
 
-def create_keycloak_group(
+async def create_keycloak_group(
     realm_name: str,
     client_name: str,
     template_path: str,
@@ -267,8 +268,8 @@ def create_keycloak_group(
 
     client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
 
-    with open(f"{template_path}/{template_name}") as f:
-        user_groups = ijson_loads(f.read())
+    opendal_file_operations = get_opendal_file_client()
+    user_groups = ijson_loads(await opendal_file_operations.read_file_str(f"{template_path}/{template_name}"))
 
     for group_name, roles in user_groups.items():
         keycloak_client.create_group(payload={"name": group_name}, realm_name=realm_name)
@@ -780,11 +781,11 @@ class KeycloakCreateIDPFlowActivity(Activity):
         jinja_env: jinja2.Environment = get_env(template_path=activity_model.template_path)
         template = jinja_env.get_template(activity_model.template_name)
 
-        googleclientid = OnePasswordUtil(
+        googleclientid = await OnePasswordUtil(
             tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
         ).get_key("provider_client_id")
 
-        googlesecret = OnePasswordUtil(
+        googlesecret = await OnePasswordUtil(
             tenant="INTEGRATION_COMMON_CONFIG", server_item="application-config", vault="Penknife"
         ).get_key("provider_client_secret")
 
@@ -1041,7 +1042,7 @@ class KeycloakCreateGroupActivity(Activity):
         """
         Create keycloak groups
         """
-        create_keycloak_group(
+        await create_keycloak_group(
             realm_name=activity_model.realm_name,
             client_name=activity_model.client_name,
             template_path=activity_model.template_path,

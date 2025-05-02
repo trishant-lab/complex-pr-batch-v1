@@ -1,0 +1,1143 @@
+{
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "datasource",
+            "uid": "grafana"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "target": {
+            "limit": 100,
+            "matchAny": false,
+            "tags": [],
+            "type": "dashboard"
+          },
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": 10,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+      {
+        "collapsed": false,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 22,
+        "panels": [],
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "refId": "A"
+          }
+        ],
+        "title": "Stats for interface: [$interface]",
+        "type": "row"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "Shows completed exchanges of the camel context in the time range for given interface",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": true,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "decimals": 0,
+            "mappings": [],
+            "min": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 11,
+          "x": 0,
+          "y": 1
+        },
+        "id": 212,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "maxHeight": 600,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.0.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum(\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "format": "time_series",
+            "instant": false,
+            "interval": "",
+            "intervalFactor": 1,
+            "legendFormat": "Total messages",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Inbound messages for interface: [$interface]",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "green",
+              "mode": "fixed"
+            },
+            "decimals": 0,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "blue",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byFrameRefID",
+                "options": "Success Percentage"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Success %"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byFrameRefID",
+                "options": "Success Count"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Success Count"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 13,
+          "x": 11,
+          "y": 1
+        },
+        "id": 334,
+        "maxDataPoints": 100,
+        "options": {
+          "colorMode": "none",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "vertical",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "text": {
+            "valueSize": 85
+          },
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.0.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "format": "time_series",
+            "instant": false,
+            "interval": "",
+            "intervalFactor": 1,
+            "legendFormat": "Total success",
+            "range": true,
+            "refId": "Success Count"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)*100",
+            "hide": false,
+            "legendFormat": "Success %",
+            "range": true,
+            "refId": "Success Percentage"
+          }
+        ],
+        "title": "Success for interface: [$interface]",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "Average execution time for an interface",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 11,
+          "x": 0,
+          "y": 7
+        },
+        "id": 435,
+        "maxDataPoints": 100,
+        "options": {
+          "colorMode": "none",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "text": {
+            "valueSize": 85
+          },
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.0.0",
+        "repeatDirection": "v",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum by (interface_name) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"}[$__range])\n)\n/ sum by (interface_name) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"}[$__range]))",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "intervalFactor": 1,
+            "legendFormat": "Avg exec time",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Avg Exec time for interface: [$interface]",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "red",
+              "mode": "fixed"
+            },
+            "decimals": 0,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "blue",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byFrameRefID",
+                "options": "Failure Percentage"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Failure %"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byFrameRefID",
+                "options": "Failure Count"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Failure Count"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 13,
+          "x": 11,
+          "y": 7
+        },
+        "id": 439,
+        "maxDataPoints": 100,
+        "options": {
+          "colorMode": "none",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "vertical",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "text": {
+            "valueSize": 85
+          },
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.0.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "format": "time_series",
+            "instant": false,
+            "interval": "",
+            "intervalFactor": 1,
+            "legendFormat": "Total failures",
+            "range": true,
+            "refId": "Failure Count"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)*100",
+            "hide": false,
+            "legendFormat": "Failure %",
+            "range": true,
+            "refId": "Failure Percentage"
+          }
+        ],
+        "title": "Failures for interface: [$interface]",
+        "type": "stat"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 13
+        },
+        "id": 437,
+        "panels": [],
+        "title": "Stats for route: [$route]",
+        "type": "row"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "Shows completed exchanges of the camel context in the time range for given route",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "decimals": 0,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "blue",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 11,
+          "x": 0,
+          "y": 14
+        },
+        "id": 438,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "maxHeight": 600,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.0.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum(\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "format": "time_series",
+            "instant": false,
+            "interval": "",
+            "intervalFactor": 1,
+            "legendFormat": "Total messages",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Inbound messages for route: [$route]",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "green",
+              "mode": "fixed"
+            },
+            "decimals": 0,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "blue",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byFrameRefID",
+                "options": "Success Percentage"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Success %"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byFrameRefID",
+                "options": "Success Count"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Success Count"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 13,
+          "x": 11,
+          "y": 14
+        },
+        "id": 436,
+        "maxDataPoints": 100,
+        "options": {
+          "colorMode": "none",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "vertical",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "text": {
+            "valueSize": 85
+          },
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.0.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "format": "time_series",
+            "instant": false,
+            "interval": "",
+            "intervalFactor": 1,
+            "legendFormat": "Total success",
+            "range": true,
+            "refId": "Success Count"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)*100",
+            "hide": false,
+            "legendFormat": "Success %",
+            "range": true,
+            "refId": "Success Percentage"
+          }
+        ],
+        "title": "Success for route: [$route]",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "Average execution time for a route",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 11,
+          "x": 0,
+          "y": 20
+        },
+        "id": 96,
+        "maxDataPoints": 100,
+        "options": {
+          "colorMode": "none",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "text": {
+            "valueSize": 87
+          },
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.0.0",
+        "repeat": "route",
+        "repeatDirection": "v",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum by (route_id) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\", route_id=\"$route\"}[$__range])\n)\n/ sum by (route_id) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\", route_id=\"$route\"}[$__range]))",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "intervalFactor": 1,
+            "legendFormat": "Avg exec time",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Avg Exec time for route:  [$route]",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "red",
+              "mode": "fixed"
+            },
+            "decimals": 0,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "blue",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byFrameRefID",
+                "options": "Failure Percentage"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Failure %"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byFrameRefID",
+                "options": "Failure Count"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Failure Count"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 13,
+          "x": 11,
+          "y": 20
+        },
+        "id": 440,
+        "maxDataPoints": 100,
+        "options": {
+          "colorMode": "none",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "vertical",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "text": {
+            "valueSize": 85
+          },
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.0.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "format": "time_series",
+            "instant": false,
+            "interval": "",
+            "intervalFactor": 1,
+            "legendFormat": "Total failures",
+            "range": true,
+            "refId": "Failure Count"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)*100",
+            "hide": false,
+            "legendFormat": "Failure %",
+            "range": true,
+            "refId": "Failure Percentage"
+          }
+        ],
+        "title": "Failures for route: [$route]",
+        "type": "stat"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 26
+        },
+        "id": 382,
+        "panels": [],
+        "title": "Interface [$interface] Overview",
+        "type": "row"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green"
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 27
+        },
+        "id": 434,
+        "maxDataPoints": 100,
+        "options": {
+          "minVizHeight": 75,
+          "minVizWidth": 75,
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "sizing": "auto"
+        },
+        "pluginVersion": "11.0.0",
+        "repeatDirection": "v",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum by (route_id) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"}[$__range])\n)\n/ sum by (route_id) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"}[$__range]))",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "intervalFactor": 1,
+            "legendFormat": "__auto",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Duration : Avg Execution time in routes",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "fec8h5fj8a2o0a"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "neutral": 0
+            },
+            "mappings": [],
+            "max": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "blue"
+                },
+                {
+                  "color": "#EAB839",
+                  "value": 0.05
+                },
+                {
+                  "color": "red",
+                  "value": 0.8
+                }
+              ]
+            },
+            "unit": "percentunit"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 33
+        },
+        "id": 337,
+        "options": {
+          "minVizHeight": 75,
+          "minVizWidth": 75,
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "sizing": "auto"
+        },
+        "pluginVersion": "11.0.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum by (route_id) (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n        }[$__range]\n    )\n) \n/ \nsum by (route_id) (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    ) > 0\n)",
+            "instant": true,
+            "legendFormat": "{{routeId}}",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "Errors : Failure Rates in routes",
+        "type": "gauge"
+      }
+    ],
+    "refresh": "1m",
+    "schemaVersion": 39,
+    "tags": [],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "Bed_Swap",
+            "value": "Bed_Swap"
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "fec8h5fj8a2o0a"
+          },
+          "definition": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_varialbe_tenant>>\"},interface_name)",
+          "hide": 0,
+          "includeAll": false,
+          "label": "Camel Interface",
+          "multi": false,
+          "name": "interface",
+          "options": [],
+          "query": {
+            "qryType": 1,
+            "query": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_varialbe_tenant>>\"},interface_name)",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        },
+        {
+          "current": {
+            "selected": false,
+            "text": "a17-incomingtoall",
+            "value": "a17-incomingtoall"
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "fec8h5fj8a2o0a"
+          },
+          "definition": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"},route_id)",
+          "hide": 0,
+          "includeAll": false,
+          "label": "Camel Route",
+          "multi": false,
+          "name": "route",
+          "options": [],
+          "query": {
+            "qryType": 1,
+            "query": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"},route_id)",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-30d",
+      "to": "now"
+    },
+    "timeRangeUpdatedDuringEditOrView": false,
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ]
+    },
+    "timezone": "",
+    "title": "<<dynamic_varialbe_tenant>> - Apache Camel - Context view",
+    "uid": "apache-camel-micrometer-<<dynamic_varialbe_tenant>>",
+    "version": 3,
+    "weekStart": ""
+  }

@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from uuid import uuid4
+import os
 
 import pydash
 from temporalio import workflow
@@ -116,6 +117,8 @@ with workflow.unsafe.imports_passed_through():
     from app.core.settings import AppSettings, ZSegmentSettings, get_settings
     from app.template_env import get_env
 
+# Import the GrafanaDashboard components
+from app.cli.temporal.activities.grafana_dashboard import GrafanaDashboardActivity, GrafanaDashboardProperties
 
 ProductName = "zsegment"
 OnePasswordVaultName = "zsegment"
@@ -169,6 +172,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             CreateKubernetesResourcesActivity.defn,
             CheckPodRunningStatusActivity.defn,
             CreateDropletActivity.defn,
+            GrafanaDashboardActivity.defn,
         ]
 
     @classmethod
@@ -909,6 +913,28 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     ),
                 )
 
+            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_spring.json")
+
+            await run_activity(
+                activity=GrafanaDashboardActivity,
+                arg=GrafanaDashboardProperties(
+                    tenant=tenant,
+                    grafana_url=zsegment_config.grafana_api_url,
+                    api_key=zsegment_config.grafana_api_key,
+                    template_path=grafana_template_path,
+                ),
+            )
+            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_camel.json")
+
+            await run_activity(
+                activity=GrafanaDashboardActivity,
+                arg=GrafanaDashboardProperties(
+                    tenant=tenant,
+                    grafana_url=zsegment_config.grafana_api_url,
+                    api_key=zsegment_config.grafana_api_key,
+                    template_path=grafana_template_path,
+                ),
+            )
             # update tenant status
             await run_activity(
                 activity=UpdateTenantStatusActivity,
