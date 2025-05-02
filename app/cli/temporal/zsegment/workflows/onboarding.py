@@ -172,6 +172,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             CreateKubernetesResourcesActivity.defn,
             CheckPodRunningStatusActivity.defn,
             CreateDropletActivity.defn,
+            GrafanaDashboardActivity.defn,
         ]
 
     @classmethod
