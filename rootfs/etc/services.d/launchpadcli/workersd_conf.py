@@ -17,7 +17,7 @@ async def get_config_env_dict() -> dict:
     opendal_file_operations = get_opendal_file_client()
     config_dir = os.getenv("APP_CONFIG_DIR", "/")
     config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES and "settings" in x.name]
-    return ijson_loads(await opendal_file_operations.read_file(config_files[0])) if config_files else {}
+    return ijson_loads((await opendal_file_operations.read_file(config_files[0])).decode()) if config_files else {}
 
 
 def write_supervisor_workers_conf() -> None:

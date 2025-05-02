@@ -569,7 +569,9 @@ class PricedxOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
                     users=ijson_loads(
-                        await opendal_file_operations.read_file(f"{TemplatePath}/{config.env}_internal_users.json")
+                        (
+                            await opendal_file_operations.read_file(f"{TemplatePath}/{config.env}_internal_users.json")
+                        ).decode()
                     ),
                     roles=roles,
                 ),

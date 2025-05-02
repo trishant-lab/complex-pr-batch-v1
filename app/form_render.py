@@ -23,7 +23,7 @@ async def render_form(tmp_dir: str) -> dict:
     await run_command(args_)
 
     opendal_file_operations = get_opendal_file_client()
-    form_json = await opendal_file_operations.read_file(os.path.join(html_render_path, "form.json"))
+    form_json = (await opendal_file_operations.read_file(os.path.join(html_render_path, "form.json"))).decode()
     return ijson_loads(form_json)
 
 

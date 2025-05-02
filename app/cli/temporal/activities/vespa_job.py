@@ -118,7 +118,7 @@ class VespaDeleteActivity(Activity):
                     response = await session.post(
                         deploy_url,
                         headers={"Content-Type": "application/zip"},
-                        data=file_content.encode(),
+                        data=file_content.decode(),
                         timeout=aiohttp.ClientTimeout(total=120),
                     )
                     if response.status != 200:

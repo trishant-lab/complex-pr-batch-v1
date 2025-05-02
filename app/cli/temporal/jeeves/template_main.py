@@ -9,7 +9,8 @@ async def get_template_from_file(template_path: str) -> str:
     """
     base_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "templates")
     opendal_file_operations = get_opendal_file_client()
-    return await opendal_file_operations.read_file(os.path.join(base_path, template_path))
+    template = await opendal_file_operations.read_file(os.path.join(base_path, template_path))
+    return template.decode()
 
 
 async def get_layout_content() -> str:

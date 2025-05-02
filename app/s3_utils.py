@@ -96,7 +96,7 @@ async def sync_and_verify_files(
                         path=key,
                         file_name=key.split("/")[-1],
                         content_type=content_type,
-                        file_content=content.encode(),
+                        file_content=content,
                     )
                     local_file_count += 1
                 except Exception as e:
