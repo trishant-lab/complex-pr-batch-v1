@@ -42,9 +42,22 @@ class OnePasswordUtil:
         """
         Get a key-value pair from a 1Password item
         """
-        get_command = ["op", "item", "get", self.server_item, "--fields", f"{self.tenant}.{key}", "--vault", self.vault]
-        key_value, _ = await run_command(get_command)
-        return key_value.strip()
+        try:
+            get_command = [
+                "op",
+                "item",
+                "get",
+                self.server_item,
+                "--fields",
+                f"{self.tenant}.{key}",
+                "--vault",
+                self.vault,
+            ]
+            key_value, _ = await run_command(get_command)
+            return key_value.strip()
+        except Exception as e:
+            logger.error(f"Error getting key {key} from {self.server_item} in {self.vault}: {e}")
+            return None
 
     async def insert_if_not_exists(self: "OnePasswordUtil", key: str, value: str) -> None:
         """
