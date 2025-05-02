@@ -25,12 +25,24 @@ class OpendalFileOperations:
         with self.client.open(file_path, mode) as file:
             return file.read()
 
+    def read_file_sync_str(self, file_path: str) -> str:
+        """
+        Read a file from the local file system using client
+        """
+        return self.read_file_sync(file_path).decode()
+
     async def read_file(self, file_path: str, mode: str = "rb") -> bytes:
         """
         Read a file from the local file system using a_client
         """
         async with await self.a_client.open(file_path, mode) as file:
             return await file.read()
+
+    async def read_file_str(self, file_path: str) -> str:
+        """
+        Read a file from the local file system using a_client
+        """
+        return (await self.read_file(file_path)).decode()
 
     def write_file_sync(self, file_path: str, content: bytes | str, mode: str = "wb") -> None:
         """

@@ -113,12 +113,12 @@ class VespaDeleteActivity(Activity):
                 )
                 async with aiohttp.ClientSession() as session:
                     opendal_file_operations = get_opendal_file_client()
-                    file_content = await opendal_file_operations.read_file(zip_path)
+                    file_content = await opendal_file_operations.read_file_str(zip_path)
 
                     response = await session.post(
                         deploy_url,
                         headers={"Content-Type": "application/zip"},
-                        data=file_content.decode(),
+                        data=file_content,
                         timeout=aiohttp.ClientTimeout(total=120),
                     )
                     if response.status != 200:

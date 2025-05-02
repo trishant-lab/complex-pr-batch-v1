@@ -118,7 +118,7 @@ class K8sConfigMapCreationActivity(Activity):
                 )
 
                 data = {
-                    activity_model.destination_file_name: await opendal_file_operations.read_file(
+                    activity_model.destination_file_name: await opendal_file_operations.read_file_str(
                         os.path.join(temp_dir_path, activity_model.destination_file_name)
                     )
                 }
@@ -205,7 +205,7 @@ class K8sConfigMapCreatFromTemplateActivity(Activity):
                 )
 
                 data = {
-                    activity_model.destination_file_name: await opendal_file_operations.read_file(
+                    activity_model.destination_file_name: await opendal_file_operations.read_file_str(
                         os.path.join(temp_dir_path, activity_model.destination_file_name)
                     )
                 }
