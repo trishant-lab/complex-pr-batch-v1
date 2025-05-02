@@ -306,7 +306,7 @@ class ChatwootSetup:
 
         opendal_file_operations = get_opendal_file_client()
         data = ijson_loads(
-            await opendal_file_operations.read_file(
+            await opendal_file_operations.read_file_str(
                 os.path.join(
                     os.path.dirname(os.path.realpath(__file__)),
                     f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json",

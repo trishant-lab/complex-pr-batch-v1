@@ -90,13 +90,13 @@ async def sync_and_verify_files(
                 try:
                     # Read file content and upload
                     opendal_file_operations = get_opendal_file_client()
-                    content = await opendal_file_operations.read_file(str(file_path))
+                    content = await opendal_file_operations.read_file_str(str(file_path))
                     content_type = mimetypes.guess_type(str(file_path))[0] or ""
                     await op.upload_object(
                         path=key,
                         file_name=key.split("/")[-1],
                         content_type=content_type,
-                        file_content=content.encode(),
+                        file_content=content,
                     )
                     local_file_count += 1
                 except Exception as e:

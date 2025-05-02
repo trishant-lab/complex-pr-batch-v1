@@ -169,7 +169,7 @@ async def create_novu_workflow_templates(template_path: str, config: AppSettings
     template_names: set = set(template_names)
 
     opendal_file_operations = get_opendal_file_client()
-    json_data = await opendal_file_operations.read_file(template_path)
+    json_data = await opendal_file_operations.read_file_str(template_path)
 
     data: list[dict] = ijson_loads(json_data)
     for workflow_ in data:

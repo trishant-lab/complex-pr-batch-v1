@@ -269,7 +269,7 @@ async def create_keycloak_group(
     client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
 
     opendal_file_operations = get_opendal_file_client()
-    user_groups = ijson_loads(await opendal_file_operations.read_file(f"{template_path}/{template_name}"))
+    user_groups = ijson_loads(await opendal_file_operations.read_file_str(f"{template_path}/{template_name}"))
 
     for group_name, roles in user_groups.items():
         keycloak_client.create_group(payload={"name": group_name}, realm_name=realm_name)
