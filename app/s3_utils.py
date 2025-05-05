@@ -47,9 +47,10 @@ async def check_file_count(
             path = f"{prefix}"
 
         # OpenDAL's list method returns an async iterator of entries
-        entries = await storage_client.scan_files(path)
-        storage_file_count = sum(1 for _ in entries)
-
+        entries = storage_client.scan_files(path)
+        storage_file_count = 0
+        async for _ in entries:
+            storage_file_count += 1
         logger.info(f"Bucket {bucket_name}: Local files: {local_file_count} Storage Files: {storage_file_count}")
         if local_file_count != storage_file_count:
             msg = f"File count mismatch for {bucket_name}: {local_file_count} != {storage_file_count}"
@@ -90,7 +91,7 @@ async def sync_and_verify_files(
                 try:
                     # Read file content and upload
                     opendal_file_operations = get_opendal_file_client()
-                    content = await opendal_file_operations.read_file_str(str(file_path))
+                    content = await opendal_file_operations.read_file(str(file_path))
                     content_type = mimetypes.guess_type(str(file_path))[0] or ""
                     await op.upload_object(
                         path=key,

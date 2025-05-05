@@ -229,7 +229,7 @@ class CopyArtifactsToBucketActivity(Activity):
 
                 await sync_and_verify_files(
                     op=storage_client,
-                    input_path=temp_file_path,
+                    input_path=os.path.join(opendal_file_operations.tempdir_root, tmp_dir, activity_input.bundle_path),
                     bucket_name=activity_input.bucket_name,
                     dest_dir=activity_input.dest_dir,
                     prefix=prefix,
