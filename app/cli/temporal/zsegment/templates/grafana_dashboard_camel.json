@@ -24,7 +24,6 @@
     "editable": true,
     "fiscalYearStartMonth": 0,
     "graphTooltip": 0,
-    "id": 10,
     "links": [],
     "liveNow": false,
     "panels": [
@@ -1138,6 +1137,6 @@
     "timezone": "",
     "title": "<<dynamic_varialbe_tenant>> - Apache Camel - Context view",
     "uid": "apache-camel-micrometer-<<dynamic_varialbe_tenant>>",
-    "version": 3,
+    "version": 6,
     "weekStart": ""
   }

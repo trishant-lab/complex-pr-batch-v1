@@ -41,6 +41,7 @@ class GrafanaDashboard:
             "dashboard": dashboard_dict,
             "overwrite": True,
             "message": f"Dashboard created for tenant {tenant_name}",
+            "folderId": 0,
         }
 
         # Set up headers with API key
