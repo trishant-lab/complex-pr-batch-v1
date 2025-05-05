@@ -31,10 +31,14 @@ class GrafanaDashboard:
         dashboard_json = self._get_dashboard_template()
 
         # Replace the dynamic tenant variable
-        dashboard_json = dashboard_json.replace("{{dynamic_varialbe_tenant}}", f'"{tenant_name}"')
+        dashboard_json = dashboard_json.replace("<<dynamic_varialbe_tenant>>", tenant_name)
 
         # Parse the JSON to a dictionary
         dashboard_dict = json.loads(dashboard_json)
+
+        dashboard_dict["title"] = f"{tenant_name} - Apache Camel - Context view"
+
+        dashboard_dict["uid"] = f"apache-camel-micrometer-{tenant_name}"
 
         # Prepare the payload
         payload = {
