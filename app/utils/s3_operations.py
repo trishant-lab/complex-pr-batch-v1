@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+
 import opendal
 
 
@@ -58,10 +59,7 @@ class OpendalS3Client:
             None
 
         """
-        content_disposition = f'attachment; filename="{file_name}"'
-        await self.client.write(
-            path=path, bs=file_content, content_type=content_type, content_disposition=content_disposition
-        )
+        await self.client.write(path=path, bs=file_content, content_type=content_type)
 
     async def replace_object(self: "OpendalS3Client", path: str, file_content: bytes) -> None:
         """
