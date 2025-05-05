@@ -27,6 +27,8 @@ class ZSegmentSettings(BaseModel):
     sender_name: str = ""
     sender_email: str = ""
     victoria_metrics_url: str = ""
+    grafana_api_url: str = "https://appgrafana.314ecorp.tech"
+    grafana_api_key: str = ""
 
     deb_url: str = ""
     email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]

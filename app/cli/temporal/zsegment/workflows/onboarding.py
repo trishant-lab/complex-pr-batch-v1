@@ -172,6 +172,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             CreateKubernetesResourcesActivity.defn,
             CheckPodRunningStatusActivity.defn,
             CreateDropletActivity.defn,
+            GrafanaDashboardActivity.defn,
         ]
 
     @classmethod
@@ -912,6 +913,28 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     ),
                 )
 
+            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_spring.json")
+
+            await run_activity(
+                activity=GrafanaDashboardActivity,
+                arg=GrafanaDashboardProperties(
+                    tenant=tenant,
+                    grafana_url=zsegment_config.grafana_api_url,
+                    api_key=zsegment_config.grafana_api_key,
+                    template_path=grafana_template_path,
+                ),
+            )
+            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_camel.json")
+
+            await run_activity(
+                activity=GrafanaDashboardActivity,
+                arg=GrafanaDashboardProperties(
+                    tenant=tenant,
+                    grafana_url=zsegment_config.grafana_api_url,
+                    api_key=zsegment_config.grafana_api_key,
+                    template_path=grafana_template_path,
+                ),
+            )
             # update tenant status
             await run_activity(
                 activity=UpdateTenantStatusActivity,
@@ -935,31 +958,6 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     product=ProductName,
                     from_name=zsegment_config.sender_name,
                     email_from=zsegment_config.sender_email,
-                ),
-            )
-
-            grafana_api_url = "https://grafana.314ecorp.tech"
-            grafana_api_key = "sa-1-zsegment_viewer-8da9e5ee-1b4d-44e4-a950-ebf34fda5ba6"
-            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_spring.json")
-
-            await run_activity(
-                activity=GrafanaDashboardActivity,
-                arg=GrafanaDashboardProperties(
-                    tenant=tenant,
-                    grafana_url=grafana_api_url,
-                    api_key=grafana_api_key,
-                    template_path=grafana_template_path,
-                ),
-            )
-            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_camel.json")
-
-            await run_activity(
-                activity=GrafanaDashboardActivity,
-                arg=GrafanaDashboardProperties(
-                    tenant=tenant,
-                    grafana_url=grafana_api_url,
-                    api_key=grafana_api_key,
-                    template_path=grafana_template_path,
                 ),
             )
 
