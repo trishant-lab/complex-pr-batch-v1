@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 import opendal
 
 
@@ -123,11 +124,13 @@ class OpendalS3Client:
         res = await self.client.presign_read(path=path, expire_second=expiry_time)
         return res.url
 
-    async def scan_files(self, path: str) -> list[str]:
+    async def scan_files(self, path: str) -> AsyncGenerator[opendal.Entry, None]:
         """
         Scan all files in a directory
         """
-        return await self.client.scan(path)
+        lister = await self.client.scan(path)
+        async for entry in lister:
+            yield entry
 
 
 def get_s3_client(
