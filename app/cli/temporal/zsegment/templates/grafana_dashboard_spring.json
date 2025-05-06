@@ -126,7 +126,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "process_uptime_seconds{application_server=\"$application\", instance=\"$instance\", namespace=\"$Namespace\"}",
+            "expr": "process_uptime_seconds{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 2,
             "legendFormat": "",
@@ -215,7 +215,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "sum(jvm_memory_used_bytes{application_server=\"$application\", instance=\"$instance\", area=\"heap\", namespace=\"$Namespace\"})*100/sum(jvm_memory_max_bytes{application_server=\"$application\",instance=\"$instance\", area=\"heap\", namespace=\"$Namespace\"})",
+            "expr": "sum(jvm_memory_used_bytes{application_server=\"$application\", instance=\"$instance\", area=\"heap\", namespace=\"<<dynamic_varialbe_tenant>>\"})*100/sum(jvm_memory_max_bytes{application_server=\"$application\",instance=\"$instance\", area=\"heap\", namespace=\"<<dynamic_varialbe_tenant>>\"})",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "",
@@ -313,7 +313,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "sum(jvm_memory_used_bytes{application_server=\"$application\", instance=\"$instance\", area=\"nonheap\", namespace=\"$Namespace\"})*100/sum(jvm_memory_max_bytes{application_server=\"$application\",instance=\"$instance\", area=\"nonheap\", namespace=\"$Namespace\"})",
+            "expr": "sum(jvm_memory_used_bytes{application_server=\"$application\", instance=\"$instance\", area=\"nonheap\", namespace=\"<<dynamic_varialbe_tenant>>\"})*100/sum(jvm_memory_max_bytes{application_server=\"$application\",instance=\"$instance\", area=\"nonheap\", namespace=\"<<dynamic_varialbe_tenant>>\"})",
             "format": "time_series",
             "intervalFactor": 2,
             "legendFormat": "",
@@ -414,7 +414,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "process_files_open_files{application_server=\"$application\", instance=\"$instance\", namespace=\"$Namespace\"}",
+            "expr": "process_files_open_files{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Open Files",
@@ -495,7 +495,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "process_start_time_seconds{application_server=\"$application\", instance=\"$instance\", namespace=\"$Namespace\"}*1000",
+            "expr": "process_start_time_seconds{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_varialbe_tenant>>\"}*1000",
             "format": "time_series",
             "intervalFactor": 2,
             "legendFormat": "",
@@ -601,7 +601,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "system_cpu_usage{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}",
+            "expr": "system_cpu_usage{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "System CPU Usage",
@@ -614,7 +614,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "process_cpu_usage{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}",
+            "expr": "process_cpu_usage{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Process CPU Usage",
@@ -718,7 +718,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "system_load_average_1m{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}",
+            "expr": "system_load_average_1m{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Load Average [1m]",
@@ -731,7 +731,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "system_cpu_count{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}",
+            "expr": "system_cpu_count{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "CPU Core Size",
@@ -864,7 +864,7 @@
             },
             "disableTextWrap": false,
             "editorMode": "code",
-            "expr": "jvm_memory_used_bytes{instance=\"$instance\", id=\"$memory_pool_heap\", namespace=\"$Namespace\", application_server=\"$application\"}",
+            "expr": "jvm_memory_used_bytes{instance=\"$instance\", id=\"$memory_pool_heap\", namespace=\"<<dynamic_varialbe_tenant>>\", application_server=\"$application\"}",
             "format": "time_series",
             "fullMetaSearch": false,
             "includeNullMetadata": true,
@@ -881,7 +881,7 @@
             },
             "disableTextWrap": false,
             "editorMode": "code",
-            "expr": "jvm_memory_committed_bytes{instance=\"$instance\", id=\"$memory_pool_heap\", namespace=\"$Namespace\", application_server=\"$application\"}",
+            "expr": "jvm_memory_committed_bytes{instance=\"$instance\", id=\"$memory_pool_heap\", namespace=\"<<dynamic_varialbe_tenant>>\", application_server=\"$application\"}",
             "format": "time_series",
             "fullMetaSearch": false,
             "includeNullMetadata": true,
@@ -897,7 +897,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_memory_max_bytes{instance=\"$instance\", application_server=\"$application\", id=\"$memory_pool_heap\", namespace=\"$Namespace\"}",
+            "expr": "jvm_memory_max_bytes{instance=\"$instance\", application_server=\"$application\", id=\"$memory_pool_heap\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Max",
@@ -955,8 +955,7 @@
               "mode": "absolute",
               "steps": [
                 {
-                  "color": "green",
-                  "value": null
+                  "color": "green"
                 },
                 {
                   "color": "red",
@@ -1003,7 +1002,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"$Namespace\"}",
+            "expr": "jvm_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "hide": false,
             "intervalFactor": 1,
@@ -1017,7 +1016,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_memory_committed_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"$Namespace\"}",
+            "expr": "jvm_memory_committed_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "hide": false,
             "intervalFactor": 1,
@@ -1031,7 +1030,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_memory_max_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"$Namespace\"}",
+            "expr": "jvm_memory_max_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "hide": false,
             "intervalFactor": 1,
@@ -1135,7 +1134,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_threads_daemon_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}",
+            "expr": "jvm_threads_daemon_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Daemon",
@@ -1148,7 +1147,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_threads_live_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}",
+            "expr": "jvm_threads_live_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Live",
@@ -1161,7 +1160,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_threads_peak_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}",
+            "expr": "jvm_threads_peak_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Peak",
@@ -1259,7 +1258,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_buffer_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"direct\", namespace=\"$Namespace\"}",
+            "expr": "jvm_buffer_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"direct\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Used Bytes",
@@ -1272,7 +1271,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_buffer_total_capacity_bytes{instance=\"$instance\", application_server=\"$application\", id=\"direct\", namespace=\"$Namespace\"}",
+            "expr": "jvm_buffer_total_capacity_bytes{instance=\"$instance\", application_server=\"$application\", id=\"direct\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Capacity Bytes",
@@ -1370,7 +1369,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_buffer_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"mapped\", namespace=\"$Namespace\"}",
+            "expr": "jvm_buffer_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"mapped\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Used Bytes",
@@ -1383,7 +1382,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "jvm_buffer_total_capacity_bytes{instance=\"$instance\", application_server=\"$application\", id=\"mapped\", namespace=\"$Namespace\"}",
+            "expr": "jvm_buffer_total_capacity_bytes{instance=\"$instance\", application_server=\"$application\", id=\"mapped\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Capacity Bytes",
@@ -1481,7 +1480,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(jvm_gc_memory_allocated_bytes_total{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(jvm_gc_memory_allocated_bytes_total{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "allocated",
@@ -1494,7 +1493,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(jvm_gc_memory_promoted_bytes_total{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(jvm_gc_memory_promoted_bytes_total{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "promoted",
@@ -1623,7 +1622,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(jvm_gc_pause_seconds_count{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(jvm_gc_pause_seconds_count{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "{{action}} [{{cause}}]",
@@ -1726,7 +1725,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(jvm_gc_pause_seconds_sum{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(jvm_gc_pause_seconds_sum{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "{{action}} [{{cause}}]",
@@ -1832,7 +1831,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "hikaricp_connections{instance=\"$instance\", application_server=\"$application\", namespace=\"$Namespace\"}",
+            "expr": "hikaricp_connections{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "",
@@ -1935,7 +1934,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "hikaricp_connections_active{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\", namespace=\"$Namespace\"}",
+            "expr": "hikaricp_connections_active{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Active",
@@ -1948,7 +1947,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "hikaricp_connections_idle{instance=\"$instance\", application=\"$application\", pool=\"$hikaricp\", namespace=\"$Namespace\"}",
+            "expr": "hikaricp_connections_idle{instance=\"$instance\", application=\"$application\", pool=\"$hikaricp\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Idle",
@@ -1961,7 +1960,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "hikaricp_connections_pending{instance=\"$instance\", application=\"$application\", pool=\"$hikaricp\", namespace=\"$Namespace\"}",
+            "expr": "hikaricp_connections_pending{instance=\"$instance\", application=\"$application\", pool=\"$hikaricp\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "Pending",
@@ -2041,7 +2040,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "hikaricp_connections_timeout_total{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\", namespace=\"$Namespace\"}",
+            "expr": "hikaricp_connections_timeout_total{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\", namespace=\"<<dynamic_varialbe_tenant>>\"}",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "",
@@ -2466,7 +2465,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"info\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"info\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "info",
@@ -2584,7 +2583,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"error\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"error\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "error",
@@ -2690,7 +2689,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"warn\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"warn\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "warn",
@@ -2796,7 +2795,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"debug\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"debug\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "debug",
@@ -2902,7 +2901,7 @@
               "uid": "fec8h5fj8a2o0a"
             },
             "editorMode": "code",
-            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"trace\", namespace=\"$Namespace\"}[$__rate_interval])",
+            "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"trace\", namespace=\"<<dynamic_varialbe_tenant>>\"}[$__rate_interval])",
             "format": "time_series",
             "intervalFactor": 1,
             "legendFormat": "trace",
@@ -2956,40 +2955,14 @@
         {
           "current": {
             "selected": false,
-            "text": "<<dynamic_varialbe_tenant>>",
-            "value": "<<dynamic_varialbe_tenant>>"
+            "text": "10.0.0.93:8090",
+            "value": "10.0.0.93:8090"
           },
           "datasource": {
             "type": "prometheus",
             "uid": "fec8h5fj8a2o0a"
           },
-          "definition": "label_values(jvm_info,namespace)",
-          "hide": 0,
-          "includeAll": false,
-          "multi": false,
-          "name": "Namespace",
-          "options": [],
-          "query": {
-            "query": "label_values(jvm_info,namespace)",
-            "refId": "PrometheusVariableQueryEditor-VariableQuery"
-          },
-          "refresh": 2,
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": 0,
-          "type": "query"
-        },
-        {
-          "current": {
-            "selected": false,
-            "text": "10.0.0.113:8090",
-            "value": "10.0.0.113:8090"
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "fec8h5fj8a2o0a"
-          },
-          "definition": "label_values(jvm_info{application_server=\"$application\", namespace=\"$Namespace\"},instance)",
+          "definition": "query_result((up{namespace=\"<<dynamic_varialbe_tenant>>\", container=\"$application\"} == 1))",
           "hide": 0,
           "includeAll": false,
           "label": "Instance",
@@ -2997,12 +2970,12 @@
           "name": "instance",
           "options": [],
           "query": {
-            "qryType": 1,
-            "query": "label_values(jvm_info{application_server=\"$application\", namespace=\"$Namespace\"},instance)",
+            "qryType": 3,
+            "query": "query_result((up{namespace=\"<<dynamic_varialbe_tenant>>\", container=\"$application\"} == 1))",
             "refId": "PrometheusVariableQueryEditor-VariableQuery"
           },
           "refresh": 2,
-          "regex": "",
+          "regex": ".*instance=\"([^\"]+)\".*",
           "skipUrlSync": false,
           "sort": 1,
           "tagValuesQuery": "",
@@ -3082,7 +3055,7 @@
             "type": "prometheus",
             "uid": "fec8h5fj8a2o0a"
           },
-          "definition": "label_values(hikaricp_connections{application_server=\"$application\", instance=\"$instance\", namespace=\"$Namespace\"},pool)",
+          "definition": "label_values(hikaricp_connections{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_varialbe_tenant>>\"},pool)",
           "hide": 0,
           "includeAll": false,
           "multi": false,
@@ -3090,7 +3063,7 @@
           "options": [],
           "query": {
             "qryType": 1,
-            "query": "label_values(hikaricp_connections{application_server=\"$application\", instance=\"$instance\", namespace=\"$Namespace\"},pool)",
+            "query": "label_values(hikaricp_connections{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_varialbe_tenant>>\"},pool)",
             "refId": "PrometheusVariableQueryEditor-VariableQuery"
           },
           "refresh": 1,
@@ -3132,8 +3105,8 @@
       ]
     },
     "timezone": "",
-    "title": "Spring Boot 3.x Statistics",
-    "uid": "spring_boot_21",
-    "version": 14,
+    "title": "<<dynamic_varialbe_tenant>> - Spring Boot 3.x Statistics",
+    "uid": "spring_boot_21_<<dynamic_varialbe_tenant>>",
+    "version": 3,
     "weekStart": ""
   }
