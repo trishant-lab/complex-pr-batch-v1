@@ -59,6 +59,8 @@ DOMAINS = [
     r"314e\.com",
     r"314e\.tech",
     r"314e\.app",
+    r"pricedx\.tech",
+    r"pricedx\.com",
     r"api\.314e\.app",
     r"api\.314e\.com",
 ]
