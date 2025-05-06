@@ -550,6 +550,8 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "jgitApiServiceUrl": (
                             f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook"  # NOSONAR
                         ),
+                        "digitaloceanToken": zsegment_config.digital_ocean_token,
+                        "omniflowServerUrl": zsegment_config.omniflow_server_url,
                     },
                 ),
             )

@@ -36,9 +36,13 @@ class GrafanaDashboard:
         # Parse the JSON to a dictionary
         dashboard_dict = json.loads(dashboard_json)
 
-        dashboard_dict["title"] = f"{tenant_name} - Apache Camel - Context view"
-
-        dashboard_dict["uid"] = f"apache-camel-micrometer-{tenant_name}"
+        # Set appropriate title and UID based on the template type
+        if "Spring Boot" in self.properties.template_path:
+            dashboard_dict["title"] = f"{tenant_name} - Spring Boot 3.x Statistics"
+            dashboard_dict["uid"] = f"spring_boot_21_{tenant_name}"
+        else:
+            dashboard_dict["title"] = f"{tenant_name} - Apache Camel - Context view"
+            dashboard_dict["uid"] = f"apache-camel-micrometer-{tenant_name}"
 
         # Prepare the payload
         payload = {

@@ -145,7 +145,7 @@
             },
             "editorMode": "code",
             "exemplar": false,
-            "expr": "sum(\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "expr": "sum(\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -245,7 +245,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -260,7 +260,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)*100",
+            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)*100",
             "hide": false,
             "legendFormat": "Success %",
             "range": true,
@@ -336,7 +336,7 @@
             },
             "editorMode": "code",
             "exemplar": false,
-            "expr": "sum by (interface_name) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"}[$__range])\n)\n/ sum by (interface_name) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"}[$__range]))",
+            "expr": "sum by (interface_name) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\"}[$__range])\n)\n/ sum by (interface_name) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\"}[$__range]))",
             "format": "time_series",
             "hide": false,
             "instant": false,
@@ -436,7 +436,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -451,7 +451,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)*100",
+            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)*100",
             "hide": false,
             "legendFormat": "Failure %",
             "range": true,
@@ -560,7 +560,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum(\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "expr": "sum(\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -660,7 +660,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -675,7 +675,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)*100",
+            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)*100",
             "hide": false,
             "legendFormat": "Success %",
             "range": true,
@@ -752,7 +752,7 @@
             },
             "editorMode": "code",
             "exemplar": false,
-            "expr": "sum by (route_id) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\", route_id=\"$route\"}[$__range])\n)\n/ sum by (route_id) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\", route_id=\"$route\"}[$__range]))",
+            "expr": "sum by (route_id) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\", route_id=\"$route\"}[$__range])\n)\n/ sum by (route_id) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\", route_id=\"$route\"}[$__range]))",
             "format": "time_series",
             "hide": false,
             "instant": false,
@@ -852,7 +852,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -867,7 +867,7 @@
               "uid": "${datasource}"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)*100",
+            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)*100",
             "hide": false,
             "legendFormat": "Failure %",
             "range": true,
@@ -951,7 +951,7 @@
             },
             "editorMode": "code",
             "exemplar": false,
-            "expr": "sum by (route_id) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"}[$__range])\n)\n/ sum by (route_id) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"}[$__range]))",
+            "expr": "sum by (route_id) (sum_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\"}[$__range])\n)\n/ sum by (route_id) (count_over_time(zsegment_message_processing_time{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\"}[$__range]))",
             "format": "time_series",
             "hide": false,
             "instant": false,
@@ -1030,7 +1030,7 @@
             },
             "editorMode": "code",
             "exemplar": false,
-            "expr": "sum by (route_id) (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\",\n        }[$__range]\n    )\n) \n/ \nsum by (route_id) (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_varialbe_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    ) > 0\n)",
+            "expr": "sum by (route_id) (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n        }[$__range]\n    )\n) \n/ \nsum by (route_id) (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    ) > 0\n)",
             "instant": true,
             "legendFormat": "{{routeId}}",
             "range": false,
@@ -1056,7 +1056,7 @@
             "type": "prometheus",
             "uid": "fec8h5fj8a2o0a"
           },
-          "definition": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_varialbe_tenant>>\"},interface_name)",
+          "definition": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_variable_tenant>>\"},interface_name)",
           "hide": 0,
           "includeAll": false,
           "label": "Camel Interface",
@@ -1065,7 +1065,7 @@
           "options": [],
           "query": {
             "qryType": 1,
-            "query": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_varialbe_tenant>>\"},interface_name)",
+            "query": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_variable_tenant>>\"},interface_name)",
             "refId": "PrometheusVariableQueryEditor-VariableQuery"
           },
           "refresh": 1,
@@ -1084,7 +1084,7 @@
             "type": "prometheus",
             "uid": "fec8h5fj8a2o0a"
           },
-          "definition": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"},route_id)",
+          "definition": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\"},route_id)",
           "hide": 0,
           "includeAll": false,
           "label": "Camel Route",
@@ -1093,7 +1093,7 @@
           "options": [],
           "query": {
             "qryType": 1,
-            "query": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_varialbe_tenant>>\", interface_name=\"$interface\"},route_id)",
+            "query": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\"},route_id)",
             "refId": "PrometheusVariableQueryEditor-VariableQuery"
           },
           "refresh": 1,
@@ -1135,8 +1135,8 @@
       ]
     },
     "timezone": "",
-    "title": "<<dynamic_varialbe_tenant>> - Apache Camel - Context view",
-    "uid": "apache-camel-micrometer-<<dynamic_varialbe_tenant>>",
+    "title": "<<dynamic_variable_tenant>> - Apache Camel - Context view",
+    "uid": "apache-camel-micrometer-<<dynamic_variable_tenant>>",
     "version": 6,
     "weekStart": ""
   }
