@@ -163,7 +163,7 @@ class VeritableDeploymentWorkflow(Workflow):
 
         try:
             postgres_schema_name = f"{ProductName}_{tenant}"
-            postgres_database_name = f"{ProductName}_{config.env}"
+            postgres_database_name = ProductName
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
             postgres_secret_name = f"{ProductName}-postgres"
