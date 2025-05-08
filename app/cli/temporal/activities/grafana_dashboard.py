@@ -30,16 +30,17 @@ class GrafanaDashboard:
         # Load the dashboard template from the specified path
         dashboard_json = self._get_dashboard_template()
 
-        # Replace the dynamic tenant variable
-        dashboard_json = dashboard_json.replace("<<dynamic_varialbe_tenant>>", tenant_name)
+        # Replace the dynamic tenant variable - fix the typo in variable name
+        dashboard_json = dashboard_json.replace("<<dynamic_variable_tenant>>", tenant_name)
 
         # Parse the JSON to a dictionary
         dashboard_dict = json.loads(dashboard_json)
 
-        # Set appropriate title and UID based on the template type
-        if "Spring Boot" in self.properties.template_path:
+        # More reliable detection of dashboard type based on filename
+        template_path_lower = self.properties.template_path.lower()
+        if "spring" in template_path_lower or "springboot" in template_path_lower:
             dashboard_dict["title"] = f"{tenant_name} - Spring Boot 3.x Statistics"
-            dashboard_dict["uid"] = f"spring_boot_21_{tenant_name}"
+            dashboard_dict["uid"] = f"spring-boot-21-{tenant_name}"
         else:
             dashboard_dict["title"] = f"{tenant_name} - Apache Camel - Context view"
             dashboard_dict["uid"] = f"apache-camel-micrometer-{tenant_name}"
