@@ -40,7 +40,7 @@ class GrafanaDashboard:
         template_path_lower = self.properties.template_path.lower()
         if "spring" in template_path_lower or "springboot" in template_path_lower:
             dashboard_dict["title"] = f"{tenant_name} - Spring Boot 3.x Statistics"
-            dashboard_dict["uid"] = f"spring-boot-21-{tenant_name}"
+            dashboard_dict["uid"] = f"spring_boot_21_{tenant_name}"
         else:
             dashboard_dict["title"] = f"{tenant_name} - Apache Camel - Context view"
             dashboard_dict["uid"] = f"apache-camel-micrometer-{tenant_name}"
