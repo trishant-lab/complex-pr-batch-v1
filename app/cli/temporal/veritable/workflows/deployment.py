@@ -163,7 +163,7 @@ class VeritableDeploymentWorkflow(Workflow):
 
         try:
             postgres_schema_name = f"{ProductName}_{tenant}"
-            postgres_database_name = f"{ProductName}_{config.env}"
+            postgres_database_name = ProductName
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
             postgres_secret_name = f"{ProductName}-postgres"
@@ -530,7 +530,7 @@ class VeritableDeploymentWorkflow(Workflow):
             )
 
             image_tag = "veritable-latest" if config.env == "production" else "sprint"
-            docker_image = f"registry.314ecorp.tech/veritable-server:{image_tag}"
+            docker_image = f"registry.314ecorp.tech/veritable-app:{image_tag}"
             # provisioning job
             await run_activity(
                 activity=DatabaseMigrationJobActivity,
