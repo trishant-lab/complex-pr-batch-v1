@@ -25,7 +25,7 @@ class InvoiceWebhookEvent(LaunchpadCLIBaseModel):
     product: ProductEnum = Field(frozen=True)
     webhook_type: str = Field(frozen=True)
     object_type: str = Field(frozen=True)
-    invoice: InvoiceResponse | None = Field(frozen=True)
+    invoice: InvoiceResponse | None = Field(None, frozen=True)
     payment_provider_invoice_payment_error: PaymentProviderInvoicePaymentError | None = Field(None, frozen=True)
 
 

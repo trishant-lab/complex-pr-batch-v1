@@ -83,7 +83,7 @@ def periodic_invoice_mail(
     match product:
         case ProductEnum.veritable:
             match subscription_type:
-                case SubscriptionType.renewal:
+                case SubscriptionType.renewal | SubscriptionType.downgrade:
                     template = env.get_template("veritable/periodic_invoice_mail.html")
                 case SubscriptionType.upgrade:
                     template = env.get_template("veritable/plan_upgrade_invoice_mail.html")
