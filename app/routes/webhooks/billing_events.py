@@ -13,6 +13,15 @@ from app.models.product import ProductEnum
 router = APIRouter()
 
 
+def get_issuer(product: ProductEnum) -> str:
+    """
+    Get the issuer for the product
+    """
+    app_config = ProductEnum.get_product_settings(product)
+    parsed_api_url = urlparse(app_config.lago.api_url)
+    return f"{parsed_api_url.scheme}://{parsed_api_url.netloc}"
+
+
 @router.post(
     "/{product}/events",
     operation_id="billingWebhookEvents",
@@ -24,12 +33,12 @@ async def events_webhook(request: Request, product: ProductEnum = Path(...)) -> 
     @return:
     """
     pub_key = get_lago_webhook_public_key(product)
-    app_config = ProductEnum.get_product_settings(product)
+    issuer = get_issuer(product)
     decoded_signature = jwt.decode(
         request.headers.get("X-Lago-Signature"),
         pub_key,
         algorithms=["RS256"],
-        issuer=urlparse(app_config.lago.api_url).netloc,
+        issuer=issuer,
     )
     event = ijson_loads(decoded_signature["data"])
     if event.get("webhook_type") in InvoiceWebhookType:

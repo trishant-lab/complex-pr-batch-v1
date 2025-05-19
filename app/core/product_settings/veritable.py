@@ -16,6 +16,7 @@ class VeritableSettings(SelfSignupSettings):
 
     domain_org: str = "app"
     signup_url: str = "https://test.veritable-app.pages.dev"
+    onboarding_doc_url: str = "https://launchpad.veritable.app/Veritable/Veritable-Onboarding-Help.pdf"
     tenant_fqdn: str = "veritable.work"
     sendgrid: SendGridSettings = SendGridSettings(
         email_from=VERITABLE_ENGG_MAIL,

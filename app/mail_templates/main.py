@@ -38,6 +38,7 @@ def provisioning_success_mail(name: str, email: str, link: str, password: str, p
                 environment_link=link,
                 support_email=settings.veritable.sendgrid.support_mail,
                 password=password,
+                onboarding_doc_url=settings.veritable.onboarding_doc_url,
             )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
