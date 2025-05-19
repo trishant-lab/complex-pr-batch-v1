@@ -55,9 +55,9 @@ def get_subscription_type(product: ProductEnum, current_plan: str, previous_plan
     return SubscriptionType.renewal
 
 
-def prepare_invoice_mail_subject_content(
+def prepare_invoice_mail_content(
     product: ProductEnum, customer_id: str, data: InvoiceResponse, tenant_link: str | None
-) -> tuple[str, str]:
+) -> tuple[SubscriptionType, str]:
     """
     @param tenant_link:
     @param customer_id:
@@ -109,16 +109,21 @@ def prepare_invoice_mail_subject_content(
     }
     content = periodic_invoice_mail(**_data)
 
+    return subscription_type, content
+
+
+def prepare_invoice_mail_subject(product: ProductEnum, subscription_type: SubscriptionType) -> str:
+    """
+    @param subscription_type:
+    @return: subject based on subscription type
+    """
     match subscription_type:
         case SubscriptionType.initial:
-            return (
-                f"Important: Payment Received - {product.value} Subscription Confirmation",
-                content,
-            )
+            return f"Important: Payment Received - {product.value} Subscription Confirmation"
         case SubscriptionType.upgrade:
-            return f"{product.value} Subscription Update: Account Upgraded", content
+            return f"{product.value} Subscription Update: Account Upgraded"
         case SubscriptionType.renewal | SubscriptionType.downgrade:
-            return f"{product.value} Subscription Renewal: Payment Confirmation", content
+            return f"{product.value} Subscription Renewal: Payment Confirmation"
         case _:
             msg = f"Invalid subscription type: {subscription_type}"
             raise NonRetryableException(msg)
@@ -168,14 +173,19 @@ async def payment_success_service(product: ProductEnum, invoice: InvoiceResponse
     else:
         tenant_link = None
 
-    subject, content = prepare_invoice_mail_subject_content(product, customer_id, invoice_data, tenant_link)
+    subscription_type, content = prepare_invoice_mail_content(product, customer_id, invoice_data, tenant_link)
+    subject = prepare_invoice_mail_subject(product, subscription_type)
 
     _invoice: dict = get_invoice_helper(product, invoice.model_dump())
 
     await send_mail(
         to_email=invoice_data.customer.email,
         email_from=app_config.sendgrid.email_from,
-        bcc_email=app_config.sendgrid.support_mail,
+        bcc_email=(
+            app_config.sendgrid.support_mail
+            if subscription_type not in [SubscriptionType.renewal, SubscriptionType.downgrade]
+            else None
+        ),
         from_name=product.value,
         subject=subject,
         content=content,
