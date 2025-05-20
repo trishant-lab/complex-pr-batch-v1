@@ -1,21 +1,15 @@
-import subprocess
 from loguru import logger
 
+from app.utils.subprocess_execution import run_command
 
-def secret_inject(source_file_path: str, destination_path: "str") -> None:
+
+async def secret_inject(source_file_path: str, destination_path: "str") -> None:
     """
     Inject secrets from 1Password into a file
     """
     commands = ["op", "inject", "--force", "-i", source_file_path, "-o", destination_path]
-    process = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
-    _stdout, stderr = process.communicate(timeout=60)
 
-    if process.returncode != 0:
-        output = f"Error: {stderr.decode()}"
-        logger.error(output)
-        raise RuntimeError(output)
-
-    logger.info(f"Secrets injected into {destination_path}")
+    await run_command(commands)
 
 
 class OnePasswordUtil:
@@ -24,7 +18,7 @@ class OnePasswordUtil:
         self.server_item = server_item
         self.vault = vault
 
-    def create_login_item(self: "OnePasswordUtil", url: str, username: str, password: str) -> None:
+    async def create_login_item(self: "OnePasswordUtil", url: str, username: str, password: str) -> None:
         """
         Create a login item in 1Password
         """
@@ -42,70 +36,50 @@ class OnePasswordUtil:
             f"username={username}",
             f"password={password}",
         ]
-        process = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
-        _stdout, stderr = process.communicate(timeout=10)
+        await run_command(commands)
 
-        if process.returncode != 0:
-            output = f"Error: {stderr.decode()}"
-            logger.error(output)
-            raise RuntimeError(output)
-
-    def get_key(self: "OnePasswordUtil", key: str) -> None | str:
+    async def get_key(self: "OnePasswordUtil", key: str) -> None | str:
         """
         Get a key-value pair from a 1Password item
         """
-        get_command = ["op", "item", "get", self.server_item, "--fields", f"{self.tenant}.{key}", "--vault", self.vault]
-        process = subprocess.Popen(
-            get_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
-        )
-        stdout, stderr = process.communicate(timeout=10)
-
-        if process.returncode != 0:
-            output = f"Error: {stderr.decode()}"
-            logger.error(output)
+        try:
+            get_command = [
+                "op",
+                "item",
+                "get",
+                self.server_item,
+                "--fields",
+                f"{self.tenant}.{key}",
+                "--vault",
+                self.vault,
+            ]
+            key_value, _ = await run_command(get_command)
+            return key_value.strip()
+        except Exception as e:
+            logger.error(f"Error getting key {key} from {self.server_item} in {self.vault}: {e}")
             return None
 
-        return stdout.decode().strip()
-
-    def insert_if_not_exists(self: "OnePasswordUtil", key: str, value: str) -> None:
+    async def insert_if_not_exists(self: "OnePasswordUtil", key: str, value: str) -> None:
         """
         Insert a key-value pair into a 1Password item if it does not exist
         """
         get_command = ["op", "item", "get", self.server_item, "--fields", f"{self.tenant}.{key}", "--vault", self.vault]
-        process = subprocess.Popen(
-            get_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
+
+        _, return_code = await run_command(
+            get_command, expected_error=f'"{self.tenant}.{key}" isn\'t a field in the "{self.server_item}" item'
         )
-        _stdout, stderr = process.communicate(timeout=10)
 
-        if process.returncode != 0:
-            if f'"{self.tenant}.{key}" isn\'t a field in the "{self.server_item}" item' not in stderr.decode():
-                output = f"Unexpected Error: {stderr.decode()}"
-                logger.error(output)
-                raise RuntimeError(output)
-
+        if return_code != 0:
             commands = ["op", "--vault", self.vault, "item", "edit", self.server_item, f"{self.tenant}.{key}={value}"]
-            process = subprocess.Popen(
-                commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL
-            )
-            _stdout, stderr = process.communicate(timeout=10)
-
-            if process.returncode != 0:
-                output = f"Error: {stderr.decode()}"
-                logger.error(output)
-                raise RuntimeError(output)
+            await run_command(commands)
 
         else:
             logger.info(f"{key} already exists in {self.server_item} item")
 
-    def create_or_replace(self: "OnePasswordUtil", key: str, value: str) -> None:
+    async def create_or_replace(self: "OnePasswordUtil", key: str, value: str) -> None:
         """
         Create or replace a 1Password item
         """
         commands = ["op", "--vault", self.vault, "item", "edit", self.server_item, f"{self.tenant}.{key}={value}"]
-        process = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
-        _stdout, stderr = process.communicate(timeout=10)
 
-        if process.returncode != 0:
-            output = f"Error: {stderr.decode()}"
-            logger.error(output)
-            raise RuntimeError(output)
+        await run_command(commands)

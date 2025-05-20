@@ -1,4 +1,3 @@
-import subprocess
 from datetime import timedelta
 from shlex import split
 
@@ -9,23 +8,24 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 from app.core.settings import JeevesSettings
 from app.one_password_util import OnePasswordUtil
+from app.utils.subprocess_execution import run_command
 
 
-def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:
+async def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:
     """
     Add AI voices to storage
     """
-    ui_bucket_name = OnePasswordUtil(
+    ui_bucket_name = await OnePasswordUtil(
         tenant=f"jeeves_{tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).get_key(key="s3_ui_bucket_name")
-    ui_access_key = OnePasswordUtil(
+    ui_access_key = await OnePasswordUtil(
         tenant=f"jeeves_{tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).get_key(key="s3_ui_bucket_access_key")
-    ui_secret_key = OnePasswordUtil(
+    ui_secret_key = await OnePasswordUtil(
         tenant=f"jeeves_{tenant}",
         server_item="application-config",
         vault="Jeeves",
@@ -33,9 +33,9 @@ def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:
     source_folder_path: str = f"r2/{config.r2_bucket}/jeeves-config/ai_voices/"
     ui_bucket_dest_folder_path: str = f"r2_ui_bucket/{ui_bucket_name}/jeeves/{tenant}/voices/"
 
-    subprocess.run(split(f"mc alias set r2 {config.r2_url} {config.r2_access_key} {config.r2_secret}"), check=True)
-    subprocess.run(split(f"mc alias set r2_ui_bucket {config.r2_url} {ui_access_key} {ui_secret_key}"), check=True)
-    subprocess.run(split(f"mc cp -r {source_folder_path} {ui_bucket_dest_folder_path}"), check=True)
+    await run_command(["mc", "alias", "set", "r2", config.r2_url, config.r2_access_key, config.r2_secret])
+    await run_command(split(f"mc alias set r2_ui_bucket {config.r2_url} {ui_access_key} {ui_secret_key}"))
+    await run_command(split(f"mc cp -r {source_folder_path} {ui_bucket_dest_folder_path}"))
     log_info("AI voices are added successfully.")
 
 
@@ -73,4 +73,4 @@ class AiVoiceSetupActivity(Activity):
         """
         Callable for the activity
         """
-        add_ai_voices_to_storage(activity_model.tenant, activity_model.config)
+        await add_ai_voices_to_storage(activity_model.tenant, activity_model.config)

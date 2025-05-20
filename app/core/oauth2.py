@@ -5,8 +5,8 @@ import aiohttp
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.security import OAuth2
 from fastapi.security.utils import get_authorization_scheme_param
-from requests import Response
 from starlette.requests import Request
+from starlette.responses import Response
 
 from app.exceptions import errors
 

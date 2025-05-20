@@ -13,6 +13,7 @@ from app.cli.temporal.core.log import log_info
 from app.core.ijson import ijson_loads
 from app.core.settings import JeevesSettings, get_settings
 from app.one_password_util import OnePasswordUtil
+from app.utils.file_operations import get_opendal_file_client
 
 CONTENT_TYPE = "application/json"
 
@@ -303,14 +304,16 @@ class ChatwootSetup:
             existing_attrs = await response.json() if response.status == 200 else []
             existing_keys = {attr.get("attribute_key") for attr in existing_attrs}
 
-        with open(
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json",
-            ),
-            "rb",
-        ) as file:
-            data = ijson_loads(file.read())
+        opendal_file_operations = get_opendal_file_client()
+        data = ijson_loads(
+            await opendal_file_operations.read_file_str(
+                os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)),
+                    f"../{self.product}/templates/chatwoot/chatwoot_custom_attrs.json",
+                )
+            )
+        )
+
         for attr in data:
             attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
             if attr["attribute_key"] in existing_keys:
@@ -330,21 +333,21 @@ class ChatwootSetup:
         Setup the Chatwoot environment
         """
         # Create Chatwoot Account If not exists
-        account_id = self.onepassword_util.get_key("chatwoot_account_id")
+        account_id = await self.onepassword_util.get_key("chatwoot_account_id")
         if not account_id:
             account_id = await self.create_chatwoot_account()
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_account_id", value=str(account_id))
+            await self.onepassword_util.insert_if_not_exists(key="chatwoot_account_id", value=str(account_id))
             log_info(f"chatwoot account created successfully : {self.tenant}")
 
         # Create Chatwoot User If not exists
-        api_key = self.onepassword_util.get_key("chatwoot_api_key")
+        api_key = await self.onepassword_util.get_key("chatwoot_api_key")
         if not api_key:
             user = await self.create_chatwoot_user()
             log_info(f"chatwoot user created successfully : {self.tenant}")
             await self.add_user_to_account(user_id=user["id"], account_id=account_id)
             log_info(f"chatwoot user added to account successfully : {self.tenant}")
 
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_api_key", value=user["access_token"])
+            await self.onepassword_util.insert_if_not_exists(key="chatwoot_api_key", value=user["access_token"])
             api_key = user["access_token"]
 
         # Create Chatwoot Agent Bot If not exists
@@ -352,7 +355,7 @@ class ChatwootSetup:
 
         if not agents:
             agent_bot = await self.create_account_agent_bot(user_api_key=api_key, account_id=account_id)
-            self.onepassword_util.insert_if_not_exists(key="chatwoot_bot_token", value=agent_bot["access_token"])
+            await self.onepassword_util.insert_if_not_exists(key="chatwoot_bot_token", value=agent_bot["access_token"])
             agent_bot_id = agent_bot["id"]
         else:
             agent_bot = agents[0]
@@ -464,7 +467,7 @@ class DeleteChatwootAccountActivity(Activity):
             server_item="application-config",
             vault=activity_model.vault,
         )
-        account_id = onepassword_util.get_key("chatwoot_account_id")
+        account_id = await onepassword_util.get_key("chatwoot_account_id")
         if not account_id:
             logger.error(f"chatwoot account not found : {activity_model.tenant}")
             raise RuntimeError(f"chatwoot account not found : {activity_model.tenant}")

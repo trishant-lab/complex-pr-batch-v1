@@ -3,6 +3,7 @@ name = "pricedx-console"
 tenant = "<<tenant>>"
 
 [server]
+host = "0.0.0.0:8000"
 parallelism_factor = 10
 temp_path = "/tmp"
 allowed_origin = [
@@ -18,7 +19,7 @@ client_id = "{{ op://Pricedx/application-config/INTEGRATION_COMMON_CONFIG/keyclo
 dsn = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/redis_dsn }}"
 password = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/redis_password }}"
 
-[pg]
+[postgres]
 dsn = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/pg_dsn }}"
 schema_name = "{{ op://Pricedx/application-config/PRICEDX_<<tenant>>/pg_schema_name }}"
 

@@ -1,20 +1,23 @@
-import json
 import os
 import shutil
 from configparser import ConfigParser
+from io import StringIO
 
 import app
 from app.core.cli_settings import get_workers_config
+from app.core.ijson import ijson_loads
 from app.core.settings import CONFIG_FILE_NAMES
+from app.utils.file_operations import get_opendal_file_client
 
 
-def get_config_env_dict() -> dict:
+async def get_config_env_dict() -> dict:
     """
     get config env dict
     """
+    opendal_file_operations = get_opendal_file_client()
     config_dir = os.getenv("APP_CONFIG_DIR", "/")
     config_files = [x.path for x in os.scandir(config_dir) if x.name in CONFIG_FILE_NAMES and "settings" in x.name]
-    return json.loads(open(config_files[0]).read()) if config_files else {}
+    return ijson_loads(await opendal_file_operations.read_file_str(config_files[0])) if config_files else {}
 
 
 def write_supervisor_workers_conf() -> None:
@@ -30,7 +33,7 @@ def write_supervisor_workers_conf() -> None:
 
     worker_runner = os.path.abspath(worker.__file__)
 
-    common_config_dict: dict = {
+    common_config_dict: dict[str, str | bool | int] = {
         "directory": cwd,
         "autostart": True,
         "autorestart": True,
@@ -58,8 +61,10 @@ def write_supervisor_workers_conf() -> None:
         **common_config_dict,
     }
 
-    with open(file_path, "w") as configfile:
-        worker_config.write(configfile)
+    opendal_file_operations = get_opendal_file_client()
+    config_string: StringIO = StringIO()
+    worker_config.write(config_string)
+    opendal_file_operations.write_file_sync(file_path, config_string.getvalue())
 
 
 if __name__ == "__main__":

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title></title>
+  </head>
+  <body>
+    <span>Dear {{user_name}},</span>
+    <p>
+      We would like to inform you that your PriceDx account has already been set
+      up. You can now conveniently log in using the URL:
+      <a href="{{ environment_link }}">{{ environment_link }}</a>.
+    </p>
+
+    <p>
+      If you did not authorize this sign-in, please contact our support team
+      immediately at
+      <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+    </p>
+    <br />
+    <p>Thanks,</p>
+    <p>Team PriceDx</p>
+    <p>
+      E: <a href="mailto:developers@314ecorp.com">developers@314ecorp.com</a>
+    </p>
+    <p>W: <a href="https://www.314ecorp.com/">https://www.314ecorp.com/</a></p>
+  </body>
+</html>

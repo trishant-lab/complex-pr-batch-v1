@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title></title>
+  </head>
+  <body>
+    <span>Hello {{user_name}},</span>
+    <p>
+      Your PriceDx account has been created. Here are your login credentials:
+    </p>
+
+    <p>
+      Website: <a href="{{ environment_link }}">{{ environment_link }}</a>
+      <br />
+      Email: {{email}}<br />
+      Temporary Password: {{password}}
+    </p>
+    <p>
+      Important: Upon first login, you will be prompted to set a new password.
+    </p>
+
+    <p>
+      Should you require any assistance or have any questions, please don't
+      hesitate to contact our dedicated support team at
+      <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+    </p>
+    <br />
+    <p>Warm Regards,</p>
+    <p>Team PriceDx</p>
+    <p>
+      E: <a href="mailto:developers@314ecorp.com">developers@314ecorp.com</a>
+    </p>
+    <p>W: <a href="https://www.pricedx.tech/">https://www.pricedx.tech/</a></p>
+  </body>
+</html>
