@@ -27,7 +27,7 @@ class ZSegmentSettings(BaseModel):
     sender_name: str = ""
     sender_email: str = ""
     victoria_metrics_url: str = ""
-    grafana_api_url: str = "https://appgrafana.314ecorp.tech"
+    grafana_api_url: str = ""
     grafana_api_key: str = ""
     digital_ocean_token: str = ""
     omniflow_server_url: str = ""
