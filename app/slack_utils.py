@@ -32,6 +32,9 @@ def _send_message(product: ProductEnum, text: str, blocks: list[dict]) -> None:
             case ProductEnum.veritable:
                 channel_id = config.veritable.slack.channel_id
                 username = config.veritable.slack.bot_username
+            case ProductEnum.pricedx:
+                channel_id = config.pricedx.slack.channel_id
+                username = config.pricedx.slack.bot_username
             case _:
                 channel_id = config.slack.channel_id
                 username = config.slack.bot_username

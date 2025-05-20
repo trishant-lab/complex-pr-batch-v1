@@ -1,9 +1,10 @@
-from pydantic import BaseModel
-
-from app.core.product_settings.common import Lago, PostgresSettings
+from app.core.product_settings.common import PostgresSettings, SelfSignupSettings, SendGridSettings, SlackSettings
 
 
-class PricedxSettings(BaseModel):
+SUPPORT_MAIL: str = "developers@314ecorp.com"
+
+
+class PricedxSettings(SelfSignupSettings):
     """
     Pricedx Settings
     """
@@ -13,13 +14,25 @@ class PricedxSettings(BaseModel):
 
     zone_id: str = ""
 
-    sender_email: str = "developer@314ecorp.com"
+    sender_email: str = SUPPORT_MAIL
     sender_name: str = "Pricedx Support"
+    signup_url: str = "https://pricedx.tech"
+    tenant_fqdn: str = "pricedx.tech"
 
     location_hint: str = "enam"
 
     pg_dsn_template: str = "postgresql://pricedx_{tenant}.pricedx_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/pricedx"
     redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
 
-    lago: Lago = Lago()
-    email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
+    sendgrid: SendGridSettings = SendGridSettings(
+        email_from=SUPPORT_MAIL,
+        support_mail=SUPPORT_MAIL,
+    )
+
+    slack: SlackSettings = SlackSettings(
+        channel_id="C08QZA7C0SW",
+        bot_token="",
+        bot_username="Launchpad",
+    )
+
+    email_domains_exclusions: list[str] | None = None

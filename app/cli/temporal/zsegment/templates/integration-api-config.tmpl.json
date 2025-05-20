@@ -64,5 +64,8 @@
 
   "MATOMO.AUTH.TOKEN": "<<matomoAuthToken>>",
   "MATOMO.BASE.URL": "https://analytics.314ecorp.tech/index.php",
-  "MATOMO.SITE.ID": 15
+  "MATOMO.SITE.ID": 15,
+
+  "DIGITAL.OCEAN.TOKEN": "<<digitaloceanToken>>",
+  "OMNIFLOW.SERVER.URL": "<<omniflowServerUrl>>"
 }

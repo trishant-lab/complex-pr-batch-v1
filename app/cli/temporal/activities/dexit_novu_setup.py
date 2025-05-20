@@ -17,6 +17,9 @@ from app.one_password_util import OnePasswordUtil
 from app.template_env import get_env
 
 
+HEADER_CONTENT_TYPE = "application/json"
+
+
 def get_notification_group_id(group_name: str, config: AppSettings, api_key: str) -> None | str:
     """
 
@@ -67,7 +70,7 @@ async def create_novu_notification_workflow(data: dict, config: AppSettings, api
     workflow = get_novu_notification_workflow_by_name(workflow_name=data["name"], config=config, api_key=api_key)
     headers: dict = {
         "Authorization": f"ApiKey {api_key}",
-        "Content-Type": "application/json",
+        "Content-Type": HEADER_CONTENT_TYPE,
     }
     url: str = f"{config.dexit.novu_url}/v1/workflows"
     if not workflow:
@@ -218,7 +221,7 @@ class NovuSetup:
                         request_info=aiohttp.RequestInfo(
                             url=url,
                             method="POST",
-                            headers={"Content-Type": "application/json"},
+                            headers={"Content-Type": HEADER_CONTENT_TYPE},
                         ),
                         history=(),
                         status=response.status,
@@ -230,7 +233,7 @@ class NovuSetup:
                         request_info=aiohttp.RequestInfo(
                             url=url,
                             method="POST",
-                            headers={"Content-Type": "application/json"},
+                            headers={"Content-Type": HEADER_CONTENT_TYPE},
                         ),
                         history=(),
                         status=response.status,
@@ -352,7 +355,7 @@ class NovuSetup:
         api_keys = await self.get_organization_api_key(token=organization_token)
 
         # store in 1Password
-        OnePasswordUtil(
+        await OnePasswordUtil(
             tenant=self.dexit.tenant,
             server_item=server_item,
             vault="Dexit",

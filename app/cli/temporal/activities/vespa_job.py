@@ -1,5 +1,5 @@
+import os
 import shutil
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,6 +29,7 @@ from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec
 from app.core.settings import get_settings
+from app.utils.file_operations import get_opendal_file_client
 
 TENANT_CONFIG_FILE = "tenant-config.json"
 
@@ -95,8 +96,11 @@ class VespaDeleteActivity(Activity):
             zip_path: Path = Path(config.jeeves.vespa_application_path, "application.zip")
             if zip_path.exists():
                 zip_path.unlink()
-                with tempfile.TemporaryDirectory() as temp_directory:
-                    temp_application_path: Path = Path(temp_directory, "application")
+                opendal_file_operations = get_opendal_file_client()
+                async with opendal_file_operations.temp_dir() as temp_directory:
+                    temp_application_path = os.path.join(
+                        opendal_file_operations.tempdir_root, temp_directory, "application"
+                    )
                     shutil.copytree(config.jeeves.vespa_application_path, temp_application_path)
                     shutil.make_archive(
                         str(zip_path.with_suffix("")),
@@ -108,16 +112,17 @@ class VespaDeleteActivity(Activity):
                     f"/application/v2/tenant/default/prepareandactivate"
                 )
                 async with aiohttp.ClientSession() as session:
-                    with open(zip_path, "rb") as zip_file:
-                        file_content = zip_file.read()
-                        response = await session.post(
-                            deploy_url,
-                            headers={"Content-Type": "application/zip"},
-                            data=file_content,
-                            timeout=aiohttp.ClientTimeout(total=120),
-                        )
-                        if response.status != 200:
-                            log_error("Could not delete index")
+                    opendal_file_operations = get_opendal_file_client()
+                    file_content = await opendal_file_operations.read_file_str(zip_path)
+
+                    response = await session.post(
+                        deploy_url,
+                        headers={"Content-Type": "application/zip"},
+                        data=file_content,
+                        timeout=aiohttp.ClientTimeout(total=120),
+                    )
+                    if response.status != 200:
+                        log_error("Could not delete index")
         except Exception:
             log_error("Could not delete index")
 

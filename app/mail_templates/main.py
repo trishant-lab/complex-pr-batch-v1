@@ -40,6 +40,13 @@ def provisioning_success_mail(name: str, email: str, link: str, password: str, p
                 password=password,
                 onboarding_doc_url=settings.veritable.onboarding_doc_url,
             )
+        case ProductEnum.pricedx:
+            template = env.get_template("pricedx/provisioning_success_mail.html")
+            return template.render(
+                user_name=name,
+                email=email,
+                environment_link=link,
+            )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
 
@@ -58,6 +65,14 @@ def otp_verification_mail(otp: int, plan_name: str, product: ProductEnum) -> str
                 plan_name=plan_name,
                 expiry_minutes=settings.redis.otp_expiration // 60,
                 support_email=settings.veritable.sendgrid.support_mail,
+            )
+        case ProductEnum.pricedx:
+            template = env.get_template("pricedx/otp_verification_mail.html")
+            return template.render(
+                otp=otp,
+                plan_name=plan_name,
+                expiry_minutes=settings.redis.otp_expiration // 60,
+                support_email=settings.pricedx.sendgrid.support_mail,
             )
         case _:
             raise ValueError(f"Invalid product: {product}")
@@ -118,6 +133,13 @@ def internal_payment_failure_mail(customer: CustomerResponse, product: ProductEn
                 customer_email=customer.email,
                 customer_name=customer.name or "",
             )
+        case ProductEnum.pricedx:
+            template = env.get_template("pricedx/internal_payment_failure_mail.html")
+            return template.render(
+                customer_phone=customer.phone or "",
+                customer_email=customer.email,
+                customer_name=customer.name or "",
+            )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
 
@@ -155,6 +177,14 @@ def payment_failure_mail(name: str, retry_link: str, plan_name: str, product: Pr
                 plan_name=plan_name,
                 support_email=settings.veritable.sendgrid.support_mail,
             )
+        case ProductEnum.pricedx:
+            template = env.get_template("pricedx/payment_failure_mail.html")
+            return template.render(
+                user_name=name,
+                payment_link=retry_link,
+                plan_name=plan_name,
+                support_email=settings.pricedx.sendgrid.support_mail,
+            )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
 
@@ -170,6 +200,11 @@ def provisioning_failure_mail(name: str, plan_name: str, product: ProductEnum) -
             template = env.get_template("veritable/provisioning_failure_mail.html")
             return template.render(
                 user_name=name, plan_name=plan_name, support_email=settings.veritable.sendgrid.support_mail
+            )
+        case ProductEnum.pricedx:
+            template = env.get_template("pricedx/provisioning_failure_mail.html")
+            return template.render(
+                user_name=name, plan_name=plan_name, support_email=settings.pricedx.sendgrid.support_mail
             )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
@@ -189,6 +224,13 @@ def sign_in_detected(name: str, env_link: str, product: ProductEnum) -> str:
                 environment_link=env_link,
                 support_email=settings.veritable.sendgrid.support_mail,
             )
+        case ProductEnum.pricedx:
+            template = env.get_template("pricedx/signin_detected.html")
+            return template.render(
+                user_name=name,
+                environment_link=env_link,
+                support_email=settings.pricedx.sendgrid.support_mail,
+            )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
 
@@ -204,6 +246,12 @@ def tenant_link_mail(tenant_links: list[Record], product: ProductEnum) -> str:
             return template.render(
                 tenant_links=tenant_links,
                 support_email=settings.veritable.sendgrid.support_mail,
+            )
+        case ProductEnum.pricedx:
+            template = env.get_template("pricedx/tenant_link_mail.html")
+            return template.render(
+                tenant_links=tenant_links,
+                support_email=settings.pricedx.sendgrid.support_mail,
             )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")

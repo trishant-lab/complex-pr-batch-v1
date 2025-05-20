@@ -4,7 +4,7 @@ from types import UnionType
 
 from pydantic import BaseModel, EmailStr, ValidationError
 
-from app import s3_utils
+from app.utils.s3_operations import get_s3_client
 from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.settings import AppSettings, get_settings
 from app.exceptions import errors
@@ -42,7 +42,7 @@ async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
     config: AppSettings = get_settings()
     form: dict = await form_render_for_product(product.value)
 
-    storage_client = s3_utils.get_opendal_operator(
+    storage_client = get_s3_client(
         access_key=config.r2.access_key,
         secret_key=config.r2.secret_key,
         endpoint=config.r2.endpoint,
@@ -50,11 +50,11 @@ async def upload_form_to_r2_bucket(product: ProductEnum) -> None:
     )
     form_path = f"{product.value}/form.json"
 
-    storage_client.write(
-        form_path,
-        ijson_dumps(form).encode(),
+    await storage_client.upload_object(
+        path=form_path,
+        file_name="form.json",
         content_type="application/json",
-        content_disposition="inline",
+        file_content=ijson_dumps(form).encode(),
     )
 
 

@@ -1,6 +1,5 @@
 import os
 from datetime import timedelta
-from tempfile import TemporaryDirectory
 
 from temporalio import activity
 from temporalio.common import RetryPolicy
@@ -14,6 +13,7 @@ from app.core.settings import AppSettings, get_settings
 from app.models.enums import EmailTemplateName
 from app.sendgrid_utils import send_mail
 from app.template_env import get_env
+from app.utils.file_operations import get_opendal_file_client
 
 
 async def provisioning_success_mail(name: str, email: str, link: str, password: str, email_template: str) -> str:
@@ -25,11 +25,16 @@ async def provisioning_success_mail(name: str, email: str, link: str, password: 
     @param email_template:
     @return:
     """
-    with TemporaryDirectory() as temp_dir:
-        with open(f"{temp_dir}/provisioning_success_mail.html", "w") as f:
-            f.write(email_template)
+    opendal_file_operations = get_opendal_file_client()
 
-        template_env = get_env(template_path=temp_dir)
+    async with opendal_file_operations.temp_dir() as temp_dir:
+        temp_dir_path = os.path.join(opendal_file_operations.tempdir_root, temp_dir)
+        await opendal_file_operations.write_file(
+            os.path.join(temp_dir_path, "provisioning_success_mail.html"),
+            email_template,
+        )
+
+        template_env = get_env(template_path=temp_dir_path)
         template_env.variable_start_string = "{{"
         template_env.variable_end_string = "}}"
         template = template_env.get_template("provisioning_success_mail.html")
@@ -143,11 +148,14 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
 
     subject = response["subject"]
 
-    with TemporaryDirectory() as temp_dir:
-        with open(f"{temp_dir}/before_provisioning_mail.html", "w") as f:
-            f.write(response["template"])
+    opendal_file_operations = get_opendal_file_client()
+    async with opendal_file_operations.temp_dir() as temp_dir:
+        temp_dir_path = os.path.join(opendal_file_operations.tempdir_root, temp_dir)
+        await opendal_file_operations.write_file(
+            os.path.join(temp_dir_path, "before_provisioning_mail.html"), response["template"]
+        )
 
-        template_env = get_env(template_path=temp_dir)
+        template_env = get_env(template_path=temp_dir_path)
         template_env.variable_start_string = "{{"
         template_env.variable_end_string = "}}"
         template = template_env.get_template("before_provisioning_mail.html")

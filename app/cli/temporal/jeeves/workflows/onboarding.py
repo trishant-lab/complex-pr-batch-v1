@@ -142,6 +142,7 @@ from app.core.settings import AppSettings, JeevesSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
+from app.utils.file_operations import get_opendal_file_client
 
 if TYPE_CHECKING:
     from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
@@ -876,6 +877,7 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # keycloak internal users setup
+            opendal_file_operations = get_opendal_file_client()
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
@@ -883,7 +885,9 @@ class JeevesOnboardingWorkflow(Workflow):
                     client_name="jeeves",
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=ijson_loads(open(f"{TemplatePath}/{config.env}_internal_users.json").read()),
+                    users=ijson_loads(
+                        await opendal_file_operations.read_file_str(f"{TemplatePath}/{config.env}_internal_users.json")
+                    ),
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     group_path="Admin",
                 ),
@@ -915,8 +919,6 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
                     ],
                     argument="python3 /app/provisioning/atlas_migration.py",
                     job_type="atlas",
@@ -966,7 +968,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            dynamic_url_hash_key = await run_activity(
+            await run_activity(
                 activity=OnePasswordGetActivity,
                 arg=OnePasswordGetActivityModel(
                     tenant="INTEGRATION_COMMON_CONFIG" if config.env != "production" else "PRODUCTION_COMMON_CONFIG",
@@ -1016,15 +1018,10 @@ class JeevesOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
+                        {"name": "WEB_CONCURRENCY", "value": "5"},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
-                        {"name": "TIKA_SERVER_ENDPOINT", "value": jeeves_config.tika_server_endpoint},
-                        {"name": "DYNAMIC_URL_HASH_KEY", "value": dynamic_url_hash_key},
-                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
             )
@@ -1071,12 +1068,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},
-                        {"name": "TIKA_SERVER_ENDPOINT", "value": jeeves_config.tika_server_endpoint},
-                        {"name": "DYNAMIC_URL_HASH_KEY", "value": dynamic_url_hash_key},
-                        {"name": "DYNAMIC_URL_ENABLED", "value": "True"},
                     ],
                 ),
             )

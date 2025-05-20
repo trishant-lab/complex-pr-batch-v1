@@ -1,6 +1,6 @@
 import asyncio
+import os
 import socket
-import tempfile
 import zipfile
 from datetime import timedelta
 
@@ -30,10 +30,10 @@ from app.s3_utils import (
     copy_files_to_cloudflare_with_exclude,
     delete_files_from_cloudflare,
     download_file_from_storage,
-    get_opendal_operator,
-    get_opendal_operator_with_session_token,
     sync_and_verify_files,
 )
+from app.utils.s3_operations import get_s3_client
+from app.utils.file_operations import get_opendal_file_client
 
 
 class CreateCloudflareBucketActivity(Activity):
@@ -181,7 +181,7 @@ class CopyArtifactsToBucketActivity(Activity):
         artifacts_access_key = config.cloudflare.r2_access_key
         artifacts_secret_key = config.cloudflare.r2_secret_key
 
-        artifacts_s3_client = get_opendal_operator(
+        artifacts_s3_client = get_s3_client(
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
@@ -194,18 +194,21 @@ class CopyArtifactsToBucketActivity(Activity):
         bucket_session_token = bucket_temporary_credentials.session_token
 
         try:
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                download_file_from_storage(
+            opendal_file_operations = get_opendal_file_client()
+            async with opendal_file_operations.temp_dir() as tmp_dir:
+                temp_file_path = os.path.join(opendal_file_operations.tempdir_root, tmp_dir, activity_input.bundle_name)
+
+                await download_file_from_storage(
                     object_name=activity_input.src_object_name,
-                    file_path=f"{tmp_dir}/{activity_input.bundle_name}",
+                    file_path=temp_file_path,
                     storage_client=artifacts_s3_client,
                 )
 
                 # unzip the file
-                with zipfile.ZipFile(f"{tmp_dir}/{activity_input.bundle_name}", "r") as zip_ref:
-                    zip_ref.extractall(f"{tmp_dir}/bundle")
+                with zipfile.ZipFile(temp_file_path, "r") as zip_ref:
+                    zip_ref.extractall(os.path.join(opendal_file_operations.tempdir_root, tmp_dir, "bundle"))
 
-                storage_client = get_opendal_operator_with_session_token(
+                storage_client = get_s3_client(
                     access_key=bucket_access_key,
                     secret_key=bucket_secret_key,
                     endpoint=config.cloudflare.r2_endpoint,
@@ -224,9 +227,9 @@ class CopyArtifactsToBucketActivity(Activity):
                         session_token=bucket_session_token,
                     )
 
-                sync_and_verify_files(
+                await sync_and_verify_files(
                     op=storage_client,
-                    input_path=f"{tmp_dir}/{activity_input.bundle_path}",
+                    input_path=os.path.join(opendal_file_operations.tempdir_root, tmp_dir, activity_input.bundle_path),
                     bucket_name=activity_input.bucket_name,
                     dest_dir=activity_input.dest_dir,
                     prefix=prefix,
@@ -274,23 +277,26 @@ class CopyWebCoreToBucketActivity(Activity):
 
         artifacts_access_key = config.cloudflare.r2_access_key
         artifacts_secret_key = config.cloudflare.r2_secret_key
-        artifacts_s3_client = get_opendal_operator(
+        artifacts_s3_client = get_s3_client(
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
             bucket_name="artifacts",
         )
         try:
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                download_file_from_storage(
+            opendal_file_operations = get_opendal_file_client()
+            async with opendal_file_operations.temp_dir() as tmp_dir:
+                temp_file_path = os.path.join(opendal_file_operations.tempdir_root, tmp_dir, activity_input.bundle_name)
+
+                await download_file_from_storage(
                     object_name=activity_input.src_object_name,
-                    file_path=f"{tmp_dir}/{activity_input.bundle_name}",
+                    file_path=temp_file_path,
                     storage_client=artifacts_s3_client,
                 )
 
                 copy_files_to_cloudflare(
                     tenant=activity_input.tenant,
-                    input_path=f"{tmp_dir}/{activity_input.bundle_name}",
+                    input_path=temp_file_path,
                     output_path=activity_input.dest_dir,
                     endpoint=config.cloudflare.r2_endpoint,
                     access_key=bucket_access_key,
@@ -492,7 +498,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
         artifacts_access_key = config.cloudflare.r2_access_key
         artifacts_secret_key = config.cloudflare.r2_secret_key
 
-        artifacts_s3_client = get_opendal_operator(
+        artifacts_s3_client = get_s3_client(
             access_key=artifacts_access_key,
             secret_key=artifacts_secret_key,
             endpoint=config.cloudflare.r2_endpoint,
@@ -500,16 +506,19 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
         )
 
         try:
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                download_file_from_storage(
+            opendal_file_operations = get_opendal_file_client()
+            async with opendal_file_operations.temp_dir() as tmp_dir:
+                temp_file_path = os.path.join(opendal_file_operations.tempdir_root, tmp_dir, activity_input.bundle_name)
+
+                await download_file_from_storage(
                     object_name=activity_input.src_object_name,
-                    file_path=f"{tmp_dir}/{activity_input.bundle_name}",
+                    file_path=temp_file_path,
                     storage_client=artifacts_s3_client,
                 )
 
                 # unzip the file
-                with zipfile.ZipFile(f"{tmp_dir}/{activity_input.bundle_name}", "r") as zip_ref:
-                    zip_ref.extractall(f"{tmp_dir}/bundle")
+                with zipfile.ZipFile(temp_file_path, "r") as zip_ref:
+                    zip_ref.extractall(os.path.join(opendal_file_operations.tempdir_root, tmp_dir, "bundle"))
 
                 # copy artifacts for main UI
 
@@ -526,7 +535,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
 
                 copy_files_to_cloudflare_with_exclude(
                     tenant=activity_input.tenant,
-                    input_path=f"{tmp_dir}/bundle/dist",
+                    input_path=os.path.join(opendal_file_operations.tempdir_root, tmp_dir, "bundle/dist"),
                     output_path=dest_dir,
                     exclude_pattern="dist/careerpages/**",
                     endpoint=config.cloudflare.r2_endpoint,
@@ -552,7 +561,7 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                 #     session_token=bucket_temporary_credentials.session_token,
                 # )
 
-                storage_client = get_opendal_operator_with_session_token(
+                storage_client = get_s3_client(
                     access_key=bucket_access_key,
                     secret_key=bucket_secret_key,
                     endpoint=config.cloudflare.r2_endpoint,
@@ -561,17 +570,31 @@ class PenknifeCopyArtifactsToBucketActivity(Activity):
                 )
 
                 # copy "apply" directory
-                sync_and_verify_files(
+                await sync_and_verify_files(
                     op=storage_client,
-                    input_path=f"{tmp_dir}/bundle/dist/careerpages/apply",
+                    input_path=os.path.join(
+                        opendal_file_operations.tempdir_root,
+                        tmp_dir,
+                        "bundle",
+                        "dist",
+                        "careerpages",
+                        "apply",
+                    ),
                     bucket_name=activity_input.careerportal_bucket_name,
                     dest_dir="",
                     prefix="apply",
                 )
                 # copy "public" directory
-                sync_and_verify_files(
+                await sync_and_verify_files(
                     op=storage_client,
-                    input_path=f"{tmp_dir}/bundle/dist/careerpages/public",
+                    input_path=os.path.join(
+                        opendal_file_operations.tempdir_root,
+                        tmp_dir,
+                        "bundle",
+                        "dist",
+                        "careerpages",
+                        "public",
+                    ),
                     bucket_name=activity_input.careerportal_bucket_name,
                     prefix="public",
                     dest_dir="",

@@ -22,7 +22,7 @@ SELECT
     p.sortorder
 FROM
     plans p
-JOIN
+LEFT JOIN
     PlanFeaturesView pf ON p.plancode = pf.plancode AND p.product = pf.product
 GROUP BY
     p.product, p.plancode, pf."includedFeatures"

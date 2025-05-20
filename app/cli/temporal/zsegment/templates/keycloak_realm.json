@@ -1406,7 +1406,7 @@
     "fromDisplayName": "314e Support",
     "user": "apikey"
   },
-  "loginTheme": "zsegment",
+  "loginTheme": "314e-login-theme",
   "emailTheme": "zsegment",
   "eventsEnabled": true,
   "eventsExpiration": 63072000,

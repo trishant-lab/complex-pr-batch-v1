@@ -34,7 +34,7 @@ async def prefetch_plans() -> None:
             "features": ijson_loads(plan["features"]),
             "popular": MarketingType(plan["marketingtype"]) == MarketingType.popular,
             "addons": addons,
-            "includedFeatures": ijson_loads(plan["includedFeatures"]),
+            "includedFeatures": ijson_loads(plan["includedFeatures"]) if plan.get("includedFeatures") else [],
         }
 
 
