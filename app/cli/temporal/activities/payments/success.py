@@ -65,7 +65,7 @@ class PaymentSuccessActivity(Activity):
         valid = False
         invoice_data = get_invoice_helper(activity_input.product, invoice.model_dump(exclude_none=True))
         while valid is False:
-            file_data = httpx.get(invoice_data["file_url"], timeout=60).content
+            file_data = httpx.get(invoice_data["file_url"], timeout=60, follow_redirects=True).content
             valid, pdf_error = is_valid_pdf(file_data)
             if _time >= _timeout and not valid:
                 raise RetryableException(pdf_error)
