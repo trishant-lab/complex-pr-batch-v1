@@ -1,5 +1,4 @@
 import io
-from urllib.parse import urljoin
 
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
@@ -36,7 +35,7 @@ def get_invoice_helper(product: ProductEnum, resp: dict) -> dict:
             if api_url.endswith("/"):
                 api_url = api_url.removesuffix("/")
             if file_url.startswith(api_url):
-                resp["file_url"] = file_url.replace(api_url, urljoin(config.billing_url, "billing"))
+                resp["file_url"] = file_url.replace(api_url, config.billing_url)
     resp["external_id"] = resp.pop("lago_id")
     return resp
 

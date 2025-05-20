@@ -38,6 +38,7 @@ def provisioning_success_mail(name: str, email: str, link: str, password: str, p
                 environment_link=link,
                 support_email=settings.veritable.sendgrid.support_mail,
                 password=password,
+                onboarding_doc_url=settings.veritable.onboarding_doc_url,
             )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
@@ -83,7 +84,7 @@ def periodic_invoice_mail(
     match product:
         case ProductEnum.veritable:
             match subscription_type:
-                case SubscriptionType.renewal:
+                case SubscriptionType.renewal | SubscriptionType.downgrade:
                     template = env.get_template("veritable/periodic_invoice_mail.html")
                 case SubscriptionType.upgrade:
                     template = env.get_template("veritable/plan_upgrade_invoice_mail.html")
