@@ -3,11 +3,12 @@ This module sets up Jinja2 SQL library and provides helper functions to execute
 the SQL template and returns the data
 """
 
+import uuid
 from os import path
 
 import asyncpg
 import jinja2
-from asyncpg import Record
+from asyncpg import Connection, Record
 from pydantic import PostgresDsn
 from pydantic_core import MultiHostUrl
 
@@ -225,11 +226,18 @@ class DBManager:
             # await conn.execute('SET autocommit = off;')
 
 
+class _Connection(Connection):
+    def _get_unique_id(self: "_Connection", prefix: str) -> str:
+        return f"__asyncpg_{prefix}_{uuid.uuid4().hex}__"
+
+
 async def get_db(pg_dsn: PostgresDsn) -> asyncpg.pool.Pool:
     """
     creates database instance from PostgreSQL DSN
     """
-    return await asyncpg.create_pool(str(pg_dsn), min_size=0, max_size=2)
+    return await asyncpg.create_pool(
+        pg_dsn, min_size=0, max_size=2, statement_cache_size=0, connection_class=_Connection
+    )
 
 
 async def get_db_manager(dsn: PostgresDsn | None = None) -> DBManager:
