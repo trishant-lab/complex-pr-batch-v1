@@ -236,7 +236,7 @@ async def get_db(pg_dsn: PostgresDsn) -> asyncpg.pool.Pool:
     creates database instance from PostgreSQL DSN
     """
     return await asyncpg.create_pool(
-        pg_dsn, min_size=0, max_size=2, statement_cache_size=0, connection_class=_Connection
+        str(pg_dsn), min_size=0, max_size=2, statement_cache_size=0, connection_class=_Connection
     )
 
 
