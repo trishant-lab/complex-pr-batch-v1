@@ -150,17 +150,6 @@ p, MUSPELL_EDIT_GROUP, /api/v1/EmailTemplate/Muspell,  PUT
 p, VERITABLE_EDIT_GROUP, /api/v1/EmailTemplate/Veritable,  PUT
 p, PRACTIFLY_EDIT_GROUP, /api/v1/EmailTemplate/Practifly,  PUT
 
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsViewedSummary, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/query, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/user, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/session, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsDownloadSummary, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/assetsShared, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssignmentsCreated, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetRecord, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetUpload, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/AssetTipSheet, GET
-p, JEEVES_VIEW_GROUP, /api/v1/jeevesReports/listTenants, GET
 
 p, ADMINS, /api/v1/deployment/{product}/deploy, POST
 p, JEEVES_EDIT_GROUP, /api/v1/deployment/Jeeves/deploy, POST
@@ -171,14 +160,6 @@ p, MUSPELL_EDIT_GROUP, /api/v1/deployment/Muspell/deploy, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/deployment/Veritable/deploy, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/deployment/Practifly/deploy, POST
 
-p, ADMINS, /api/v1/reports/{product}, GET
-p, JEEVES_VIEW_GROUP, /api/v1/reports/Jeeves,  GET
-p, DEXIT_VIEW_GROUP, /api/v1/reports/Dexit,  GET
-p, PENKNIFE_VIEW_GROUP, /api/v1/reports/Penknife,  GET
-p, ZSEGMENT_VIEW_GROUP, /api/v1/reports/Zsegment,  GET
-p, MUSPELL_VIEW_GROUP, /api/v1/reports/Muspell,  GET
-p, VERITABLE_VIEW_GROUP, /api/v1/reports/Veritable,  GET
-p, PRACTIFLY_VIEW_GROUP, /api/v1/reports/Practifly,  GET
 
 p, ADMINS, /api/v1/session/{product}/keycloak, GET
 p, JEEVES_VIEW_GROUP, /api/v1/session/Jeeves/keycloak, GET
