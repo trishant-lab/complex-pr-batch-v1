@@ -1534,14 +1534,14 @@ adal = ["adal (>=1.0.2)"]
 
 [[package]]
 name = "lago-python-client"
-version = "1.22.0"
+version = "1.28.1"
 description = "Lago Python API Client"
 optional = false
 python-versions = ">3.6"
 groups = ["main"]
 files = [
-    {file = "lago_python_client-1.22.0-py3-none-any.whl", hash = "sha256:03fb049a75adda977c8911e4483c656da04da020b608eec5f70baa5bf47c14f2"},
-    {file = "lago_python_client-1.22.0.tar.gz", hash = "sha256:4488cabc6e67eacdbff8ceafe06a400d478a6ea777f33e0c46689a7660e4c467"},
+    {file = "lago_python_client-1.28.1-py3-none-any.whl", hash = "sha256:3a0ff66f2292a2dceaf0ebad7513a6d504bf3daeb2e95a3bf6e70ac1bb41d1d3"},
+    {file = "lago_python_client-1.28.1.tar.gz", hash = "sha256:7de9e1f45a953bf3297bcec4bbb4dd2387e75294b2199b54818c54a1ec0973eb"},
 ]
 
 [package.dependencies]
@@ -2871,14 +2871,14 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyjwt"
-version = "2.10.1"
+version = "2.9.0"
 description = "JSON Web Token implementation in Python"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "PyJWT-2.10.1-py3-none-any.whl", hash = "sha256:dcdd193e30abefd5debf142f9adfcdd2b58004e644f25406ffaebd50bd98dacb"},
-    {file = "pyjwt-2.10.1.tar.gz", hash = "sha256:3cc5772eb20009233caf06e9d8a0577824723b44e6648ee0a2aedb6cf9381953"},
+    {file = "PyJWT-2.9.0-py3-none-any.whl", hash = "sha256:3b02fb0f44517787776cf48f2ae25d8e14f300e6d7545a4315cee571a415e850"},
+    {file = "pyjwt-2.9.0.tar.gz", hash = "sha256:7e1e5b56cc735432a7369cbfa0efe50fa113ebecdc04ae6922deba8b84582d0c"},
 ]
 
 [package.extras]
@@ -3125,22 +3125,23 @@ files = [
 
 [[package]]
 name = "redis"
-version = "5.2.1"
+version = "6.2.0"
 description = "Python client for Redis database and key-value store"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "redis-5.2.1-py3-none-any.whl", hash = "sha256:ee7e1056b9aea0f04c6c2ed59452947f34c4940ee025f5dd83e6a6418b6989e4"},
-    {file = "redis-5.2.1.tar.gz", hash = "sha256:16f2e22dff21d5125e8481515e386711a34cbec50f0e44413dd7d9c060a54e0f"},
+    {file = "redis-6.2.0-py3-none-any.whl", hash = "sha256:c8ddf316ee0aab65f04a11229e94a64b2618451dab7a67cb2f77eb799d872d5e"},
+    {file = "redis-6.2.0.tar.gz", hash = "sha256:e821f129b75dde6cb99dd35e5c76e8c49512a5a0d8dfdc560b2fbd44b85ca977"},
 ]
 
 [package.dependencies]
 async-timeout = {version = ">=4.0.3", markers = "python_full_version < \"3.11.3\""}
 
 [package.extras]
-hiredis = ["hiredis (>=3.0.0)"]
-ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==23.2.1)", "requests (>=2.31.0)"]
+hiredis = ["hiredis (>=3.2.0)"]
+jwt = ["pyjwt (>=2.9.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (>=20.0.1)", "requests (>=2.31.0)"]
 
 [[package]]
 name = "requests"
@@ -3793,4 +3794,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "0a40c7b9a7d54ecdb28171fed16073b52ed8c7ec56ad444cf81c3f1fdcb3277d"
+content-hash = "72b588d42d7adfb3f3e7c290debaf32afaae3b1a76cd71116c93dd620cc6077f"
