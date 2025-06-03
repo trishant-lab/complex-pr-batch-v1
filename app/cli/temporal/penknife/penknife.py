@@ -42,6 +42,13 @@ class PenknifeWorkflow(ProductWorkflow):
         )
 
     @staticmethod
+    async def deploy(schema: dict) -> None:
+        """
+        deploy method
+        """
+        raise NotImplementedError("Deploy is not implemented for Penknife")
+
+    @staticmethod
     async def approve(schema: dict) -> None:
         """
         approve method
