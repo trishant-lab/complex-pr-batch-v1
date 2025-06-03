@@ -27,6 +27,7 @@ class WorkerQueues(str, Enum):
     onboard = "onboard"
     kube_config_cert_expiry = "kube_config_cert_expiry"
     veritable_deployment = "veritable_deployment"
+    dexit_deployment = "dexit_deployment"
 
 
 class WorkerConfig(BaseModel):

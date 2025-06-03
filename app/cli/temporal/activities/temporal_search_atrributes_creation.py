@@ -62,6 +62,8 @@ class TemporalSearchAttributesCreationActivity(Activity):
                 "TaskNumber": IndexedValueType.INDEXED_VALUE_TYPE_INT,
                 "ActivityId": IndexedValueType.INDEXED_VALUE_TYPE_TEXT,
                 "ActivityName": IndexedValueType.INDEXED_VALUE_TYPE_TEXT,
+                "isSubWorkflow": IndexedValueType.INDEXED_VALUE_TYPE_BOOL,
+                "isUserTask": IndexedValueType.INDEXED_VALUE_TYPE_BOOL,
             }
 
             # Upsert the search attributes
