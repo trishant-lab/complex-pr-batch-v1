@@ -89,11 +89,11 @@ class DexitWorkflow(ProductWorkflow):
         """
         deploy method
         """
-        from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
         from app.cli.temporal.starter import trigger_workflow
+        from app.cli.temporal.dexit.workflows.deployment import DexitDeploymentWorkflow
 
         await trigger_workflow(
             workflow_input=DexitSpec(**schema),
-            workflow=DexitOnboardingWorkflow,
-            queue=WorkerQueues.dexit_onboarding,
+            workflow=DexitDeploymentWorkflow,
+            queue=WorkerQueues.dexit_deployment,
         )
