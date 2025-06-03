@@ -78,9 +78,6 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
 )
-from app.cli.temporal.activities.send_mail import (
-    SendAfterProvisioningMailActivity,
-)
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
@@ -92,9 +89,6 @@ from app.cli.temporal.activities.temporal_namespace import (
 from app.cli.temporal.activities.temporal_search_atrributes_creation import (
     TemporalSearchAttributesCreationActivity,
     TemporalSearchAttributesCreationActivityModel,
-)
-from app.cli.temporal.activities.update_tenant_status import (
-    UpdateTenantStatusActivity,
 )
 from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperActivity,
@@ -134,8 +128,6 @@ class DexitDeploymentWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            SendAfterProvisioningMailActivity.defn,
-            UpdateTenantStatusActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
