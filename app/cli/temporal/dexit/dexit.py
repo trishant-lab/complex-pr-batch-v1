@@ -83,3 +83,17 @@ class DexitWorkflow(ProductWorkflow):
         from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
 
         return DexitOnboardingWorkflow.get_workflow_id(schema)
+
+    @staticmethod
+    async def deploy(schema: dict) -> None:
+        """
+        deploy method
+        """
+        from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
+        from app.cli.temporal.starter import trigger_workflow
+
+        await trigger_workflow(
+            workflow_input=DexitSpec(**schema),
+            workflow=DexitOnboardingWorkflow,
+            queue=WorkerQueues.dexit_onboarding,
+        )

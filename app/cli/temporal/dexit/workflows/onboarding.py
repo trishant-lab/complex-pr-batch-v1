@@ -74,6 +74,8 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresGrantAllPrivilegesOnTableActivityModel,
     PostgresSchemaCreationActivity,
     PostgresSchemaCreationActivityModel,
+    PostgresSupavisorPollUserActivity,
+    PostgresSupavisorPollUserActivityModel,
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
 )
@@ -174,6 +176,7 @@ class DexitOnboardingWorkflow(Workflow):
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
+            PostgresSupavisorPollUserActivity.defn,
         ]
 
     @classmethod
@@ -248,6 +251,16 @@ class DexitOnboardingWorkflow(Workflow):
                     username=dicom_database_name,
                     database_name=dicom_database_name,
                     password=dicom_database_password,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresSupavisorPollUserActivity,
+                arg=PostgresSupavisorPollUserActivityModel(
+                    username=postgres_username,
+                    database_name=postgres_database_name,
+                    db_password=postgres_password,
+                    template_path=TemplatePath,
                 ),
             )
 
