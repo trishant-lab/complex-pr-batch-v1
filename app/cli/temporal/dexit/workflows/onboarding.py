@@ -255,16 +255,6 @@ class DexitOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=PostgresSupavisorPollUserActivity,
-                arg=PostgresSupavisorPollUserActivityModel(
-                    username=postgres_username,
-                    database_name=postgres_database_name,
-                    db_password=postgres_password,
-                    template_path=TemplatePath,
-                ),
-            )
-
-            await run_activity(
                 activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
                     username=dicom_database_name,
@@ -289,6 +279,16 @@ class DexitOnboardingWorkflow(Workflow):
                     username=postgres_username,
                     database_name=postgres_database_name,
                     password=postgres_password,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresSupavisorPollUserActivity,
+                arg=PostgresSupavisorPollUserActivityModel(
+                    username=postgres_username,
+                    database_name=postgres_database_name,
+                    db_password=postgres_password,
+                    template_path=TemplatePath,
                 ),
             )
 
