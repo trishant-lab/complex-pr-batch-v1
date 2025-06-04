@@ -1,0 +1,51 @@
+{
+    "name": "dexit-workflow-failed",
+    "description": "Workflow execution failed",
+    "tags": [],
+    "steps": [
+      {
+        "template": {
+          "content": "Workflow execution failed for {{ '{{workflow.name}}' }}",
+          "type": "in_app",
+          "cta": {
+              "type": "redirect",
+              "data": {
+                "url": "/workflow-logs/{{ '{{workflow.dexit_workflow_id}}' }}/{{ '{{workflow.run_id}}' }}"
+              }
+            }
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "Workflow execution failed for {{ '{{workflow.name}}' }}",
+          "type": "email",
+          "senderName":"DexIt",
+          "subject":"Workflow execution failed",
+          "contentType":"customHtml"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "Workflow execution failed for {{ '{{workflow.name}}' }}",
+          "type": "chat"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      }
+    ],
+    "active": true,
+    "notification_group_id": "{{notification.notification_grp_id}}",
+    "critical": false,
+    "draft": false,
+    "preference_settings": {
+      "email": true,
+      "sms": true,
+      "in_app": true,
+      "chat": true,
+      "push": true
+    }
+}

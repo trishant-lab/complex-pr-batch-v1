@@ -24,10 +24,8 @@ from .middleware.auth import AuthenticationMiddleware, AuthorizationMiddleware
 from .routes.deployment import deployment_router
 from .routes.deprovisioning import de_provisioning_router
 from .routes.email_templates import email_template_router
-from .routes.jeeves_reports import jeeves_report_router
 from .routes.product import product_router
 from .routes.provisioning import provisioning_router
-from .routes.reports import reports_router
 from .routes.self_signup.add_ons import router as add_ons_router
 from .routes.self_signup.coupon import router as coupon_router
 from .routes.self_signup.onboard import router as onboard_router
@@ -173,7 +171,5 @@ fastapi_app.include_router(provisioning_router, prefix=f"{API_PREFIX}/provisioni
 fastapi_app.include_router(de_provisioning_router, prefix=f"{API_PREFIX}/deprovisioning", tags=["Deprovisioning"])
 fastapi_app.include_router(user_router, prefix=f"{API_PREFIX}/User", tags=["User"])
 fastapi_app.include_router(email_template_router, prefix=f"{API_PREFIX}/EmailTemplate", tags=["EmailTemplate"])
-fastapi_app.include_router(jeeves_report_router, prefix=f"{API_PREFIX}/jeevesReports", tags=["JeevesReports"])
 fastapi_app.include_router(deployment_router, prefix=f"{API_PREFIX}/deployment", tags=["Deployment"])
-fastapi_app.include_router(reports_router, prefix=f"{API_PREFIX}/reports", tags=["Reports"])
 fastapi_app.include_router(webhook_router, prefix=f"{API_PREFIX}/webhooks", tags=["Webhooks"])

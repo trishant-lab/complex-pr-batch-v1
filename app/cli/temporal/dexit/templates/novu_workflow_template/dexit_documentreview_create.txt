@@ -1,0 +1,51 @@
+{
+    "name": "dexit-documentreview-create",
+    "description": "",
+    "tags": [],
+    "steps": [
+      {
+        "template": {
+          "content": "Document Review is requested.",
+          "type": "in_app",
+          "cta": {
+              "type": "redirect",
+              "data": {
+                "url": "/retrieval/{{ '{{documentreview.document_id}}' }}"
+              }
+            }
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "Document Review is requested.",
+          "type": "email",
+          "senderName":"DexIt",
+          "subject":"Document Review Requested",
+          "contentType":"customHtml"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "Document Review is requested.",
+          "type": "chat"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      }
+    ],
+    "active": true,
+    "notification_group_id": "{{notification.notification_grp_id}}",
+    "critical": false,
+    "draft": false,
+    "preference_settings": {
+      "email": true,
+      "sms": true,
+      "in_app": true,
+      "chat": true,
+      "push": true
+    }
+}
