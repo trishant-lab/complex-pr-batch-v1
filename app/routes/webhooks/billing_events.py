@@ -13,7 +13,7 @@ from app.models.product import ProductEnum
 
 router = APIRouter()
 
-LAGO_INTERNAL_URL = "http://lago-api.svc.cluster.local:3000"
+LAGO_INTERNAL_URL = "lago-api.lago.svc.cluster.local:3000"
 
 
 def get_issuers(product: ProductEnum) -> list[str]:
@@ -24,7 +24,7 @@ def get_issuers(product: ProductEnum) -> list[str]:
     parsed_api_url = urlparse(app_config.lago.api_url)
 
     base_url = f"{parsed_api_url.scheme}://{parsed_api_url.netloc}"
-    return [base_url, LAGO_INTERNAL_URL]
+    return [parsed_api_url.netloc, base_url, LAGO_INTERNAL_URL, f"http://{LAGO_INTERNAL_URL}"]
 
 
 def validate_issuer(request: Request, issuers: list[str], pub_key: bytes) -> dict:
