@@ -489,53 +489,6 @@ class DexitOnboardingWorkflow(Workflow):
                 start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
-            tenant_config = "tenant-config.json"
-            mlops_config = "mlops-config.json"
-            env_config = "env-config.json"
-            dicom_config = "dicom-config.json"
-            vector_config = "vector-config.toml"
-            config_dir = "config"
-
-            # setup tenant configmap
-            for config_map in [
-                {
-                    "name": "dexit-tenant-config",
-                    "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
-                },
-                {
-                    "name": "dexit-mlops-config",
-                    "key": mlops_config,
-                    "template_file_name": f"{config.env}-mlops-config.tmpl.json",
-                },
-                {
-                    "name": "dexit-env-config",
-                    "key": env_config,
-                    "template_file_name": f"{config.env}-env-config.tmpl.json",
-                },
-                {
-                    "name": "dexit-dicom-config",
-                    "key": dicom_config,
-                    "template_file_name": f"{config.env}-dicom-config.tmpl.json",
-                },
-                {
-                    "name": "dexit-cli-vector-config",
-                    "key": vector_config,
-                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
-                },
-            ]:
-                await run_activity(
-                    activity=K8sConfigMapCreationActivity,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
-                        destination_file_name=config_map["key"],
-                        bucket_name="dexit-config",
-                        template_payload={"tenant": tenant},
-                    ),
-                )
-
             # dns setup for api
             await run_activity(
                 activity=CreateCloudflareDNSRecordActivity,
@@ -663,6 +616,53 @@ class DexitOnboardingWorkflow(Workflow):
                     key_value=credentials["secret_key"],
                 ),
             )
+
+            tenant_config = "tenant-config.json"
+            mlops_config = "mlops-config.json"
+            env_config = "env-config.json"
+            dicom_config = "dicom-config.json"
+            vector_config = "vector-config.toml"
+            config_dir = "config"
+
+            # setup tenant configmap
+            for config_map in [
+                {
+                    "name": "dexit-tenant-config",
+                    "key": tenant_config,
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-mlops-config",
+                    "key": mlops_config,
+                    "template_file_name": f"{config.env}-mlops-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-env-config",
+                    "key": env_config,
+                    "template_file_name": f"{config.env}-env-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-dicom-config",
+                    "key": dicom_config,
+                    "template_file_name": f"{config.env}-dicom-config.tmpl.json",
+                },
+                {
+                    "name": "dexit-cli-vector-config",
+                    "key": vector_config,
+                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
+                },
+            ]:
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
+                    arg=K8sConfigMapCreationActivityModel(
+                        namespace=tenant,
+                        name=config_map["name"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
+                        bucket_name="dexit-config",
+                        template_payload={"tenant": tenant},
+                    ),
+                )
 
             # atlas job
             await run_activity(
