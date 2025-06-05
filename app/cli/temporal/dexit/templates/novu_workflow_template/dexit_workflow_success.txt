@@ -1,0 +1,51 @@
+{
+    "name": "dexit-workflow-success",
+    "description": "Workflow execution success",
+    "tags": [],
+    "steps": [
+      {
+        "template": {
+          "content": "Workflow execution success for << '{{workflow.name}}' >>",
+          "type": "in_app",
+          "cta": {
+              "type": "redirect",
+              "data": {
+                "url": "/workflow-logs/<< '{{workflow.dexit_workflow_id}}' >>/<< '{{workflow.run_id}}' >>"
+              }
+            }
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "Workflow execution success for << '{{workflow.name}}' >>",
+          "type": "email",
+          "senderName":"DexIt",
+          "subject":"Workflow execution success",
+          "contentType":"customHtml"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      },
+      {
+        "template": {
+          "content": "Workflow execution success for << '{{workflow.name}}' >>",
+          "type": "chat"
+        },
+        "active": true,
+        "should_stop_on_fail": false
+      }
+    ],
+    "active": true,
+    "notificationGroupId": "<< notification.notification_grp_id >>",
+    "critical": false,
+    "draft": false,
+    "preference_settings": {
+      "email": true,
+      "sms": true,
+      "in_app": true,
+      "chat": true,
+      "push": true
+    }
+}
