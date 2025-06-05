@@ -453,6 +453,8 @@ class DexitDeploymentWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_user.json",
                 ),
+                retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
+                start_to_close_timeout=KeycloakCreateTenantCustomerAdminUserActivity.get_timeout(),
             )
 
             tenant_config = "tenant-config.json"
