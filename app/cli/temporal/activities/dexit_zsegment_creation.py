@@ -2,7 +2,7 @@ import asyncio
 from datetime import timedelta
 
 from temporalio import activity
-from temporalio.api.enums.v1 import WorkflowExecutionStatus
+from temporalio.client import WorkflowExecutionStatus
 from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity
@@ -71,13 +71,13 @@ class ZSegmentSetupActivity(Activity):
         await handle.signal(ZSegmentOnboardingWorkflow.approve)
 
         handle_describe = await handle.describe()
-        status = WorkflowExecutionStatus.Name(handle_describe.status)
+        status = WorkflowExecutionStatus(handle_describe.status).name
 
         while status != "COMPLETED":
             if status in ["FAILED", "TERMINATED"]:
-                raise Exception(f"ZSegment onboarding {status}")
+                raise RuntimeError(f"ZSegment onboarding {status}")
             handle_describe = await handle.describe()
-            status = WorkflowExecutionStatus.Name(handle_describe.status)
+            status = WorkflowExecutionStatus(handle_describe.status).name
             await asyncio.sleep(60)
 
         log_info(f"ZSegment onboarding completed successfully for tenant {model.tenant}")
