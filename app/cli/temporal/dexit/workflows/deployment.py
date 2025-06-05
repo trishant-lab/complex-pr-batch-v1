@@ -98,6 +98,7 @@ from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.dexit import TemplatePath
 from app.cli.temporal.dexit.models.dexit_spec import DexitSpec
 from app.cli.temporal.models.cloudflare import (
+    CloudflareBucketCredentials,
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivityModel,
     CreateCloudflareBucketCredentialsActivityModel,
@@ -545,7 +546,7 @@ class DexitDeploymentWorkflow(Workflow):
                 start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
             )
 
-            credentials = await run_activity(
+            credentials: CloudflareBucketCredentials = await run_activity(
                 activity=CreateCloudflareBucketCredentialsActivity,
                 arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=bucket_name, read_only=False),
             )
@@ -570,7 +571,7 @@ class DexitDeploymentWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="s3_access_key",
-                    key_value=credentials["access_key"],
+                    key_value=credentials.access_key,
                 ),
             )
 
@@ -582,7 +583,7 @@ class DexitDeploymentWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="s3_secret_key",
-                    key_value=credentials["secret_key"],
+                    key_value=credentials.secret_key,
                 ),
             )
 
