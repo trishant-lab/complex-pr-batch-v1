@@ -1,47 +1,47 @@
 {
-    "name": "dexit-batch-create",
+    "name": "dexit-documentreview-create",
     "description": "",
     "tags": [],
     "steps": [
       {
         "template": {
-          "content": "A batch  <<'{{batch.name}}'>>  created in Queue  <<'{{batch.queue_name}}' >>.",
+          "content": "Document Review is requested.",
           "type": "in_app",
           "cta": {
               "type": "redirect",
               "data": {
-                  "url": "/queues/?queueId=<< '{{batch.queue}}' >>"
+                "url": "/retrieval/<< '{{documentreview.document_id}}' >>"
               }
             }
         },
         "active": true,
-        "shouldStopOnFail": false
+        "should_stop_on_fail": false
       },
       {
         "template": {
-            "content": "A batch << '{{batch.name}}' >> created in Queue << '{{batch.queue_name}}' >>.",
+          "content": "Document Review is requested.",
           "type": "email",
           "senderName":"DexIt",
-          "subject":"Batch Is Created",
+          "subject":"Document Review Requested",
           "contentType":"customHtml"
         },
         "active": true,
-        "shouldStopOnFail": false
+        "should_stop_on_fail": false
       },
       {
         "template": {
-          "content": "A batch << '{{batch.name}}' >> created in Queue << '{{batch.queue_name}}' >>.",
+          "content": "Document Review is requested.",
           "type": "chat"
         },
         "active": true,
-        "shouldStopOnFail": false
+        "should_stop_on_fail": false
       }
     ],
     "active": true,
-    "notificationGroupId": "<<notification.notification_grp_id>>",
+    "notificationGroupId": "<< notification.notification_grp_id >>",
     "critical": false,
     "draft": false,
-    "preferenceSettings": {
+    "preference_settings": {
       "email": true,
       "sms": true,
       "in_app": true,

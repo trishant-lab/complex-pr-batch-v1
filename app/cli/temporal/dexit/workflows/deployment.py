@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from datetime import timedelta
 
 import pydash
 from temporalio import workflow
@@ -79,10 +78,6 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
 )
-from app.cli.temporal.activities.send_mail import (
-    SendAfterProvisioningMailActivity,
-    SendAfterProvisioningMailActivityModel,
-)
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
@@ -94,10 +89,6 @@ from app.cli.temporal.activities.temporal_namespace import (
 from app.cli.temporal.activities.temporal_search_atrributes_creation import (
     TemporalSearchAttributesCreationActivity,
     TemporalSearchAttributesCreationActivityModel,
-)
-from app.cli.temporal.activities.update_tenant_status import (
-    TenantCliStatus,
-    UpdateTenantStatusActivity,
 )
 from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperActivity,
@@ -120,23 +111,17 @@ from app.cli.temporal.zsegment.models.zsegment_spec import ZSegmentSpec
 from app.common import generate_password
 from app.core.ijson import ijson_loads
 from app.core.settings import AppSettings, DexitSettings, get_settings
-from app.models.product import ProductEnum
-from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 ProductName = "dexit"
 OnePasswordVaultName = "Dexit"
 
 
-@workflow.defn(name="DexitOnboardingWorkflow", sandboxed=False)
-class DexitOnboardingWorkflow(Workflow):
+@workflow.defn(name="DexitDeploymentWorkflow", sandboxed=False)
+class DexitDeploymentWorkflow(Workflow):
     """
-    Dexit Onboarding Workflow
+    Dexit Deployment Workflow
     """
-
-    def __init__(self: "Workflow") -> None:
-        self.approved: bool = False
-        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:
@@ -144,8 +129,6 @@ class DexitOnboardingWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            SendAfterProvisioningMailActivity.defn,
-            UpdateTenantStatusActivity.defn,
             PostgresUserCreationActivity.defn,
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
@@ -206,21 +189,6 @@ class DexitOnboardingWorkflow(Workflow):
         tenant = pydash.get(dexit, "tenant")
 
         try:
-            await workflow.wait_condition(lambda: self.approved or self.denied)
-
-            if self.denied:
-                await run_activity(
-                    activity=UpdateTenantStatusActivity,
-                    arg=TenantCliStatus(
-                        tenant_name=pydash.get(dexit, "tenant"),
-                        status=TenantStatusEnum.ApprovalDeclined,
-                        error_msg="Request Declined",
-                        product=ProductEnum.dexit,
-                    ),
-                    start_to_close_timeout=timedelta(seconds=120),
-                )
-                return
-
             postgres_schema_name = tenant
             postgres_database_name = "dexit"
             postgres_username = f"{ProductName}_{tenant}"
@@ -996,54 +964,6 @@ class DexitOnboardingWorkflow(Workflow):
                 arg=ZSegmentSpec(tenant=tenant, email=email, firstName=first_name, lastName=last_name),
             )
 
-            # update tenant status
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.dexit),
-            )
-
-            # send mail
-            await run_activity(
-                activity=SendAfterProvisioningMailActivity,
-                arg=SendAfterProvisioningMailActivityModel(
-                    realm_name=realm_name,
-                    tenant=tenant,
-                    user_details={
-                        "firstName": first_name,
-                        "lastName": last_name,
-                        "email": email,
-                    },
-                    domain_name=dexit_config.domain_name,
-                    product=ProductName,
-                    from_name=dexit_config.sender_name,
-                    email_from=dexit_config.sender_email,
-                ),
-            )
-
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
-            await run_activity(
-                activity=UpdateTenantStatusActivity,
-                arg=TenantCliStatus(
-                    tenant_name=pydash.get(dexit, "tenant"),
-                    status=TenantStatusEnum.ProvisioningFailed,
-                    error_msg=str(e),
-                    product=ProductEnum.dexit,
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
             raise e
-
-    @workflow.signal
-    async def approve(self: "Workflow") -> None:
-        """
-        Signal to approve the workflow
-        """
-        self.approved = True
-
-    @workflow.signal
-    async def decline(self: "Workflow") -> None:
-        """
-        Signal to reject the workflow
-        """
-        self.denied = True
