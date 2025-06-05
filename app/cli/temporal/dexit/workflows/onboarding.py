@@ -181,6 +181,7 @@ class DexitOnboardingWorkflow(Workflow):
             ZSegmentSetupActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
             UpdateCORSForBucketActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
         ]
 
     @classmethod
