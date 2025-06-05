@@ -10,7 +10,7 @@
           "cta": {
               "type": "redirect",
               "data": {
-                "url": "/retrieval/{{ '{{documentreview.document_id}}' }}"
+                "url": "/retrieval/<< '{{documentreview.document_id}}' >>"
               }
             }
         },
@@ -38,7 +38,7 @@
       }
     ],
     "active": true,
-    "notification_group_id": "{{notification.notification_grp_id}}",
+    "notificationGroupId": "<< notification.notification_grp_id >>",
     "critical": false,
     "draft": false,
     "preference_settings": {

@@ -5,12 +5,12 @@
     "steps": [
       {
         "template": {
-          "content": "Workflow task created for Workflow - {{ '{{workflow.name}}' }} with task - {{ '{{workflow.event_reference}}' }}",
+          "content": "Workflow task created for Workflow - << '{{workflow.name}}' >> with task - << '{{workflow.event_reference}}' >>",
           "type": "in_app",
           "cta": {
               "type": "redirect",
               "data": {
-                "url": "/tasks/{{ '{{workflow.task_number}}' }}"
+                "url": "/tasks/<< '{{workflow.task_number}}' >>"
               }
             }
         },
@@ -19,7 +19,7 @@
       },
       {
         "template": {
-          "content": "Workflow task created for Workflow - {{ '{{workflow.name}}' }} with task - {{ '{{workflow.event_reference}}' }}",
+          "content": "Workflow task created for Workflow - << '{{workflow.name}}' >> with task - << '{{workflow.event_reference}}' >>",
           "type": "email",
           "senderName":"DexIt",
           "subject":"Workflow task created",
@@ -30,7 +30,7 @@
       },
       {
         "template": {
-          "content": "Workflow task created for Workflow - {{ '{{workflow.name}}' }} with task - {{ '{{workflow.event_reference}}' }}",
+          "content": "Workflow task created for Workflow - << '{{workflow.name}}' >> with task - << '{{workflow.event_reference}}' >>",
           "type": "chat"
         },
         "active": true,
@@ -38,7 +38,7 @@
       }
     ],
     "active": true,
-    "notification_group_id": "{{notification.notification_grp_id}}",
+    "notificationGroupId": "<< notification.notification_grp_id >>",
     "critical": false,
     "draft": false,
     "preference_settings": {

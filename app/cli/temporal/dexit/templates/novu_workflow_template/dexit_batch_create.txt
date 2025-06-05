@@ -10,7 +10,7 @@
           "cta": {
               "type": "redirect",
               "data": {
-                  "url": "/queues/?queueId=<< '<<batch.queue>>' >>"
+                  "url": "/queues/?queueId=<< '{{batch.queue}}' >>"
               }
             }
         },
