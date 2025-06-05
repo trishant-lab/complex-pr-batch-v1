@@ -177,6 +177,10 @@ class DexitOnboardingWorkflow(Workflow):
             PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             PostgresSupavisorPollUserActivity.defn,
+            DexitKeycloakCreateIDPFlowActivity.defn,
+            ZSegmentSetupActivity.defn,
+            CreateCloudflareBucketCredentialsActivity.defn,
+            UpdateCORSForBucketActivity.defn,
         ]
 
     @classmethod
