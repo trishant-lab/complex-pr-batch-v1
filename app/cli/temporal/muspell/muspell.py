@@ -1,9 +1,8 @@
-from app.cli.base_workflow import ProductWorkflow
-from app.cli.temporal.muspell.models.muspellSpec import MuspellArchiveSpec
 from temporalio.client import WorkflowHandle
 
+from app.cli.base_workflow import ProductWorkflow
+from app.cli.temporal.muspell.models.muspellSpec import MuspellArchiveSpec
 from app.core.cli_settings import WorkerQueues
-
 
 ProductName = "muspell"
 
@@ -35,12 +34,19 @@ class MuspellArchiveWorkflow(ProductWorkflow):
         raise NotImplementedError("Deboarding is not implemented for Muspell Archive")
 
     @staticmethod
+    async def deploy(schema: dict) -> None:
+        """
+        deploy method
+        """
+        raise NotImplementedError("Deploy is not implemented for Muspell Archive")
+
+    @staticmethod
     async def approve(schema: dict) -> None:
         """
         approve method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.muspell.workflows.onboarding import MuspellOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(
             workflow_input=MuspellArchiveSpec(**schema), workflow=MuspellOnboardingWorkflow
@@ -53,8 +59,8 @@ class MuspellArchiveWorkflow(ProductWorkflow):
         """
         decline method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.muspell.workflows.onboarding import MuspellOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         handle = await get_workflow_handle(
             workflow_input=MuspellArchiveSpec(**schema), workflow=MuspellOnboardingWorkflow
@@ -67,8 +73,8 @@ class MuspellArchiveWorkflow(ProductWorkflow):
         """
         get_workflow_handle method
         """
-        from app.cli.temporal.starter import get_workflow_handle
         from app.cli.temporal.muspell.workflows.onboarding import MuspellOnboardingWorkflow
+        from app.cli.temporal.starter import get_workflow_handle
 
         return await get_workflow_handle(
             workflow_input=MuspellArchiveSpec(**schema), workflow=MuspellOnboardingWorkflow
