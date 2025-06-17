@@ -80,7 +80,7 @@ exporter = Exporter()
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """
     Lifespan for the exporter
     """

@@ -77,7 +77,7 @@ origins: list = [
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """
     startup and shutdown events
     """

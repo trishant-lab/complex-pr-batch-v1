@@ -29,7 +29,7 @@ jobs:
         run: bandit -c pyproject.toml -r -ll .
 
       - name: OSV Scanner
-        run: osv-scanner --lockfile=poetry.lock --config=osv-scanner.config.toml
+        run: osv-scanner --lockfile=uv.lock --config=osv-scanner.config.toml
 
       - name: Build & push the Docker image
         run: |

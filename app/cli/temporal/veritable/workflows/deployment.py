@@ -17,7 +17,6 @@ from app.cli.temporal.activities.cloudflare_setup import (
 )
 from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
-    DatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
@@ -531,83 +530,6 @@ class VeritableDeploymentWorkflow(Workflow):
 
             image_tag = "veritable-latest" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/veritable-app:{image_tag}"
-            # provisioning job
-            await run_activity(
-                activity=DatabaseMigrationJobActivity,
-                arg=DatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="veritable-tenant-provisioning-job",
-                    docker_image=docker_image,
-                    volume_mounts=[
-                        {
-                            "name": "custom-volume",
-                            "mount_path": f"/{config_dir}/{custom_config}",
-                            "sub_path": custom_config,
-                        },
-                        {
-                            "name": "env-volume",
-                            "mount_path": f"/{config_dir}/{env_config}",
-                            "sub_path": env_config,
-                        },
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "mount_path": f"/{config_dir}/{provisioning_config}",
-                            "sub_path": provisioning_config,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "veritable-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
-                        },
-                        {
-                            "name": "custom-volume",
-                            "config_map_name": "veritable-custom-config",
-                            "key": custom_config,
-                            "path": custom_config,
-                        },
-                        {
-                            "name": "env-volume",
-                            "config_map_name": "veritable-env-config",
-                            "key": env_config,
-                            "path": env_config,
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "config_map_name": "veritable-provisioning-config",
-                            "key": provisioning_config,
-                            "path": provisioning_config,
-                        },
-                    ],
-                    container_envs=[
-                        {
-                            "name": "POSTGRES__PASSWORD",
-                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
-                        },
-                        {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "PROVISIONING_CONFIG", "value": "/config/provisioning-config.json"},
-                        {
-                            "name": "NOVU__API_KEY",
-                            "value_from": {"secret_key_ref": {"name": novu_secret_name, "key": "api-key"}},
-                        },
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
-                    ],
-                    argument=(
-                        "cd /app && python3 /app/provisioning/provisioning_.py "
-                        "--config /config/provisioning-config.json"
-                    ),
-                    job_type="provisioning",
-                    product=ProductName,
-                ),
-            )
 
             # kubernetes service
             await run_activity(
