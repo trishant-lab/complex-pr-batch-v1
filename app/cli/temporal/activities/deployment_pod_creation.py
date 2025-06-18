@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from kubernetes.client import (
+    V1Affinity,
     V1ConfigMapKeySelector,
     V1ConfigMapVolumeSource,
     V1Container,
@@ -11,6 +12,10 @@ from kubernetes.client import (
     V1EnvVarSource,
     V1KeyToPath,
     V1LocalObjectReference,
+    V1NodeAffinity,
+    V1NodeSelector,
+    V1NodeSelectorRequirement,
+    V1NodeSelectorTerm,
     V1ObjectMeta,
     V1PersistentVolumeClaimVolumeSource,
     V1PodSpec,
@@ -101,9 +106,21 @@ class KubernetesDeploymentActivity(Activity):
                 template=V1PodTemplateSpec(
                     metadata=V1ObjectMeta(labels={"app": activity_model.name}),
                     spec=V1PodSpec(
-                        node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
                         scheduler_name="volcano",
+                        affinity=V1Affinity(
+                            node_affinity=V1NodeAffinity(
+                                required_during_scheduling_ignored_during_execution=V1NodeSelector(
+                                    node_selector_terms=[
+                                        V1NodeSelectorTerm(
+                                            match_expressions=[
+                                                V1NodeSelectorRequirement(key="app", operator="In", values=["314e"])
+                                            ]
+                                        )
+                                    ]
+                                )
+                            )
+                        ),
                         init_containers=[
                             V1Container(
                                 name=init_container["name"],
