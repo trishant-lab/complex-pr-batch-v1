@@ -480,6 +480,7 @@
         "web-origins",
         "acr",
         "profile",
+        "basic",
         "roles",
         "email"
       ],
