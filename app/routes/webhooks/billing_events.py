@@ -58,7 +58,7 @@ async def events_webhook(request: Request, product: ProductEnum = Path(...)) -> 
     """
     pub_key = get_lago_webhook_public_key(product)
     issuers = get_issuers(product)
-    logger.info(f'Lago-Signature: {request.headers.get("X-Lago-Signature")}')
+    logger.info(f"Lago-Signature: {request.headers.get('X-Lago-Signature')}")
     event = validate_issuer(request, issuers, pub_key)
     if event.get("webhook_type") in InvoiceWebhookType:
         from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEvent, InvoiceWebhookEventWorkflow

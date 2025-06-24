@@ -143,8 +143,7 @@ def validate_product_schema(product: ProductEnum, product_schema: list[dict]) ->
         # Validate mapping exists in model
         if mapping not in model_fields:
             raise ValueError(
-                f"Field '{field_info['field_name']}' maps to '{mapping}' which doesn't exist "
-                f"in {product.value} schema"
+                f"Field '{field_info['field_name']}' maps to '{mapping}' which doesn't exist in {product.value} schema"
             )
 
         # Validate field type matches model

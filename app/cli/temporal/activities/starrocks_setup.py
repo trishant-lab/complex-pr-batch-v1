@@ -7,6 +7,7 @@ from temporalio.common import RetryPolicy
 
 from app.starrocks_utils import CreateStarRocksInputModel
 
+
 class CreateStarRocksCatalogActivity(Activity):
     """
     CreateStarRocksCatalogActivity

@@ -521,7 +521,7 @@ class VeritableDeploymentWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                     template_payload={
-                        "customerRealmRoles": ijson_dumps(["VT_CUSTOMER_ADMIN"]),
+                        "customerClientRoles": ijson_dumps(["VT_CUSTOMER_ADMIN"]),
                         "domain_org": veritable_config.domain_name.split(".")[-1],
                         "jinja_env.autoescape": False,
                     },
