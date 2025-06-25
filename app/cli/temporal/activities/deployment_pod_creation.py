@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from kubernetes.client import (
-    V1Affinity,
     V1ConfigMapKeySelector,
     V1ConfigMapVolumeSource,
     V1Container,
@@ -12,10 +11,6 @@ from kubernetes.client import (
     V1EnvVarSource,
     V1KeyToPath,
     V1LocalObjectReference,
-    V1NodeAffinity,
-    V1NodeSelector,
-    V1NodeSelectorRequirement,
-    V1NodeSelectorTerm,
     V1ObjectMeta,
     V1PersistentVolumeClaimVolumeSource,
     V1PodSpec,
@@ -36,6 +31,7 @@ from app.cli.k8s_util import (
 )
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
+from app.core.settings import APP_CONFIG
 
 K8S_RESOURCE_VERSION = "apps/v1"
 
@@ -106,21 +102,9 @@ class KubernetesDeploymentActivity(Activity):
                 template=V1PodTemplateSpec(
                     metadata=V1ObjectMeta(labels={"app": activity_model.name}),
                     spec=V1PodSpec(
+                        node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-                        scheduler_name="volcano",
-                        affinity=V1Affinity(
-                            node_affinity=V1NodeAffinity(
-                                required_during_scheduling_ignored_during_execution=V1NodeSelector(
-                                    node_selector_terms=[
-                                        V1NodeSelectorTerm(
-                                            match_expressions=[
-                                                V1NodeSelectorRequirement(key="app", operator="In", values=["314e"])
-                                            ]
-                                        )
-                                    ]
-                                )
-                            )
-                        ),
+                        scheduler_name="volcano" if APP_CONFIG.is_env_integration else None,
                         init_containers=[
                             V1Container(
                                 name=init_container["name"],
