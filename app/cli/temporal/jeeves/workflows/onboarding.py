@@ -797,9 +797,12 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_allow-publish-assets",
                 "_access-manage-assignment",
                 "_access-broadcasts",
+                "_access-users",
                 "_access-reports",
                 "_can-manage-activities",
                 "_can-manage-groups",
+                "_can-manage-users",
+                "_access-settings",
                 "_developer",
                 "_JEEVESALL",
             ]
@@ -870,6 +873,9 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # keycloak internal users setup
             opendal_file_operations = get_opendal_file_client()
+            users_data = ijson_loads(
+                await opendal_file_operations.read_file_str(f"{TemplatePath}/{config.env}_internal_users.json")
+            )
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
@@ -877,9 +883,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     client_name="jeeves",
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=ijson_loads(
-                        await opendal_file_operations.read_file_str(f"{TemplatePath}/{config.env}_internal_users.json")
-                    ),
+                    users=users_data,
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     group_path="Admin",
                 ),
