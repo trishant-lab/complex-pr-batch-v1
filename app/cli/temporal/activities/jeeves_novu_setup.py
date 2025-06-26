@@ -522,7 +522,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     ]
     await asyncio.gather(
         *[
-            create_novu_workflow_template(**{**template, "custom_email": template["custom_email"]()})
+            create_novu_workflow_template(**{**template})
             for template in template_definitions
             if template["event_name"] not in template_names
         ]
