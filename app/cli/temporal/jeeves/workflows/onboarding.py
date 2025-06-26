@@ -797,9 +797,12 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_allow-publish-assets",
                 "_access-manage-assignment",
                 "_access-broadcasts",
+                "_access-users",
                 "_access-reports",
                 "_can-manage-activities",
                 "_can-manage-groups",
+                "_can-manage-users",
+                "_access-settings",
                 "_developer",
                 "_JEEVESALL",
             ]
