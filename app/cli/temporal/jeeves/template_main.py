@@ -143,3 +143,10 @@ async def get_review_comment_added_custom_email() -> str:
     Get the custom email for the Novu notifications
     """
     return await get_template_from_file("novu/review_comment_added_mail.html")
+
+
+async def get_asset_assigned_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/asset_assigned_mail.html")
