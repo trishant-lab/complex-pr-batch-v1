@@ -21,7 +21,7 @@ async def create_setup_intent(external_id: str, intent_id: str, product: Product
         idempotency_key=intent_id,
         api_key=stripe_secret_key,
         customer=external_id,
-        payment_method_types=["card"],
+        payment_method_types=["card", "link"],
     )
     return await stripe.SetupIntent.retrieve_async(
         id=intent.id,
