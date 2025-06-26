@@ -908,18 +908,6 @@ class JeevesOnboardingWorkflow(Workflow):
                     if config.env == "production"
                     else [
                         {
-                            "username": "supriya.sen@314ecorp.com",
-                            "email": "supriya.sen@314ecorp.com",
-                            "firstname": "Supriya",
-                            "lastname": "Sen",
-                        },
-                        {
-                            "username": "sohini.chakraborty@314ecorp.com",
-                            "email": "sohini.chakraborty@314ecorp.com",
-                            "firstname": "Sohini",
-                            "lastname": "Chakraborty",
-                        },
-                        {
                             "username": JeevesSystemUser,
                             "email": JeevesSystemUser,
                             "firstname": "System",
