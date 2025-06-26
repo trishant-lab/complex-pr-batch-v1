@@ -873,9 +873,8 @@ class JeevesOnboardingWorkflow(Workflow):
 
             # keycloak internal users setup
             opendal_file_operations = get_opendal_file_client()
-            users_data = ijson_loads(
-                await opendal_file_operations.read_file_str(f"{TemplatePath}/{config.env}_internal_users.json")
-            )
+            users_data = await opendal_file_operations.read_file_str(f"{TemplatePath}/{config.env}_internal_users.json")
+            users_data = ijson_loads(users_data)
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
