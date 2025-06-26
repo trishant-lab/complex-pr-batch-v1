@@ -284,7 +284,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     template_definitions: list[dict] = [
         {
             "event_name": "jeeves-assignment-created",
-            "custom_email": await get_assignment_created_custom_email,
+            "custom_email": await get_assignment_created_custom_email(),
             "email_subject": "Assignments are created in Jeeves",
             "chat_content": ('Assignment "{{assignment.title}}" created'),
             "inapp_content": (
@@ -298,7 +298,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-assignment-updated",
-            "custom_email": await get_assignment_updated_custom_email,
+            "custom_email": await get_assignment_updated_custom_email(),
             "email_subject": "Assignments are updated in Jeeves",
             "chat_content": ('Assignment "{{assignment.title}}" updated'),
             "inapp_content": (
@@ -313,7 +313,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-created",
-            "custom_email": await get_asset_created_custom_email,
+            "custom_email": await get_asset_created_custom_email(),
             "email_subject": "New Assets created in Jeeves",
             "chat_content": ('Asset "{{asset.asset_title}}" is created.'),
             "inapp_content": (
@@ -326,7 +326,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-assignment-due-in-15-days",
-            "custom_email": await get_assignment_due_in_15_days_custom_email,
+            "custom_email": await get_assignment_due_in_15_days_custom_email(),
             "email_subject": "Reminder: Assignments Due in 15 Days",
             "chat_content": ('Assignment "{{assignment.title}}" will due in 15 days'),
             "inapp_content": (
@@ -338,7 +338,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-assignment-due-in-7-days",
-            "custom_email": await get_assignment_due_in_7_days_custom_email,
+            "custom_email": await get_assignment_due_in_7_days_custom_email(),
             "email_subject": "Reminder: Assignments Due in 7 Days",
             "chat_content": ('Assignment "{{assignment.title}}" will due in 7 days'),
             "inapp_content": (
@@ -350,7 +350,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-assignment-due-in-1-day",
-            "custom_email": await get_assignment_due_in_1_day_custom_email,
+            "custom_email": await get_assignment_due_in_1_day_custom_email(),
             "email_subject": "Reminder: Assignments Due in One Day",
             "chat_content": ('Assignment "{{assignment.title}}" will due in 1 day'),
             "inapp_content": (
@@ -362,7 +362,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-assignment-overdue",
-            "custom_email": await get_assignment_overdue_custom_email,
+            "custom_email": await get_assignment_overdue_custom_email(),
             "email_subject": "Urgent: Overdue Assignments - Action Required.",
             "chat_content": ('Assignment "{{assignment.title}}" is over due'),
             "inapp_content": (
@@ -374,7 +374,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-expiring-in-7-days",
-            "custom_email": await get_asset_expiring_in_7_days_custom_email,
+            "custom_email": await get_asset_expiring_in_7_days_custom_email(),
             "email_subject": "Action Required: Asset Expiring In 7 Days",
             "chat_content": ('Asset "{{asset.asset_title}}" is expiring in 7 days.'),
             "inapp_content": (
@@ -386,7 +386,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-expiring-in-30-days",
-            "custom_email": await get_asset_expiring_in_30_days_custom_email,
+            "custom_email": await get_asset_expiring_in_30_days_custom_email(),
             "email_subject": "Action Required: Asset Expiring In 30 Days",
             "chat_content": ('Asset "{{asset.asset_title}}" is expiring in 30 days.'),
             "inapp_content": (
@@ -398,7 +398,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-expiring-in-1-day",
-            "custom_email": await get_asset_expiring_in_1_day_custom_email,
+            "custom_email": await get_asset_expiring_in_1_day_custom_email(),
             "email_subject": "Action Required: Asset Expiring In One Day",
             "chat_content": ('Asset "{{asset.asset_title}}" is expiring in 1 day.'),
             "inapp_content": (
@@ -410,7 +410,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-expired",
-            "custom_email": await get_asset_expired_custom_email,
+            "custom_email": await get_asset_expired_custom_email(),
             "email_subject": "Urgent: Expired Asset Requires Immediate Update",
             "chat_content": ("Asset '{{asset.asset_title}}' is expired."),
             "inapp_content": (
@@ -422,7 +422,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-deleted",
-            "custom_email": await get_asset_deleted_custom_email,
+            "custom_email": await get_asset_deleted_custom_email(),
             "email_subject": "Assets deleted from Jeeves",
             "chat_content": ('Asset "{{asset.asset_title}}" is deleted.'),
             "inapp_content": (
@@ -434,7 +434,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-updated",
-            "custom_email": await get_asset_updated_custom_email,
+            "custom_email": await get_asset_updated_custom_email(),
             "email_subject": "Assets updated in Jeeves",
             "chat_content": ('Asset "{{asset.asset_title}}" is updated.\nClick to View: {{asset.asset_link}}'),
             "inapp_content": (
@@ -446,7 +446,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-published",
-            "custom_email": await get_asset_published_custom_email,
+            "custom_email": await get_asset_published_custom_email(),
             "email_subject": "Assets published in Jeeves",
             "chat_content": ('New asset "{{asset.asset_title}}" is published.\nClick to View: {{asset.asset_link}}'),
             "inapp_content": (
@@ -458,7 +458,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-assignment-assigned",
-            "custom_email": await get_assignment_assigned_custom_email,
+            "custom_email": await get_assignment_assigned_custom_email(),
             "email_subject": "New Assignment: '{{assignment_title}}' Assigned by {{assignment_assigned_by}}",
             "chat_content": "A new Assignment has been assigned to you.",
             "inapp_content": "A new Assignment has been assigned to you.",
@@ -469,7 +469,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-account-created",
-            "custom_email": await get_account_created_custom_email,
+            "custom_email": await get_account_created_custom_email(),
             "email_subject": "Welcome to Jeeves {{ first_name }} {{{{ last_name }}}}",
             "chat_content": "New Jeeves account has been created successfully.",
             "inapp_content": "Welcome to JEEVES",
@@ -479,7 +479,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-feedback-created",
-            "custom_email": await get_feedback_created_custom_email,
+            "custom_email": await get_feedback_created_custom_email(),
             "email_subject": "New Feedback/Question on {{asset.asset_title}}",
             "chat_content": (
                 "There's a new feedback/question on asset {{asset.asset_title}}.\n"
@@ -495,7 +495,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-review-comment-added",
-            "custom_email": await get_review_comment_added_custom_email,
+            "custom_email": await get_review_comment_added_custom_email(),
             "email_subject": "You've Been Mentioned in a Comment on {{asset.asset_title}}",
             "chat_content": (
                 "A new review comment has been posted on an asset {{asset.asset_title}}.\n"
@@ -511,7 +511,7 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         },
         {
             "event_name": "jeeves-asset-assigned",
-            "custom_email": await get_asset_assigned_email,
+            "custom_email": await get_asset_assigned_email(),
             "email_subject": "New Asset Assigned: {{asset.asset_title}}(Authoring Stage: {{asset.asset_stage_name}})",
             "chat_content": ("A new Asset {{asset.asset_title}} has been assigned to you."),
             "inapp_content": ("A new Asset {{asset.asset_title}} has been assigned to you."),
