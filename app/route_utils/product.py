@@ -4,7 +4,6 @@ from types import UnionType
 
 from pydantic import BaseModel, EmailStr, ValidationError
 
-from app.utils.s3_operations import get_s3_client
 from app.core.ijson import ijson_dumps, ijson_loads
 from app.core.settings import AppSettings, get_settings
 from app.exceptions import errors
@@ -12,6 +11,7 @@ from app.form_render import form_render_for_product
 from app.models.billing_models import PhoneNumber
 from app.models.form_schema.product_schema import PRODUCT_SCHEMA_MAP, ProductSchemaDataType
 from app.models.product import ProductEnum
+from app.utils.s3_operations import get_s3_client
 
 
 class ProductResponseModel(BaseModel):
@@ -98,6 +98,7 @@ TYPE_MAPPING = {
     "email": (str, EmailStr),
     "number": (int, float, PhoneNumber),
     "select": (str, Enum),
+    "multi_select": (list[str],),
     "checkbox": (bool,),
     "textarea": (str,),
     "null": (None,),

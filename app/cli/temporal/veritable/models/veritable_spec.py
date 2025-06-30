@@ -8,6 +8,7 @@ class VeritableSpec(BaseSpec):
 
     customerId: str
     emailSent: bool = False
+    selectedApps: list[str] | None = None
     cliSpec: None | BaseResourceSpec = BaseResourceSpec()
 
     @property

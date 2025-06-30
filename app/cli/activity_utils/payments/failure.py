@@ -123,17 +123,17 @@ async def reset_setup_intent(onboard_info: OnboardInfo, customer: CustomerRespon
     """
     customer_id = onboard_info.customer_id
     setup_intent_key = (await db.fetch_one("get.sql", table="customer", where=f"id='{customer_id!s}'"))["setupintent"]
-    stripe_secret_key = ProductEnum.get_stripe_secret_key(onboard_info.product)
+    stripe_settings = ProductEnum.get_stripe_settings(onboard_info.product)
 
     _setup_intent = await stripe.SetupIntent.create_async(
-        api_key=stripe_secret_key,
+        api_key=stripe_settings.secret_key,
         customer=customer.billing_configuration.provider_customer_id,
-        payment_method_types=["card"],
+        payment_method_types=stripe_settings.payment_methods,
         idempotency_key=setup_intent_key,
     )
     setup_intent = await stripe.SetupIntent.retrieve_async(
         id=_setup_intent.id,
-        api_key=stripe_secret_key,
+        api_key=stripe_settings.secret_key,
     )
     # payment method addition was successful, but payment has failed, create new setup intent idem key, save in lago
     if setup_intent.status in {"success", "succeeded", "canceled"}:
@@ -151,9 +151,9 @@ async def reset_setup_intent(onboard_info: OnboardInfo, customer: CustomerRespon
         await db.execute_many([("put.sql", intent_params), ("put.sql", provisioned_params)])  # NOSONAR
 
     await stripe.SetupIntent.create_async(
-        api_key=stripe_secret_key,
+        api_key=stripe_settings.secret_key,
         customer=customer.billing_configuration.provider_customer_id,
-        payment_method_types=["card"],
+        payment_method_types=stripe_settings.payment_methods,
         idempotency_key=setup_intent_key,
     )
 
