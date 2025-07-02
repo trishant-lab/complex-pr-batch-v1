@@ -122,7 +122,7 @@ class OpendalS3Client:
         res = await self.client.presign_read(path=path, expire_second=expiry_time)
         return res.url
 
-    async def scan_files(self, path: str) -> AsyncGenerator[opendal.Entry, None]:
+    async def scan_files(self, path: str) -> AsyncGenerator[opendal.Entry]:
         """
         Scan all files in a directory
         """

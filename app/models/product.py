@@ -7,7 +7,6 @@ from app.cli.temporal.hdp.hdp import HdpWorkflow
 from app.cli.temporal.hdp.models.hdp_spec import HDPSpec
 from app.cli.temporal.jeeves.jeeves import JeevesWorkflow
 from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec
-
 from app.cli.temporal.muspell.models.muspellSpec import MuspellArchiveSpec
 from app.cli.temporal.muspell.muspell import MuspellArchiveWorkflow
 from app.cli.temporal.penknife.models.penknife_spec import PenknifeSpec
@@ -20,7 +19,7 @@ from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
 from app.cli.temporal.veritable.veritable import VeritableWorkflow
 from app.cli.temporal.zsegment.models.zsegment_spec import ZSegmentSpec
 from app.cli.temporal.zsegment.zsegment import ZSegmentWorkflow
-from app.core.product_settings.common import SelfSignupSettings
+from app.core.product_settings.common import SelfSignupSettings, Stripe
 from app.models.add_ons.veritable import VeritableAddOn, VeritableFeature
 from app.models.enums import AddOn, Feature
 
@@ -155,7 +154,7 @@ class ProductEnum(str, Enum):
         return cls.get_product_settings(enum_value).domain_name
 
     @classmethod
-    def get_stripe_secret_key(cls: "ProductEnum", enum_value: "ProductEnum") -> str:
+    def get_stripe_settings(cls: "ProductEnum", enum_value: "ProductEnum") -> Stripe:
         """
         return stripe secret key based on product
         """
@@ -164,9 +163,9 @@ class ProductEnum(str, Enum):
         settings: AppSettings = get_settings()
         match enum_value:
             case cls.veritable:
-                return settings.veritable.stripe.secret_key
+                return settings.veritable.stripe
             case cls.pricedx:
-                return settings.pricedx.stripe.secret_key
+                return settings.pricedx.stripe
             case _:
                 raise ValueError(f"Not Implemented for product: {enum_value.value}")
 

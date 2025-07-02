@@ -137,6 +137,7 @@ class CustomerModel(Customer):
     phone: PhoneNumber | None = None
     legal_name: str
     coupon_code: str | None = None
+    product: ProductEnum
 
     @field_validator("tenant")
     @classmethod
@@ -174,18 +175,25 @@ class CustomerModel(Customer):
             )
         return country
 
-    @model_validator(mode="before")
-    @classmethod
-    def set_url(cls: type["CustomerModel"], values: dict) -> dict:
+    @model_validator(mode="after")
+    def set_product_configuration(self: "CustomerModel") -> "CustomerModel":
         """
-        set url based on tenant name
+        Set product-specific configurations including URL and payment methods
         """
-        tenant = values.get("tenant")
-        if tenant:
-            app_config = ProductEnum.get_product_settings(values.get("product"))
-            values["url"] = f"https://{tenant}.{app_config.tenant_fqdn}"
+        app_config = ProductEnum.get_product_settings(self.product)
 
-        return values
+        # Set URL if tenant exists
+        if self.tenant:
+            self.url = f"https://{self.tenant}.{app_config.tenant_fqdn}"
+
+        # Set payment methods if stripe config exists
+        if hasattr(app_config, "stripe"):
+            if not self.billing_configuration.payment_provider:
+                self.billing_configuration.payment_provider = Provider.STRIPE.value
+            if self.billing_configuration.payment_provider == Provider.STRIPE.value:
+                self.billing_configuration.provider_payment_methods = app_config.stripe.payment_methods
+
+        return self
 
 
 class CustomerInputModel(CustomerModel):

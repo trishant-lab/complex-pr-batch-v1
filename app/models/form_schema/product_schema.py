@@ -89,6 +89,18 @@ class VeritableSchema(BaseFormSchema):
             "order": 12,
         },
     )
+    selectedApps: list[str] | None = Field(
+        default=None,
+        json_schema_extra={
+            "name": "selectedApps",
+            "label": "Selected Apps",
+            "subtype": "multi_select",
+            "hidden": True,
+            "className": "form-control",
+            "mapTo": "selectedApps",
+            "order": 13,
+        },
+    )
 
     @field_validator("country")
     @classmethod

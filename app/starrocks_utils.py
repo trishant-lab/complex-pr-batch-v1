@@ -4,6 +4,7 @@ import mysql.connector
 
 from app.core.product_settings.muspell_archive import MuspellArchiveSettings
 
+
 class CreateStarRocksInputModel(BaseModel):
     muspell_config: MuspellArchiveSettings
     tenant: str
@@ -39,7 +40,7 @@ async def create_starrocks_catalog(starrocks_input: CreateStarRocksInputModel) -
             host=muspell_config.starrocks_host,
             port=muspell_config.starrocks_port,
             user=muspell_config.starrocks_user,
-            password=muspell_config.starrocks_password
+            password=muspell_config.starrocks_password,
         )
         cursor = conn.cursor()
 
@@ -54,6 +55,7 @@ async def create_starrocks_catalog(starrocks_input: CreateStarRocksInputModel) -
     except Exception as e:
         logger.error(f"Failed to create StarRocks external catalog: {e!r}")
         raise StarRocksCatalogCreationError(f"Failed to create StarRocks external catalog: {e!r}")
+
 
 class StarRocksCatalogCreationError(Exception):
     """

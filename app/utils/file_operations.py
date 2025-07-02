@@ -80,7 +80,7 @@ class OpendalFileOperations:
         await self.a_client.delete(file_path)
 
     @asynccontextmanager
-    async def temp_dir(self, dir_prefix: str | None = None) -> AsyncGenerator[str, None]:
+    async def temp_dir(self, dir_prefix: str | None = None) -> AsyncGenerator[str]:
         """
         Create a temporary directory relative to tempdir_client's root.
         Yields a path relative to tempdir_root.
@@ -110,7 +110,7 @@ class OpendalFileOperations:
         self,
         mode: str = "wb",
         dir_prefix: str | None = None,
-    ) -> AsyncGenerator[opendal.AsyncFile, None]:
+    ) -> AsyncGenerator[opendal.AsyncFile]:
         """
         Create a temporary file within tempdir_client's root.
         Yields an opendal.AsyncFile object managed by tempdir_client.

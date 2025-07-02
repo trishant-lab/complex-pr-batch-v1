@@ -31,6 +31,7 @@ from app.cli.k8s_util import (
 )
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
+from app.core.settings import APP_CONFIG
 
 K8S_RESOURCE_VERSION = "apps/v1"
 
@@ -103,6 +104,7 @@ class KubernetesDeploymentActivity(Activity):
                     spec=V1PodSpec(
                         node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                        scheduler_name="volcano" if APP_CONFIG.is_env_integration else None,
                         init_containers=[
                             V1Container(
                                 name=init_container["name"],

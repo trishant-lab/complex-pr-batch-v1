@@ -78,31 +78,32 @@
         "composite": false,
         "clientRole": false,
         "attributes": {}
-      },
-      {
-        "name": "VT_CUSTOMER_ADMIN",
-        "description": "",
-        "composite": false,
-        "clientRole": false,
-        "attributes": {}
-      },
-      {
-        "name": "VT_CUSTOMER_USER",
-        "description": "",
-        "composite": false,
-        "clientRole": false,
-        "attributes": {}
-      },
-      {
-        "name": "VT_INTERNAL_ADMIN",
-        "description": "",
-        "composite": false,
-        "clientRole": false,
-        "attributes": {}
       }
     ],
     "client": {
-      "app": [],
+      "veritable": [
+        {
+          "name": "VT_CUSTOMER_ADMIN",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "VT_CUSTOMER_USER",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "VT_INTERNAL_ADMIN",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        }
+      ],
       "realm-management": [
         {
           "name": "view-clients",
@@ -366,10 +367,11 @@
   "groups": [
     {
       "attributes": {},
-      "clientRoles": {},
+      "clientRoles": {
+        "veritable": <<customerClientRoles | safe>>
+      },
       "name": "vt-customer-admin",
       "path": "/vt-customer-admin",
-      "realmRoles": <<customerRealmRoles | safe>>,
       "subGroups": []
     },
     {
@@ -478,6 +480,7 @@
         "web-origins",
         "acr",
         "profile",
+        "basic",
         "roles",
         "email"
       ],
@@ -595,7 +598,7 @@
       ]
     },
     {
-      "clientId": "app",
+      "clientId": "veritable",
       "name": "Veritable application client",
       "description": "",
       "rootUrl": "https://<<tenant>>.veritable.<<domain_org>>",
@@ -643,15 +646,7 @@
       "authenticationFlowBindingOverrides": {},
       "fullScopeAllowed": true,
       "nodeReRegistrationTimeout": -1,
-      "protocolMappers": [
-        {
-          "name": "docker-v2-allow-all-mapper",
-          "protocol": "docker-v2",
-          "protocolMapper": "docker-v2-allow-all-mapper",
-          "consentRequired": false,
-          "config": {}
-        }
-      ],
+      "protocolMappers": [],
       "defaultClientScopes": [
         "web-origins",
         "acr",

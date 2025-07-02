@@ -17,15 +17,15 @@ async def get_stripe_failure_status(stripe_customer_id: str, invoice_id: str, pr
     @param invoice_id:
     @return:
     """
-    stripe_api_key = ProductEnum.get_stripe_secret_key(product)
+    stripe_settings = ProductEnum.get_stripe_settings(product)
     pi = await stripe.PaymentIntent.search_async(
         query=f'metadata["lago_invoice_id"]:"{invoice_id}"',
-        api_key=stripe_api_key,
+        api_key=stripe_settings.secret_key,
     )
     if pi.data:
         return _read_decline_reason(pi.data[0])
 
-    pi = await stripe.PaymentIntent.list_async(customer=stripe_customer_id, api_key=stripe_api_key)
+    pi = await stripe.PaymentIntent.list_async(customer=stripe_customer_id, api_key=stripe_settings.secret_key)
     if pi.data:
         for pi_data in pi.data:
             if pi_data.metadata["lago_invoice_id"] == invoice_id:
