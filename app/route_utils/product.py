@@ -97,7 +97,7 @@ TYPE_MAPPING = {
     "text": (str, EmailStr, PhoneNumber),
     "email": (str, EmailStr),
     "number": (int, float, PhoneNumber),
-    "select": (str, Enum),
+    "select": (str, Enum, list[str]),
     "multi_select": (list[str],),
     "checkbox": (bool,),
     "textarea": (str,),
