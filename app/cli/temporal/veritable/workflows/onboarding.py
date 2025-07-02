@@ -542,7 +542,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
-                    client_name="app",
+                    client_name="veritable",
                     username=veritable.email,
                     email=veritable.email,
                     firstname=first_name,
@@ -557,7 +557,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
                     realm_name=realm_name,
-                    client_name="app",
+                    client_name="veritable",
                     users=[
                         {
                             "username": veritable_config.sendgrid.support_mail,
