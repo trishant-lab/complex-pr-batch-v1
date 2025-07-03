@@ -36,7 +36,8 @@
     "_access-users",
     "_can-manage-groups",
     "_allow-add-edit-assets",
-    "_access-broadcasts"
+    "_access-broadcasts",
+    "_allow-delete-assets"
   ],
   "Learner": [
     "_allow-standalone-launch"
