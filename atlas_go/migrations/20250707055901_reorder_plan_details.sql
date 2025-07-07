@@ -1,0 +1,3 @@
+UPDATE plans 
+SET details = '["Verify real-time eligibility & benefits from 1000+ payers", "Track the status for professional and institutional claims", "Obtain detailed benefits and coverage information", "Perform batch verification of eligibility and benefits", "Easily access/manage previous inquiries for eligibility and claims status", "Get free, unlimited access to Code Explorer - a unified search tool for ICD, CPT, and HCPCS codes"]'::jsonb 
+WHERE plancode = 'ubp_m_v1' AND product = 'veritable';

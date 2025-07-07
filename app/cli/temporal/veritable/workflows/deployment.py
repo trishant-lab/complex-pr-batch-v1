@@ -658,7 +658,12 @@ class VeritableDeploymentWorkflow(Workflow):
                             "name": "TENANT_S3__SECRET_KEY",
                             "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
                         },
-                    ],
+                    ]
+                    + (
+                        [{"name": "SELECTED_APPS", "value": ijson_dumps(pydash.get(veritable, "selectedApps"))}]
+                        if pydash.get(veritable, "selectedApps")
+                        else []
+                    ),
                 ),
             )
 
@@ -763,7 +768,12 @@ class VeritableDeploymentWorkflow(Workflow):
                             "name": "TENANT_S3__SECRET_KEY",
                             "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
                         },
-                    ],
+                    ]
+                    + (
+                        [{"name": "SELECTED_APPS", "value": ijson_dumps(pydash.get(veritable, "selectedApps"))}]
+                        if pydash.get(veritable, "selectedApps")
+                        else []
+                    ),
                 ),
             )
 

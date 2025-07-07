@@ -142,13 +142,13 @@ from app.core.settings import AppSettings, JeevesSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
-from app.utils.file_operations import get_opendal_file_client
 
 if TYPE_CHECKING:
     from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 
 ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
+JeevesSystemUser = "jeeves-systemuser@314ecorp.com"
 
 
 @workflow.defn(name="JeevesOnboardingWorkflow", sandboxed=False)
@@ -872,9 +872,6 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # keycloak internal users setup
-            opendal_file_operations = get_opendal_file_client()
-            users_data = await opendal_file_operations.read_file_str(f"{TemplatePath}/{config.env}_internal_users.json")
-            users_data = ijson_loads(users_data)
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
@@ -882,7 +879,41 @@ class JeevesOnboardingWorkflow(Workflow):
                     client_name="jeeves",
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=users_data,
+                    users=[
+                        {
+                            "username": "casey.post@314ecorp.com",
+                            "email": "casey.post@314ecorp.com",
+                            "firstname": "Casey",
+                            "lastname": "Post",
+                        },
+                        {
+                            "username": "nick.dejongh@314ecorp.com",
+                            "email": "nick.dejongh@314ecorp.com",
+                            "firstname": "Nick",
+                            "lastname": "DeJongh",
+                        },
+                        {
+                            "username": "ankush.govil@314ecorp.com",
+                            "email": "ankush.govil@314ecorp.com",
+                            "firstname": "Ankush",
+                            "lastname": "Govil",
+                        },
+                        {
+                            "username": JeevesSystemUser,
+                            "email": JeevesSystemUser,
+                            "firstname": "System",
+                            "lastname": "User",
+                        },
+                    ]
+                    if config.env == "production"
+                    else [
+                        {
+                            "username": JeevesSystemUser,
+                            "email": JeevesSystemUser,
+                            "firstname": "System",
+                            "lastname": "User",
+                        },
+                    ],
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     group_path="Admin",
                 ),

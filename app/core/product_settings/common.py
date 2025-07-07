@@ -48,6 +48,7 @@ class Lago(BaseModel):
 class Stripe(BaseModel):
     api_key: str = ""
     secret_key: str = ""
+    payment_methods: list[str] = ["card", "link"]
 
 
 class SendGridSettings(BaseModel):
