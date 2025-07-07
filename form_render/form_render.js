@@ -3535,10 +3535,11 @@ jQuery(($) => {
 							field,
 							label,
 							help,
+							data,
 							placeholder,
 							required,
 						) {
-							return $('<div class="form-group"></div>').append(
+							return $('<div class="form-group' + (data.isHiddenField ? ' d-none' : '') + '"></div>').append(
 								label,
 								help,
 								field,

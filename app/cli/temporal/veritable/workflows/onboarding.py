@@ -530,7 +530,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                     template_payload={
-                        "customerRealmRoles": ijson_dumps(["VT_CUSTOMER_ADMIN"]),
+                        "customerClientRoles": ijson_dumps(["VT_CUSTOMER_ADMIN"]),
                         "domain_org": veritable_config.domain_name.split(".")[-1],
                         "jinja_env.autoescape": False,
                     },
@@ -542,7 +542,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
-                    client_name="app",
+                    client_name="veritable",
                     username=veritable.email,
                     email=veritable.email,
                     firstname=first_name,
@@ -557,7 +557,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
                     realm_name=realm_name,
-                    client_name="app",
+                    client_name="veritable",
                     users=[
                         {
                             "username": veritable_config.sendgrid.support_mail,
@@ -778,7 +778,12 @@ class VeritableOnboardingWorkflow(Workflow):
                             "name": "TENANT_S3__SECRET_KEY",
                             "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
                         },
-                    ],
+                    ]
+                    + (
+                        [{"name": "SELECTED_APPS", "value": ijson_dumps(pydash.get(veritable, "selectedApps"))}]
+                        if pydash.get(veritable, "selectedApps")
+                        else []
+                    ),
                 ),
             )
 
@@ -883,7 +888,12 @@ class VeritableOnboardingWorkflow(Workflow):
                             "name": "TENANT_S3__SECRET_KEY",
                             "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
                         },
-                    ],
+                    ]
+                    + (
+                        [{"name": "SELECTED_APPS", "value": ijson_dumps(pydash.get(veritable, "selectedApps"))}]
+                        if pydash.get(veritable, "selectedApps")
+                        else []
+                    ),
                 ),
             )
 
