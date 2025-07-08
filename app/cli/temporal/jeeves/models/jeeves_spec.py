@@ -16,6 +16,7 @@ class JeevesSpec(BaseSpec):
 
     companyNameProvidersOrPayersOnly: str
     whichEhrDoesYourCompanyUse: str
+    customerDomain: str
     emailSent: bool = False
     is_deployment: bool = False
     organization: str | None = None

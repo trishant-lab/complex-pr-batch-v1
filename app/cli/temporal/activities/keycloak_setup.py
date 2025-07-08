@@ -14,6 +14,8 @@ from app.one_password_util import OnePasswordUtil
 from app.template_env import get_env
 from app.utils.file_operations import get_opendal_file_client
 
+JINJA_ENV_AUTOESCAPE: str = "jinja_env.autoescape"
+
 
 def template_render(
     template_path: str,
@@ -25,9 +27,9 @@ def template_render(
     """
     jinja_env: jinja2.Environment = get_env(template_path=template_path)
     template = jinja_env.get_template(template_name)
-    if template_payload and "jinja_env.autoescape" in template_payload:
-        jinja_env.autoescape = template_payload["jinja_env.autoescape"]
-        del template_payload["jinja_env.autoescape"]
+    if template_payload and JINJA_ENV_AUTOESCAPE in template_payload:
+        jinja_env.autoescape = template_payload[JINJA_ENV_AUTOESCAPE]
+        del template_payload[JINJA_ENV_AUTOESCAPE]
     return template.render(**(template_payload if template_payload else {}))
 
 
@@ -359,6 +361,29 @@ def create_jeeves_idp_flow(
         log_error(f"Failed to create Keycloak idp and flows for {tenant=} with error: {e=}")
         return
     log_info(f"Keycloak idp and flows for {tenant} created successfully.")
+
+
+async def create_jeeves_organisation(
+    realm_name: str,
+    tenant: str,
+    template_name: str,
+    template_path: str,
+    is_prod: bool,
+    template_payload: dict | None,
+) -> None:
+    """
+    Create jeeves organisation flow
+    """
+    payload: str = template_render(
+        template_path=template_path, template_name=template_name, template_payload=template_payload
+    )
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager(is_prod=is_prod)
+    keycloak_client.create_organisation(realm_name=realm_name, payload=ijson_loads(payload))
+    organisation_details: list = keycloak_client.get_all_organisations(realm_name=realm_name, query={"name": tenant})
+    organisation_id: str = organisation_details[0]["id"]
+    keycloak_client.add_organisation_idp(
+        realm_name=realm_name, organization_id=organisation_id, idp_alias=f"jeeves-{tenant}"
+    )
 
 
 def create_dexit_idp_flow(
@@ -1050,3 +1075,53 @@ class KeycloakCreateGroupActivity(Activity):
         )
 
         log_info("Created keycloak Groups successfully")
+
+
+class JeevesKeycloakOrganisationSetupActivityModel(LaunchpadCLIBaseModel):
+    """
+    JeevesKeycloakOrganisationSetupActivityModel
+    """
+
+    realm_name: str
+    tenant: str
+    template_name: str
+    template_path: str
+    is_prod: bool = False
+    template_payload: dict | None = None
+
+
+class JeevesKeycloakOrganisationSetupActivity(Activity):
+    """
+    JeevesKeycloakOrganisationSetupActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="JeevesKeycloakOrganisationSetupActivity")
+    async def defn(activity_model: JeevesKeycloakOrganisationSetupActivityModel) -> None:
+        """
+        Create keycloak organisation
+        """
+        await create_jeeves_organisation(
+            realm_name=activity_model.realm_name,
+            tenant=activity_model.tenant,
+            template_name=activity_model.template_name,
+            template_path=activity_model.template_path,
+            template_payload=activity_model.template_payload,
+            is_prod=activity_model.is_prod,
+        )
+
+        log_info("Created keycloak Organisation successfully")

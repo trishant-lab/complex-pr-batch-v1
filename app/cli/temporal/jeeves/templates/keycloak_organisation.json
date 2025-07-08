@@ -1,0 +1,5 @@
+{
+  "name": "<< tenant >>",
+  "alias": "<< tenant >>",
+  "domains": [" << customer_domain >> "]
+}

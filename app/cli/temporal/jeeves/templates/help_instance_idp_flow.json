@@ -42,7 +42,9 @@
                 "disableUserInfo": "false",
                 "logoutUrl": "https://<<tenant>>.<<domain>>",
                 "sendIdTokenOnLogout": "true",
-                "passMaxAge": "false"
+                "passMaxAge": "false",
+                "kc.org.broker.redirect.mode.email-matches": "true",
+                "kc.org.domain": "<< customer_domain >>"
             }
         }
     ],
