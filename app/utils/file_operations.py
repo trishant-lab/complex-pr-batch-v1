@@ -1,10 +1,17 @@
+import atexit
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from functools import lru_cache
+from threading import Lock
 
 import opendal
 from uuid_extensions import uuid7str
+
+TEMP_DIR_PATH = os.path.join(os.path.dirname(__file__), "temp")
+
+__TEMP_DIR_PATHS: set[str] = set()
+__TEMP_DIR_PATHS_LOCK = Lock()
 
 
 class OpendalFileOperations:
@@ -14,9 +21,10 @@ class OpendalFileOperations:
         """
         self.client = opendal.Operator(scheme="fs", root="/")
         self.a_client = opendal.AsyncOperator(scheme="fs", root="/")
-        self.tempdir_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "temp"))
+        self.tempdir_root = TEMP_DIR_PATH
         os.makedirs(self.tempdir_root, exist_ok=True)
         self.tempdir_client = opendal.AsyncOperator(scheme="fs", root=self.tempdir_root)
+        self.tempdir_client_sync = opendal.Operator(scheme="fs", root=self.tempdir_root)
 
     def read_file_sync(self, file_path: str, mode: str = "rb") -> bytes:
         """
@@ -89,21 +97,30 @@ class OpendalFileOperations:
         _prefix = f"{dir_prefix}_" if dir_prefix else ""
         # temp_dir is relative to tempdir_client's root
         temp_dir_relative = f"{_prefix}{uuid_v7}/"
+        temp_dir_path = os.path.join(self.tempdir_root, temp_dir_relative)
         # Create dir using tempdir_client
         await self.tempdir_client.create_dir(temp_dir_relative)
         try:
+            with __TEMP_DIR_PATHS_LOCK:
+                __TEMP_DIR_PATHS.add(temp_dir_path)
             yield temp_dir_relative  # Yield the relative path
         finally:
             # Clean up using tempdir_client and relative path
             # scan includes the directory itself, need to handle files first
-            async for entry in await self.tempdir_client.scan(temp_dir_relative):
+            files = await self.tempdir_client.scan(temp_dir_relative)
+            async for entry in files:
                 # Check the metadata mode to determine if it's a file
                 await self.tempdir_client.delete(entry.path)
+
+            await self.tempdir_client.delete(temp_dir_relative)
 
             # Delete the directory itself using tempdir_client
             # Ensure path ends with / for opendal dir deletion
             dir_path_to_delete = temp_dir_relative if temp_dir_relative.endswith("/") else f"{temp_dir_relative}/"
             await self.tempdir_client.remove_all(dir_path_to_delete)
+
+            with __TEMP_DIR_PATHS_LOCK:
+                __TEMP_DIR_PATHS.discard(temp_dir_path)
 
     @asynccontextmanager
     async def temp_file(
@@ -140,3 +157,25 @@ def get_opendal_file_client() -> OpendalFileOperations:
 
     """
     return OpendalFileOperations()
+
+
+def at_exit_delete_temp_dir() -> None:
+    """
+    Delete the temporary directory at exit. This function is thread-safe.
+    """
+    with __TEMP_DIR_PATHS_LOCK:
+        # Create a copy of the paths to avoid issues with modification during iteration
+        if not __TEMP_DIR_PATHS:
+            return
+        paths_to_delete = set(__TEMP_DIR_PATHS)
+        __TEMP_DIR_PATHS.clear()
+
+    client = get_opendal_file_client()
+    for temp_dir_path in paths_to_delete:
+        relative_path = os.path.relpath(temp_dir_path, client.tempdir_root)
+        if not relative_path.endswith("/"):
+            relative_path += "/"
+        client.tempdir_client_sync.remove_all(relative_path)
+
+
+atexit.register(at_exit_delete_temp_dir)
