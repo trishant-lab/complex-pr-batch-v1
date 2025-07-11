@@ -10,8 +10,8 @@ from uuid_extensions import uuid7str
 
 TEMP_DIR_PATH = os.path.join(os.path.dirname(__file__), "temp")
 
-__TEMP_DIR_PATHS: set[str] = set()
-__TEMP_DIR_PATHS_LOCK = Lock()
+_TEMP_DIR_PATHS: set[str] = set()
+_TEMP_DIR_PATHS_LOCK = Lock()
 
 
 class OpendalFileOperations:
@@ -101,8 +101,8 @@ class OpendalFileOperations:
         # Create dir using tempdir_client
         await self.tempdir_client.create_dir(temp_dir_relative)
         try:
-            with __TEMP_DIR_PATHS_LOCK:
-                __TEMP_DIR_PATHS.add(temp_dir_path)
+            with _TEMP_DIR_PATHS_LOCK:
+                _TEMP_DIR_PATHS.add(temp_dir_path)
             yield temp_dir_relative  # Yield the relative path
         finally:
             # Clean up using tempdir_client and relative path
@@ -119,8 +119,8 @@ class OpendalFileOperations:
             dir_path_to_delete = temp_dir_relative if temp_dir_relative.endswith("/") else f"{temp_dir_relative}/"
             await self.tempdir_client.remove_all(dir_path_to_delete)
 
-            with __TEMP_DIR_PATHS_LOCK:
-                __TEMP_DIR_PATHS.discard(temp_dir_path)
+            with _TEMP_DIR_PATHS_LOCK:
+                _TEMP_DIR_PATHS.discard(temp_dir_path)
 
     @asynccontextmanager
     async def temp_file(
@@ -163,12 +163,12 @@ def at_exit_delete_temp_dir() -> None:
     """
     Delete the temporary directory at exit. This function is thread-safe.
     """
-    with __TEMP_DIR_PATHS_LOCK:
+    with _TEMP_DIR_PATHS_LOCK:
         # Create a copy of the paths to avoid issues with modification during iteration
-        if not __TEMP_DIR_PATHS:
+        if not _TEMP_DIR_PATHS:
             return
-        paths_to_delete = set(__TEMP_DIR_PATHS)
-        __TEMP_DIR_PATHS.clear()
+        paths_to_delete = set(_TEMP_DIR_PATHS)
+        _TEMP_DIR_PATHS.clear()
 
     client = get_opendal_file_client()
     for temp_dir_path in paths_to_delete:
