@@ -8,6 +8,7 @@ from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.ai_voice_setup import (
     AiVoiceSetupActivity,
     AiVoiceSetupActivityModel,
+    CopyThumbnailTemplateActivity,
 )
 from app.cli.temporal.activities.chatwoot_setup import (
     ChatwootSetupActivity,
@@ -215,6 +216,7 @@ class JeevesOnboardingWorkflow(Workflow):
             JeevesFetchLatestTagActivity.defn,
             KeycloakCreateGroupActivity.defn,
             JeevesKeycloakOrganisationSetupActivity.defn,
+            CopyThumbnailTemplateActivity.defn,
         ]
 
     @classmethod
@@ -806,10 +808,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_can-manage-user",
                 "_developer",
                 "_JEEVESALL",
-                # TODO: remove in next release
-                "_access-users",
-                "_can-manage-activities",
-                "_can-manage-groups",
             ]
 
             # keycloak client roles setup
@@ -1132,17 +1130,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            await run_activity(
-                activity=VMPodScrapperActivity,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="jeeves-worker-metrics",
-                    app="jeeves-worker",
-                    path="/metrics/",
-                    interval="15s",
-                ),
-            )
-
             # temporal namespace creation
             await run_activity(
                 activity=TemporalNamespaceActivity,
@@ -1154,6 +1141,14 @@ class JeevesOnboardingWorkflow(Workflow):
             # ai voice setup
             await run_activity(
                 activity=AiVoiceSetupActivity,
+                arg=AiVoiceSetupActivityModel(
+                    tenant=tenant,
+                    config=jeeves_config,
+                ),
+            )
+
+            await run_activity(
+                activity=CopyThumbnailTemplateActivity,
                 arg=AiVoiceSetupActivityModel(
                     tenant=tenant,
                     config=jeeves_config,
