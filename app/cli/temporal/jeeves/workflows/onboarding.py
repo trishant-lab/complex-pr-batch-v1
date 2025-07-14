@@ -567,7 +567,7 @@ class JeevesOnboardingWorkflow(Workflow):
                                     "Authorization",
                                     "content-type",
                                     "x-amz-*",
-                                    "traceparent",  # TODO: CHECK AND CONFIRM
+                                    "traceparent",
                                 ],
                             },
                             "exposeHeaders": ["ETag", "Location"],
