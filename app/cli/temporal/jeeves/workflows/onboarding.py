@@ -70,8 +70,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
     get_ehr_based_idp_template,
-    JeevesKeycloakOrganisationSetupActivityModel,
-    JeevesKeycloakOrganisationSetupActivity,
+    KeycloakOrganisationSetupActivityModel,
+    KeycloakOrganisationSetupActivity,
 )
 from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
@@ -215,7 +215,7 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakCreateGroupActivity.defn,
             JeevesFetchLatestTagActivity.defn,
             KeycloakCreateGroupActivity.defn,
-            JeevesKeycloakOrganisationSetupActivity.defn,
+            KeycloakOrganisationSetupActivity.defn,
             CopyThumbnailTemplateActivity.defn,
         ]
 
@@ -862,8 +862,8 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=JeevesKeycloakOrganisationSetupActivity,
-                arg=JeevesKeycloakOrganisationSetupActivityModel(
+                activity=KeycloakOrganisationSetupActivity,
+                arg=KeycloakOrganisationSetupActivityModel(
                     tenant=tenant,
                     realm_name="help",
                     template_path=TemplatePath,

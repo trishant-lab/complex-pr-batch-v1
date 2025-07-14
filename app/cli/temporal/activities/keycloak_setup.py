@@ -363,7 +363,7 @@ def create_jeeves_idp_flow(
     log_info(f"Keycloak idp and flows for {tenant} created successfully.")
 
 
-async def create_jeeves_organisation(
+async def create_organisation(
     realm_name: str,
     tenant: str,
     template_name: str,
@@ -1077,9 +1077,9 @@ class KeycloakCreateGroupActivity(Activity):
         log_info("Created keycloak Groups successfully")
 
 
-class JeevesKeycloakOrganisationSetupActivityModel(LaunchpadCLIBaseModel):
+class KeycloakOrganisationSetupActivityModel(LaunchpadCLIBaseModel):
     """
-    JeevesKeycloakOrganisationSetupActivityModel
+    KeycloakOrganisationSetupActivityModel
     """
 
     realm_name: str
@@ -1090,9 +1090,9 @@ class JeevesKeycloakOrganisationSetupActivityModel(LaunchpadCLIBaseModel):
     template_payload: dict | None = None
 
 
-class JeevesKeycloakOrganisationSetupActivity(Activity):
+class KeycloakOrganisationSetupActivity(Activity):
     """
-    JeevesKeycloakOrganisationSetupActivity
+    KeycloakOrganisationSetupActivity
     """
 
     @staticmethod
@@ -1110,12 +1110,12 @@ class JeevesKeycloakOrganisationSetupActivity(Activity):
         return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
-    @activity.defn(name="JeevesKeycloakOrganisationSetupActivity")
-    async def defn(activity_model: JeevesKeycloakOrganisationSetupActivityModel) -> None:
+    @activity.defn(name="KeycloakOrganisationSetupActivity")
+    async def defn(activity_model: KeycloakOrganisationSetupActivityModel) -> None:
         """
         Create keycloak organisation
         """
-        await create_jeeves_organisation(
+        await create_organisation(
             realm_name=activity_model.realm_name,
             tenant=activity_model.tenant,
             template_name=activity_model.template_name,
