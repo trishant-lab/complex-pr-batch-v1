@@ -3008,7 +3008,7 @@
       "cibaExpiresIn": "120",
       "actionTokenGeneratedByUserLifespan-idp-verify-account-via-email": "",
       "frontendUrl": "",
-      "organizationsEnabled": "false",
+      "organizationsEnabled": "true",
       "shortVerificationUri": "",
       "actionTokenGeneratedByUserLifespan.reset-credentials": "",
       "cibaAuthRequestedUserHint": "login_hint",

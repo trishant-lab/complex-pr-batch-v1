@@ -8,6 +8,7 @@ from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.ai_voice_setup import (
     AiVoiceSetupActivity,
     AiVoiceSetupActivityModel,
+    CopyThumbnailTemplateActivity,
 )
 from app.cli.temporal.activities.chatwoot_setup import (
     ChatwootSetupActivity,
@@ -69,6 +70,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
     get_ehr_based_idp_template,
+    KeycloakOrganisationSetupActivityModel,
+    KeycloakOrganisationSetupActivity,
 )
 from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
@@ -212,6 +215,8 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakCreateGroupActivity.defn,
             JeevesFetchLatestTagActivity.defn,
             KeycloakCreateGroupActivity.defn,
+            KeycloakOrganisationSetupActivity.defn,
+            CopyThumbnailTemplateActivity.defn,
         ]
 
     @classmethod
@@ -235,6 +240,7 @@ class JeevesOnboardingWorkflow(Workflow):
         tenant = pydash.get(jeeves, "tenant")
         is_deployment = pydash.get(jeeves, "is_deployment")
         ehr_used = pydash.get(jeeves, "whichEhrDoesYourCompanyUse")
+        customer_domain: str = pydash.get(jeeves, "customerDomain")
 
         try:
             if not pydash.get(jeeves, "emailSent") and not is_deployment:
@@ -562,7 +568,6 @@ class JeevesOnboardingWorkflow(Workflow):
                                     "content-type",
                                     "x-amz-*",
                                     "traceparent",
-                                    "x-highlight-request",
                                 ],
                             },
                             "exposeHeaders": ["ETag", "Location"],
@@ -790,19 +795,17 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             roles = [
+                "_access-broadcast",
+                "_access-assignment",
+                "_access-analytics",
+                "_access-setting",
+                "_allow-add-edit-asset",
+                "_allow-delete-asset",
+                "_allow-publish-asset",
                 "_allow-standalone-launch",
-                "_allow-view-assets",
-                "_allow-add-edit-assets",
-                "_allow-delete-assets",
-                "_allow-publish-assets",
-                "_access-manage-assignment",
-                "_access-broadcasts",
-                "_access-users",
-                "_access-reports",
-                "_can-manage-activities",
-                "_can-manage-groups",
-                "_can-manage-users",
-                "_access-settings",
+                "_allow-view-asset",
+                "_access-user-list",
+                "_can-manage-user",
                 "_developer",
                 "_JEEVESALL",
             ]
@@ -849,7 +852,23 @@ class JeevesOnboardingWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="help_instance_idp_flow.json",
-                    template_payload={"idp_config": jeeves_config.idp_config, "auth_url": config.keycloak.auth_url},
+                    template_payload={
+                        "idp_config": jeeves_config.idp_config,
+                        "auth_url": config.keycloak.auth_url,
+                        "customer_domain": customer_domain,
+                    },
+                    is_prod=True,
+                ),
+            )
+
+            await run_activity(
+                activity=KeycloakOrganisationSetupActivity,
+                arg=KeycloakOrganisationSetupActivityModel(
+                    tenant=tenant,
+                    realm_name="help",
+                    template_path=TemplatePath,
+                    template_name="keycloak_organisation.json",
+                    template_payload={"tenant": tenant, "customer_domain": customer_domain},
                     is_prod=True,
                 ),
             )
@@ -1111,17 +1130,6 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            await run_activity(
-                activity=VMPodScrapperActivity,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="jeeves-worker-metrics",
-                    app="jeeves-worker",
-                    path="/metrics/",
-                    interval="15s",
-                ),
-            )
-
             # temporal namespace creation
             await run_activity(
                 activity=TemporalNamespaceActivity,
@@ -1133,6 +1141,14 @@ class JeevesOnboardingWorkflow(Workflow):
             # ai voice setup
             await run_activity(
                 activity=AiVoiceSetupActivity,
+                arg=AiVoiceSetupActivityModel(
+                    tenant=tenant,
+                    config=jeeves_config,
+                ),
+            )
+
+            await run_activity(
+                activity=CopyThumbnailTemplateActivity,
                 arg=AiVoiceSetupActivityModel(
                     tenant=tenant,
                     config=jeeves_config,

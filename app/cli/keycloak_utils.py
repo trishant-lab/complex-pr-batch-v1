@@ -322,6 +322,32 @@ class KeycloakAdminClient:
             return
         log_info(f"Identity provider {idp_alias} not found in realm {realm_name}")
 
+    def create_organisation(self: "KeycloakAdminClient", payload: dict, realm_name: str) -> None:
+        """
+        Create Organisation
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        self.kc_client.create_organization(payload=payload)
+
+    def get_all_organisations(self: "KeycloakAdminClient", realm_name: str, query: dict | None = None) -> list:
+        """
+        Get All Organisations
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_organizations(query=query)
+
+    def add_organisation_idp(
+        self: "KeycloakAdminClient", realm_name: str, organization_id: str, idp_alias: str
+    ) -> None:
+        """
+        Adds IDP to an organization
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        self.kc_client.organization_idp_add(organization_id=organization_id, idp_alias=idp_alias)
+
 
 @lru_cache
 def get_keycloak_manager(is_prod: bool = False) -> "KeycloakAdminClient":
