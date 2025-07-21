@@ -215,10 +215,19 @@ class RedisService(K8sResourceBaseClass):
         """
         k8s server side apply
         """
-        self.k8s_dynamic_client.server_side_apply(
-            resource=self.resource, body=self.payload(), field_manager="kubectl-client-side-apply"
-        )
-        log_info(f"Service {CACHE_SERVICE_NAME}-service created successfully")
+        try:
+            self.k8s_dynamic_client.server_side_apply(
+                resource=self.resource,
+                body=self.payload(),
+                field_manager="kubectl-client-side-apply",
+            )
+            log_info(f"Service {CACHE_SERVICE_NAME}-service created successfully")
+        except ConflictError as e:
+            log_error(
+                f"Service {CACHE_SERVICE_NAME} already exists in namespace"
+                f" {self.tenant} and cannot be updated due to conflict"
+                f" {e}"
+            )
 
     def delete(self: "RedisService") -> None:
         """

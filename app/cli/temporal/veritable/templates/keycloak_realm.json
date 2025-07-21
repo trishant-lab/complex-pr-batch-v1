@@ -376,7 +376,9 @@
     },
     {
       "attributes": {},
-      "clientRoles": {},
+      "clientRoles": {
+        "veritable": ["VT_INTERNAL_ADMIN"]
+      },
       "name": "vt-internal-admin",
       "path": "/vt-internal-admin",
       "realmRoles": ["VT_INTERNAL_ADMIN"],

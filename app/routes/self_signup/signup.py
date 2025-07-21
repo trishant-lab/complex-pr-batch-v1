@@ -242,7 +242,7 @@ async def create_customer(
     validate_email_domain(product=product, email=customer.email)
     await UserSession.validate_session(product=product, email=customer.email, session_token=token)
     coupon: CouponResponse | None = None
-    if customer.couponCode:
+    if hasattr(customer, 'couponCode') and customer.couponCode:
         coupon = get_coupon_by_code(customer.couponCode, product)
     provisioned, customer_record = await get_first_subscription_status(customer.email, db, product)
     if provisioned:

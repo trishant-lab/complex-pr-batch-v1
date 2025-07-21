@@ -1,42 +1,37 @@
 {
   "Admin": [
     "_allow-standalone-launch",
-    "_access-reports",
-    "_can-manage-activities",
-    "_allow-view-assets",
-    "_access-manage-assignment",
+    "_access-analytics",
+    "_allow-view-asset",
     "_access-users",
-    "_can-manage-groups",
-    "_allow-add-edit-assets",
-    "_allow-publish-assets",
-    "_allow-delete-assets",
-    "_can-manage-users",
-    "_access-settings",
-    "_access-broadcasts"
+    "_allow-add-edit-asset",
+    "_allow-publish-asset",
+    "_allow-delete-asset",
+    "_can-manage-user",
+    "_access-setting",
+    "_access-broadcast",
+    "_access-user-list"
   ],
   "Publisher": [
     "_allow-standalone-launch",
-    "_access-reports",
-    "_can-manage-activities",
-    "_allow-view-assets",
-    "_access-manage-assignment",
-    "_access-users",
-    "_can-manage-groups",
-    "_allow-add-edit-assets",
-    "_allow-publish-assets",
-    "_allow-delete-assets",
-    "_access-broadcasts"
+    "_access-analytics",
+    "_allow-view-asset",
+    "_access-assignment",
+    "_allow-add-edit-asset",
+    "_allow-publish-asset",
+    "_allow-delete-asset",
+    "_access-broadcast",
+    "_access-user-list"
   ],
   "Author": [
     "_allow-standalone-launch",
-    "_access-reports",
-    "_can-manage-activities",
-    "_allow-view-assets",
-    "_access-manage-assignment",
-    "_access-users",
-    "_can-manage-groups",
-    "_allow-add-edit-assets",
-    "_access-broadcasts"
+    "_access-analytics",
+    "_allow-view-asset",
+    "_access-assignment",
+    "_allow-add-edit-asset",
+    "_access-broadcast",
+    "_allow-delete-asset",
+    "_access-user-list"
   ],
   "Learner": [
     "_allow-standalone-launch"
