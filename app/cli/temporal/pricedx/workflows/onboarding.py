@@ -511,7 +511,7 @@ class PricedxOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                     template_payload={
-                        "company_name": pydash.get(pricedx, "companyName"),
+                        "company_name": tenant,
                     },
                 ),
             )
