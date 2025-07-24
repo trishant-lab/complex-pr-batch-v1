@@ -131,10 +131,6 @@ class PricedxOnboardingWorkflow(Workflow):
     Pricedx Onboarding Workflow
     """
 
-    def __init__(self: "Workflow") -> None:
-        self.approved: bool = False
-        self.denied: bool = False
-
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
         """
@@ -199,11 +195,10 @@ class PricedxOnboardingWorkflow(Workflow):
         last_name = pydash.get(pricedx, "lastName")
         email = pydash.get(pricedx, "email")
         tenant = pydash.get(pricedx, "tenant")
-        is_deployment = pydash.get(pricedx, "isDeployment")
         is_console = pydash.get(pricedx, "isConsole")
 
         try:
-            if not pydash.get(pricedx, "emailSent") and not is_deployment:
+            if not pydash.get(pricedx, "emailSent"):
                 await run_activity(
                     activity=SendBeforeProvisioningMailActivity,
                     arg=SendBeforeProvisioningMailActivityModel(
@@ -217,23 +212,6 @@ class PricedxOnboardingWorkflow(Workflow):
                         email_from=pricedx_config.sender_email,
                     ),
                 )
-
-            # Wait for approval or denial
-            if not is_deployment:
-                await workflow.wait_condition(lambda: self.approved or self.denied)
-
-            # Update tenant status if request is declined
-            if self.denied:
-                await run_activity(
-                    activity=UpdateTenantStatusActivity,
-                    arg=TenantCliStatus(
-                        tenant_name=tenant,
-                        status=TenantStatusEnum.ApprovalDeclined,
-                        error_msg="Request Declined",
-                        product=ProductEnum.pricedx,
-                    ),
-                )
-                return
 
             postgres_schema_name = tenant
             postgres_database_name = "pricedx"
@@ -692,24 +670,24 @@ class PricedxOnboardingWorkflow(Workflow):
                     tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.pricedx
                 ),
             )
+
             # Send after provisioning mail
-            if not is_deployment:
-                await run_activity(
-                    activity=SendAfterProvisioningMailActivity,
-                    arg=SendAfterProvisioningMailActivityModel(
-                        realm_name=realm_name,
-                        tenant=tenant,
-                        user_details={
-                            "firstName": first_name,
-                            "lastName": last_name,
-                            "email": email,
-                        },
-                        domain_name=pricedx_config.domain_name,
-                        product=ProductName,
-                        from_name=pricedx_config.sender_name,
-                        email_from=pricedx_config.sender_email,
-                    ),
-                )
+            await run_activity(
+                activity=SendAfterProvisioningMailActivity,
+                arg=SendAfterProvisioningMailActivityModel(
+                    realm_name=realm_name,
+                    tenant=tenant,
+                    user_details={
+                        "firstName": first_name,
+                        "lastName": last_name,
+                        "email": email,
+                    },
+                    domain_name=pricedx_config.domain_name,
+                    product=ProductName,
+                    from_name=pricedx_config.sender_name,
+                    email_from=pricedx_config.sender_email,
+                ),
+            )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
@@ -730,17 +708,3 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
             raise e
-
-    @workflow.signal
-    async def approve(self: "Workflow") -> None:
-        """
-        Signal to approve the workflow
-        """
-        self.approved = True
-
-    @workflow.signal
-    async def decline(self: "Workflow") -> None:
-        """
-        Signal to reject the workflow
-        """
-        self.denied = True
