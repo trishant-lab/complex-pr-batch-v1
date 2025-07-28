@@ -94,6 +94,8 @@ def get_customer_tenant_details(product: ProductEnum) -> tuple[str, str]:
     match product:
         case ProductEnum.veritable:
             return settings.veritable.tenant_fqdn, settings.veritable.sendgrid.email_from
+        case ProductEnum.pricedx:
+            return settings.pricedx.tenant_fqdn, settings.pricedx.sendgrid.email_from
         case _:
             raise ValueError(f"No tenant fqdn for product {product}")
 

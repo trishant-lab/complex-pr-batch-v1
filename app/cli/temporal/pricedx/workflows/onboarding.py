@@ -422,7 +422,7 @@ class PricedxOnboardingWorkflow(Workflow):
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
-            bundle_path = "bundle/dist"
+            bundle_path = "bundle/tenant-dist"
 
             # copy artifacts to bucket
             await run_activity(
