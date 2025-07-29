@@ -648,7 +648,7 @@ class PricedxOnboardingWorkflow(Workflow):
                     container_envs=[
                         {
                             "name": "DATABASE_URL",
-                            "value": f"postgres://{postgres_username}:{postgres_password}@{config.postgres.host}:{config.postgres.port}/{postgres_database_name}?options=-csearch_path%3D{postgres_schema_name}",
+                            "value": f"postgres://{postgres_username}:{postgres_password}@{config.postgres.host}:{config.postgres.port}/{postgres_database_name}?options=-csearch_path%3D{postgres_schema_name}" ,
                         }
                     ],
                     argument=(
