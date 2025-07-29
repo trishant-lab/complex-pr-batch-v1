@@ -549,6 +549,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     lastname=last_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
+                    roles=["VT_CUSTOMER_ADMIN"],
                 ),
             )
 
@@ -568,6 +569,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     ],
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_admin.json",
+                    roles=["VT_INTERNAL_ADMIN"],
                 ),
             )
 
