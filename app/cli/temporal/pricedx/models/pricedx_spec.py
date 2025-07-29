@@ -14,7 +14,6 @@ class PricedxSpec(BaseSpec):
     PricedxSpec dataclass
     """
 
-    companyName: str
     emailSent: bool = False
     isDeployment: bool = False
     isConsole: bool = False
