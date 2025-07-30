@@ -13,10 +13,7 @@ from app.cli.temporal.activities.cloudflare_setup import (
     PropagateDNSRecordActivity,
     UpdateCORSForBucketActivity,
 )
-from app.cli.temporal.activities.database_migration_job import (
-    DatabaseMigrationJobActivity,
-    DatabaseMigrationJobActivityModel,
-)
+
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
@@ -148,7 +145,6 @@ class PricedxOnboardingWorkflow(Workflow):
             PostgresGrantAllPrivilegesOnTableActivity.defn,
             K8sNamespaceCreationActivity.defn,
             K8sSecretCreationActivity.defn,
-            DatabaseMigrationJobActivity.defn,
             RedisSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
             KeycloakClientSetupActivity.defn,
@@ -635,29 +631,6 @@ class PricedxOnboardingWorkflow(Workflow):
                         {"name": "POSTGRES_USER", "value": postgres_username},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
                     ],
-                ),
-            )
-
-            # diesel migration job
-            await run_activity(
-                activity=DatabaseMigrationJobActivity,
-                arg=DatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="pricedx-diesel-migration-job",
-                    docker_image=docker_image,
-                    container_envs=[
-                        {
-                            "name": "DATABASE_URL",
-                            "value": f"postgres://{postgres_username}:{postgres_password}@{config.postgres.host}:{config.postgres.port}/{postgres_database_name}?options=-csearch_path%3D{postgres_schema_name}",
-                        }
-                    ],
-                    argument=(
-                        "diesel migration run --migration-dir ./migrations/server"
-                        if is_console
-                        else "diesel migration run --migration-dir ./migrations/console"
-                    ),
-                    job_type="diesel",
-                    product=ProductName,
                 ),
             )
 
