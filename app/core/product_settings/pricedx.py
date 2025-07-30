@@ -21,7 +21,10 @@ class PricedxSettings(SelfSignupSettings):
 
     location_hint: str = "enam"
 
-    pg_dsn_template: str = "postgresql://pricedx_{tenant}.pricedx_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/pricedx"
+    pg_dsn_template: str = (
+        "postgresql://pricedx_{tenant}:{password}@db-cluster-ha.postgresql.svc.cluster.local:5432/"
+        "pricedx?options=-c search_path%3D{schema_name}"
+    )
     redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
 
     sendgrid: SendGridSettings = SendGridSettings(

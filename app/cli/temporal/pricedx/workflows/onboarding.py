@@ -251,7 +251,9 @@ class PricedxOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="pg_dsn",
-                    secret_value=pricedx_config.pg_dsn_template.format(tenant=tenant, password=postgres_password),
+                    secret_value=pricedx_config.pg_dsn_template.format(
+                        tenant=tenant, password=postgres_password, schema_name=postgres_schema_name
+                    ),
                 ),
             )
 
