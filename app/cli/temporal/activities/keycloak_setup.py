@@ -151,7 +151,7 @@ def create_client_roles(
         keycloak_client.create_client_role(client_id=client_uuid, role_config={"name": role}, realm_name=realm_name)
 
 
-def create_tenant_customer_admin_user(
+def create_keycloak_user(
     realm_name: str,
     client_name: str,
     username: str,
@@ -160,11 +160,13 @@ def create_tenant_customer_admin_user(
     lastname: str,
     template_path: str,
     template_name: str,
-    group_path: str | None,
     roles: list[str] | None = None,
-) -> None:
+    group_path: str | None = None,
+    client_id: str | None = None,
+    client_roles: list[dict] | None = None,
+) -> str:
     """
-    Create tenant customer admin user
+    Create keycloak user
     """
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
 
@@ -180,28 +182,59 @@ def create_tenant_customer_admin_user(
     )
 
     keycloak_client.create_user(ijson_loads(user_config), realm_name)
-
-    client_uuid = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
-
-    client_roles = keycloak_client.get_client_roles(client_id=client_uuid, realm_name=realm_name)
-
     user_id = keycloak_client.get_user_id(username=username, realm_name=realm_name)
-    keycloak_client.assign_client_role(
-        client_id=client_uuid,
-        user_id=user_id,
-        roles=(
-            [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
-            if roles
-            else client_roles
-        ),
-        realm_name=realm_name,
-    )
+    if roles:
+        client_id = client_id or keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+        client_roles = client_roles or keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
+
+        keycloak_client.assign_client_role(
+            client_id=client_id,
+            user_id=user_id,
+            roles=(
+                [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
+                if roles
+                else client_roles
+            ),
+            realm_name=realm_name,
+        )
+
     if group_path:
         keycloak_client.assign_group(
-            user_id=user_id,
             realm_name=realm_name,
+            user_id=user_id,
             group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
         )
+
+    return user_id
+
+
+def create_tenant_customer_admin_user(
+    realm_name: str,
+    client_name: str,
+    username: str,
+    email: str,
+    firstname: str,
+    lastname: str,
+    template_path: str,
+    template_name: str,
+    group_path: str | None,
+    roles: list[str] | None = None,
+) -> None:
+    """
+    Create tenant customer admin user
+    """
+    create_keycloak_user(
+        realm_name=realm_name,
+        client_name=client_name,
+        username=username,
+        email=email,
+        firstname=firstname,
+        lastname=lastname,
+        template_path=template_path,
+        template_name=template_name,
+        group_path=group_path,
+        roles=roles,
+    )
 
 
 def create_internal_users(
@@ -223,38 +256,21 @@ def create_internal_users(
     client_roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
 
     for user in users:
-        user_config = template_render(
+        create_keycloak_user(
+            realm_name=realm_name,
+            client_name=client_name,
+            username=user["username"],
+            email=user["email"],
+            firstname=user["firstname"],
+            lastname=user["lastname"],
             template_path=template_path,
             template_name=template_name,
-            template_payload={
-                "username": user["username"],
-                "email": user["email"],
-                "firstname": user["firstname"],
-                "lastname": user["lastname"],
-            },
-        )
-
-        keycloak_client.create_user(ijson_loads(user_config), realm_name)
-
-        log_info(f"Keycloak internal user {user['username']} created successfully")
-        user_id = keycloak_client.get_user_id(username=user["username"], realm_name=realm_name)
-
-        keycloak_client.assign_client_role(
+            roles=roles,
+            group_path=group_path,
             client_id=client_id,
-            user_id=user_id,
-            roles=(
-                [{"id": role.get("id"), "name": role.get("name")} for role in client_roles if role.get("name") in roles]
-                if roles
-                else client_roles
-            ),
-            realm_name=realm_name,
+            client_roles=client_roles,
         )
-        if group_path:
-            keycloak_client.assign_group(
-                realm_name=realm_name,
-                user_id=user_id,
-                group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
-            )
+        log_info(f"Keycloak internal user {user['username']} created successfully")
 
 
 async def create_keycloak_group(
