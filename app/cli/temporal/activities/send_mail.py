@@ -16,7 +16,9 @@ from app.template_env import get_env
 from app.utils.file_operations import get_opendal_file_client
 
 
-async def provisioning_success_mail(name: str, email: str, link: str, password: str, email_template: str, product: str) -> str:
+async def provisioning_success_mail(
+    name: str, email: str, link: str, password: str, email_template: str, product: str
+) -> str:
     """
     @param name:
     @param email:
@@ -136,12 +138,11 @@ async def send_provisioning_mail(
 def apply_theme_template(content: str, product: str) -> str:
     """
     Apply theme template to content for specific products
-    
+
     @param content: The content to apply theme to
     @param product: The product name (jeeves, pricedx, etc.)
     @return: The themed content
     """
-    
     theme_template_env = get_env(
         template_path=os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
