@@ -445,6 +445,16 @@ class PricedxSchema(BaseFormSchema):
             "order": 13,
         },
     )
+    emailSent: bool = Field(
+        default=False,
+        json_schema_extra={
+            "name": "emailSent",
+            "label": "Before Provisioning Email Sent",
+            "subtype": "checkbox",
+            "mapTo": "emailSent",
+            "hidden": True,
+        },
+    )
 
     @field_validator("country")
     @classmethod
