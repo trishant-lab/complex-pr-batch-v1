@@ -749,7 +749,7 @@ wheels = [
 
 [[package]]
 name = "lago-python-client"
-version = "1.28.1"
+version = "1.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "classes" },
@@ -758,9 +758,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "typeguard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ce/d4/3770de20307b1c7cdc55696fc536138e30b04c326b1aafda971db02c7ca1/lago_python_client-1.28.1.tar.gz", hash = "sha256:7de9e1f45a953bf3297bcec4bbb4dd2387e75294b2199b54818c54a1ec0973eb", size = 40578 }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/a5/ddb1654efd9aeb9ba7a223ab322b74e46e6af6c4e036e7f11d656b976d7b/lago_python_client-1.32.0.tar.gz", hash = "sha256:ec3ceff9f80a994faaf5e73052f09ead785cbff57de895683c75a46a433febb0", size = 42589 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/41/9b902c0395409c46b167ebbd18cf9ff5a6e0b6e4f5f7fa96162add913cfe/lago_python_client-1.28.1-py3-none-any.whl", hash = "sha256:3a0ff66f2292a2dceaf0ebad7513a6d504bf3daeb2e95a3bf6e70ac1bb41d1d3", size = 84246 },
+    { url = "https://files.pythonhosted.org/packages/36/63/818991492f2ee2a55d2e8992a557c780d2db740d40ab3fb40a8839f40df5/lago_python_client-1.32.0-py3-none-any.whl", hash = "sha256:6e2f7b747d018cd215e43ea05dcc9cfb56582f421dacb30f0567bb37993dadda", size = 88901 },
 ]
 
 [[package]]
@@ -864,7 +864,7 @@ requires-dist = [
     { name = "huggingface-hub", specifier = "==0.20.2" },
     { name = "jinja2", specifier = "==3.1.6,<4" },
     { name = "kubernetes", specifier = "==31.0.0,<32" },
-    { name = "lago-python-client", specifier = "==1.28.1,<2" },
+    { name = "lago-python-client", specifier = "==1.32.0" },
     { name = "loguru", specifier = "==0.7.3,<0.8" },
     { name = "lxml", specifier = "==5.3.1,<6" },
     { name = "mysql-connector-python", specifier = "==9.2.0,<10" },
