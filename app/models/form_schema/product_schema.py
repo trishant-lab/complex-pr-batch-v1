@@ -449,10 +449,15 @@ class PricedxSchema(BaseFormSchema):
         default=False,
         json_schema_extra={
             "name": "emailSent",
-            "label": "Before Provisioning Email Sent",
-            "subtype": "checkbox",
+            "label": "Email Sent",
+            "type": "checkbox-group",
+            "className": "form-control",
+            "toggle": True,
+            "inline": False,
+            "other": False,
             "mapTo": "emailSent",
             "hidden": True,
+            "order": 14,
         },
     )
 
@@ -477,12 +482,12 @@ class PricedxSchema(BaseFormSchema):
 
     @model_validator(mode="before")
     @classmethod
-    def set_url(cls: type["VeritableSchema"], values: dict) -> dict:
+    def set_url(cls: type["PricedxSchema"], values: dict) -> dict:
         """
         set url based on tenant name
         """
         tenant = values.get("tenant")
-        settings = ProductEnum.get_product_settings(ProductEnum.veritable)
+        settings = ProductEnum.get_product_settings(ProductEnum.pricedx)
         if tenant:
             values["url"] = f"https://{tenant}.{settings.tenant_fqdn}"
         return values
