@@ -10,9 +10,9 @@ from app.cli.temporal.activities.cloudflare_setup import (
     DeleteCloudflareDNSRecordActivity,
     DeleteFilesFromCloudflareActivity,
 )
-from app.cli.temporal.activities.database_migration_job import (
-    DeleteDatabaseMigrationJobActivity,
-    DeleteDatabaseMigrationJobActivityModel,
+from app.cli.temporal.activities.veritable_db_migration_job import (
+    DeleteVeritableDatabaseMigrationJobActivity,
+    DeleteVeritableDatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.deployment import (
     DeploymentDeletionActivity,
@@ -84,7 +84,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             DeleteFilesFromCloudflareActivity.defn,
             UpdateTenantStatusActivity.defn,
             DeleteKubernetesIstioVirtualServiceActivity.defn,
-            DeleteDatabaseMigrationJobActivity.defn,
+            DeleteVeritableDatabaseMigrationJobActivity.defn,
             VeritableNovuDeProvisionActivity.defn,
             TenantCrdDeletionActivity.defn,
             DeploymentDeletionActivity.defn,
@@ -133,19 +133,10 @@ class VeritableDeProvisioningWorkflow(Workflow):
 
             # delete provisioning job
             await run_activity(
-                activity=DeleteDatabaseMigrationJobActivity,
-                arg=DeleteDatabaseMigrationJobActivityModel(
+                activity=DeleteVeritableDatabaseMigrationJobActivity,
+                arg=DeleteVeritableDatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="veritable-tenant-provisioning-job",
-                ),
-            )
-
-            # delete alembic job
-            await run_activity(
-                activity=DeleteDatabaseMigrationJobActivity,
-                arg=DeleteDatabaseMigrationJobActivityModel(
-                    namespace=tenant,
-                    job_name="veritable-tenant-alembic-job",
                 ),
             )
 
