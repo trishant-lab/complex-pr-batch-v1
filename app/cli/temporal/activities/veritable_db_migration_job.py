@@ -34,7 +34,7 @@ from app.cli.temporal.core.log import log_error, log_info
 
 
 JOB_BACKOFF_LIMIT = 3
-MAX_RETRIES = 3
+MAX_RETRIES = 1
 
 
 class VeritableDatabaseMigrationJobActivityModel(LaunchpadCLIBaseModel):
