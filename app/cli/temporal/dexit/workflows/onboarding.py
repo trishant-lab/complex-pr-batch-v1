@@ -60,6 +60,7 @@ from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivityModel,
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
+    CreatePasswordActivity,
 )
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
@@ -183,6 +184,7 @@ class DexitOnboardingWorkflow(Workflow):
             CreateCloudflareBucketCredentialsActivity.defn,
             UpdateCORSForBucketActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            CreatePasswordActivity.defn,
         ]
 
     @classmethod
@@ -224,9 +226,15 @@ class DexitOnboardingWorkflow(Workflow):
             postgres_schema_name = tenant
             postgres_database_name = "dexit"
             postgres_username = f"{ProductName}_{tenant}"
-            postgres_password = generate_password(length=20)
+            postgres_password = await run_activity(
+                activity=CreatePasswordActivity,
+                arg=None,
+            )
             dicom_database_name = f"{ProductName}_dicom_{tenant}"
-            dicom_database_password = generate_password(length=20)
+            dicom_database_password = await run_activity(
+                activity=CreatePasswordActivity,
+                arg=None,
+            )
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
             server_item = "production-config" if config.env == "production" else "integration-config"
