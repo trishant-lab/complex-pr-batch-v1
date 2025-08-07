@@ -573,7 +573,7 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            image_tag = "veritable-latest" if config.env == "production" else "sprint-testing"
+            image_tag = "veritable-latest" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/veritable-app:{image_tag}"
             # provisioning job
             await run_activity(
