@@ -16,9 +16,9 @@ from app.cli.temporal.activities.cloudflare_setup import (
     LinkBucketToDomainActivity,
     PropagateDNSRecordActivity,
 )
-from app.cli.temporal.activities.database_migration_job import (
-    DatabaseMigrationJobActivity,
-    DatabaseMigrationJobActivityModel,
+from app.cli.temporal.activities.veritable_db_migration_job import (
+    VeritableDatabaseMigrationJobActivity,
+    VeritableDatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
@@ -137,7 +137,7 @@ class VeritableOnboardingWorkflow(Workflow):
             KeycloakRealmSetupActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
-            DatabaseMigrationJobActivity.defn,
+            VeritableDatabaseMigrationJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             TemporalNamespaceActivity.defn,
@@ -577,8 +577,8 @@ class VeritableOnboardingWorkflow(Workflow):
             docker_image = f"registry.314ecorp.tech/veritable-app:{image_tag}"
             # provisioning job
             await run_activity(
-                activity=DatabaseMigrationJobActivity,
-                arg=DatabaseMigrationJobActivityModel(
+                activity=VeritableDatabaseMigrationJobActivity,
+                arg=VeritableDatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="veritable-tenant-provisioning-job",
                     docker_image=docker_image,

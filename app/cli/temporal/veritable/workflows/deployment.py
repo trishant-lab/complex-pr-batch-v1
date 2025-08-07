@@ -15,8 +15,8 @@ from app.cli.temporal.activities.cloudflare_setup import (
     LinkBucketToDomainActivity,
     PropagateDNSRecordActivity,
 )
-from app.cli.temporal.activities.database_migration_job import (
-    DatabaseMigrationJobActivity,
+from app.cli.temporal.activities.veritable_db_migration_job import (
+    VeritableDatabaseMigrationJobActivity,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
@@ -125,7 +125,7 @@ class VeritableDeploymentWorkflow(Workflow):
             PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
             KeycloakRealmSetupActivity.defn,
-            DatabaseMigrationJobActivity.defn,
+            VeritableDatabaseMigrationJobActivity.defn,
             KubernetesServiceActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             TemporalNamespaceActivity.defn,
