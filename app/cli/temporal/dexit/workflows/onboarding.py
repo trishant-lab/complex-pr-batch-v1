@@ -827,77 +827,83 @@ class DexitOnboardingWorkflow(Workflow):
             )
 
             # statefulset pod creation for cli
-            await run_activity(
-                activity=KubernetesDeploymentActivity,
-                arg=KubernetesDeploymentActivityModel(
-                    namespace=tenant,
-                    name="dexit-worker",
-                    docker_image=docker_image,
-                    request_resource={
-                        "cpu": pydash.get(dexit, "cliSpec.request_cpu"),
-                        "memory": pydash.get(dexit, "cliSpec.request_memory"),
-                    },
-                    limit_resource={
-                        "cpu": pydash.get(dexit, "cliSpec.limit_cpu"),
-                        "memory": pydash.get(dexit, "cliSpec.limit_memory"),
-                    },
-                    container_ports={"http": 8000},
-                    volume_mounts=[
-                        {
-                            "name": "env-volume",
-                            "mount_path": f"/{config_dir}/{env_config}",
-                            "sub_path": env_config,
+            cli_pods = {"dexit-worker-all" : "all_workers", "dexit-worker-dsl" : "dsl_processing_worker",  "dexit-worker-dslp" : "dsl_processing_worker_priority", 
+                               "dexit-worker-event" : "event_processing_worker"}
+            
+            for key, value in cli_pods.items():
+
+                await run_activity(
+                    activity=KubernetesDeploymentActivity,
+                    arg=KubernetesDeploymentActivityModel(
+                        namespace=tenant,
+                        name=key,
+                        docker_image=docker_image,  
+                        request_resource={
+                            "cpu": pydash.get(dexit, "cliSpec.request_cpu"),
+                            "memory": pydash.get(dexit, "cliSpec.request_memory"),
                         },
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
+                        limit_resource={
+                            "cpu": pydash.get(dexit, "cliSpec.limit_cpu"),
+                            "memory": pydash.get(dexit, "cliSpec.limit_memory"),
                         },
-                        {
-                            "name": "mlops-volume",
-                            "mount_path": f"/{config_dir}/{mlops_config}",
-                            "sub_path": mlops_config,
-                        },
-                        {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
-                    ],
-                    volumes=[
-                        {
-                            "name": "env-volume",
-                            "config_map_name": "dexit-env-config",
-                            "key": env_config,
-                            "path": env_config,
-                        },
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "dexit-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
-                        },
-                        {
-                            "name": "mlops-volume",
-                            "config_map_name": "dexit-mlops-config",
-                            "key": mlops_config,
-                            "path": mlops_config,
-                        },
-                        {
-                            "name": "vector-volume",
-                            "config_map_name": "dexit-cli-vector-config",
-                            "key": vector_config,
-                            "path": vector_config,
-                        },
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
-                        {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "TIKA_SERVER_ENDPOINT", "value": dexit_config.tika_server_endpoint},
-                        {"name": "CLI", "value": "TRUE"},
-                    ],
-                ),
-            )
+                        container_ports={"http": 8000},
+                        volume_mounts=[
+                            {
+                                "name": "env-volume",
+                                "mount_path": f"/{config_dir}/{env_config}",
+                                "sub_path": env_config,
+                            },
+                            {
+                                "name": "tenant-volume",
+                                "mount_path": f"/{config_dir}/{tenant_config}",
+                                "sub_path": tenant_config,
+                            },
+                            {
+                                "name": "mlops-volume",
+                                "mount_path": f"/{config_dir}/{mlops_config}",
+                                "sub_path": mlops_config,
+                            },
+                            {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
+                        ],
+                        volumes=[
+                            {
+                                "name": "env-volume",
+                                "config_map_name": "dexit-env-config",
+                                "key": env_config,
+                                "path": env_config,
+                            },
+                            {
+                                "name": "tenant-volume",
+                                "config_map_name": "dexit-tenant-config",
+                                "key": tenant_config,
+                                "path": tenant_config,
+                            },
+                            {
+                                "name": "mlops-volume",
+                                "config_map_name": "dexit-mlops-config",
+                                "key": mlops_config,
+                                "path": mlops_config,
+                            },
+                            {
+                                "name": "vector-volume",
+                                "config_map_name": "dexit-cli-vector-config",
+                                "key": vector_config,
+                                "path": vector_config,
+                            },
+                        ],
+                        container_envs=[
+                            {"name": "DEPLOYMENT", "value": config.env},
+                            {"name": "CLIENT_CODE", "value": tenant},
+                            {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
+                            {"name": "POSTGRES_PASSWORD", "value": postgres_password},
+                            {"name": "POSTGRES_USER", "value": postgres_username},
+                            {"name": "RELEASE_VERSION", "value": image_tag},
+                            {"name": "TIKA_SERVER_ENDPOINT", "value": dexit_config.tika_server_endpoint},
+                            {"name": "CLI", "value": "TRUE"},
+                            {"name": "WORKER_TYPE", "value": value},
+                        ],
+                    ),
+                )
 
             # statefulset pod creation for dicom
             await run_activity(
