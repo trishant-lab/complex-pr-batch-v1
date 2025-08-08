@@ -43,11 +43,11 @@ class CreatePasswordActivity(Activity):
 
     @staticmethod
     @activity.defn(name="CreatePasswordActivity")
-    async def defn() -> str:
+    async def defn(length: int = 20) -> str:
         """
         Callable for the activity
         """
-        return generate_password(length=20)
+        return generate_password(length=length)
 
 class OnePasswordCreateOrUpdateActivity(Activity):
     """
