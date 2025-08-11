@@ -308,6 +308,17 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="pg_password",
+                    secret_value=postgres_password,
+                ),
+            )
+
+            await run_activity(
                 activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
                     schema_name=postgres_schema_name,
@@ -325,16 +336,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="pg_password",
-                    secret_value=postgres_password,
-                ),
-            )
+            
 
             await run_activity(
                 activity=KeycloakUserMappingActivity,
@@ -759,7 +761,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
                         "redirect": {"uri": f"/{image_tag}/"},
                     }
                 )
-                
+
             template_env = get_env(template_path=TemplatePath)
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
