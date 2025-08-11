@@ -9,9 +9,7 @@ class DexitOnboardingWorkflow(DexitCommonOnboardingWorkflow):
     """
 
     def __init__(self: "DexitCommonOnboardingWorkflow") -> None:
-        super().__init__(is_onboarding=True)
-        self.approved: bool = False
-        self.denied: bool = False
+        super().__init__(is_onboarding=True, approved=False, denied=False)
 
     @workflow.run
     async def run(self: "DexitCommonOnboardingWorkflow", dexit: DexitSpec) -> None:

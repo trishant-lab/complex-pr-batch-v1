@@ -25,8 +25,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     DeleteIdpFromHelpinstanceActivityModel,
     DeleteKeycloakClientActivity,
     DeleteKeycloakClientActivityModel,
-    DeleteKeycloakRealmActivity,
-    DeleteKeycloakRealmActivityModel,
+    # DeleteKeycloakRealmActivity,
+    # DeleteKeycloakRealmActivityModel,
 )
 from app.cli.temporal.activities.postgres_setup import (
     DeletePostgresSchemaActivity,
@@ -90,9 +90,10 @@ class DexitDeProvisioningWorkflow(Workflow):
             DeletePostgresUserActivity.defn,
             DeletePostgresSchemaActivity.defn,
             DeleteKeycloakClientActivity.defn,
-            DeleteKeycloakRealmActivity.defn,
+            # DeleteKeycloakRealmActivity.defn,
             DeleteIdpFromHelpinstanceActivity.defn,
             DeploymentDeletionActivity.defn,
+            DeleteDatabaseMigrationJobActivity.defn,
         ]
 
     @classmethod
@@ -118,218 +119,232 @@ class DexitDeProvisioningWorkflow(Workflow):
 
         tenant = pydash.get(dexit, "tenant_name")
 
-        # delete k8s service
-        await run_activity(
-            activity=DeleteKubernetesServiceActivity,
-            arg=DeleteKubernetesServiceActivityModel(
-                namespace=tenant,
-                service_name="dexit",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+        try:
+            # delete k8s service
+            await run_activity(
+                activity=DeleteKubernetesServiceActivity,
+                arg=DeleteKubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="dexit",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        await run_activity(
-            activity=DeleteKubernetesServiceActivity,
-            arg=DeleteKubernetesServiceActivityModel(
-                namespace=tenant,
-                service_name="dexit-dicom",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            await run_activity(
+                activity=DeleteKubernetesServiceActivity,
+                arg=DeleteKubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="dexit-dicom",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        # delete k8s virtual service
-        await run_activity(
-            activity=DeleteKubernetesIstioVirtualServiceActivity,
-            arg=DeleteKubernetesIstioVirtualServiceActivityModel(
-                namespace=tenant,
-                service_name="dexit-vs",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            # delete k8s virtual service
+            await run_activity(
+                activity=DeleteKubernetesIstioVirtualServiceActivity,
+                arg=DeleteKubernetesIstioVirtualServiceActivityModel(
+                    namespace=tenant,
+                    service_name="dexit-vs",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        # delete vm pod scrapper
-        await run_activity(
-            activity=VMPodScrapperDeletionActivity,
-            arg=VMPodScrapperDeletionActivityModel(
-                namespace=tenant,
-                name="dexit-metrics",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
-        dexit_worker_pods = ["dexit-worker-all", "dexit-worker-dsl", "dexit-worker-dslp", "dexit-worker-event"]
-        for pod in dexit_worker_pods:
+            # delete vm pod scrapper
             await run_activity(
                 activity=VMPodScrapperDeletionActivity,
                 arg=VMPodScrapperDeletionActivityModel(
                     namespace=tenant,
-                    name=f"{pod}-metrics",
+                    name="dexit-metrics",
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
             )
+            dexit_worker_pods = ["dexit-worker-all", "dexit-worker-dsl", "dexit-worker-dslp", "dexit-worker-event"]
+            for pod in dexit_worker_pods:
+                await run_activity(
+                    activity=VMPodScrapperDeletionActivity,
+                    arg=VMPodScrapperDeletionActivityModel(
+                        namespace=tenant,
+                        name=f"{pod}-metrics",
+                    ),
+                    start_to_close_timeout=timedelta(seconds=120),
+                )
 
-        # delete deployment
-        await run_activity(
-            activity=DeploymentDeletionActivity,
-            arg=DeploymentDeletionActivityModel(
-                namespace=tenant,
-                name="dexit",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
-
-        await run_activity(
-            activity=DeploymentDeletionActivity,
-            arg=DeploymentDeletionActivityModel(
-                namespace=tenant,
-                name="dexit-dicom",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
-
-        for pod in dexit_worker_pods:
+            # delete deployment
             await run_activity(
                 activity=DeploymentDeletionActivity,
                 arg=DeploymentDeletionActivityModel(
                     namespace=tenant,
-                    name=pod,
+                    name="dexit",
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-        # delete config map
-        for config_map in [
-            "dexit-env-config",
-            "dexit-tenant-config",
-            "dexit-mlops-config",
-            "dexit-dicom-config",
-            "dexit-cli-vector-config",
-        ]:
             await run_activity(
-                activity=DeleteK8sConfigMapActivity,
-                arg=DeleteK8sConfigMapActivityModel(
+                activity=DeploymentDeletionActivity,
+                arg=DeploymentDeletionActivityModel(
                     namespace=tenant,
-                    name=config_map,
+                    name="dexit-dicom",
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-        await run_activity(
-            activity=DeleteTemporalNamespaceActivity,
-            arg=DeleteTemporalNamespaceActivityModel(
-                namespace=f"dexit_{tenant}",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            for pod in dexit_worker_pods:
+                await run_activity(
+                    activity=DeploymentDeletionActivity,
+                    arg=DeploymentDeletionActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    start_to_close_timeout=timedelta(seconds=120),
+                )
 
-        # delete database migration job
-        await run_activity(
-            activity=DeleteDatabaseMigrationJobActivity,
-            arg=DeleteDatabaseMigrationJobActivityModel(
-                namespace=tenant,
-                job_name="dexit-atlas-migration-job",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            # delete config map
+            for config_map in [
+                "dexit-env-config",
+                "dexit-tenant-config",
+                "dexit-mlops-config",
+                "dexit-dicom-config",
+                "dexit-cli-vector-config",
+            ]:
+                await run_activity(
+                    activity=DeleteK8sConfigMapActivity,
+                    arg=DeleteK8sConfigMapActivityModel(
+                        namespace=tenant,
+                        name=config_map,
+                    ),
+                    start_to_close_timeout=timedelta(seconds=120),
+                )
 
-        await run_activity(
-            activity=DeleteSupavisorTenantActivity,
-            arg=DeleteSupavisorTenantActivityModel(
-                supavisor_tenant_name=f"dexit_{tenant}",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            await run_activity(
+                activity=DeleteTemporalNamespaceActivity,
+                arg=DeleteTemporalNamespaceActivityModel(
+                    namespace=f"dexit_{tenant}",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        await run_activity(
-            activity=DeletePostgresUserActivity,
-            arg=DeletePostgresUserActivityModel(
-                username=f"dexit_{tenant}",
-                database_name="dexit",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            # delete database migration job
+            await run_activity(
+                activity=DeleteDatabaseMigrationJobActivity,
+                arg=DeleteDatabaseMigrationJobActivityModel(
+                    namespace=tenant,
+                    job_name="dexit-atlas-migration-job",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        await run_activity(
-            activity=DeletePostgresUserActivity,
-            arg=DeletePostgresUserActivityModel(
-                username=f"dexit_dicom_{tenant}",  # From onboarding line 257
-                database_name=f"dexit_dicom_{tenant}",  # From onboarding line 228
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            await run_activity(
+                activity=DeleteSupavisorTenantActivity,
+                arg=DeleteSupavisorTenantActivityModel(
+                    supavisor_tenant_name=f"dexit_{tenant}",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        await run_activity(
-            activity=DeletePostgresSchemaActivity,
-            arg=DeletePostgresSchemaActivityModel(
-                schema_name=tenant,
-                database_name="dexit",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            await run_activity(
+                activity=DeletePostgresUserActivity,
+                arg=DeletePostgresUserActivityModel(
+                    username=f"dexit_{tenant}",
+                    database_name="dexit",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        await run_activity(
-            activity=DeletePostgresSchemaActivity,
-            arg=DeletePostgresSchemaActivityModel(
-                schema_name=tenant,
-                database_name=f"{ProductName}_dicom_{tenant}",
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            await run_activity(
+                activity=DeletePostgresUserActivity,
+                arg=DeletePostgresUserActivityModel(
+                    username=f"dexit_dicom_{tenant}",  # From onboarding line 257
+                    database_name=f"dexit_dicom_{tenant}",  # From onboarding line 228
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        await run_activity(
-            activity=DeleteKeycloakClientActivity,
-            arg=DeleteKeycloakClientActivityModel(
-                client_name="dexit",
-                realm_name=tenant,
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            await run_activity(
+                activity=DeletePostgresSchemaActivity,
+                arg=DeletePostgresSchemaActivityModel(
+                    schema_name=tenant,
+                    database_name="dexit",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        await run_activity(
-            activity=DeleteKeycloakRealmActivity,
-            arg=DeleteKeycloakRealmActivityModel(
-                client_name="dexit",
-                realm_name=tenant,
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            await run_activity(
+                activity=DeletePostgresSchemaActivity,
+                arg=DeletePostgresSchemaActivityModel(
+                    schema_name=tenant,
+                    database_name=f"{ProductName}_dicom_{tenant}",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        await run_activity(
-            activity=DeleteIdpFromHelpinstanceActivity,
-            arg=DeleteIdpFromHelpinstanceActivityModel(
-                tenant=tenant,
-                is_prod=True,
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            await run_activity(
+                activity=DeleteKeycloakClientActivity,
+                arg=DeleteKeycloakClientActivityModel(
+                    client_name="dexit",
+                    realm_name=tenant,
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        # delete bucket
-        bucket_name = f"{tenant}-{dexit_config.domain_name.replace('.', '-')}"
-        await run_activity(
-            activity=DeleteCloudflareBucketActivity,
-            arg=DeleteCloudflareBucketActivityModel(
-                bucket_name=bucket_name,
-            ),
-        )
+            # await run_activity(
+            #     activity=DeleteKeycloakRealmActivity,
+            #     arg=DeleteKeycloakRealmActivityModel(
+            #         client_name="dexit",
+            #         realm_name=tenant,
+            #     ),
+            #     start_to_close_timeout=timedelta(seconds=120),
+            # )
 
-        # delete dns record
-        await run_activity(
-            activity=DeleteCloudflareDNSRecordActivity,
-            arg=DeleteCloudflareDNSRecordActivityModel(
-                domain_name=f"{tenant}.api.{dexit_config.domain_name}",
-                zone_id=dexit_config.zone_id,
-            ),
-        )
+            await run_activity(
+                activity=DeleteIdpFromHelpinstanceActivity,
+                arg=DeleteIdpFromHelpinstanceActivityModel(
+                    tenant=tenant,
+                    is_prod=True,
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
 
-        # update tenant status
-        await run_activity(
-            activity=UpdateTenantStatusActivity,
-            arg=TenantCliStatus(
-                tenant_name=tenant,
-                status=TenantStatusEnum.DeProvisioned,
-                product=ProductEnum.dexit,
-            ),
-            start_to_close_timeout=timedelta(seconds=120),
-        )
+            # delete bucket
+            bucket_name = f"{tenant}-{dexit_config.domain_name.replace('.', '-')}"
+            await run_activity(
+                activity=DeleteCloudflareBucketActivity,
+                arg=DeleteCloudflareBucketActivityModel(
+                    bucket_name=bucket_name,
+                ),
+            )
+
+            # delete dns record
+            await run_activity(
+                activity=DeleteCloudflareDNSRecordActivity,
+                arg=DeleteCloudflareDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{dexit_config.domain_name}",
+                    zone_id=dexit_config.zone_id,
+                ),
+            )
+
+            # update tenant status to success
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
+                    tenant_name=tenant,
+                    status=TenantStatusEnum.DeProvisioned,
+                    product=ProductEnum.dexit,
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+        except Exception as e:
+            workflow.logger.error(f"Error in deprovisioning workflow: {e}")
+            await run_activity(
+                activity=UpdateTenantStatusActivity,
+                arg=TenantCliStatus(
+                    tenant_name=tenant,
+                    status=TenantStatusEnum.DeprovisioningFailed,
+                    error_msg=str(e),
+                    product=ProductEnum.dexit,
+                ),
+            )
+            raise e
 
     @workflow.signal
     async def approve(self: "Workflow") -> None:

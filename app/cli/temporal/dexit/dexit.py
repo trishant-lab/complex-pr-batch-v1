@@ -97,3 +97,33 @@ class DexitWorkflow(ProductWorkflow):
             workflow=DexitDeploymentWorkflow,
             queue=WorkerQueues.dexit_deployment,
         )
+
+    @staticmethod
+    async def approve_deprovisioning(schema: dict) -> None:
+        """
+        approve_deprovisioning method
+        """
+        from app.cli.temporal.dexit.workflows.deprovisioning import DexitDeProvisioningWorkflow
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.starter import get_workflow_handle
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=DexitDeProvisioningWorkflow
+        )
+
+        await handle.signal(DexitDeProvisioningWorkflow.approve)
+
+    @staticmethod
+    async def deny_deprovisioning(schema: dict) -> None:
+        """
+        deny_deprovisioning method
+        """
+        from app.cli.temporal.dexit.workflows.deprovisioning import DexitDeProvisioningWorkflow
+        from app.cli.temporal.models.deboard import DeboardWorkflowInput
+        from app.cli.temporal.starter import get_workflow_handle
+
+        handle = await get_workflow_handle(
+            workflow_input=DeboardWorkflowInput(**schema), workflow=DexitDeProvisioningWorkflow
+        )
+
+        await handle.signal(DexitDeProvisioningWorkflow.decline)
