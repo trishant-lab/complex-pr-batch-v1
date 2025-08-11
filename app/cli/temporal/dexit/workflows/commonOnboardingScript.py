@@ -61,6 +61,7 @@ from app.cli.temporal.activities.one_password import (
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
     CreatePasswordActivity,
+    CreatePasswordActivityModel
 )
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
@@ -236,12 +237,12 @@ class DexitCommonOnboardingWorkflow(Workflow):
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = await run_activity(
                 activity=CreatePasswordActivity,
-                arg=None,
+                arg=CreatePasswordActivityModel(length=20),
             )
             dicom_database_name = f"{ProductName}_dicom_{tenant}"
             dicom_database_password = await run_activity(
                 activity=CreatePasswordActivity,
-                arg=None,
+                arg=CreatePasswordActivityModel(length=20),
             )
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
@@ -447,7 +448,10 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # Create Service account
-            client_secret = await run_activity(activity=CreatePasswordActivity, arg=32)
+            client_secret = await run_activity(
+                activity=CreatePasswordActivity,
+                arg=CreatePasswordActivityModel(length=32),
+            )
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,

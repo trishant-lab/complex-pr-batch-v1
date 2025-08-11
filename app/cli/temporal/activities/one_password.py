@@ -20,6 +20,13 @@ class OnePasswordCreateOrUpdateActivityModel(LaunchpadCLIBaseModel):
     secret_value: str
 
 
+class CreatePasswordActivityModel(LaunchpadCLIBaseModel):
+    """
+    CreatePasswordActivityModel
+    """
+
+    length: int
+
 class CreatePasswordActivity(Activity):
     """
     CreatePasswordActivity
@@ -46,11 +53,11 @@ class CreatePasswordActivity(Activity):
 
     @staticmethod
     @activity.defn(name="CreatePasswordActivity")
-    async def defn(length: int = 20) -> str:
+    async def defn(activity_input: CreatePasswordActivityModel) -> str:
         """
         Callable for the activity
         """
-        return generate_password(length=length)
+        return generate_password(length=activity_input.length)
 
 
 class OnePasswordCreateOrUpdateActivity(Activity):

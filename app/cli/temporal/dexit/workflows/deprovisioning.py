@@ -36,10 +36,11 @@ from app.cli.temporal.activities.postgres_setup import (
     DeleteSupavisorTenantActivity,
     DeleteSupavisorTenantActivityModel,
 )
-from app.cli.temporal.activities.temporal_namespace import (
-    DeleteTemporalNamespaceActivity,
-    DeleteTemporalNamespaceActivityModel,
-)
+
+# from app.cli.temporal.activities.temporal_namespace import (
+#     DeleteTemporalNamespaceActivity,
+#     DeleteTemporalNamespaceActivityModel,
+# )
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     DeleteKubernetesIstioVirtualServiceActivity,
     DeleteKubernetesIstioVirtualServiceActivityModel,
@@ -78,7 +79,7 @@ class DexitDeProvisioningWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            DeleteTemporalNamespaceActivity.defn,
+            # DeleteTemporalNamespaceActivity.defn,
             DeleteKubernetesServiceActivity.defn,
             VMPodScrapperDeletionActivity.defn,
             DeleteK8sConfigMapActivity.defn,
@@ -215,13 +216,13 @@ class DexitDeProvisioningWorkflow(Workflow):
                     start_to_close_timeout=timedelta(seconds=120),
                 )
 
-            await run_activity(
-                activity=DeleteTemporalNamespaceActivity,
-                arg=DeleteTemporalNamespaceActivityModel(
-                    namespace=f"dexit_{tenant}",
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
+            # await run_activity(
+            #     activity=DeleteTemporalNamespaceActivity,
+            #     arg=DeleteTemporalNamespaceActivityModel(
+            #         namespace=f"dexit_{tenant}",
+            #     ),
+            #     start_to_close_timeout=timedelta(seconds=120),
+            # )
 
             # delete database migration job
             await run_activity(
