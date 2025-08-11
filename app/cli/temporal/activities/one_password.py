@@ -5,6 +5,7 @@ from temporalio.common import RetryPolicy
 
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.one_password_util import OnePasswordUtil
+from app.common import generate_password
 
 
 class OnePasswordCreateOrUpdateActivityModel(LaunchpadCLIBaseModel):
@@ -18,6 +19,35 @@ class OnePasswordCreateOrUpdateActivityModel(LaunchpadCLIBaseModel):
     secret_name: str
     secret_value: str
 
+class CreatePasswordActivity(Activity):
+    """
+    CreatePasswordActivity
+    """
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="CreatePasswordActivity")
+    async def defn(length: int = 20) -> str:
+        """
+        Callable for the activity
+        """
+        return generate_password(length=length)
 
 class OnePasswordCreateOrUpdateActivity(Activity):
     """
