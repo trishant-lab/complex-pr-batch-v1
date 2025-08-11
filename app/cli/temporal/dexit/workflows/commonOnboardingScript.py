@@ -128,7 +128,6 @@ ProductName = "dexit"
 OnePasswordVaultName = "Dexit"
 
 
-
 class DexitCommonOnboardingWorkflow(Workflow):
     """
     Dexit Onboarding Workflow
@@ -189,29 +188,30 @@ class DexitCommonOnboardingWorkflow(Workflow):
     def get_workflow_id(cls: "Workflow", dexit: DexitSpec) -> str:
         """
         Return workflow id
+
         """
         return f"dexit_onboarding_workflow_{pydash.get(dexit, 'tenant')}"
-    
+
     @staticmethod
     async def starting_onboarding_activity(cls: "Workflow", dexit: DexitSpec) -> bool:
         """
         Starting onboarding activity
         """
         if cls.is_onboarding:
-                await workflow.wait_condition(lambda: cls.approved or cls.denied)
+            await workflow.wait_condition(lambda: cls.approved or cls.denied)
 
-                if cls.denied:
-                    await run_activity(
-                        activity=UpdateTenantStatusActivity,
-                        arg=TenantCliStatus(
-                            tenant_name=pydash.get(dexit, "tenant"),
-                            status=TenantStatusEnum.ApprovalDeclined,
-                            error_msg="Request Declined",
-                            product=ProductEnum.dexit,
-                        ),
-                        start_to_close_timeout=timedelta(seconds=120),
-                    )
-                    return True
+            if cls.denied:
+                await run_activity(
+                    activity=UpdateTenantStatusActivity,
+                    arg=TenantCliStatus(
+                        tenant_name=pydash.get(dexit, "tenant"),
+                        status=TenantStatusEnum.ApprovalDeclined,
+                        error_msg="Request Declined",
+                        product=ProductEnum.dexit,
+                    ),
+                    start_to_close_timeout=timedelta(seconds=120),
+                )
+                return True
         return False
 
     @workflow.run
@@ -246,8 +246,6 @@ class DexitCommonOnboardingWorkflow(Workflow):
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
             server_item = "production-config" if config.env == "production" else "integration-config"
-
-           
 
             # create postgres database for dicom
             await run_activity(
@@ -285,8 +283,6 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     database_name=dicom_database_name,
                 ),
             )
-
-            
 
             await run_activity(
                 activity=PostgresUserCreationActivity,
@@ -335,8 +331,6 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     database_name=postgres_database_name,
                 ),
             )
-
-            
 
             await run_activity(
                 activity=KeycloakUserMappingActivity,
@@ -453,10 +447,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # Create Service account
-            client_secret = await run_activity(
-                activity=CreatePasswordActivity,
-                arg=32
-            )
+            client_secret = await run_activity(activity=CreatePasswordActivity, arg=32)
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
@@ -753,6 +744,12 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            template_env = get_env(template_path=TemplatePath)
+            template = template_env.get_template("istio-rules.json")
+            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
+
+            http_list = ijson_loads(output)
+
             if config.env != "production":
                 http_list.append(
                     {
@@ -761,13 +758,6 @@ class DexitCommonOnboardingWorkflow(Workflow):
                         "redirect": {"uri": f"/{image_tag}/"},
                     }
                 )
-
-            template_env = get_env(template_path=TemplatePath)
-            template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
-
-            http_list = ijson_loads(output)
-            
 
             # kubernetes virtual service
             await run_activity(
@@ -848,17 +838,20 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # statefulset pod creation for cli
-            cli_pods = {"dexit-worker-all" : "all_workers", "dexit-worker-dsl" : "dsl_processing_worker",  "dexit-worker-dslp" : "dsl_processing_worker_priority", 
-                               "dexit-worker-event" : "event_processing_worker"}
-            
-            for key, value in cli_pods.items():
+            cli_pods = {
+                "dexit-worker-all": "all_workers",
+                "dexit-worker-dsl": "dsl_processing_worker",
+                "dexit-worker-dslp": "dsl_processing_worker_priority",
+                "dexit-worker-event": "event_processing_worker",
+            }
 
+            for key, value in cli_pods.items():
                 await run_activity(
                     activity=KubernetesDeploymentActivity,
                     arg=KubernetesDeploymentActivityModel(
                         namespace=tenant,
                         name=key,
-                        docker_image=docker_image,  
+                        docker_image=docker_image,
                         request_resource={
                             "cpu": pydash.get(dexit, "cliSpec.request_cpu"),
                             "memory": pydash.get(dexit, "cliSpec.request_memory"),
@@ -1006,7 +999,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # check pod running status
-            for pod in ["dexit", "dexit-dicom"] + list(cli_pods.keys()):
+            for pod in ["dexit", "dexit-dicom", *list(cli_pods.keys())]:
                 await run_activity(
                     activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(
@@ -1026,7 +1019,9 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 # update tenant status
                 await run_activity(
                     activity=UpdateTenantStatusActivity,
-                    arg=TenantCliStatus(tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.dexit),
+                    arg=TenantCliStatus(
+                        tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.dexit
+                    ),
                 )
 
                 # send mail
