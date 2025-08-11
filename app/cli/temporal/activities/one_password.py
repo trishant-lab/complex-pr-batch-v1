@@ -19,10 +19,13 @@ class OnePasswordCreateOrUpdateActivityModel(LaunchpadCLIBaseModel):
     secret_name: str
     secret_value: str
 
+
 class CreatePasswordActivity(Activity):
     """
     CreatePasswordActivity
+
     """
+
     @staticmethod
     def get_timeout() -> timedelta:
         """
@@ -48,6 +51,7 @@ class CreatePasswordActivity(Activity):
         Callable for the activity
         """
         return generate_password(length=length)
+
 
 class OnePasswordCreateOrUpdateActivity(Activity):
     """

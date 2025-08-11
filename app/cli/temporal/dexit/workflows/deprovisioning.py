@@ -36,7 +36,6 @@ from app.cli.temporal.activities.postgres_setup import (
     DeleteSupavisorTenantActivity,
     DeleteSupavisorTenantActivityModel,
 )
-from app.cli.temporal.activities.redis import RedisDeleteNamespaceActivity, RedisDeleteNamespaceActivityModel
 from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
@@ -46,7 +45,6 @@ from app.cli.temporal.activities.k8s_istio_virtual_service import (
     DeleteKubernetesIstioVirtualServiceActivityModel,
 )
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
-from app.cli.temporal.activities.vespa_job import VespaDeleteActivity, VespaDeleteActivityModel
 from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperDeletionActivity,
     VMPodScrapperDeletionActivityModel,
@@ -62,6 +60,7 @@ from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 
 ProductName = "dexit"
+
 
 @workflow.defn(name="DexitDeProvisioningWorkflow")
 class DexitDeProvisioningWorkflow(Workflow):
@@ -197,9 +196,14 @@ class DexitDeProvisioningWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-        
         # delete config map
-        for config_map in ["dexit-env-config", "dexit-tenant-config", "dexit-mlops-config", "dexit-dicom-config", "dexit-cli-vector-config"]:
+        for config_map in [
+            "dexit-env-config",
+            "dexit-tenant-config",
+            "dexit-mlops-config",
+            "dexit-dicom-config",
+            "dexit-cli-vector-config",
+        ]:
             await run_activity(
                 activity=DeleteK8sConfigMapActivity,
                 arg=DeleteK8sConfigMapActivityModel(
@@ -208,7 +212,6 @@ class DexitDeProvisioningWorkflow(Workflow):
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
             )
-
 
         await run_activity(
             activity=DeleteTemporalNamespaceActivity,
