@@ -448,7 +448,8 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # Create Service account
-            client_secret = await run_activity(activity=CreatePasswordActivity, arg=CreatePasswordActivityModel(length=32))
+            client_secret = await run_activity(activity=CreatePasswordActivity, 
+                                               arg=CreatePasswordActivityModel(length=32))
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
