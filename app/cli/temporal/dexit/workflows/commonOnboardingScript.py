@@ -133,8 +133,10 @@ class DexitCommonOnboardingWorkflow(Workflow):
     Dexit Onboarding Workflow
     """
 
-    def __init__(self: "Workflow", is_onboarding: bool = False) -> None:
+    def __init__(self: "Workflow", is_onboarding: bool = False, approved: bool = False, denied: bool = False) -> None:
         self.is_onboarding: bool = is_onboarding
+        self.approved: bool = approved
+        self.denied: bool = denied
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:
@@ -192,15 +194,14 @@ class DexitCommonOnboardingWorkflow(Workflow):
         """
         return f"dexit_onboarding_workflow_{pydash.get(dexit, 'tenant')}"
 
-    @staticmethod
-    async def starting_onboarding_activity(cls: "Workflow", dexit: DexitSpec) -> bool:
+    async def starting_onboarding_activity(self: "Workflow", dexit: DexitSpec) -> bool:
         """
         Starting onboarding activity
         """
-        if cls.is_onboarding:
-            await workflow.wait_condition(lambda: cls.approved or cls.denied)
+        if self.is_onboarding:
+            await workflow.wait_condition(lambda: self.approved or self.denied)
 
-            if cls.denied:
+            if self.denied:
                 await run_activity(
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
