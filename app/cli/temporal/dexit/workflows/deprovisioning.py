@@ -35,6 +35,11 @@ from app.cli.temporal.activities.postgres_setup import (
     DeletePostgresUserActivityModel,
     DeleteSupavisorTenantActivity,
     DeleteSupavisorTenantActivityModel,
+    RevokeAllPrivilegesOnTableActivity,
+    RevokeKeycloakUserMappingActivity,
+    RevokeMatomoUserMappingActivity,
+    KeycloakUserMappingActivityModel,
+    MatomoUserMappingActivityModel,
 )
 
 # from app.cli.temporal.activities.temporal_namespace import (
@@ -95,6 +100,9 @@ class DexitDeProvisioningWorkflow(Workflow):
             DeleteIdpFromHelpinstanceActivity.defn,
             DeploymentDeletionActivity.defn,
             DeleteDatabaseMigrationJobActivity.defn,
+            RevokeAllPrivilegesOnTableActivity.defn,
+            RevokeKeycloakUserMappingActivity.defn,
+            RevokeMatomoUserMappingActivity.defn,
         ]
 
     @classmethod
@@ -240,6 +248,54 @@ class DexitDeProvisioningWorkflow(Workflow):
                     supavisor_tenant_name=f"dexit_{tenant}",
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            await run_activity(
+                activity=DeletePostgresUserActivityModel,
+                arg=RevokeAllPrivilegesOnTableActivity(
+                    username=f"dexit_{tenant}",
+                    database_name="dexit",
+                ),
+            )
+
+            await run_activity(
+                activity=DeletePostgresUserActivityModel,
+                arg=RevokeAllPrivilegesOnTableActivity(
+                    username=f"dexit_dicom_{tenant}",
+                    database_name=f"dexit_dicom_{tenant}",
+                ),
+            )
+
+            await run_activity(
+                activity=RevokeKeycloakUserMappingActivity,
+                arg=KeycloakUserMappingActivityModel(
+                    username=f"dexit_{tenant}",
+                    database_name="dexit",
+                ),
+            )
+
+            await run_activity(
+                activity=RevokeKeycloakUserMappingActivity,
+                arg=KeycloakUserMappingActivityModel(
+                    username=f"dexit_dicom_{tenant}",
+                    database_name=f"dexit_dicom_{tenant}",
+                ),
+            )
+
+            await run_activity(
+                activity=RevokeMatomoUserMappingActivity,
+                arg=MatomoUserMappingActivityModel(
+                    username=f"dexit_{tenant}",
+                    database_name="dexit",
+                ),
+            )
+
+            await run_activity(
+                activity=RevokeMatomoUserMappingActivity,
+                arg=MatomoUserMappingActivityModel(
+                    username=f"dexit_dicom_{tenant}",
+                    database_name=f"dexit_dicom_{tenant}",
+                ),
             )
 
             await run_activity(
