@@ -36,10 +36,11 @@ from app.cli.temporal.activities.postgres_setup import (
     DeleteSupavisorTenantActivity,
     DeleteSupavisorTenantActivityModel,
 )
-from app.cli.temporal.activities.temporal_namespace import (
-    DeleteTemporalNamespaceActivity,
-    DeleteTemporalNamespaceActivityModel,
-)
+
+# from app.cli.temporal.activities.temporal_namespace import (
+#     DeleteTemporalNamespaceActivity,
+#     DeleteTemporalNamespaceActivityModel,
+# )
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     DeleteKubernetesIstioVirtualServiceActivity,
     DeleteKubernetesIstioVirtualServiceActivityModel,
