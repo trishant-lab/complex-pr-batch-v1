@@ -78,7 +78,7 @@ class DexitDeProvisioningWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            DeleteTemporalNamespaceActivity.defn,
+            # DeleteTemporalNamespaceActivity.defn,
             DeleteKubernetesServiceActivity.defn,
             VMPodScrapperDeletionActivity.defn,
             DeleteK8sConfigMapActivity.defn,
@@ -215,13 +215,13 @@ class DexitDeProvisioningWorkflow(Workflow):
                     start_to_close_timeout=timedelta(seconds=120),
                 )
 
-            await run_activity(
-                activity=DeleteTemporalNamespaceActivity,
-                arg=DeleteTemporalNamespaceActivityModel(
-                    namespace=f"dexit_{tenant}",
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
+            # await run_activity(
+            #     activity=DeleteTemporalNamespaceActivity,
+            #     arg=DeleteTemporalNamespaceActivityModel(
+            #         namespace=f"dexit_{tenant}",
+            #     ),
+            #     start_to_close_timeout=timedelta(seconds=120),
+            # )
 
             # delete database migration job
             await run_activity(
