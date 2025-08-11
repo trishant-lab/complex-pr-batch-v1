@@ -191,6 +191,28 @@ class DexitCommonOnboardingWorkflow(Workflow):
         Return workflow id
         """
         return f"dexit_onboarding_workflow_{pydash.get(dexit, 'tenant')}"
+    
+    @staticmethod
+    async def starting_onboarding_activity(cls: "Workflow", dexit: DexitSpec) -> bool:
+        """
+        Starting onboarding activity
+        """
+        if cls.is_onboarding:
+                await workflow.wait_condition(lambda: cls.approved or cls.denied)
+
+                if cls.denied:
+                    await run_activity(
+                        activity=UpdateTenantStatusActivity,
+                        arg=TenantCliStatus(
+                            tenant_name=pydash.get(dexit, "tenant"),
+                            status=TenantStatusEnum.ApprovalDeclined,
+                            error_msg="Request Declined",
+                            product=ProductEnum.dexit,
+                        ),
+                        start_to_close_timeout=timedelta(seconds=120),
+                    )
+                    return True
+        return False
 
     @workflow.run
     async def run(self: "Workflow", dexit: DexitSpec) -> None:
@@ -206,21 +228,8 @@ class DexitCommonOnboardingWorkflow(Workflow):
         tenant = pydash.get(dexit, "tenant")
 
         try:
-            if self.is_onboarding:
-                await workflow.wait_condition(lambda: self.approved or self.denied)
-
-                if self.denied:
-                    await run_activity(
-                        activity=UpdateTenantStatusActivity,
-                        arg=TenantCliStatus(
-                            tenant_name=pydash.get(dexit, "tenant"),
-                            status=TenantStatusEnum.ApprovalDeclined,
-                            error_msg="Request Declined",
-                            product=ProductEnum.dexit,
-                        ),
-                        start_to_close_timeout=timedelta(seconds=120),
-                    )
-                    return
+            if await self.starting_onboarding_activity(dexit):
+                return
 
             postgres_schema_name = tenant
             postgres_database_name = "dexit"
@@ -238,16 +247,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
             docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
             server_item = "production-config" if config.env == "production" else "integration-config"
 
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="pg_dicom_password",
-                    secret_value=dicom_database_password,
-                ),
-            )
+           
 
             # create postgres database for dicom
             await run_activity(
@@ -267,6 +267,17 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # create one password for dicom database password
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="pg_dicom_password",
+                    secret_value=dicom_database_password,
+                ),
+            )
             await run_activity(
                 activity=PostgresGrantAccessToUserActivity,
                 arg=PostgresGrantAccessToUserActivityModel(
@@ -275,16 +286,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="pg_password",
-                    secret_value=postgres_password,
-                ),
-            )
+            
 
             await run_activity(
                 activity=PostgresUserCreationActivity,
@@ -320,6 +322,17 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="pg_password",
+                    secret_value=postgres_password,
                 ),
             )
 
@@ -559,17 +572,14 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # ui setup
-            repo_name = "dexit-ui"
             image_tag = "production" if config.env == "production" else "sprint"
-
+            repo_name = "dexit-ui"
+            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
+            bundle_path = "bundle/dist/admin"
             if config.env == "production":
                 dest_dir = f"{bucket_name}/"
             else:
                 dest_dir = f"{bucket_name}/{image_tag}"
-
-            src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
-
-            bundle_path = "bundle/dist/admin"
 
             # copy artifacts to bucket
             await run_activity(
