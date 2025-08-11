@@ -25,8 +25,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     DeleteIdpFromHelpinstanceActivityModel,
     DeleteKeycloakClientActivity,
     DeleteKeycloakClientActivityModel,
-    DeleteKeycloakRealmActivity,
-    DeleteKeycloakRealmActivityModel,
+    # DeleteKeycloakRealmActivity,
+    # DeleteKeycloakRealmActivityModel,
 )
 from app.cli.temporal.activities.postgres_setup import (
     DeletePostgresSchemaActivity,
@@ -90,7 +90,7 @@ class DexitDeProvisioningWorkflow(Workflow):
             DeletePostgresUserActivity.defn,
             DeletePostgresSchemaActivity.defn,
             DeleteKeycloakClientActivity.defn,
-            DeleteKeycloakRealmActivity.defn,
+            # DeleteKeycloakRealmActivity.defn,
             DeleteIdpFromHelpinstanceActivity.defn,
             DeploymentDeletionActivity.defn,
             DeleteDatabaseMigrationJobActivity.defn,
@@ -286,14 +286,14 @@ class DexitDeProvisioningWorkflow(Workflow):
                 start_to_close_timeout=timedelta(seconds=120),
             )
 
-            await run_activity(
-                activity=DeleteKeycloakRealmActivity,
-                arg=DeleteKeycloakRealmActivityModel(
-                    client_name="dexit",
-                    realm_name=tenant,
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
+            # await run_activity(
+            #     activity=DeleteKeycloakRealmActivity,
+            #     arg=DeleteKeycloakRealmActivityModel(
+            #         client_name="dexit",
+            #         realm_name=tenant,
+            #     ),
+            #     start_to_close_timeout=timedelta(seconds=120),
+            # )
 
             await run_activity(
                 activity=DeleteIdpFromHelpinstanceActivity,
