@@ -746,17 +746,11 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
                     namespace=tenant,
-                    service_name="dexit",
                     ports={"http": 8000},
+                    service_name="dexit",
                 ),
             )
 
-            template_env = get_env(template_path=TemplatePath)
-
-            template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
-
-            http_list = ijson_loads(output)
             if config.env != "production":
                 http_list.append(
                     {
@@ -765,6 +759,13 @@ class DexitCommonOnboardingWorkflow(Workflow):
                         "redirect": {"uri": f"/{image_tag}/"},
                     }
                 )
+                
+            template_env = get_env(template_path=TemplatePath)
+            template = template_env.get_template("istio-rules.json")
+            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
+
+            http_list = ijson_loads(output)
+            
 
             # kubernetes virtual service
             await run_activity(
