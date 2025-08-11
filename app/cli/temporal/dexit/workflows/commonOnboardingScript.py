@@ -214,7 +214,6 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 return True
         return False
 
-    @workflow.run
     async def run(self: "Workflow", dexit: DexitSpec) -> None:
         """
         Run workflow
