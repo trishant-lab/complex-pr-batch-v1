@@ -776,11 +776,11 @@ class RevokeAllPrivilegesOnTableActivity(Activity):
         """
         db: DBManager = await get_super_admin_db_manager()
 
-        await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
         await db.execute_raw_sql(query=f"REVOKE ALL ON DATABASE dexit FROM {activity_model.username};")
         await db.execute_raw_sql(
             query=f"REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {activity_model.username};"
         )
+        await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
         log_info(
             f"Revoked all privileges on all tables in schema public for user {activity_model.username} successfully."
         )
