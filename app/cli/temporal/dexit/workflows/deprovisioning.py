@@ -251,16 +251,16 @@ class DexitDeProvisioningWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=DeletePostgresUserActivityModel,
-                arg=RevokeAllPrivilegesOnTableActivity(
+                activity=RevokeAllPrivilegesOnTableActivity,
+                arg=DeletePostgresUserActivityModel(
                     username=f"dexit_{tenant}",
                     database_name="dexit",
                 ),
             )
 
             await run_activity(
-                activity=DeletePostgresUserActivityModel,
-                arg=RevokeAllPrivilegesOnTableActivity(
+                activity=RevokeAllPrivilegesOnTableActivity,
+                arg=DeletePostgresUserActivityModel(
                     username=f"dexit_dicom_{tenant}",
                     database_name=f"dexit_dicom_{tenant}",
                 ),
