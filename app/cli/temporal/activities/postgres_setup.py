@@ -373,7 +373,7 @@ class RevokeKeycloakUserMappingActivity(Activity):
         """
         db: DBManager = await get_super_admin_for_database(activity_model.database_name)
         await db.execute_raw_sql(
-            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER keycloak_server OPTIONS;",
+            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER keycloak_server;",
         )
         log_info("Revoked user mapping for keycloak database successfully.")
 
@@ -456,7 +456,7 @@ class RevokeMatomoUserMappingActivity(Activity):
         """
         db: DBManager = await get_super_admin_for_database(activity_model.database_name)
         await db.execute_raw_sql(
-            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER matomo_server OPTIONS;",
+            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER matomo_server;",
         )
         log_info("Revoked user mapping for matomo database successfully.")
 
