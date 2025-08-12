@@ -251,6 +251,25 @@ class DexitDeProvisioningWorkflow(Workflow):
             )
 
             await run_activity(
+                activity=DeletePostgresSchemaActivity,
+                arg=DeletePostgresSchemaActivityModel(
+                    schema_name=tenant,
+                    database_name="dexit",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+
+            await run_activity(
+                activity=DeletePostgresSchemaActivity,
+                arg=DeletePostgresSchemaActivityModel(
+                    schema_name=tenant,
+                    database_name=f"{ProductName}_dicom_{tenant}",
+                ),
+                start_to_close_timeout=timedelta(seconds=120),
+            )
+            
+            # revoke all privileges on tables
+            await run_activity(
                 activity=RevokeAllPrivilegesOnTableActivity,
                 arg=DeletePostgresUserActivityModel(
                     username=f"dexit_{tenant}",
@@ -312,24 +331,6 @@ class DexitDeProvisioningWorkflow(Workflow):
                 arg=DeletePostgresUserActivityModel(
                     username=f"dexit_dicom_{tenant}",  # From onboarding line 257
                     database_name=f"dexit_dicom_{tenant}",  # From onboarding line 228
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            await run_activity(
-                activity=DeletePostgresSchemaActivity,
-                arg=DeletePostgresSchemaActivityModel(
-                    schema_name=tenant,
-                    database_name="dexit",
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            await run_activity(
-                activity=DeletePostgresSchemaActivity,
-                arg=DeletePostgresSchemaActivityModel(
-                    schema_name=tenant,
-                    database_name=f"{ProductName}_dicom_{tenant}",
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
             )
