@@ -342,6 +342,42 @@ class KeycloakUserMappingActivity(Activity):
         log_info("Created user mapping for keycloak database successfully.")
 
 
+class RevokeKeycloakUserMappingActivity(Activity):
+    """
+    RevokeKeycloakUserMappingActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="RevokeKeycloakUserMappingActivity")
+    async def defn(activity_model: KeycloakUserMappingActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        await db.execute_raw_sql(
+            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER keycloak_server OPTIONS;",
+        )
+        log_info("Revoked user mapping for keycloak database successfully.")
+
+
 class MatomoUserMappingActivityModel(LaunchpadCLIBaseModel):
     """
     MatomoUserMappingActivityModel
@@ -387,6 +423,42 @@ class MatomoUserMappingActivity(Activity):
             f"(username 'matomo_fdw', password '{config.matomo_db_password}');",
         )
         log_info("Created user mapping for matomo database successfully.")
+
+
+class RevokeMatomoUserMappingActivity(Activity):
+    """
+    RevokeMatomoUserMappingActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="RevokeMatomoUserMappingActivity")
+    async def defn(activity_model: MatomoUserMappingActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        await db.execute_raw_sql(
+            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER matomo_server OPTIONS;",
+        )
+        log_info("Revoked user mapping for matomo database successfully.")
 
 
 class TableSpaceActivityModel(LaunchpadCLIBaseModel):
@@ -671,6 +743,47 @@ class DeletePostgresUserActivity(Activity):
 
         await db.execute_raw_sql(query=f"DROP USER IF EXISTS {activity_model.username};")
         log_info(f"Deleted user {activity_model.username} successfully.")
+
+
+class RevokeAllPrivilegesOnTableActivity(Activity):
+    """
+    RevokeAllPrivilegesOnTableActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="RevokeAllPrivilegesOnTableActivity")
+    async def defn(activity_model: DeletePostgresUserActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        db: DBManager = await get_super_admin_db_manager()
+
+        await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
+        await db.execute_raw_sql(query=f"REVOKE ALL ON DATABASE dexit FROM {activity_model.username};")
+        await db.execute_raw_sql(
+            query=f"REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {activity_model.username};"
+        )
+        log_info(
+            f"Revoked all privileges on all tables in schema public for user {activity_model.username} successfully."
+        )
 
 
 class DeletePostgresSchemaActivityModel(LaunchpadCLIBaseModel):

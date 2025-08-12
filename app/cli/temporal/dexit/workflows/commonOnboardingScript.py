@@ -61,7 +61,7 @@ from app.cli.temporal.activities.one_password import (
     OnePasswordInsertIfNotExistsActivity,
     OnePasswordInsertIfNotExistsActivityModel,
     CreatePasswordActivity,
-    CreatePasswordActivityModel
+    CreatePasswordActivityModel,
 )
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
