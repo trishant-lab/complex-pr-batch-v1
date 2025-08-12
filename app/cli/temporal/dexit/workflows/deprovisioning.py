@@ -267,7 +267,7 @@ class DexitDeProvisioningWorkflow(Workflow):
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
             )
-            
+
             # revoke all privileges on tables
             await run_activity(
                 activity=RevokeAllPrivilegesOnTableActivity,
@@ -278,6 +278,30 @@ class DexitDeProvisioningWorkflow(Workflow):
             )
 
             await run_activity(
+                activity=RevokeKeycloakUserMappingActivity,
+                arg=KeycloakUserMappingActivityModel(
+                    username=f"dexit_dicom_{tenant}",
+                    database_name=f"dexit_dicom_{tenant}",
+                ),
+            )
+
+            await run_activity(
+                activity=RevokeMatomoUserMappingActivity,
+                arg=MatomoUserMappingActivityModel(
+                    username=f"dexit_{tenant}",
+                    database_name="dexit",
+                ),
+            )
+
+            await run_activity(
+                activity=RevokeMatomoUserMappingActivity,
+                arg=MatomoUserMappingActivityModel(
+                    username=f"dexit_dicom_{tenant}",
+                    database_name=f"dexit_dicom_{tenant}",
+                ),
+            )
+
+            await run_activity(
                 activity=RevokeAllPrivilegesOnTableActivity,
                 arg=DeletePostgresUserActivityModel(
                     username=f"dexit_dicom_{tenant}",
@@ -290,30 +314,6 @@ class DexitDeProvisioningWorkflow(Workflow):
                 arg=KeycloakUserMappingActivityModel(
                     username=f"dexit_{tenant}",
                     database_name="dexit",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeKeycloakUserMappingActivity,
-                arg=KeycloakUserMappingActivityModel(
-                    username=f"dexit_dicom_{tenant}",
-                    database_name=f"dexit_dicom_{tenant}",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeMatomoUserMappingActivity,
-                arg=MatomoUserMappingActivityModel(
-                    username=f"dexit_{tenant}",
-                    database_name="dexit",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeMatomoUserMappingActivity,
-                arg=MatomoUserMappingActivityModel(
-                    username=f"dexit_dicom_{tenant}",
-                    database_name=f"dexit_dicom_{tenant}",
                 ),
             )
 
