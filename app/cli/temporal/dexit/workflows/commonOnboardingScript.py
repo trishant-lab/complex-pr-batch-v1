@@ -634,6 +634,17 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="fax_sentstatus_url",
+                    key_value="default",
+                ),
+            )
+
             tenant_config = "tenant-config.json"
             mlops_config = "mlops-config.json"
             env_config = "env-config.json"
