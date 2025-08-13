@@ -40,6 +40,7 @@ from app.cli.temporal.activities.postgres_setup import (
     RevokeMatomoUserMappingActivity,
     KeycloakUserMappingActivityModel,
     MatomoUserMappingActivityModel,
+    RevokeOwnershipOnTableActivity,
 )
 
 # from app.cli.temporal.activities.temporal_namespace import (
@@ -103,6 +104,7 @@ class DexitDeProvisioningWorkflow(Workflow):
             RevokeAllPrivilegesOnTableActivity.defn,
             RevokeKeycloakUserMappingActivity.defn,
             RevokeMatomoUserMappingActivity.defn,
+            RevokeOwnershipOnTableActivity.defn,
         ]
 
     @classmethod
@@ -316,6 +318,13 @@ class DexitDeProvisioningWorkflow(Workflow):
                 ),
             )
 
+            await run_activity(
+                activity=RevokeOwnershipOnTableActivity,
+                arg=DeletePostgresUserActivityModel(
+                    username=f"dexit_dicom_{tenant}",
+                    database_name=f"dexit_dicom_{tenant}",
+                ),
+            )
             await run_activity(
                 activity=DeletePostgresUserActivity,
                 arg=DeletePostgresUserActivityModel(
