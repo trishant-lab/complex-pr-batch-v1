@@ -788,6 +788,45 @@ class RevokeAllPrivilegesOnTableActivity(Activity):
             f"Revoked all privileges on all tables in schema public for user {activity_model.username} successfully."
         )
 
+class RevokeOwnershipOnTableActivity(Activity):
+    """
+    RevokeAllPrivilegesOnTableActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="RevokeOwnershipOnTableActivity")
+    async def defn(activity_model: DeletePostgresUserActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        main_db: DBManager = await get_super_admin_db_manager()
+        main_db.execute_raw_sql(
+            query=f"REASSIGN OWNED BY {activity_model.username} TO postgres;"
+            )
+        main_db.execute_raw_sql(
+            query=f"DROP OWNED BY {activity_model.username};"
+            )
+        log_info(
+            f"Revoked ownership on all tables in schema public for user {activity_model.username} successfully."
+        )
 
 class DeletePostgresSchemaActivityModel(LaunchpadCLIBaseModel):
     """
