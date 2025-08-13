@@ -779,7 +779,7 @@ class RevokeAllPrivilegesOnTableActivity(Activity):
 
         await main_db.execute_raw_sql(
             query=f"REVOKE ALL ON DATABASE {activity_model.database_name} FROM {activity_model.username};"
-            )
+        )
         await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
         await db.execute_raw_sql(
             query=f"REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {activity_model.username};"
