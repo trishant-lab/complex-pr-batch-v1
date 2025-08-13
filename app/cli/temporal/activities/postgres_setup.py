@@ -774,13 +774,14 @@ class RevokeAllPrivilegesOnTableActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_db_manager()
+        main_db: DBManager = await get_super_admin_db_manager()
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
 
-        await db.execute_raw_sql(query=f"REVOKE ALL ON DATABASE dexit FROM {activity_model.username};")
+        await main_db.execute_raw_sql(query=f"REVOKE ALL ON DATABASE {activity_model.database_name} FROM {activity_model.username};")
+        await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
         await db.execute_raw_sql(
             query=f"REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {activity_model.username};"
         )
-        await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
         log_info(
             f"Revoked all privileges on all tables in schema public for user {activity_model.username} successfully."
         )
