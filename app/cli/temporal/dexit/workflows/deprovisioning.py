@@ -275,7 +275,7 @@ class DexitDeProvisioningWorkflow(Workflow):
                     database_name=f"dexit_dicom_{tenant}",
                 ),
             )
-            
+
             await run_activity(
                 activity=RevokeKeycloakUserMappingActivity,
                 arg=KeycloakUserMappingActivityModel(
