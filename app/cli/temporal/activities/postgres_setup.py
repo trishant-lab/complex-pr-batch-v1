@@ -788,6 +788,7 @@ class RevokeAllPrivilegesOnTableActivity(Activity):
             f"Revoked all privileges on all tables in schema public for user {activity_model.username} successfully."
         )
 
+
 class RevokeOwnershipOnTableActivity(Activity):
     """
     RevokeAllPrivilegesOnTableActivity
@@ -817,16 +818,11 @@ class RevokeOwnershipOnTableActivity(Activity):
         """
         Setup postgres
         """
-        main_db: DBManager = await get_super_admin_db_manager()
-        main_db.execute_raw_sql(
-            query=f"REASSIGN OWNED BY {activity_model.username} TO postgres;"
-            )
-        main_db.execute_raw_sql(
-            query=f"DROP OWNED BY {activity_model.username};"
-            )
-        log_info(
-            f"Revoked ownership on all tables in schema public for user {activity_model.username} successfully."
-        )
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        await db.execute_raw_sql(query=f"REASSIGN OWNED BY {activity_model.username} TO postgres;")
+        await db.execute_raw_sql(query=f"DROP OWNED BY {activity_model.username};")
+        log_info(f"Revoked ownership on all tables in schema public for user {activity_model.username} successfully.")
+
 
 class DeletePostgresSchemaActivityModel(LaunchpadCLIBaseModel):
     """
