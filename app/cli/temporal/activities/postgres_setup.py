@@ -878,9 +878,9 @@ class PosthogGrantAllPrivilegesActivityModel(LaunchpadCLIBaseModel):
     schema_name: str
 
 
-class PosthogGrantAllPrivilegesActivity(Activity):
+class PosthogGrantSchemaPrivilegesActivity(Activity):
     """
-    PosthogGrantAllPrivilegesActivity
+    PosthogGrantSchemaPrivilegesActivity - Grants all privileges on schema
     """
 
     @staticmethod
@@ -902,10 +902,10 @@ class PosthogGrantAllPrivilegesActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="PosthogGrantAllPrivilegesActivity")
+    @activity.defn(name="PosthogGrantSchemaPrivilegesActivity")
     async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
         """
-        Setup postgres
+        Grant all privileges on schema to PostHog user
         """
         try:
             db: DBManager = await get_super_admin_for_database(activity_model.database_name)
@@ -913,24 +913,134 @@ class PosthogGrantAllPrivilegesActivity(Activity):
                 query=f'GRANT ALL PRIVILEGES ON SCHEMA "{activity_model.schema_name}" '
                 f"TO {activity_model.posthog_username};",
             )
+        except Exception as e:
+            log_error(
+                f"Failed to grant schema privileges to user {activity_model.posthog_username} "
+                f"on schema {activity_model.schema_name}: {e=}"
+            )
+
+
+class PosthogGrantSequencePrivilegesActivity(Activity):
+    """
+    PosthogGrantSequencePrivilegesActivity - Grants all privileges on sequences
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PosthogGrantSequencePrivilegesActivity")
+    async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
+        """
+        Grant all privileges on sequences to PostHog user
+        """
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
             await db.execute_raw_sql(
                 query=f'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "{activity_model.schema_name}" '
                 f"TO {activity_model.posthog_username};",
             )
+        except Exception as e:
+            log_error(
+                f"Failed to grant sequence privileges to user {activity_model.posthog_username} "
+                f"on schema {activity_model.schema_name}: {e=}"
+            )
+
+
+class PosthogGrantTablePrivilegesActivity(Activity):
+    """
+    PosthogGrantTablePrivilegesActivity - Grants all privileges on tables
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PosthogGrantTablePrivilegesActivity")
+    async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
+        """
+        Grant all privileges on tables to PostHog user
+        """
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
             await db.execute_raw_sql(
                 query=f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "{activity_model.schema_name}" '
                 f"TO {activity_model.posthog_username};",
             )
-            await db.execute_raw_sql(
-                query=f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA "{activity_model.schema_name}"'
-                f"TO {activity_model.posthog_username};",
+        except Exception as e:
+            log_error(
+                f"Failed to grant table privileges to user {activity_model.posthog_username} "
+                f"on schema {activity_model.schema_name}: {e=}"
             )
-            log_info(
-                f"Granted user {activity_model.posthog_username} all privileges on "
-                f"schema {activity_model.schema_name} successfully."
+
+
+class PosthogGrantFunctionPrivilegesActivity(Activity):
+    """
+    PosthogGrantFunctionPrivilegesActivity - Grants all privileges on functions
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PosthogGrantFunctionPrivilegesActivity")
+    async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
+        """
+        Grant all privileges on functions to PostHog user
+        """
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA "{activity_model.schema_name}" '
+                f"TO {activity_model.posthog_username};",
             )
         except Exception as e:
             log_error(
-                f"Failed to grant privileges to user {activity_model.posthog_username} "
+                f"Failed to grant function privileges to user {activity_model.posthog_username} "
                 f"on schema {activity_model.schema_name}: {e=}"
             )

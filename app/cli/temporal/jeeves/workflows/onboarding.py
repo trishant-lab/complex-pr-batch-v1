@@ -96,8 +96,11 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresSupavisorPollUserActivityModel,
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
-    PosthogGrantAllPrivilegesActivity,
     PosthogGrantAllPrivilegesActivityModel,
+    PosthogGrantFunctionPrivilegesActivity,
+    PosthogGrantSchemaPrivilegesActivity,
+    PosthogGrantSequencePrivilegesActivity,
+    PosthogGrantTablePrivilegesActivity,
 )
 from app.cli.temporal.activities.redis import (
     RedisSetupActivity,
@@ -219,7 +222,10 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakCreateGroupActivity.defn,
             KeycloakOrganisationSetupActivity.defn,
             CopyThumbnailTemplateActivity.defn,
-            PosthogGrantAllPrivilegesActivity.defn,
+            PosthogGrantSchemaPrivilegesActivity.defn,
+            PosthogGrantSequencePrivilegesActivity.defn,
+            PosthogGrantTablePrivilegesActivity.defn,
+            PosthogGrantFunctionPrivilegesActivity.defn,
         ]
 
     @classmethod
@@ -453,7 +459,34 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=PosthogGrantAllPrivilegesActivity,
+                activity=PosthogGrantTablePrivilegesActivity,
+                arg=PosthogGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PosthogGrantSequencePrivilegesActivity,
+                arg=PosthogGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PosthogGrantFunctionPrivilegesActivity,
+                arg=PosthogGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PosthogGrantSchemaPrivilegesActivity,
                 arg=PosthogGrantAllPrivilegesActivityModel(
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
