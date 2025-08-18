@@ -8,6 +8,7 @@
     "_allow-delete-asset",
     "_can-manage-user",
     "_access-setting",
+    "_access-assignment",
     "_access-broadcast",
     "_access-user-list"
   ],
