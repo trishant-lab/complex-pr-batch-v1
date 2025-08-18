@@ -88,19 +88,19 @@ from app.cli.temporal.activities.postgres_setup import (
     MatomoUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
+    PostgresGrantAllPrivilegesActivityModel,
+    PostgresGrantAllPrivilegesOnFunctionsActivity,
+    PostgresGrantAllPrivilegesOnSchemaActivity,
+    PostgresGrantAllPrivilegesOnSequencesActivity,
     PostgresGrantAllPrivilegesOnTableActivity,
     PostgresGrantAllPrivilegesOnTableActivityModel,
+    PostgresGrantAllPrivilegesOnTablesActivity,
     PostgresSchemaCreationActivity,
     PostgresSchemaCreationActivityModel,
     PostgresSupavisorPollUserActivity,
     PostgresSupavisorPollUserActivityModel,
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
-    PosthogGrantAllPrivilegesActivityModel,
-    PosthogGrantFunctionPrivilegesActivity,
-    PosthogGrantSchemaPrivilegesActivity,
-    PosthogGrantSequencePrivilegesActivity,
-    PosthogGrantTablePrivilegesActivity,
 )
 from app.cli.temporal.activities.redis import (
     RedisSetupActivity,
@@ -222,10 +222,10 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakCreateGroupActivity.defn,
             KeycloakOrganisationSetupActivity.defn,
             CopyThumbnailTemplateActivity.defn,
-            PosthogGrantSchemaPrivilegesActivity.defn,
-            PosthogGrantSequencePrivilegesActivity.defn,
-            PosthogGrantTablePrivilegesActivity.defn,
-            PosthogGrantFunctionPrivilegesActivity.defn,
+            PostgresGrantAllPrivilegesOnSchemaActivity.defn,
+            PostgresGrantAllPrivilegesOnSequencesActivity.defn,
+            PostgresGrantAllPrivilegesOnTablesActivity.defn,
+            PostgresGrantAllPrivilegesOnFunctionsActivity.defn,
         ]
 
     @classmethod
@@ -459,8 +459,8 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=PosthogGrantTablePrivilegesActivity,
-                arg=PosthogGrantAllPrivilegesActivityModel(
+                activity=PostgresGrantAllPrivilegesOnTablesActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
@@ -468,8 +468,8 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=PosthogGrantSequencePrivilegesActivity,
-                arg=PosthogGrantAllPrivilegesActivityModel(
+                activity=PostgresGrantAllPrivilegesOnSequencesActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
@@ -477,8 +477,8 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=PosthogGrantFunctionPrivilegesActivity,
-                arg=PosthogGrantAllPrivilegesActivityModel(
+                activity=PostgresGrantAllPrivilegesOnFunctionsActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
@@ -486,8 +486,8 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=PosthogGrantSchemaPrivilegesActivity,
-                arg=PosthogGrantAllPrivilegesActivityModel(
+                activity=PostgresGrantAllPrivilegesOnSchemaActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,

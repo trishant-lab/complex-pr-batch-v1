@@ -868,9 +868,9 @@ class DeletePostgresSchemaActivity(Activity):
         log_info(f"Deleted schema {activity_model.schema_name} successfully.")
 
 
-class PosthogGrantAllPrivilegesActivityModel(LaunchpadCLIBaseModel):
+class PostgresGrantAllPrivilegesActivityModel(LaunchpadCLIBaseModel):
     """
-    PosthogGrantAllPrivilegesActivityModel
+    PostgresGrantAllPrivilegesActivityModel
     """
 
     posthog_username: str
@@ -878,9 +878,9 @@ class PosthogGrantAllPrivilegesActivityModel(LaunchpadCLIBaseModel):
     schema_name: str
 
 
-class PosthogGrantSchemaPrivilegesActivity(Activity):
+class PostgresGrantAllPrivilegesOnSchemaActivity(Activity):
     """
-    PosthogGrantSchemaPrivilegesActivity - Grants all privileges on schema
+    PostgresGrantAllPrivilegesOnSchemaActivity - Grants all privileges on schema
     """
 
     @staticmethod
@@ -902,8 +902,8 @@ class PosthogGrantSchemaPrivilegesActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="PosthogGrantSchemaPrivilegesActivity")
-    async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
+    @activity.defn(name="PostgresGrantAllPrivilegesOnSchemaActivity")
+    async def defn(activity_model: PostgresGrantAllPrivilegesActivityModel) -> None:
         """
         Grant all privileges on schema to PostHog user
         """
@@ -920,9 +920,9 @@ class PosthogGrantSchemaPrivilegesActivity(Activity):
             )
 
 
-class PosthogGrantSequencePrivilegesActivity(Activity):
+class PostgresGrantAllPrivilegesOnSequencesActivity(Activity):
     """
-    PosthogGrantSequencePrivilegesActivity - Grants all privileges on sequences
+    PostgresGrantAllPrivilegesOnSequencesActivity - Grants all privileges on sequences
     """
 
     @staticmethod
@@ -944,8 +944,8 @@ class PosthogGrantSequencePrivilegesActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="PosthogGrantSequencePrivilegesActivity")
-    async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
+    @activity.defn(name="PostgresGrantAllPrivilegesOnSequencesActivity")
+    async def defn(activity_model: PostgresGrantAllPrivilegesActivityModel) -> None:
         """
         Grant all privileges on sequences to PostHog user
         """
@@ -962,9 +962,9 @@ class PosthogGrantSequencePrivilegesActivity(Activity):
             )
 
 
-class PosthogGrantTablePrivilegesActivity(Activity):
+class PostgresGrantAllPrivilegesOnTablesActivity(Activity):
     """
-    PosthogGrantTablePrivilegesActivity - Grants all privileges on tables
+    PostgresGrantAllPrivilegesOnTablesActivity - Grants all privileges on tables
     """
 
     @staticmethod
@@ -986,8 +986,8 @@ class PosthogGrantTablePrivilegesActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="PosthogGrantTablePrivilegesActivity")
-    async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
+    @activity.defn(name="PostgresGrantAllPrivilegesOnTablesActivity")
+    async def defn(activity_model: PostgresGrantAllPrivilegesActivityModel) -> None:
         """
         Grant all privileges on tables to PostHog user
         """
@@ -1004,9 +1004,9 @@ class PosthogGrantTablePrivilegesActivity(Activity):
             )
 
 
-class PosthogGrantFunctionPrivilegesActivity(Activity):
+class PostgresGrantAllPrivilegesOnFunctionsActivity(Activity):
     """
-    PosthogGrantFunctionPrivilegesActivity - Grants all privileges on functions
+    PostgresGrantAllPrivilegesOnFunctionsActivity - Grants all privileges on functions
     """
 
     @staticmethod
@@ -1028,8 +1028,8 @@ class PosthogGrantFunctionPrivilegesActivity(Activity):
         )
 
     @staticmethod
-    @activity.defn(name="PosthogGrantFunctionPrivilegesActivity")
-    async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
+    @activity.defn(name="PostgresGrantAllPrivilegesOnFunctionsActivity")
+    async def defn(activity_model: PostgresGrantAllPrivilegesActivityModel) -> None:
         """
         Grant all privileges on functions to PostHog user
         """
