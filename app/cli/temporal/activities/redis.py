@@ -322,7 +322,7 @@ class RedisSetupActivity(Activity):
                             containers=[
                                 V1Container(
                                     name=CACHE_SERVICE_NAME,
-                                    image="apache/kvrocks:2.5.1",
+                                    image="apache/kvrocks:2.12.1",
                                     args=["--requirepass", "$(REDIS_PASSWORD)", "--config", CONFIG_VOLUME_MOUNT_PATH],
                                     ports=[V1ContainerPort(container_port=CACHE_PORT, protocol="TCP")],
                                     image_pull_policy="Always",

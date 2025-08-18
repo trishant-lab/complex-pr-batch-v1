@@ -88,8 +88,13 @@ from app.cli.temporal.activities.postgres_setup import (
     MatomoUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
+    PostgresGrantAllPrivilegesActivityModel,
+    PostgresGrantAllPrivilegesOnFunctionsActivity,
+    PostgresGrantAllPrivilegesOnSchemaActivity,
+    PostgresGrantAllPrivilegesOnSequencesActivity,
     PostgresGrantAllPrivilegesOnTableActivity,
     PostgresGrantAllPrivilegesOnTableActivityModel,
+    PostgresGrantAllPrivilegesOnTablesActivity,
     PostgresSchemaCreationActivity,
     PostgresSchemaCreationActivityModel,
     PostgresSupavisorPollUserActivity,
@@ -217,6 +222,10 @@ class JeevesOnboardingWorkflow(Workflow):
             KeycloakCreateGroupActivity.defn,
             KeycloakOrganisationSetupActivity.defn,
             CopyThumbnailTemplateActivity.defn,
+            PostgresGrantAllPrivilegesOnSchemaActivity.defn,
+            PostgresGrantAllPrivilegesOnSequencesActivity.defn,
+            PostgresGrantAllPrivilegesOnTablesActivity.defn,
+            PostgresGrantAllPrivilegesOnFunctionsActivity.defn,
         ]
 
     @classmethod
@@ -310,6 +319,17 @@ class JeevesOnboardingWorkflow(Workflow):
                     server_item="application-config",
                     secret_name="ehr_field_to_match_user",
                     secret_value=jeeves_config.ehr_field_to_match_user,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="keycloak_auth_url",
+                    secret_value=f"https://{tenant}.{jeeves_config.domain_name}",
                 ),
             )
 
@@ -432,7 +452,45 @@ class JeevesOnboardingWorkflow(Workflow):
                         "matomo_log_link_visit_action_view",
                         "federated_identity",
                         "user_group_membership",
+                        "assetevents",
+                        "usersearches",
                     ],
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnTablesActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnSequencesActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnFunctionsActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAllPrivilegesOnSchemaActivity,
+                arg=PostgresGrantAllPrivilegesActivityModel(
+                    posthog_username=jeeves_config.posthog_username,
+                    database_name=postgres_database_name,
+                    schema_name=postgres_schema_name,
                 ),
             )
 
