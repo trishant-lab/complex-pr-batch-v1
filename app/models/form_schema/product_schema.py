@@ -184,6 +184,17 @@ class JeevesSchema(BaseFormSchema):
             "order": 7,
         },
     )
+    customerDomain: str = Field(
+        json_schema_extra={
+            "name": "customerDomain",
+            "label": "Customer Domain",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. zzzmedical.com",
+            "mapTo": "customerDomain",
+            "order": 8,
+        },
+    )
 
 
 class DexitSchema(BaseFormSchema):
@@ -491,7 +502,6 @@ class PricedxSchema(BaseFormSchema):
         if tenant:
             values["url"] = f"https://{tenant}.{settings.tenant_fqdn}"
         return values
-
 
 
 class MuspellSchema(BaseFormSchema):
