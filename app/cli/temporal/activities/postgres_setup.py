@@ -866,3 +866,71 @@ class DeletePostgresSchemaActivity(Activity):
 
         await db.execute_raw_sql(query=f"DROP SCHEMA IF EXISTS {activity_model.schema_name} CASCADE;")
         log_info(f"Deleted schema {activity_model.schema_name} successfully.")
+
+
+class PosthogGrantAllPrivilegesActivityModel(LaunchpadCLIBaseModel):
+    """
+    PosthogGrantAllPrivilegesActivityModel
+    """
+
+    posthog_username: str
+    database_name: str
+    schema_name: str
+
+
+class PosthogGrantAllPrivilegesActivity(Activity):
+    """
+    PosthogGrantAllPrivilegesActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PosthogGrantAllPrivilegesActivity")
+    async def defn(activity_model: PosthogGrantAllPrivilegesActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON SCHEMA "{activity_model.schema_name}" '
+                f"TO {activity_model.posthog_username};",
+            )
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "{activity_model.schema_name}" '
+                f"TO {activity_model.posthog_username};",
+            )
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "{activity_model.schema_name}" '
+                f"TO {activity_model.posthog_username};",
+            )
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA "{activity_model.schema_name}"'
+                f"TO {activity_model.posthog_username};",
+            )
+            log_info(
+                f"Granted user {activity_model.posthog_username} all privileges on "
+                f"schema {activity_model.schema_name} successfully."
+            )
+        except Exception as e:
+            log_error(
+                f"Failed to grant privileges to user {activity_model.posthog_username} "
+                f"on schema {activity_model.schema_name}: {e=}"
+            )
