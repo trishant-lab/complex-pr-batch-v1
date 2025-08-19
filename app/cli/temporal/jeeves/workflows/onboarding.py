@@ -924,23 +924,23 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_payload={
                         "idp_config": jeeves_config.idp_config,
                         "auth_url": config.keycloak.auth_url,
-                        "customer_domain": customer_domain,
+                        "customer_domain": customer_domain or "",
                     },
                     is_prod=True,
                 ),
             )
-
-            await run_activity(
-                activity=KeycloakOrganisationSetupActivity,
-                arg=KeycloakOrganisationSetupActivityModel(
-                    tenant=tenant,
-                    realm_name="help",
-                    template_path=TemplatePath,
-                    template_name="keycloak_organisation.json",
-                    template_payload={"tenant": tenant, "customer_domain": customer_domain},
-                    is_prod=True,
-                ),
-            )
+            if customer_domain:
+                await run_activity(
+                    activity=KeycloakOrganisationSetupActivity,
+                    arg=KeycloakOrganisationSetupActivityModel(
+                        tenant=tenant,
+                        realm_name="help",
+                        template_path=TemplatePath,
+                        template_name="keycloak_organisation.json",
+                        template_payload={"tenant": tenant, "customer_domain": customer_domain},
+                        is_prod=True,
+                    ),
+                )
 
             # keycloak tenant customer admin user setup
             await run_activity(
