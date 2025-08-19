@@ -954,7 +954,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
-                    group_path="Admin",
+                    group_path=f"{ProductName}/Admin",
                 ),
             )
 
@@ -1000,9 +1000,15 @@ class JeevesOnboardingWorkflow(Workflow):
                             "firstname": "System",
                             "lastname": "User",
                         },
+                        {
+                            "username": "sumanth.sm@314ecorp.com",
+                            "email": "sumanth.sm@314ecorp.com",
+                            "firstname": "Sumanth",
+                            "lastname": "S M",
+                        },
                     ],
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
-                    group_path="Admin",
+                    group_path=f"{ProductName}/Admin",
                 ),
             )
 
