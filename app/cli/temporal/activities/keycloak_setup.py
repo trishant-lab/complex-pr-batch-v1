@@ -394,9 +394,11 @@ async def create_organisation(
         template_path=template_path, template_name=template_name, template_payload=template_payload
     )
     keycloak_client: KeycloakAdminClient = get_keycloak_manager(is_prod=is_prod)
-    keycloak_client.create_organisation(realm_name=realm_name, payload=ijson_loads(payload))
-    organisation_details: list = keycloak_client.get_all_organisations(realm_name=realm_name, query={"name": tenant})
-    organisation_id: str = organisation_details[0]["id"]
+    keycloak_client.create_organisation(realm_name=realm_name, payload=payload)
+    organisation_details: list = keycloak_client.get_all_organisations(realm_name=realm_name)
+    organisation_id: str = next(
+        organisation["id"] for organisation in organisation_details if organisation["name"] == tenant
+    )
     keycloak_client.add_organisation_idp(
         realm_name=realm_name, organization_id=organisation_id, idp_alias=f"jeeves-{tenant}"
     )
