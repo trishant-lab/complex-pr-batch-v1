@@ -300,7 +300,11 @@ async def create_keycloak_group(
             role["id"]: role["name"]
             for role in keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
         }
-        group_id = keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_name)
+        group_id = (
+            keycloak_client.get_group_id_by_path(realm_name=realm_name, path=f"{parent_group_name}/{group_name}")
+            if parent_group_name
+            else keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_name)
+        )
         if client_roles and set(roles).issubset(set(client_roles.values())):
             keycloak_client.assign_role_to_group(
                 group_id=group_id,
