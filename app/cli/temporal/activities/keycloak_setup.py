@@ -278,6 +278,7 @@ async def create_keycloak_group(
     client_name: str,
     template_path: str,
     template_name: str,
+    parent_group_name: str | None = None,
 ) -> None:
     """
     Create keycloak group
@@ -288,9 +289,13 @@ async def create_keycloak_group(
 
     opendal_file_operations = get_opendal_file_client()
     user_groups = ijson_loads(await opendal_file_operations.read_file_str(f"{template_path}/{template_name}"))
-
+    parent_group_id = (
+        keycloak_client.get_group_id_by_path(realm_name=realm_name, path=parent_group_name)
+        if parent_group_name
+        else None
+    )
     for group_name, roles in user_groups.items():
-        keycloak_client.create_group(payload={"name": group_name}, realm_name=realm_name)
+        keycloak_client.create_group(payload={"name": group_name}, realm_name=realm_name, parent_id=parent_group_id)
         client_roles = {
             role["id"]: role["name"]
             for role in keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
@@ -1058,6 +1063,7 @@ class KeycloakCreateGroupActivityModel(LaunchpadCLIBaseModel):
     client_name: str
     template_path: str
     template_name: str
+    parent_group_name: str | None = None
 
 
 class KeycloakCreateGroupActivity(Activity):
@@ -1090,6 +1096,7 @@ class KeycloakCreateGroupActivity(Activity):
             client_name=activity_model.client_name,
             template_path=activity_model.template_path,
             template_name=activity_model.template_name,
+            parent_group_name=activity_model.parent_group_name,
         )
 
         log_info("Created keycloak Groups successfully")

@@ -878,6 +878,16 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
+            await run_activity(
+                activity=KeycloakCreateGroupActivity,
+                arg=KeycloakCreateGroupActivityModel(
+                    realm_name=realm_name,
+                    client_name="jeeves",
+                    template_path=TemplatePath,
+                    template_name="keycloak_jeeves_group.json",
+                ),
+            )
+
             # keycloak user group setup
             await run_activity(
                 activity=KeycloakCreateGroupActivity,
@@ -886,6 +896,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     client_name="jeeves",
                     template_path=TemplatePath,
                     template_name="keycloak_user_group.json",
+                    parent_group_name=ProductName,
                 ),
             )
 

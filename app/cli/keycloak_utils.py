@@ -257,13 +257,13 @@ class KeycloakAdminClient:
         if client_name in clients:
             self.kc_client.delete_client(client_name)
 
-    def create_group(self: "KeycloakAdminClient", realm_name: str, payload: dict) -> None:
+    def create_group(self: "KeycloakAdminClient", realm_name: str, payload: dict, parent_id: str | None = None) -> None:
         """
         Creates groups with the given payload
         """
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
-        self.kc_client.create_group(payload=payload, skip_exists=True)
+        self.kc_client.create_group(payload=payload, skip_exists=True, parent=parent_id)
 
     def get_group_id_by_path(self: "KeycloakAdminClient", realm_name: str, path: str) -> str:
         """
