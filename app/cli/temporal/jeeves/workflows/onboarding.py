@@ -70,7 +70,6 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
     get_ehr_based_idp_template,
-    KeycloakOrganisationSetupActivityModel,
     KeycloakOrganisationSetupActivity,
 )
 from app.cli.temporal.activities.one_password import (
@@ -929,18 +928,18 @@ class JeevesOnboardingWorkflow(Workflow):
                     is_prod=True,
                 ),
             )
-            if customer_domain:
-                await run_activity(
-                    activity=KeycloakOrganisationSetupActivity,
-                    arg=KeycloakOrganisationSetupActivityModel(
-                        tenant=tenant,
-                        realm_name="help",
-                        template_path=TemplatePath,
-                        template_name="keycloak_organisation.json",
-                        template_payload={"tenant": tenant, "customer_domain": customer_domain},
-                        is_prod=True,
-                    ),
-                )
+            # if customer_domain:
+            #     await run_activity(
+            #         activity=KeycloakOrganisationSetupActivity,
+            #         arg=KeycloakOrganisationSetupActivityModel(
+            #             tenant=tenant,
+            #             realm_name="help",
+            #             template_path=TemplatePath,
+            #             template_name="keycloak_organisation.json",
+            #             template_payload={"tenant": tenant, "customer_domain": customer_domain},
+            #             is_prod=True,
+            #         ),
+            #     )
 
             # keycloak tenant customer admin user setup
             await run_activity(
