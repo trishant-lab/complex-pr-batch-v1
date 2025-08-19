@@ -257,13 +257,13 @@ class KeycloakAdminClient:
         if client_name in clients:
             self.kc_client.delete_client(client_name)
 
-    def create_group(self: "KeycloakAdminClient", realm_name: str, payload: dict) -> None:
+    def create_group(self: "KeycloakAdminClient", realm_name: str, payload: dict, parent_id: str | None = None) -> None:
         """
         Creates groups with the given payload
         """
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
-        self.kc_client.create_group(payload=payload, skip_exists=True)
+        self.kc_client.create_group(payload=payload, skip_exists=True, parent=parent_id)
 
     def get_group_id_by_path(self: "KeycloakAdminClient", realm_name: str, path: str) -> str:
         """
@@ -322,21 +322,27 @@ class KeycloakAdminClient:
             return
         log_info(f"Identity provider {idp_alias} not found in realm {realm_name}")
 
-    def create_organisation(self: "KeycloakAdminClient", payload: dict, realm_name: str) -> None:
+    def create_organisation(self: "KeycloakAdminClient", payload: str, realm_name: str) -> None:
         """
         Create Organisation
         """
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
-        self.kc_client.create_organization(payload=payload)
+        self.kc_client.connection.raw_post(
+            f"admin/realms/{realm_name}/organizations",
+            data=payload,
+        )
 
-    def get_all_organisations(self: "KeycloakAdminClient", realm_name: str, query: dict | None = None) -> list:
+    def get_all_organisations(self: "KeycloakAdminClient", realm_name: str) -> list:
         """
         Get All Organisations
         """
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
-        return self.kc_client.get_organizations(query=query)
+        response = self.kc_client.connection.raw_get(
+            f"admin/realms/{realm_name}/organizations",
+        )
+        return response.json()
 
     def add_organisation_idp(
         self: "KeycloakAdminClient", realm_name: str, organization_id: str, idp_alias: str
@@ -346,7 +352,10 @@ class KeycloakAdminClient:
         """
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
-        self.kc_client.organization_idp_add(organization_id=organization_id, idp_alias=idp_alias)
+        self.kc_client.connection.raw_post(
+            f"admin/realms/{realm_name}/organizations/{organization_id}/identity-providers",
+            idp_alias,
+        )
 
 
 @lru_cache

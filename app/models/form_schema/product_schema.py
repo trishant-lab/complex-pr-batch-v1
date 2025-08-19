@@ -184,7 +184,8 @@ class JeevesSchema(BaseFormSchema):
             "order": 7,
         },
     )
-    customerDomain: str = Field(
+    customerDomain: str | None = Field(
+        default=None,
         json_schema_extra={
             "name": "customerDomain",
             "label": "Customer Domain",
