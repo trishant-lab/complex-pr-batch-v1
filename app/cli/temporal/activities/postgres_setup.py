@@ -342,6 +342,42 @@ class KeycloakUserMappingActivity(Activity):
         log_info("Created user mapping for keycloak database successfully.")
 
 
+class RevokeKeycloakUserMappingActivity(Activity):
+    """
+    RevokeKeycloakUserMappingActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="RevokeKeycloakUserMappingActivity")
+    async def defn(activity_model: KeycloakUserMappingActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        await db.execute_raw_sql(
+            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER keycloak_server;",
+        )
+        log_info("Revoked user mapping for keycloak database successfully.")
+
+
 class MatomoUserMappingActivityModel(LaunchpadCLIBaseModel):
     """
     MatomoUserMappingActivityModel
@@ -387,6 +423,42 @@ class MatomoUserMappingActivity(Activity):
             f"(username 'matomo_fdw', password '{config.matomo_db_password}');",
         )
         log_info("Created user mapping for matomo database successfully.")
+
+
+class RevokeMatomoUserMappingActivity(Activity):
+    """
+    RevokeMatomoUserMappingActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="RevokeMatomoUserMappingActivity")
+    async def defn(activity_model: MatomoUserMappingActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        await db.execute_raw_sql(
+            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER matomo_server;",
+        )
+        log_info("Revoked user mapping for matomo database successfully.")
 
 
 class TableSpaceActivityModel(LaunchpadCLIBaseModel):
@@ -673,6 +745,85 @@ class DeletePostgresUserActivity(Activity):
         log_info(f"Deleted user {activity_model.username} successfully.")
 
 
+class RevokeAllPrivilegesOnTableActivity(Activity):
+    """
+    RevokeAllPrivilegesOnTableActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="RevokeAllPrivilegesOnTableActivity")
+    async def defn(activity_model: DeletePostgresUserActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        main_db: DBManager = await get_super_admin_db_manager()
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+
+        await main_db.execute_raw_sql(
+            query=f"REVOKE ALL ON DATABASE {activity_model.database_name} FROM {activity_model.username};"
+        )
+        await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
+        await db.execute_raw_sql(
+            query=f"REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {activity_model.username};"
+        )
+        log_info(
+            f"Revoked all privileges on all tables in schema public for user {activity_model.username} successfully."
+        )
+
+
+class RevokeOwnershipOnTableActivity(Activity):
+    """
+    RevokeAllPrivilegesOnTableActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="RevokeOwnershipOnTableActivity")
+    async def defn(activity_model: DeletePostgresUserActivityModel) -> None:
+        """
+        Setup postgres
+        """
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        await db.execute_raw_sql(query=f"REASSIGN OWNED BY {activity_model.username} TO postgres;")
+        await db.execute_raw_sql(query=f"DROP OWNED BY {activity_model.username};")
+        log_info(f"Revoked ownership on all tables in schema public for user {activity_model.username} successfully.")
+
+
 class DeletePostgresSchemaActivityModel(LaunchpadCLIBaseModel):
     """
     DeletePostgresSchemaActivityModel
@@ -715,3 +866,181 @@ class DeletePostgresSchemaActivity(Activity):
 
         await db.execute_raw_sql(query=f"DROP SCHEMA IF EXISTS {activity_model.schema_name} CASCADE;")
         log_info(f"Deleted schema {activity_model.schema_name} successfully.")
+
+
+class PostgresGrantAllPrivilegesActivityModel(LaunchpadCLIBaseModel):
+    """
+    PostgresGrantAllPrivilegesActivityModel
+    """
+
+    posthog_username: str
+    database_name: str
+    schema_name: str
+
+
+class PostgresGrantAllPrivilegesOnSchemaActivity(Activity):
+    """
+    PostgresGrantAllPrivilegesOnSchemaActivity - Grants all privileges on schema
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PostgresGrantAllPrivilegesOnSchemaActivity")
+    async def defn(activity_model: PostgresGrantAllPrivilegesActivityModel) -> None:
+        """
+        Grant all privileges on schema to PostHog user
+        """
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON SCHEMA "{activity_model.schema_name}" '
+                f"TO {activity_model.posthog_username};",
+            )
+        except Exception as e:
+            log_error(
+                f"Failed to grant schema privileges to user {activity_model.posthog_username} "
+                f"on schema {activity_model.schema_name}: {e=}"
+            )
+
+
+class PostgresGrantAllPrivilegesOnSequencesActivity(Activity):
+    """
+    PostgresGrantAllPrivilegesOnSequencesActivity - Grants all privileges on sequences
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PostgresGrantAllPrivilegesOnSequencesActivity")
+    async def defn(activity_model: PostgresGrantAllPrivilegesActivityModel) -> None:
+        """
+        Grant all privileges on sequences to PostHog user
+        """
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "{activity_model.schema_name}" '
+                f"TO {activity_model.posthog_username};",
+            )
+        except Exception as e:
+            log_error(
+                f"Failed to grant sequence privileges to user {activity_model.posthog_username} "
+                f"on schema {activity_model.schema_name}: {e=}"
+            )
+
+
+class PostgresGrantAllPrivilegesOnTablesActivity(Activity):
+    """
+    PostgresGrantAllPrivilegesOnTablesActivity - Grants all privileges on tables
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PostgresGrantAllPrivilegesOnTablesActivity")
+    async def defn(activity_model: PostgresGrantAllPrivilegesActivityModel) -> None:
+        """
+        Grant all privileges on tables to PostHog user
+        """
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "{activity_model.schema_name}" '
+                f"TO {activity_model.posthog_username};",
+            )
+        except Exception as e:
+            log_error(
+                f"Failed to grant table privileges to user {activity_model.posthog_username} "
+                f"on schema {activity_model.schema_name}: {e=}"
+            )
+
+
+class PostgresGrantAllPrivilegesOnFunctionsActivity(Activity):
+    """
+    PostgresGrantAllPrivilegesOnFunctionsActivity - Grants all privileges on functions
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PostgresGrantAllPrivilegesOnFunctionsActivity")
+    async def defn(activity_model: PostgresGrantAllPrivilegesActivityModel) -> None:
+        """
+        Grant all privileges on functions to PostHog user
+        """
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(
+                query=f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA "{activity_model.schema_name}" '
+                f"TO {activity_model.posthog_username};",
+            )
+        except Exception as e:
+            log_error(
+                f"Failed to grant function privileges to user {activity_model.posthog_username} "
+                f"on schema {activity_model.schema_name}: {e=}"
+            )

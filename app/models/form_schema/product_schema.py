@@ -184,6 +184,18 @@ class JeevesSchema(BaseFormSchema):
             "order": 7,
         },
     )
+    customerDomain: str | None = Field(
+        default=None,
+        json_schema_extra={
+            "name": "customerDomain",
+            "label": "Customer Domain",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. zzzmedical.com",
+            "mapTo": "customerDomain",
+            "order": 8,
+        },
+    )
 
 
 class DexitSchema(BaseFormSchema):

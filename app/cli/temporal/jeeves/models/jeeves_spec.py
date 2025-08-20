@@ -19,5 +19,6 @@ class JeevesSpec(BaseSpec):
     emailSent: bool = False
     is_deployment: bool = False
     organization: str | None = None
+    customerDomain: str | None = None
     serverSpec: ResourceSpec | None = ResourceSpec()
     cliSpec: ResourceSpec | None = ResourceSpec()

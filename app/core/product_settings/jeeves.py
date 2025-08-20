@@ -65,3 +65,4 @@ class JeevesSettings(BaseModel):
     keycloak_attribute_to_match_user: str = "username"
     ehr_field_to_match_user: str = "SYSLOGIN"
     email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
+    posthog_username: str = "posthog_ro"
