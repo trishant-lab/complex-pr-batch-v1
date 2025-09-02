@@ -151,11 +151,14 @@ def validate_product_schema(product: ProductEnum, product_schema: list[dict]) ->
         model_field = model_fields[mapping]
         field_type = field_info["type"]
 
+        if model_field.is_required():
+            if not field_info["required"]:
+                raise ValueError(f"Field '{field_info['field_name']}' is required but the schema indicates it is not")
+            if field_type not in TYPE_MAPPING:
+                raise ValueError(f"Field '{field_info['field_name']}' type doesn't match TYPE_MAPPING")
+
         if field_type not in TYPE_MAPPING:
             continue
-
-        if model_field.is_required() and not field_info["required"]:
-            raise ValueError(f"Field '{field_info['field_name']}' is required but the schema indicates it is not")
 
         annotation = (
             tuple(t for t in model_field.annotation.__args__)

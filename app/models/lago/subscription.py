@@ -35,6 +35,8 @@ class SubscriptionResponse(BaseResponseModel):
     downgrade_plan_date: str | None = None
     current_billing_period_started_at: str | None = None
     current_billing_period_ending_at: str | None = None
+    on_termination_credit_note: str | None = None
+    on_termination_invoice: str | None = None
 
 
 class SubscriptionsResponse(BaseListResponseModel[SubscriptionResponse]):

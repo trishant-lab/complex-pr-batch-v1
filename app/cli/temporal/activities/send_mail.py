@@ -16,7 +16,9 @@ from app.template_env import get_env
 from app.utils.file_operations import get_opendal_file_client
 
 
-async def provisioning_success_mail(name: str, email: str, link: str, password: str, email_template: str) -> str:
+async def provisioning_success_mail(
+    name: str, email: str, link: str, password: str, email_template: str, product: str
+) -> str:
     """
     @param name:
     @param email:
@@ -38,12 +40,16 @@ async def provisioning_success_mail(name: str, email: str, link: str, password: 
         template_env.variable_start_string = "{{"
         template_env.variable_end_string = "}}"
         template = template_env.get_template("provisioning_success_mail.html")
-        return template.render(
+        content = template.render(
             user_name=name,
             email=email,
             environment_link=link,
             password=password,
         )
+        if product == "pricedx":
+            content = apply_theme_template(content, product)
+
+        return content
 
 
 async def send_customer_password_mail(
@@ -75,6 +81,7 @@ async def send_customer_password_mail(
         link=f"https://{tenant}.{domain_name}",
         password=password,
         email_template=response["template"],
+        product=product,
     )
     await send_mail(
         to_email=user_details.get("email"),
@@ -128,6 +135,26 @@ async def send_provisioning_mail(
     log_info(f"Tenant temporary credentials were sent {user_details.get('email')}")
 
 
+def apply_theme_template(content: str, product: str) -> str:
+    """
+    Apply theme template to content for specific products
+
+    @param content: The content to apply theme to
+    @param product: The product name (jeeves, pricedx, etc.)
+    @return: The themed content
+    """
+    theme_template_env = get_env(
+        template_path=os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            f"../{product}/templates",
+        )
+    )
+    theme_template_env.variable_start_string = "{{"
+    theme_template_env.variable_end_string = "}}"
+    template = theme_template_env.get_template("theme.html")
+    return template.render(body=content)
+
+
 async def send_before_provisioning_mail(user_details: dict, product: str, from_name: str, email_from: str) -> None:
     """
     Send mail to customer before provisioning
@@ -163,16 +190,7 @@ async def send_before_provisioning_mail(user_details: dict, product: str, from_n
             user_name=f"{user_details.get('firstName')} {user_details.get('lastName')}",
         )
         if product == "jeeves" or product == "pricedx":
-            theme_template_env = get_env(
-                template_path=os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)),
-                    f"../{product}/templates",
-                )
-            )
-            theme_template_env.variable_start_string = "{{"
-            theme_template_env.variable_end_string = "}}"
-            template = theme_template_env.get_template("theme.html")
-            content = template.render(body=content)
+            content = apply_theme_template(content, product)
 
     await send_mail(
         to_email=user_details.get("email"),

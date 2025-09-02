@@ -13,9 +13,7 @@ from app.cli.temporal.activities.cloudflare_setup import (
     PropagateDNSRecordActivity,
     UpdateCORSForBucketActivity,
 )
-from app.cli.temporal.activities.database_migration_job import (
-    DatabaseMigrationJobActivity,
-)
+
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
@@ -119,7 +117,6 @@ from app.core.settings import AppSettings, PricedxSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
-from app.utils.file_operations import get_opendal_file_client
 
 ProductName = "pricedx"
 OnePasswordVaultName = "Pricedx"
@@ -130,10 +127,6 @@ class PricedxOnboardingWorkflow(Workflow):
     """
     Pricedx Onboarding Workflow
     """
-
-    def __init__(self: "Workflow") -> None:
-        self.approved: bool = False
-        self.denied: bool = False
 
     @staticmethod
     def get_activities() -> list[type[Callable]]:  # type: ignore
@@ -152,7 +145,6 @@ class PricedxOnboardingWorkflow(Workflow):
             PostgresGrantAllPrivilegesOnTableActivity.defn,
             K8sNamespaceCreationActivity.defn,
             K8sSecretCreationActivity.defn,
-            DatabaseMigrationJobActivity.defn,
             RedisSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
             KeycloakClientSetupActivity.defn,
@@ -199,11 +191,10 @@ class PricedxOnboardingWorkflow(Workflow):
         last_name = pydash.get(pricedx, "lastName")
         email = pydash.get(pricedx, "email")
         tenant = pydash.get(pricedx, "tenant")
-        is_deployment = pydash.get(pricedx, "isDeployment")
         is_console = pydash.get(pricedx, "isConsole")
 
         try:
-            if not pydash.get(pricedx, "emailSent") and not is_deployment:
+            if not pydash.get(pricedx, "emailSent"):
                 await run_activity(
                     activity=SendBeforeProvisioningMailActivity,
                     arg=SendBeforeProvisioningMailActivityModel(
@@ -217,23 +208,6 @@ class PricedxOnboardingWorkflow(Workflow):
                         email_from=pricedx_config.sender_email,
                     ),
                 )
-
-            # Wait for approval or denial
-            if not is_deployment:
-                await workflow.wait_condition(lambda: self.approved or self.denied)
-
-            # Update tenant status if request is declined
-            if self.denied:
-                await run_activity(
-                    activity=UpdateTenantStatusActivity,
-                    arg=TenantCliStatus(
-                        tenant_name=tenant,
-                        status=TenantStatusEnum.ApprovalDeclined,
-                        error_msg="Request Declined",
-                        product=ProductEnum.pricedx,
-                    ),
-                )
-                return
 
             postgres_schema_name = tenant
             postgres_database_name = "pricedx"
@@ -277,7 +251,9 @@ class PricedxOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="pg_dsn",
-                    secret_value=pricedx_config.pg_dsn_template.format(tenant=tenant, password=postgres_password),
+                    secret_value=pricedx_config.pg_dsn_template.format(
+                        tenant=tenant, password=postgres_password, schema_name=postgres_schema_name
+                    ),
                 ),
             )
 
@@ -445,7 +421,7 @@ class PricedxOnboardingWorkflow(Workflow):
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
-            bundle_path = "bundle/dist"
+            bundle_path = "bundle/tenant-dist"
 
             # copy artifacts to bucket
             await run_activity(
@@ -511,7 +487,7 @@ class PricedxOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                     template_payload={
-                        "company_name": pydash.get(pricedx, "companyName"),
+                        "company_name": tenant,
                     },
                 ),
             )
@@ -560,7 +536,6 @@ class PricedxOnboardingWorkflow(Workflow):
             )
 
             # keycloak internal users setup
-            opendal_file_operations = get_opendal_file_client()
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
@@ -568,9 +543,14 @@ class PricedxOnboardingWorkflow(Workflow):
                     client_name="pricedx",
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=ijson_loads(
-                        await opendal_file_operations.read_file_str(f"{TemplatePath}/{config.env}_internal_users.json")
-                    ),
+                    users=[
+                        {
+                            "username": pricedx_config.sendgrid.support_mail,
+                            "email": pricedx_config.sendgrid.support_mail,
+                            "firstname": "Admin",
+                            "lastname": "",
+                        },
+                    ],
                     roles=roles,
                 ),
             )
@@ -692,24 +672,24 @@ class PricedxOnboardingWorkflow(Workflow):
                     tenant_name=tenant, status=TenantStatusEnum.Provisioned, product=ProductEnum.pricedx
                 ),
             )
+
             # Send after provisioning mail
-            if not is_deployment:
-                await run_activity(
-                    activity=SendAfterProvisioningMailActivity,
-                    arg=SendAfterProvisioningMailActivityModel(
-                        realm_name=realm_name,
-                        tenant=tenant,
-                        user_details={
-                            "firstName": first_name,
-                            "lastName": last_name,
-                            "email": email,
-                        },
-                        domain_name=pricedx_config.domain_name,
-                        product=ProductName,
-                        from_name=pricedx_config.sender_name,
-                        email_from=pricedx_config.sender_email,
-                    ),
-                )
+            await run_activity(
+                activity=SendAfterProvisioningMailActivity,
+                arg=SendAfterProvisioningMailActivityModel(
+                    realm_name=realm_name,
+                    tenant=tenant,
+                    user_details={
+                        "firstName": first_name,
+                        "lastName": last_name,
+                        "email": email,
+                    },
+                    domain_name=pricedx_config.domain_name,
+                    product=ProductName,
+                    from_name=pricedx_config.sender_name,
+                    email_from=pricedx_config.sender_email,
+                ),
+            )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
@@ -730,17 +710,3 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
             raise e
-
-    @workflow.signal
-    async def approve(self: "Workflow") -> None:
-        """
-        Signal to approve the workflow
-        """
-        self.approved = True
-
-    @workflow.signal
-    async def decline(self: "Workflow") -> None:
-        """
-        Signal to reject the workflow
-        """
-        self.denied = True
