@@ -68,7 +68,7 @@ async def payment_failure(customer_id: uuid.UUID, product: ProductEnum) -> None:
     if customer["status"] == TenantStatusEnum.Provisioned:
         subject = f"Payment Failure: Update Your Payment Method Now - {product.value}"
         fqdn = f"{app_config.tenant_fqdn}/sprint" if app_config.tenant_fqdn.endswith("work") else app_config.tenant_fqdn
-        accounts_link = f"{tenant_name}.{fqdn}/accounts"
+        accounts_link = f"{tenant_name}.{fqdn}/settings/organization/subscriptions/payment"
         plan_resp = lago_client.plans().find(plan_code)
         plan = PlanResponse.from_lago(plan_resp)
         content = payment_failure_mail(
