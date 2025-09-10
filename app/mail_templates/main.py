@@ -115,6 +115,24 @@ def periodic_invoice_mail(
                 support_email=settings.veritable.sendgrid.support_mail,
                 tenant_link=tenant_link,
             )
+
+        case ProductEnum.pricedx:
+            match subscription_type:
+                case SubscriptionType.renewal | SubscriptionType.downgrade:
+                    template = env.get_template("pricedx/periodic_invoice_mail.html")
+                case SubscriptionType.upgrade:
+                    template = env.get_template("pricedx/plan_upgrade_invoice_mail.html")
+                case SubscriptionType.initial:
+                    template = env.get_template("pricedx/payment_success.html")
+
+            return template.render(
+                user_name=name,
+                plan_name=plan_name,
+                plan_interval=plan_interval,
+                renew_date=renew_date,
+                support_email=settings.pricedx.sendgrid.support_mail,
+                tenant_link=tenant_link,
+            )
         case _:
             raise ValueError(f"Not Implemented for product: {product.value}")
 

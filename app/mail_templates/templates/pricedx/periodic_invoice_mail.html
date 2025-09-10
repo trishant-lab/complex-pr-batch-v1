@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+  <span>Hello {{user_name}},</span>
+  <p>Your recurring service charge for PriceDx has been successfully processed.</p>
+  <p>Here are your subscription details: <br>
+     <span><strong>Plan Name:</strong> {{plan_name}}</span><br>
+     <span><strong>Billing Interval:</strong> {{plan_interval}}</span><br>
+     <span><strong>Renewal Date:</strong> {{renew_date}}</span><br></p>
+  <p>Please refer to the attached invoice for a charge breakdown.</p>
+  <p>We hope that PriceDx continues to add value to your practice operations, making your workflows smoother and more efficient. You can always access your PriceDx portal here <a href="{{ tenant_link}}">{{ tenant_link }}</a>.</p>
+  <p>Should you require any clarification or assistance, please do contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+  <p>Thank you for being a PriceDx customer!</p>
+  <br>
+    <p>Warm Regards,</p>
+    <p>Team PriceDx</p>
+    <p>E: <a href="mailto:developers@314ecorp.com">developers@314ecorp.com</a></p>
+    <p>W: <a href="https://www.314ecorp.com/">https://www.314ecorp.com/</a></p>
+</body>
+</html>

@@ -14,6 +14,7 @@ p, ZSEGMENT_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 p, MUSPELL_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/product/listAllProducts, GET
+p, PRICEDX_VIEW_GROUP, /api/v1/product/listAllProducts, GET
 
 p, ADMINS, /api/v1/product/{product}/getProductByName, GET
 p, JEEVES_VIEW_GROUP, /api/v1/product/Jeeves/getProductByName, GET
@@ -23,6 +24,7 @@ p, ZSEGMENT_VIEW_GROUP, /api/v1/product/Zsegment/getProductByName, GET
 p, MUSPELL_VIEW_GROUP, /api/v1/product/Muspell/getProductByName, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/product/Veritable/getProductByName, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/product/Practifly/getProductByName, GET
+p, PRICEDX_VIEW_GROUP, /api/v1/product/Pricedx/getProductByName, GET
 
 p, ADMINS, /api/v1/product/{product}/updateProductSchema, POST
 p, JEEVES_EDIT_GROUP, /api/v1/product/Jeeves/updateProductSchema, POST
@@ -32,6 +34,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/product/Zsegment/updateProductSchema, POST
 p, MUSPELL_EDIT_GROUP, /api/v1/product/Muspell/updateProductSchema, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/product/Veritable/updateProductSchema, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/product/Practifly/updateProductSchema, POST
+p, PRICEDX_EDIT_GROUP, /api/v1/product/Pricedx/updateProductSchema, POST
 
 p, ADMINS, /api/v1/product/{product}/renderForm, GET
 p, JEEVES_EDIT_GROUP, /api/v1/product/Jeeves/renderForm, GET
@@ -41,6 +44,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/product/Zsegment/renderForm, GET
 p, MUSPELL_EDIT_GROUP, /api/v1/product/Muspell/renderForm, GET
 p, VERITABLE_EDIT_GROUP, /api/v1/product/Veritable/renderForm, GET
 p, PRACTIFLY_EDIT_GROUP, /api/v1/product/Practifly/renderForm, GET
+p, PRICEDX_EDIT_GROUP, /api/v1/product/Pricedx/renderForm, GET
 
 p, ADMINS, /api/v1/tenant/{product}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves, GET
@@ -50,6 +54,7 @@ p, ZSEGMENT_VIEW_GROUP, /api/v1/tenant/Zsegment, GET
 p, MUSPELL_VIEW_GROUP, /api/v1/tenant/Muspell, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/tenant/Veritable, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/tenant/Practifly, GET
+p, PRICEDX_VIEW_GROUP, /api/v1/tenant/Pricedx, GET
 
 p, ADMINS, /api/v1/tenant/{product}/updateTenantDetails/{tenant_id}, PUT
 p, JEEVES_EDIT_GROUP, /api/v1/tenant/Jeeves/updateTenantDetails/{tenant_id}, PUT
@@ -59,6 +64,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/tenant/Zsegment/updateTenantDetails/{tenant_id},
 p, MUSPELL_EDIT_GROUP, /api/v1/tenant/Muspell/updateTenantDetails/{tenant_id}, PUT
 p, VERITABLE_EDIT_GROUP, /api/v1/tenant/Veritable/updateTenantDetails/{tenant_id}, PUT
 p, PRACTIFLY_EDIT_GROUP, /api/v1/tenant/Practifly/updateTenantDetails/{tenant_id}, PUT
+p, PRICEDX_EDIT_GROUP, /api/v1/tenant/Pricedx/updateTenantDetails/{tenant_id}, PUT
 
 p, ADMINS, /api/v1/tenant/{product}/keycloak/validateTenantName/{tenant_name}, GET
 p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves/keycloak/validateTenantName/{tenant_name}, GET
@@ -68,6 +74,7 @@ p, ZSEGMENT_VIEW_GROUP, /api/v1/tenant/Zsegment/keycloak/validateTenantName/{ten
 p, MUSPELL_VIEW_GROUP, /api/v1/tenant/Muspell/keycloak/validateTenantName/{tenant_name}, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/tenant/Veritable/keycloak/validateTenantName/{tenant_name}, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/tenant/Practifly/keycloak/validateTenantName/{tenant_name}, GET
+p, PRICEDX_VIEW_GROUP, /api/v1/tenant/Pricedx/keycloak/validateTenantName/{tenant_name}, GET
 
 p, ADMINS, /api/v1/provisioning/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/provisioning/Jeeves, POST
@@ -77,6 +84,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/provisioning/Zsegment, POST
 p, MUSPELL_EDIT_GROUP, /api/v1/provisioning/Muspell, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/provisioning/Veritable, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/provisioning/Practifly, POST
+p, PRICEDX_EDIT_GROUP, /api/v1/provisioning/Pricedx, POST
 
 p, ADMINS, /api/v1/provisioning/{product}/approveOrDecline, POST
 p, JEEVES_EDIT_GROUP, /api/v1/provisioning/Jeeves/approveOrDecline, POST
@@ -86,6 +94,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/provisioning/Zsegment/approveOrDecline, POST
 p, MUSPELL_EDIT_GROUP, /api/v1/provisioning/Muspell/approveOrDecline, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/provisioning/Veritable/approveOrDecline, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/provisioning/Practifly/approveOrDecline, POST
+p, PRICEDX_EDIT_GROUP, /api/v1/provisioning/Pricedx/approveOrDecline, POST
 
 p, ADMINS, /api/v1/provisioning/{product}/retryProvisioning, POST
 p, JEEVES_EDIT_GROUP, /api/v1/provisioning/Jeeves/retryProvisioning, POST
@@ -95,6 +104,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/provisioning/Zsegment/retryProvisioning, POST
 p, MUSPELL_EDIT_GROUP, /api/v1/provisioning/Muspell/retryProvisioning, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/provisioning/Veritable/retryProvisioning, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/provisioning/Practifly/retryProvisioning, POST
+p, PRICEDX_EDIT_GROUP, /api/v1/provisioning/Pricedx/retryProvisioning, POST
 
 p, ADMINS, /api/v1/provisioning/{product}/workflowSteps, GET
 p, JEEVES_VIEW_GROUP, /api/v1/provisioning/Jeeves/workflowSteps, GET
@@ -104,6 +114,7 @@ p, ZSEGMENT_VIEW_GROUP, /api/v1/provisioning/Zsegment/workflowSteps, GET
 p, MUSPELL_VIEW_GROUP, /api/v1/provisioning/Muspell/workflowSteps, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/provisioning/Veritable/workflowSteps, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/provisioning/Practifly/workflowSteps, GET
+p, PRICEDX_VIEW_GROUP, /api/v1/provisioning/Pricedx/workflowSteps, GET
 
 p, ADMINS, /api/v1/deprovisioning/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/deprovisioning/Jeeves, POST
@@ -113,6 +124,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/deprovisioning/Zsegment, POST
 p, MUSPELL_EDIT_GROUP, /api/v1/deprovisioning/Muspell, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/deprovisioning/Veritable, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/deprovisioning/Practifly, POST
+p, PRICEDX_EDIT_GROUP, /api/v1/deprovisioning/Pricedx, POST
 
 p, ADMINS, /api/v1/deprovisioning/{product}/approveOrDecline, POST
 p, JEEVES_EDIT_GROUP, /api/v1/deprovisioning/Jeeves/approveOrDecline, POST
@@ -122,6 +134,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/deprovisioning/Zsegment/approveOrDecline, POST
 p, MUSPELL_EDIT_GROUP, /api/v1/deprovisioning/Muspell/approveOrDecline, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/deprovisioning/Veritable/approveOrDecline, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/deprovisioning/Practifly/approveOrDecline, POST
+p, PRICEDX_EDIT_GROUP, /api/v1/deprovisioning/Pricedx/approveOrDecline, POST
 
 p, ADMINS, /api/v1/User, POST
 p, ADMINS, /api/v1/User, PUT
@@ -140,6 +153,7 @@ p, ZSEGMENT_VIEW_GROUP, /api/v1/EmailTemplate/Zsegment,  GET
 p, MUSPELL_VIEW_GROUP, /api/v1/EmailTemplate/Muspell,  GET
 p, VERITABLE_VIEW_GROUP, /api/v1/EmailTemplate/Veritable,  GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/EmailTemplate/Practifly,  GET
+p, PRICEDX_VIEW_GROUP, /api/v1/EmailTemplate/Pricedx,  GET
 
 p, ADMINS, /api/v1/EmailTemplate/{product}, PUT
 p, JEEVES_EDIT_GROUP, /api/v1/EmailTemplate/Jeeves,  PUT
@@ -149,7 +163,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/EmailTemplate/Zsegment,  PUT
 p, MUSPELL_EDIT_GROUP, /api/v1/EmailTemplate/Muspell,  PUT
 p, VERITABLE_EDIT_GROUP, /api/v1/EmailTemplate/Veritable,  PUT
 p, PRACTIFLY_EDIT_GROUP, /api/v1/EmailTemplate/Practifly,  PUT
-
+p, PRICEDX_EDIT_GROUP, /api/v1/EmailTemplate/Pricedx,  PUT
 
 p, ADMINS, /api/v1/deployment/{product}/deploy, POST
 p, JEEVES_EDIT_GROUP, /api/v1/deployment/Jeeves/deploy, POST
@@ -159,7 +173,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/deployment/Zsegment/deploy, POST
 p, MUSPELL_EDIT_GROUP, /api/v1/deployment/Muspell/deploy, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/deployment/Veritable/deploy, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/deployment/Practifly/deploy, POST
-
+p, PRICEDX_EDIT_GROUP, /api/v1/deployment/Pricedx/deploy, POST
 
 p, ADMINS, /api/v1/session/{product}/keycloak, GET
 p, JEEVES_VIEW_GROUP, /api/v1/session/Jeeves/keycloak, GET
@@ -169,6 +183,7 @@ p, ZSEGMENT_VIEW_GROUP, /api/v1/session/Zsegment/keycloak, GET
 p, MUSPELL_VIEW_GROUP, /api/v1/session/Muspell/keycloak, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/session/Veritable/keycloak, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/session/Practifly/keycloak, GET
+p, PRICEDX_VIEW_GROUP, /api/v1/session/Pricedx/keycloak, GET
 
 p, ADMINS, /api/v1/signup/{product}/enterprise, POST
 p, JEEVES_EDIT_GROUP, /api/v1/signup/Jeeves/enterprise, POST
@@ -178,6 +193,7 @@ p, ZSEGMENT_EDIT_GROUP, /api/v1/signup/Zsegment/enterprise, POST
 p, MUSPELL_EDIT_GROUP, /api/v1/signup/Muspell/enterprise, POST
 p, VERITABLE_EDIT_GROUP, /api/v1/signup/Veritable/enterprise, POST
 p, PRACTIFLY_EDIT_GROUP, /api/v1/signup/Practifly/enterprise, POST
+p, PRICEDX_EDIT_GROUP, /api/v1/signup/Pricedx/enterprise, POST
 
 p, PUBLIC, /api/v1/otp/{product}, GET
 p, PUBLIC, /api/v1/session/{product}, GET
@@ -246,5 +262,13 @@ g, PRACTIFLY_VIEW_GROUP, Admin
 
 g, PRACTIFLY_EDIT_GROUP, PractiflyEdit
 g, PRACTIFLY_EDIT_GROUP, Admin
+
+g, PRICEDX_VIEW_GROUP, PricedxView
+g, PRICEDX_VIEW_GROUP, PricedxEdit
+g, PRICEDX_VIEW_GROUP, Admin
+
+g, PRICEDX_EDIT_GROUP, PricedxEdit
+g, PRICEDX_EDIT_GROUP, Admin
+
 
 g, PUBLIC, NO_AUTH
