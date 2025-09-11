@@ -23,7 +23,7 @@
     "stripe.api_key": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/stripe_api_key}}",
     "stripe.secret_key": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/stripe_secret_key}}",
 
-    "accounts.api_url": "http://veritable-accounts-svc.lago.svc.cluster.local:8000/accounts/",
+    "accounts.api_url": "http://lago-accounts.launchpad.svc.cluster.local:8000/api/v1/accounts",
     "accounts.auth_url": "https://auth.veritable.app",
     "accounts.client_id": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_client_id}}",
     "accounts.client_secret": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_client_secret}}",
