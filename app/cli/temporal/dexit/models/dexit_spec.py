@@ -22,3 +22,4 @@ class DexitSpec(BaseSpec):
 
     organization: str | None = None
     cliSpec: BaseResourceSpec | None = BaseResourceSpec()
+    planName: str = "Free"

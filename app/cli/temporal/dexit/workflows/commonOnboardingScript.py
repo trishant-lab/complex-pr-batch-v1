@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from datetime import timedelta
+from uuid import uuid4
 
 import pydash
 from temporalio import workflow
@@ -55,6 +56,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakServiceAccountSetupActivity,
     KeycloakServiceAccountSetupActivityModel,
 )
+
+from app.cli.temporal.activities.lago_service import LagoProperties, LagoSetupActivity
 from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
@@ -169,6 +172,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
             TemporalNamespaceActivity.defn,
             TemporalSearchAttributesCreationActivity.defn,
             FaxSetupActivity.defn,
+            LagoSetupActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             KeycloakServiceAccountSetupActivity.defn,
@@ -557,6 +561,38 @@ class DexitCommonOnboardingWorkflow(Workflow):
                             "exposeHeaders": ["ETag", "Location", "Content-Disposition"],
                         }
                     ],
+                ),
+            )
+
+            # setup lago
+            lago_customer_id = uuid4()
+            lago_subscription_id = uuid4()
+            lago_plan_code = pydash.get(dexit, "planName", "Free")
+            lago_api_key = dexit_config.lago.api_key
+            lago_api_url = dexit_config.lago.api_url
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="lago_customer_id",
+                    secret_value=str(lago_customer_id),
+                ),
+            )
+
+            await run_activity(
+                activity=LagoSetupActivity,
+                arg=LagoProperties(
+                    tenant=tenant,
+                    customer_id=lago_customer_id,
+                    customer_name=tenant,
+                    customer_email=email,
+                    subscription_id=lago_subscription_id,
+                    plan_code=lago_plan_code,
+                    api_key=lago_api_key,
+                    api_url=lago_api_url,
                 ),
             )
 
