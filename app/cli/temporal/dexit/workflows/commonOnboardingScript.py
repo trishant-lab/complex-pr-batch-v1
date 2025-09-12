@@ -571,6 +571,10 @@ class DexitCommonOnboardingWorkflow(Workflow):
             lago_api_key = dexit_config.lago.api_key
             lago_api_url = dexit_config.lago.api_url
 
+            # account server url
+            account_server_url = dexit_config.account_server_url
+
+
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
@@ -579,6 +583,17 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     secret_name="lago_customer_id",
                     secret_value=str(lago_customer_id),
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="account_server_url",
+                    secret_value=account_server_url,
                 ),
             )
 

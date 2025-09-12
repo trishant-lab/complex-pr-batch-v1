@@ -33,6 +33,8 @@ class DexitSettings(BaseModel):
 
     lago: Lago = Lago()
 
+    account_server_url: str = ""
+
     idp_config: dict = {}
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
