@@ -565,7 +565,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # setup lago
-            lago_customer_id = uuid4()
+            external_customer_id = uuid4()
             lago_subscription_id = uuid4()
             lago_plan_code = pydash.get(dexit, "planName", "Free")
             lago_api_key = dexit_config.lago.api_key
@@ -581,8 +581,19 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     tenant=tenant,
                     server_item=server_item,
                     vault=OnePasswordVaultName,
-                    secret_name="lago_customer_id",
-                    secret_value=str(lago_customer_id),
+                    secret_name="external_customer_id",
+                    secret_value=str(external_customer_id),
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="lago_subscription_id",
+                    secret_value=str(lago_subscription_id),
                 ),
             )
 
@@ -601,7 +612,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 activity=LagoSetupActivity,
                 arg=LagoProperties(
                     tenant=tenant,
-                    customer_id=lago_customer_id,
+                    customer_id=external_customer_id,
                     customer_name=tenant,
                     customer_email=email,
                     subscription_id=lago_subscription_id,
