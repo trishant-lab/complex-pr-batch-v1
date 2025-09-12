@@ -13,8 +13,12 @@ class MuspellArchiveSettings(BaseModel):
 
     minio_region: str = "custom"
     s3_endpoint: str = ""
+    lakekeeper_uri: str = ""
 
     starrocks_host: str = ""
     starrocks_port: str = ""
     starrocks_user: str = ""
     starrocks_password: str = ""
+
+    warehouse_access_key: str = ""
+    warehouse_secret_key: str = ""
