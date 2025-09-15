@@ -20,11 +20,6 @@ from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivityModel,
 )
 from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.minio_setup import (
-    AttachMinioPolicyActivity,
-    CreateMinioBucketActivity,
-    CreateMinioUserActivity,
-)
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
@@ -69,7 +64,6 @@ from app.cli.temporal.activities.one_password import (
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
-    PostgresDatabaseCreationActivity,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
@@ -136,11 +130,7 @@ class MuspellOnboardingWorkflow(Workflow):
             KubernetesIstioVirtualServiceActivity.defn,
             KubernetesServiceActivity.defn,
             K8sConfigMapCreationActivity.defn,
-            CreateMinioUserActivity.defn,
-            CreateMinioBucketActivity.defn,
-            AttachMinioPolicyActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
-            PostgresDatabaseCreationActivity.defn,
             CheckPodRunningStatusActivity.defn,
             CreateCloudflareBucketActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
@@ -150,6 +140,10 @@ class MuspellOnboardingWorkflow(Workflow):
             PostgresGrantAllPrivilegesOnTableActivity.defn,
             VMPodScrapperActivity.defn,
             CreateStarRocksUserActivity.defn,
+            RedisSetupActivity.defn,
+            UpdateCORSForBucketActivity.defn,
+            CreateCloudflareBucketCredentialsActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
         ]
 
     @classmethod
@@ -582,13 +576,13 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item=server_item,
-                    key="catalog",
-                    key_value=tenant,
+                    secret_name="catalog",
+                    secret_value=tenant,
                 ),
             )
 
