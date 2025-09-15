@@ -460,35 +460,6 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            tenant_config = f"{config.env}.toml"
-            code_system_config = "code_systems.toml"
-            config_dir = "app/config"
-
-            # setup tenant configmap
-            for config_map in [
-                {
-                    "name": "muspell-config",
-                    "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.toml",
-                },
-                {
-                    "name": "muspell-config-system",
-                    "key": code_system_config,
-                    "template_file_name": f"{config.env}-tenant-system.tmpl.toml",
-                },
-            ]:
-                await run_activity(
-                    activity=K8sConfigMapCreationActivity,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
-                        destination_file_name=config_map["key"],
-                        cloudflare_r2_folder_path="muspell-config",
-                        template_payload={"tenant": tenant},
-                    ),
-                )
-
             realm_name = tenant
             # keycloak realm setup
             await run_activity(
@@ -623,6 +594,35 @@ class MuspellOnboardingWorkflow(Workflow):
                     secret_value=starrocks_password,
                 ),
             )
+
+            tenant_config = f"{config.env}.toml"
+            code_system_config = "code_systems.toml"
+            config_dir = "app/config"
+
+            # setup tenant configmap
+            for config_map in [
+                {
+                    "name": "muspell-config",
+                    "key": tenant_config,
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.toml",
+                },
+                {
+                    "name": "muspell-config-system",
+                    "key": code_system_config,
+                    "template_file_name": f"{config.env}-tenant-system.tmpl.toml",
+                },
+            ]:
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
+                    arg=K8sConfigMapCreationActivityModel(
+                        namespace=tenant,
+                        name=config_map["name"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
+                        cloudflare_r2_folder_path="muspell-config",
+                        template_payload={"tenant": tenant},
+                    ),
+                )
 
             # kubernetes service
             await run_activity(
