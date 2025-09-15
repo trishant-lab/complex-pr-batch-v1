@@ -567,12 +567,9 @@ class DexitCommonOnboardingWorkflow(Workflow):
             # setup lago
             external_customer_id = uuid4()
             lago_subscription_id = uuid4()
-            lago_plan_code = pydash.get(dexit, "planName", "Free")
+            lago_plan_code = pydash.get(dexit, "planName", "Basic")
             lago_api_key = dexit_config.lago.api_key
             lago_api_url = dexit_config.lago.api_url
-
-            # account server url
-            account_server_url = dexit_config.account_server_url
 
 
             await run_activity(
@@ -594,17 +591,6 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     secret_name="lago_subscription_id",
                     secret_value=str(lago_subscription_id),
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="account_server_url",
-                    secret_value=account_server_url,
                 ),
             )
 
