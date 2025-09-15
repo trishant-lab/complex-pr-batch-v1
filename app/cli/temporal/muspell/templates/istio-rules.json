@@ -1,256 +1,55 @@
 [
   {
-    "match": [
-      {
-        "uri": {
-          "prefix": "/public/"
-        }
-      }
-    ],
-    "name": "public",
-    "route": [
-      {
-        "destination": {
-          "host": "muspell-archive.<<tenant>>.svc.cluster.local",
-          "port": {
-            "number": 8080
+      "name": "muspell-api",
+      "route": [
+          {
+              "destination": {
+                  "host": "muspell-archive.<<tenant>>.svc.cluster.local",
+                  "port": {"number": 8080}
+              },
+              "headers": {
+                  "response": {
+                      "add": {
+                          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+                      }
+                  }
+              }
           }
-        },
-        "headers": {
-          "response": {
-            "add": {
-              "Cache-Control": "no-cache"
-            }
-          }
-        },
-        "weight": 100
-      }
-    ]
-  },
-  {
-    "match": [
-      {
-        "uri": {
-          "prefix": "/api"
-        }
-      }
-    ],
-    "name": "muspell-api",
-    "route": [
-      {
-        "destination": {
-          "host": "muspell-archive.<<tenant>>.svc.cluster.local",
-          "port": {
-            "number": 8080
-          }
-        },
-        "headers": {
-          "response": {
-            "add": {
-              "Cache-Control": "no-cache"
-            }
-          }
-        },
-        "weight": 100
-      }
-    ]
-  },
-  {
-    "corsPolicy": {
-      "allowHeaders": ["Authorization", "Content-Type"],
-      "allowMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      "allowOrigin": ["https://<<tenant>>.<<domain>>"]
-    },
-    "match": [
-      {
-        "uri": {
-          "regex": "(/dicom-web/.*|/instances/.*|/studies/.*|/series/.*|/patients/.*|/wadu/.*)"
-        }
-      }
-    ],
-    "name": "muspell-dicom",
-    "route": [
-      {
-        "destination": {
-          "host": "muspell-dicom.<<tenant>>.svc.cluster.local",
-          "port": {
-            "number": 8042
-          }
-        }
-      }
-    ]
-  },
-  {
-    "match": [
-      {
-        "uri": {
-          "prefix": "/analytics/"
-        }
-      }
-    ],
-    "name": "muspell-analytics",
-    "rewrite": {
-      "uri": "/"
-    },
-    "route": [
-      {
-        "destination": {
-          "host": "matomo-server.matomo.svc.cluster.local",
-          "port": {
-            "number": 80
-          }
-        }
-      }
-    ]
-  },
-  {
-    "match": [
-      {
-        "uri": {
-          "prefix": "/logcollect"
-        }
-      }
-    ],
-    "name": "muspell-logcollect",
-    "rewrite": {
-      "uri": "/collect"
-    },
-    "route": [
-      {
-        "destination": {
-          "host": "grafana-agent.monitoring-system.svc.cluster.local",
-          "port": {
-            "number": 12347
-          }
-        }
-      }
-    ]
-  },
-  {
-    "match": [
-      {
-        "uri": {
-          "exact": "/"
-        }
-      }
-    ],
-    "name": "varnish-redirect",
-    "redirect": {
-      "uri": "/sprint/"
-    }
-  },
-  {
-    "match": [
-      {
-        "uri": {
-          "prefix": "/documents"
-        }
-      }
-    ],
-    "name": "varnish-documents-redirect",
-    "route": [
-      {
-        "destination": {
-          "host": "datalake-store-integration.host",
-          "port": {
-            "number": 9000
-          }
-        },
-        "weight": 100
-      }
-    ]
-  },
-  {
-    "corsPolicy": {
-      "allowHeaders": ["Authorization", "Content-Type", "traceparent"],
-      "allowMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      "allowOrigin": ["https://<<tenant>>.<<domain>>"]
-    },
-    "match": [
-      {
-        "uri": {
-          "prefix": "/hdpkestra/"
-        }
-      },
-      {
-        "uri": {
-          "prefix": "/etl/"
-        }
-      }
-    ],
-    "name": "hdp-kestra",
-    "rewrite": {
-      "uri": "/etl/"
-    },
-    "route": [
-      {
-        "destination": {
-          "host": "hdp-io.host",
-          "port": {
-            "number": 18080
-          }
-        },
-        "headers": {
-          "request": {
-            "set": {
-              "Authorization": "Basic a2VzdHJhQDMxNGVjb3JwLmNvbTo1M29IcWVwcjJlYXJrNGRkVk5kZg=="
-            }
-          }
-        }
-      }
-    ]
-  },
-  {
-    "corsPolicy": {
-      "allowCredentials": true,
-      "allowHeaders": [
-        "Authorization",
-        "Content-Type",
-        "traceparent",
-        "x-csrftoken"
       ],
-      "allowMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      "allowOrigin": ["https://<<tenant>>.<<domain>>", "http://localhost:7000"]
-    },
-    "match": [
-      {
-        "uri": {
-          "prefix": "/superset"
-        }
-      }
-    ],
-    "name": "hdp_api",
-    "route": [
-      {
-        "destination": {
-          "host": "superset-service.superset.svc.cluster.local",
-          "port": {
-            "number": 8088
-          }
-        },
-        "weight": 100
-      }
-    ]
+      "match": [
+          {"uri": {"regex": "^/api/v1/.*"}},
+          {"uri": {"regex": "^/public/api/v1/.*"}}
+      ],
+      "retries": {"attempts": 2, "retryOn":  "reset"}
   },
   {
-    "match": [
-      {
-        "uri": {
-          "prefix": "/"
-        }
-      }
-    ],
-    "name": "muspell-ui",
-    "route": [
-      {
-        "destination": {
-          "host": "varnish-svc.varnish.svc.cluster.local",
-          "port": {
-            "number": 80
+      "name": "muspell-log-collect",
+      "route": [
+          {
+              "destination": {
+                  "host": "grafana-agent.monitoring-system.svc.cluster.local",
+                  "port": {"number": 12347}
+              }
           }
-        },
-        "weight": 100
-      }
-    ]
+      ],
+      "match": [
+          {"uri": {"prefix": "/logcollect"}}
+      ],
+      "rewrite": {"uri": "/collect"}
+  },
+  {
+      "name": "muspell-analytics",
+      "route": [
+          {
+              "destination": {
+                  "host": "matomo-server.matomo.svc.cluster.local",
+                  "port": {"number": 80}
+              }
+          }
+      ],
+      "match": [
+          {"uri": {"prefix": "/analytics/"}}
+      ],
+      "rewrite": {"uri": "/"}
   }
 ]

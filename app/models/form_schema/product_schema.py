@@ -515,6 +515,19 @@ class MuspellSchema(BaseFormSchema):
             "className": "form-control",
             "placeholder": "e.g. Z Medical",
             "mapTo": "organization",
+            "order": 5,
+        },
+    )
+
+    applicationList: str | None = Field(
+        default=None,
+        json_schema_extra={
+            "name": "applicationList",
+            "label": "Application List",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "comma separated application name, all small",
+            "mapTo": "applicationList",
             "order": 4,
         },
     )

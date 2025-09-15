@@ -24,5 +24,6 @@ class MuspellArchiveSpec(BaseSpec):
     MuspellArchiveSpec dataclass
     """
 
+    applicationList: str = ""
     emailSent: bool = False
     serverSpec: None | ResourceSpec = ResourceSpec()
