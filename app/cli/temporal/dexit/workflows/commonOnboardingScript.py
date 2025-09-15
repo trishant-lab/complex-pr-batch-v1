@@ -390,6 +390,50 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # setup lago
+            external_customer_id = uuid4()
+            lago_subscription_id = uuid4()
+            lago_plan_code = pydash.get(dexit, "planName", "Basic")
+            lago_api_key = dexit_config.lago.api_key
+            lago_api_url = dexit_config.lago.api_url
+
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="external_customer_id",
+                    secret_value=str(external_customer_id),
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="lago_subscription_id",
+                    secret_value=str(lago_subscription_id),
+                ),
+            )
+
+            await run_activity(
+                activity=LagoSetupActivity,
+                arg=LagoProperties(
+                    tenant=tenant,
+                    customer_id=external_customer_id,
+                    customer_name=tenant,
+                    customer_email=email,
+                    subscription_id=lago_subscription_id,
+                    plan_code=lago_plan_code,
+                    api_key=lago_api_key,
+                    api_url=lago_api_url,
+                ),
+            )
+
             # setup novu
             await run_activity(activity=DexitNovuSetupActivity, arg=dexit)
 
@@ -561,50 +605,6 @@ class DexitCommonOnboardingWorkflow(Workflow):
                             "exposeHeaders": ["ETag", "Location", "Content-Disposition"],
                         }
                     ],
-                ),
-            )
-
-            # setup lago
-            external_customer_id = uuid4()
-            lago_subscription_id = uuid4()
-            lago_plan_code = pydash.get(dexit, "planName", "Basic")
-            lago_api_key = dexit_config.lago.api_key
-            lago_api_url = dexit_config.lago.api_url
-
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="external_customer_id",
-                    secret_value=str(external_customer_id),
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="lago_subscription_id",
-                    secret_value=str(lago_subscription_id),
-                ),
-            )
-
-            await run_activity(
-                activity=LagoSetupActivity,
-                arg=LagoProperties(
-                    tenant=tenant,
-                    customer_id=external_customer_id,
-                    customer_name=tenant,
-                    customer_email=email,
-                    subscription_id=lago_subscription_id,
-                    plan_code=lago_plan_code,
-                    api_key=lago_api_key,
-                    api_url=lago_api_url,
                 ),
             )
 
