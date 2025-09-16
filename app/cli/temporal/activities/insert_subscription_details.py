@@ -72,7 +72,7 @@ class InsertSubscriptionDetailsActivity(Activity):
             if not customer:
                 logger.error(f"Customer not found for email: {activity_model.email}")
 
-            customer_id = UUID(customer["id"])
+            customer_id = customer["id"]
 
             # Insert subscription details
             subscription = await db.fetch_one(
@@ -83,7 +83,7 @@ class InsertSubscriptionDetailsActivity(Activity):
                 product=activity_model.product.lower(),
             )
 
-            subscription_id = UUID(subscription["id"])
+            subscription_id = subscription["id"]
 
             log_info(f"Successfully inserted subscription for customer {customer_id}, subscription {subscription_id}")
 
