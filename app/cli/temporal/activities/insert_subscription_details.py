@@ -36,10 +36,16 @@ class InsertSubscriptionDetailsActivity(Activity):
 
     @staticmethod
     def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
         return timedelta(seconds=30)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
         return RetryPolicy(
             initial_interval=timedelta(seconds=5),
             backoff_coefficient=2,
@@ -73,7 +79,7 @@ class InsertSubscriptionDetailsActivity(Activity):
                 sqlfile="insert_subscription_details.sql",
                 customer_id=str(customer_id),
                 name=activity_model.name,
-                plancode=activity_model.plan_code,
+                plancode=activity_model.plancode,
                 product=activity_model.product.lower(),
             )
 
@@ -86,5 +92,5 @@ class InsertSubscriptionDetailsActivity(Activity):
                 subscription_id=subscription_id
             )
         except Exception as e:
-            log_info(f"Failed to insert subscription details: {str(e)}")
+            log_info(f"Failed to insert subscription details: {e!s}")
             raise e

@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from datetime import timedelta
-from uuid import uuid4
 
 import pydash
 from temporalio import workflow
