@@ -26,6 +26,10 @@ from app.cli.temporal.activities.deployment_pod_creation import (
 from app.cli.temporal.activities.dexit_novu_setup import DexitNovuSetupActivity
 from app.cli.temporal.activities.dexit_zsegment_creation import ZSegmentSetupActivity
 from app.cli.temporal.activities.fax_setup import FaxSetupActivity
+from app.cli.temporal.activities.insert_subscription_details import (
+    InsertSubscriptionDetailsActivity,
+    InsertSubscriptionDetailsActivityModel,
+)
 from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
@@ -172,6 +176,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
             TemporalNamespaceActivity.defn,
             TemporalSearchAttributesCreationActivity.defn,
             FaxSetupActivity.defn,
+            InsertSubscriptionDetailsActivity.defn,
             LagoSetupActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
             PostgresDatabaseCreationActivity.defn,
@@ -390,9 +395,21 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # setup subscription
+            subscription_result = await run_activity(
+                activity=InsertSubscriptionDetailsActivity,
+                arg=InsertSubscriptionDetailsActivityModel(
+                    tenant_name=tenant,
+                    product=ProductEnum.dexit,
+                    plancode=pydash.get(dexit, "planName", "Basic"),
+                    name="Active Subscription",
+                ),
+            )
+
+
             # setup lago
-            external_customer_id = uuid4()
-            lago_subscription_id = uuid4()
+            external_customer_id = subscription_result.customer_id
+            lago_subscription_id = subscription_result.subscription_id
             lago_plan_code = pydash.get(dexit, "planName", "Basic")
             lago_api_key = dexit_config.lago.api_key
             lago_api_url = dexit_config.lago.api_url
