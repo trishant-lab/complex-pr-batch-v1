@@ -93,7 +93,7 @@ async def register_user(starrocks_input: RegisterStarrocksUserModel) -> None:
         cursor = conn.cursor()
 
         cursor.execute(f"""
-        CREATE USER {starrocks_input.user_name} IDENTIFIED WITH mysql_native_password BY
+        CREATE USER IF NOT EXISTS {starrocks_input.user_name} IDENTIFIED WITH mysql_native_password BY
         '{starrocks_input.user_password}'  PROPERTIES ('catalog'='{catalog_name}');""")
         cursor.execute(f"GRANT ALL ON ALL GLOBAL FUNCTIONS TO {starrocks_input.user_name};")
         cursor.execute(f"GRANT USAGE ON CATALOG {catalog_name} TO USER {starrocks_input.user_name};")
