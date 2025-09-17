@@ -625,24 +625,24 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
-                    server_item=server_item,
                     vault=OnePasswordVaultName,
-                    secret_name="sr_username",
-                    secret_value=starrocks_username,
+                    server_item=server_item,
+                    key="sr_username",
+                    key_value=starrocks_username,
                 ),
             )
 
             await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
                     tenant=f"{ProductName}_{tenant}",
-                    server_item=server_item,
                     vault=OnePasswordVaultName,
-                    secret_name="sr_password",
-                    secret_value=starrocks_password,
+                    server_item=server_item,
+                    key="sr_password",
+                    key_value=starrocks_password,
                 ),
             )
 
