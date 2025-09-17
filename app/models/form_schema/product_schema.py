@@ -532,6 +532,21 @@ class MuspellSchema(BaseFormSchema):
         },
     )
 
+    enableMpi: bool = Field(
+        default=False,
+        json_schema_extra={
+            "name": "enableMPI",
+            "label": "Enable MPI",
+            "type": "checkbox-group",
+            "className": "form-control",
+            "toggle": False,
+            "inline": False,
+            "other": False,
+            "mapTo": "enableMPI",
+            "order": 6,
+        },
+    )
+
 
 ProductSchemaDataType = TypeVar(
     "ProductSchemaDataType",
