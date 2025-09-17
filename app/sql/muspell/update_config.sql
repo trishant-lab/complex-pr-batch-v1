@@ -1,0 +1,1 @@
+UPDATE config SET config = {{config_value}} WHERE "type" = {{config_type}};

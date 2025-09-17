@@ -20,6 +20,10 @@ from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivityModel,
 )
 from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
+from app.cli.temporal.activities.muspell_configupdate_job import (
+    MuspellConfigUpdateJobActivity,
+    MuspellConfigUpdateJobActivityModel,
+)
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
@@ -31,6 +35,7 @@ from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivityModel,
 )
 from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.core.log import log_info
 from app.cli.temporal.models.cloudflare import (
     CloudflareBucketCredentials,
     CopyArtifactsToBucketActivityModel,
@@ -51,6 +56,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
     KeycloakCreateClientRolesActivityModel,
+    KeycloakCreateInternalUsersActivity,
+    KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
@@ -145,6 +152,8 @@ class MuspellOnboardingWorkflow(Workflow):
             UpdateCORSForBucketActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
+            MuspellConfigUpdateJobActivity.defn,
+            KeycloakCreateInternalUsersActivity.defn,
         ]
 
     @classmethod
@@ -166,6 +175,12 @@ class MuspellOnboardingWorkflow(Workflow):
         last_name = pydash.get(muspell, "lastName")
         email = pydash.get(muspell, "email")
         tenant = pydash.get(muspell, "tenant")
+        application_list_str = pydash.get(muspell, "applicationList")
+        enable_mpi = pydash.get(muspell, "enableMpi")
+        application_list = (
+            [item.strip() for item in application_list_str.split(",") if item.strip()] if application_list_str else []
+        )
+        log_info(f"Application list: {application_list}")
 
         try:
             await workflow.wait_condition(lambda: self.approved or self.deny)
@@ -485,28 +500,28 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             roles = [
-                "_developer",
-                "_superset_Admin_DeleteReports",
-                "_can-view-admin-settings",
-                "_can-view-reports",
-                "_superset_Admin_EngineerSQL",
-                "_can-view-ssn",
-                "_can-manage-streamline",
-                "_can-merge-patient",
-                "_can-share-feedback",
-                "_can-create-edit-value-sets",
-                "_superset_Admin_ExportReports",
-                "_can-release-information",
-                "_can-save-document",
-                "_can-control-access",
-                "_can-upload-and-delete-documents",
-                "_superset_Admin_CreateEditReports",
-                "_can-view-application-settings",
-                "_can-view-value-sets",
-                "_can-launch-standalone",
-                "_can-purge-patient",
                 "_can-access-patient-list",
                 "_can-bypass-break-the-glass",
+                "_can-control-access",
+                "_can-create-edit-value-sets",
+                "_can-launch-standalone",
+                "_can-manage-streamline",
+                "_can-merge-patient",
+                "_can-purge-patient",
+                "_can-release-information",
+                "_can-save-document",
+                "_can-share-feedback",
+                "_can-upload-and-delete-documents",
+                "_can-view-admin-settings",
+                "_can-view-application-settings",
+                "_can-view-reports",
+                "_can-view-ssn",
+                "_can-view-value-sets",
+                "_developer",
+                "_superset_Admin_CreateEditReports",
+                "_superset_Admin_DeleteReports",
+                "_superset_Admin_EngineerSQL",
+                "_superset_Admin_ExportReports",
                 "_superset_ViewReports",
             ]
 
@@ -520,6 +535,14 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            template_env = get_env(template_path=TemplatePath)
+
+            applicationaccess = None
+
+            if application_list:
+                applicationaccess_template = template_env.get_template("applicationaccess.json")
+                applicationaccess = applicationaccess_template.render(application_list=application_list)
+
             # keycloak tenant customer admin user setup
             await run_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
@@ -532,7 +555,35 @@ class MuspellOnboardingWorkflow(Workflow):
                     lastname=last_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
+                    template_payload={"applicationaccess": applicationaccess} if applicationaccess else None,
                     roles=[role for role in roles if role != "_developer"],
+                ),
+            )
+
+            await run_activity(
+                activity=KeycloakCreateInternalUsersActivity,
+                arg=KeycloakCreateInternalUsersActivityModel(
+                    realm_name=realm_name,
+                    client_name="muspell",
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_internal_user.json",
+                    users=[
+                        {
+                            "username": "vaishnavi.sharma@314ecorp.com",
+                            "email": "vaishnavi.sharma@314ecorp.com",
+                            "firstname": "Vaishnavi",
+                            "lastname": "Sharma",
+                        },
+                        {
+                            "username": "soumya.agarwal@314ecorp.com",
+                            "email": "soumya.agarwal@314ecorp.com",
+                            "firstname": "Soumya",
+                            "lastname": "Agrawal",
+                        },
+                    ],
+                    roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    template_payload={"applicationaccess": applicationaccess} if applicationaccess else None,
+                    group_path=f"{ProductName}/Admin",
                 ),
             )
 
@@ -620,7 +671,7 @@ class MuspellOnboardingWorkflow(Workflow):
                         template_file_name=config_map["template_file_name"],
                         destination_file_name=config_map["key"],
                         cloudflare_r2_folder_path="muspell-config",
-                        template_payload={"tenant": tenant},
+                        template_payload={"tenant": tenant, "enableMPI": enable_mpi},
                     ),
                 )
 
@@ -633,8 +684,6 @@ class MuspellOnboardingWorkflow(Workflow):
                     ports={"http": 8080},
                 ),
             )
-
-            template_env = get_env(template_path=TemplatePath)
 
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
@@ -738,6 +787,80 @@ class MuspellOnboardingWorkflow(Workflow):
                 retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
                 start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
             )
+
+            if application_list:
+                # Read column config and update the same in Postgres.
+                col_template = template_env.get_template("column_config.json")
+                output = col_template.render(application_list=application_list)
+                column_config = ijson_loads(output)
+
+                org_template = template_env.get_template("organization_config.json")
+                output = org_template.render(application_list=application_list)
+                organization_config = ijson_loads(output)
+
+                # update the config in Postgres
+                await run_activity(
+                    activity=MuspellConfigUpdateJobActivity,
+                    arg=MuspellConfigUpdateJobActivityModel(
+                        column_config=column_config,
+                        organization_config=organization_config,
+                        schema_name=postgres_schema_name,
+                        database_name=postgres_database_name,
+                        username=postgres_username,
+                        password=postgres_password,
+                    ),
+                )
+
+            if config.env != "production":
+                # create bucket
+                r2_bucket_name = f"ma-{tenant}"
+                await run_activity(
+                    activity=CreateCloudflareBucketActivity,
+                    arg=CreateCloudflareBucketActivityModel(bucket_name=r2_bucket_name),
+                )
+
+                r2_credentials: CloudflareBucketCredentials = await run_activity(
+                    activity=CreateCloudflareBucketCredentialsActivity,
+                    arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=r2_bucket_name, read_only=False),
+                )
+
+                # r2 access key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key="r2_documents_access_key",
+                        key_value=r2_credentials.access_key,
+                    ),
+                )
+
+                # r2 secret key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key="r2_documents_secret_key",
+                        key_value=r2_credentials.secret_key,
+                    ),
+                )
+
+                # r2 endpoint added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key="r2_documents_access_key",
+                        key_value=config.cloudflare.r2_endpoint,
+                    ),
+                )
+
+                # Create pipeline for ETL job
 
             # update tenant status
             await run_activity(

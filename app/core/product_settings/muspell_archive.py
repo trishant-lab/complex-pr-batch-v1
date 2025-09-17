@@ -22,3 +22,8 @@ class MuspellArchiveSettings(BaseModel):
 
     warehouse_access_key: str = ""
     warehouse_secret_key: str = ""
+
+    spark_image: str = "registry.314ecorp.tech/spark:3.5.6"
+    spark_network_name: str = "sparknet"
+    spark_container_ip: str = ""
+    spart_runner_host_ip: str = ""
