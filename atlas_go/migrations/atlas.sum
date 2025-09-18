@@ -1,4 +1,4 @@
-h1:r8Hr8qaOvUy1mCxXe2GgpjhInZd9uXB6SjsSvqhD3yc=
+h1:dq2C14gbMhunUw785GNlv6gCxw9Pj3S03Wha6Rn3+Ac=
 20250318081150_add_initial_tables.sql h1:ZtGVeHqF0F0S4kKyKYBxyCvFJnYFEMFr0kV2RA7wJoA=
 20250327110915_add_pricedx_product.sql h1:zKoaIvnrYX/jAdhkPw7HYScMI7c3qmQzxDRxpIVQ4jU=
 20250331110435_add_muspell_product.sql h1:I2HviC/oKtLjfrw0fmSevSYWP+m1SaynZ5jcLZ/1xtE=
@@ -6,3 +6,4 @@ h1:r8Hr8qaOvUy1mCxXe2GgpjhInZd9uXB6SjsSvqhD3yc=
 20250506064252_modify_pricedx_plan_codes.sql h1:ltye8sXaMVCITAC4zxDwgtuBGNfBqqZRzVV8l7PsLUE=
 20250702071632_add_veritable_code_explorer_plan_details.sql h1:IrvHMbmXtU++f0+UBFt+1OZ8m6U8BC2jHScyvMU4Vo0=
 20250707055901_reorder_plan_details.sql h1:6LWxt6RGn/GMsEZnCpjpHQingmnRb7RZLCWHNgDvflY=
+20250916112443_add_plans_for_dexit.sql h1:R9pQblKUm1P+wYCiG9P1h9rTiU30scjpnWnEG/J66Xg=

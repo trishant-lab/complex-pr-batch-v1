@@ -38,6 +38,9 @@ def get_lago_client(product: ProductEnum) -> lago_python_client.Client:
         case ProductEnum.pricedx:
             lago_api_key = settings.pricedx.lago.api_key
             lago_api_url = settings.pricedx.lago.api_url
+        case ProductEnum.dexit:
+            lago_api_key = settings.dexit.lago.api_key
+            lago_api_url = settings.dexit.lago.api_url
         case _:
             raise ValueError(f"Invalid product: {product}")
 

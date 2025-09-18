@@ -45,6 +45,36 @@
       "protocolMapper": "docker-v2-allow-all-mapper",
       "consentRequired": false,
       "config": {}
+    },
+    {
+      "name": "idp_name",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usersessionmodel-note-mapper",
+      "consentRequired": false,
+      "config": {
+        "user.session.note": "identity_provider",
+        "userinfo.token.claim": "true",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "idp_name",
+        "jsonType.label": "String",
+        "access.tokenResponse.claim": "false"
+      }
+    },
+    {
+      "name": "ehr_app_name",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usersessionmodel-note-mapper",
+      "consentRequired": false,
+      "config": {
+        "user.session.note": "ehr_app_name",
+        "userinfo.token.claim": "true",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "ehr_app_name",
+        "jsonType.label": "String",
+        "access.tokenResponse.claim": "false"
+      }
     }
   ],
   "defaultClientScopes": [

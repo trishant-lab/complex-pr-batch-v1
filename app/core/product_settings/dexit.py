@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.core.product_settings.common import PostgresSettings
+from app.core.product_settings.common import Lago, PostgresSettings
 
 
 class DexitSettings(BaseModel):
@@ -30,6 +30,8 @@ class DexitSettings(BaseModel):
 
     FaxAccountId: str = ""
     FaxApiToken: str = ""
+
+    lago: Lago = Lago()
 
     idp_config: dict = {}
 

@@ -24,5 +24,7 @@ class MuspellArchiveSpec(BaseSpec):
     MuspellArchiveSpec dataclass
     """
 
+    applicationList: str = ""
+    enableMpi: bool = False
     emailSent: bool = False
     serverSpec: None | ResourceSpec = ResourceSpec()

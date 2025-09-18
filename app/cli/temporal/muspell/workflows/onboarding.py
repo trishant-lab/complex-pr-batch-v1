@@ -20,22 +20,24 @@ from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivityModel,
 )
 from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.minio_setup import (
-    AttachMinioPolicyActivity,
-    CreateMinioBucketActivity,
-    CreateMinioUserActivity,
+from app.cli.temporal.activities.muspell_configupdate_job import (
+    MuspellConfigUpdateJobActivity,
+    MuspellConfigUpdateJobActivityModel,
 )
 from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.starrocks_setup import CreateStarRocksCatalogActivity
+from app.cli.temporal.activities.starrocks_setup import CreateStarRocksCatalogActivity, CreateStarRocksUserActivity
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
 )
+from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
+from app.cli.temporal.core.log import log_info
 from app.cli.temporal.models.cloudflare import (
+    CloudflareBucketCredentials,
     CopyArtifactsToBucketActivityModel,
     CreateCloudflareBucketActivityModel,
     CreateCloudflareBucketCredentialsActivityModel,
@@ -43,11 +45,6 @@ from app.cli.temporal.models.cloudflare import (
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivityModel,
     UpdateCORSForBucketActivityModel,
-)
-from app.cli.temporal.models.minio import (
-    AttachMinioPolicyActivityModel,
-    CreateMinioBucketActivityModel,
-    CreateMinioUserActivityModel,
 )
 from app.cli.temporal.models.starrocks import CreateStarRocksCatalogActivityModel
 from app.cli.temporal.muspell import TemplatePath
@@ -59,6 +56,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
     KeycloakCreateClientRolesActivityModel,
+    KeycloakCreateInternalUsersActivity,
+    KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
@@ -73,10 +72,10 @@ from app.cli.temporal.activities.one_password import (
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
-    PostgresDatabaseCreationActivity,
-    PostgresDatabaseCreationActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
+    PostgresGrantAllPrivilegesOnTableActivity,
+    PostgresGrantAllPrivilegesOnTableActivityModel,
     PostgresSchemaCreationActivity,
     PostgresSchemaCreationActivityModel,
     PostgresUserCreationActivity,
@@ -86,9 +85,11 @@ from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, Up
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.muspell.models.muspellSpec import MuspellArchiveSpec
 from app.common import generate_password
-from app.core.ijson import ijson_loads
+from app.core.ijson import ijson_dumps, ijson_loads
 
 from typing import TYPE_CHECKING
+
+from app.starrocks_utils import RegisterStarrocksUserModel
 
 if TYPE_CHECKING:
     from app.core.product_settings.muspell_archive import MuspellArchiveSettings
@@ -100,7 +101,7 @@ from temporalio import workflow
 
 from app.template_env import get_env
 
-ProductName = "muspell_archive"
+ProductName = "muspell"
 OnePasswordVaultName = "Muspell Archive"
 
 
@@ -137,17 +138,22 @@ class MuspellOnboardingWorkflow(Workflow):
             KubernetesIstioVirtualServiceActivity.defn,
             KubernetesServiceActivity.defn,
             K8sConfigMapCreationActivity.defn,
-            CreateMinioUserActivity.defn,
-            CreateMinioBucketActivity.defn,
-            AttachMinioPolicyActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
-            PostgresDatabaseCreationActivity.defn,
             CheckPodRunningStatusActivity.defn,
             CreateCloudflareBucketActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
+            PostgresGrantAllPrivilegesOnTableActivity.defn,
+            VMPodScrapperActivity.defn,
+            CreateStarRocksUserActivity.defn,
+            RedisSetupActivity.defn,
+            UpdateCORSForBucketActivity.defn,
+            CreateCloudflareBucketCredentialsActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
+            MuspellConfigUpdateJobActivity.defn,
+            KeycloakCreateInternalUsersActivity.defn,
         ]
 
     @classmethod
@@ -169,6 +175,12 @@ class MuspellOnboardingWorkflow(Workflow):
         last_name = pydash.get(muspell, "lastName")
         email = pydash.get(muspell, "email")
         tenant = pydash.get(muspell, "tenant")
+        application_list_str = pydash.get(muspell, "applicationList")
+        enable_mpi = pydash.get(muspell, "enableMpi")
+        application_list = (
+            [item.strip() for item in application_list_str.split(",") if item.strip()] if application_list_str else []
+        )
+        log_info(f"Application list: {application_list}")
 
         try:
             await workflow.wait_condition(lambda: self.approved or self.deny)
@@ -190,8 +202,6 @@ class MuspellOnboardingWorkflow(Workflow):
             postgres_database_name = "muspell"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
-            dicom_database_name = f"{ProductName}_dicom_{tenant}"
-            dicom_database_password = generate_password(length=20)
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/muspell-app:{image_tag}"
             server_item = "production-config" if config.env == "production" else "integration-config"
@@ -199,7 +209,7 @@ class MuspellOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
+                    tenant=f"{ProductName}_{tenant}",
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="pg_username",
@@ -210,59 +220,11 @@ class MuspellOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
+                    tenant=f"{ProductName}_{tenant}",
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="pg_password",
                     secret_value=postgres_password,
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="pg_dicom_username",
-                    secret_value=dicom_database_name,
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="pg_dicom_password",
-                    secret_value=dicom_database_password,
-                ),
-            )
-
-            # create postgres database for dicom
-            await run_activity(
-                activity=PostgresDatabaseCreationActivity,
-                arg=PostgresDatabaseCreationActivityModel(
-                    database_name=dicom_database_name,
-                ),
-            )
-
-            # create postgres user for dicom
-            await run_activity(
-                activity=PostgresUserCreationActivity,
-                arg=PostgresUserCreationActivityModel(
-                    username=dicom_database_name,
-                    database_name=dicom_database_name,
-                    password=dicom_database_password,
-                ),
-            )
-
-            await run_activity(
-                activity=PostgresGrantAccessToUserActivity,
-                arg=PostgresGrantAccessToUserActivityModel(
-                    username=dicom_database_name,
-                    database_name=dicom_database_name,
                 ),
             )
 
@@ -302,6 +264,24 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
+                activity=PostgresGrantAllPrivilegesOnTableActivity,
+                arg=PostgresGrantAllPrivilegesOnTableActivityModel(
+                    database_name=postgres_database_name,
+                    username=postgres_username,
+                    tables=[
+                        "user_entity",
+                        "realm",
+                        "user_attribute",
+                        "keycloak_role",
+                        "keycloak_group",
+                        "user_role_mapping",
+                        "federated_identity",
+                        "user_group_membership",
+                    ],
+                ),
+            )
+
+            await run_activity(
                 activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(namespace=tenant),
             )
@@ -332,6 +312,15 @@ class MuspellOnboardingWorkflow(Workflow):
             redis_tenant_password = generate_password(length=20)
 
             await run_activity(
+                activity=RedisSetupActivity,
+                arg=RedisSetupActivityModel(
+                    namespace=tenant,
+                    product=ProductName,
+                    redis_tenant_password=redis_tenant_password,
+                ),
+            )
+
+            await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
                     tenant=f"{ProductName}_{tenant}",
@@ -341,203 +330,6 @@ class MuspellOnboardingWorkflow(Workflow):
                     secret_value=redis_tenant_password,
                 ),
             )
-
-            await run_activity(
-                activity=RedisSetupActivity,
-                arg=RedisSetupActivityModel(
-                    namespace=tenant,
-                    product=ProductName,
-                    redis_tenant_password=redis_tenant_password,
-                ),
-            )
-
-            realm_name = tenant
-            # keycloak realm setup
-            await run_activity(
-                activity=KeycloakRealmSetupActivity,
-                arg=KeycloakRealmSetupActivityModel(
-                    realm_name=realm_name,
-                    domain=muspell_config.domain_name,
-                    template_path=TemplatePath,
-                    template_name="keycloak_realm.json",
-                ),
-            )
-
-            # keycloak client setup
-            await run_activity(
-                activity=KeycloakClientSetupActivity,
-                arg=KeycloakClientSetupActivityModel(
-                    tenant=tenant,
-                    realm_name=realm_name,
-                    domain=muspell_config.domain_name,
-                    template_path=TemplatePath,
-                    template_name="keycloak_muspell_client.json",
-                ),
-            )
-
-            roles = [
-                "_developer",
-                "_superset_Admin_DeleteReports",
-                "_can-view-admin-settings",
-                "_can-view-reports",
-                "_superset_Admin_EngineerSQL",
-                "_can-view-ssn",
-                "_can-manage-streamline",
-                "_can-merge-patient",
-                "_can-share-feedback",
-                "_can-create-edit-value-sets",
-                "_superset_Admin_ExportReports",
-                "_can-release-information",
-                "_can-save-document",
-                "_can-control-access",
-                "_can-upload-and-delete-documents",
-                "_superset_Admin_CreateEditReports",
-                "_can-view-application-settings",
-                "_can-view-value-sets",
-                "_can-launch-standalone",
-                "_can-purge-patient",
-                "_can-access-patient-list",
-                "_can-bypass-break-the-glass",
-                "_superset_ViewReports",
-            ]
-
-            # keycloak client roles setup
-            await run_activity(
-                activity=KeycloakCreateClientRolesActivity,
-                arg=KeycloakCreateClientRolesActivityModel(
-                    client_name="muspell",
-                    realm_name=realm_name,
-                    roles=roles,
-                ),
-            )
-
-            # keycloak tenant customer admin user setup
-            await run_activity(
-                activity=KeycloakCreateTenantCustomerAdminUserActivity,
-                arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
-                    realm_name=realm_name,
-                    client_name="muspell",
-                    username=email,
-                    email=email,
-                    firstname=first_name,
-                    lastname=last_name,
-                    template_path=TemplatePath,
-                    template_name="keycloak_tenant_customer_admin.json",
-                ),
-            )
-
-            secret_key = generate_password(length=16)
-            access_key = f"{tenant}-files"
-            bucket_name = f"{tenant}-files"
-
-            # create minio user and bucket
-            await run_activity(
-                activity=CreateMinioUserActivity,
-                arg=CreateMinioUserActivityModel(
-                    access_key=access_key,
-                    secret_key=secret_key,
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="minio_access_key",
-                    secret_value=access_key,
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="minio_secret_key",
-                    secret_value=secret_key,
-                ),
-            )
-
-            await run_activity(
-                activity=CreateMinioBucketActivity,
-                arg=CreateMinioBucketActivityModel(
-                    bucket_name=bucket_name,
-                    region_name=muspell_config.minio_region,
-                ),
-            )
-
-            await run_activity(
-                activity=AttachMinioPolicyActivity,
-                arg=AttachMinioPolicyActivityModel(
-                    bucket_name=bucket_name,
-                    access_key=access_key,
-                ),
-            )
-
-            warehouse_access_key = f"warehouse-{tenant}"
-            warehouse_secret_key = generate_password(length=16)
-            catalog_name = f"{tenant}_catalog"
-
-            # Create the StarRocks catalog
-            await run_activity(
-                activity=CreateStarRocksCatalogActivity,
-                arg=CreateStarRocksCatalogActivityModel(
-                    tenant=tenant,
-                    catalog_name=catalog_name,
-                    warehouse_access_key=access_key,
-                    warehouse_secret_key=secret_key,
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="warehouse_access_key",
-                    secret_value=warehouse_access_key,
-                ),
-            )
-
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="warehouse_secret_key",
-                    secret_value=warehouse_secret_key,
-                ),
-            )
-
-            tenant_config = "tenant-config.toml"
-            env_config = "env-config.json"
-            dicom_config = "dicom-config.json"
-            config_dir = "config"
-
-            # setup tenant configmap
-            for config_map in [
-                {
-                    "name": "muspell-tenant-config",
-                    "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.toml",
-                },
-            ]:
-                await run_activity(
-                    activity=K8sConfigMapCreationActivity,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
-                        destination_file_name=config_map["key"],
-                        bucket_name="muspell-config",
-                        template_payload={"tenant": tenant},
-                    ),
-                )
 
             # dns setup for api
             await run_activity(
@@ -591,14 +383,6 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # propagate the dns record
-            await run_activity(
-                activity=PropagateDNSRecordActivity,
-                arg=PropagateDNSRecordActivityModel(
-                    domain_name=f"{tenant}.api.{muspell_config.domain_name}",
-                ),
-            )
-
             # ui setup
             repo_name = "muspell-ui"
             image_tag = "production" if config.env == "production" else "sprint"
@@ -610,33 +394,57 @@ class MuspellOnboardingWorkflow(Workflow):
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
-            bundle_path = "bundle/dist/admin"
+            bundle_path = "bundle/dist"
 
-            # copy artifacts to bucket
-            await run_activity(
-                activity=CopyArtifactsToBucketActivity,
-                arg=CopyArtifactsToBucketActivityModel(
-                    bucket_name=bucket_name,
-                    src_object_name=src_object_name,
-                    dest_dir=dest_dir,
-                    bundle_path=bundle_path,
-                    bundle_name="bundle.zip",
-                    tenant=tenant,
-                ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
-            )
+            if muspell_config.copy_ui_bundle:
+                # copy artifacts to bucket
+                await run_activity(
+                    activity=CopyArtifactsToBucketActivity,
+                    arg=CopyArtifactsToBucketActivityModel(
+                        bucket_name=bucket_name,
+                        src_object_name=src_object_name,
+                        dest_dir=dest_dir,
+                        bundle_path=bundle_path,
+                        bundle_name="bundle.zip",
+                        tenant=tenant,
+                    ),
+                    retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
+                    start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
+                )
 
-            credentials = await run_activity(
+            credentials: CloudflareBucketCredentials = await run_activity(
                 activity=CreateCloudflareBucketCredentialsActivity,
                 arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=bucket_name, read_only=False),
+            )
+
+            # cdn base url added to onepassword
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="base_url_cdn",
+                    key_value=f"https://{tenant}.{muspell_config.domain_name}",
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="keycloak_auth_url",
+                    key_value=f"https://{tenant}.{muspell_config.domain_name}",
+                ),
             )
 
             # s3 bucket name added to onepassword
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=tenant,
+                    tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="s3_bucket_name",
@@ -648,11 +456,11 @@ class MuspellOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=tenant,
+                    tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="s3_access_key",
-                    key_value=credentials["access_key"],
+                    key_value=credentials.access_key,
                 ),
             )
 
@@ -660,13 +468,213 @@ class MuspellOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=tenant,
+                    tenant=f"{ProductName}_{tenant}",
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="s3_secret_key",
-                    key_value=credentials["secret_key"],
+                    key_value=credentials.secret_key,
                 ),
             )
+
+            realm_name = tenant
+            # keycloak realm setup
+            await run_activity(
+                activity=KeycloakRealmSetupActivity,
+                arg=KeycloakRealmSetupActivityModel(
+                    realm_name=realm_name,
+                    domain=muspell_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_realm.json",
+                ),
+            )
+
+            # keycloak client setup
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=muspell_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_muspell_client.json",
+                ),
+            )
+
+            roles = [
+                "_can-access-patient-list",
+                "_can-bypass-break-the-glass",
+                "_can-control-access",
+                "_can-create-edit-value-sets",
+                "_can-launch-standalone",
+                "_can-manage-streamline",
+                "_can-merge-patient",
+                "_can-purge-patient",
+                "_can-release-information",
+                "_can-save-document",
+                "_can-share-feedback",
+                "_can-upload-and-delete-documents",
+                "_can-view-admin-settings",
+                "_can-view-application-settings",
+                "_can-view-reports",
+                "_can-view-ssn",
+                "_can-view-value-sets",
+                "_developer",
+                "_superset_Admin_CreateEditReports",
+                "_superset_Admin_DeleteReports",
+                "_superset_Admin_EngineerSQL",
+                "_superset_Admin_ExportReports",
+                "_superset_ViewReports",
+            ]
+
+            # keycloak client roles setup
+            await run_activity(
+                activity=KeycloakCreateClientRolesActivity,
+                arg=KeycloakCreateClientRolesActivityModel(
+                    client_name="muspell",
+                    realm_name=realm_name,
+                    roles=roles,
+                ),
+            )
+
+            template_env = get_env(template_path=TemplatePath)
+
+            applicationaccess = None
+
+            if application_list:
+                applicationaccess_template = template_env.get_template("applicationaccess.json")
+                applicationaccess_json = applicationaccess_template.render(application_list=application_list)
+                applicationaccess = ijson_dumps(applicationaccess_json)
+
+            # keycloak tenant customer admin user setup
+            await run_activity(
+                activity=KeycloakCreateTenantCustomerAdminUserActivity,
+                arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
+                    realm_name=realm_name,
+                    client_name="muspell",
+                    username=email,
+                    email=email,
+                    firstname=first_name,
+                    lastname=last_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_customer_admin.json",
+                    template_payload={"applicationaccess": applicationaccess} if applicationaccess else None,
+                    roles=[role for role in roles if role != "_developer"],
+                ),
+            )
+
+            await run_activity(
+                activity=KeycloakCreateInternalUsersActivity,
+                arg=KeycloakCreateInternalUsersActivityModel(
+                    realm_name=realm_name,
+                    client_name="muspell",
+                    template_path=TemplatePath,
+                    template_name="keycloak_tenant_internal_user.json",
+                    users=[
+                        {
+                            "username": "vaishnavi.sharma@314ecorp.com",
+                            "email": "vaishnavi.sharma@314ecorp.com",
+                            "firstname": "Vaishnavi",
+                            "lastname": "Sharma",
+                        },
+                        {
+                            "username": "soumya.agarwal@314ecorp.com",
+                            "email": "soumya.agarwal@314ecorp.com",
+                            "firstname": "Soumya",
+                            "lastname": "Agrawal",
+                        },
+                    ],
+                    template_payload={"applicationaccess": applicationaccess} if applicationaccess else None,
+                    roles=[role for role in roles if role != "_developer"],
+                ),
+            )
+
+            # Create the StarRocks catalog
+            await run_activity(
+                activity=CreateStarRocksCatalogActivity,
+                arg=CreateStarRocksCatalogActivityModel(
+                    tenant=tenant,
+                    catalog_name=tenant,
+                    warehouse_access_key=muspell_config.warehouse_access_key,
+                    warehouse_secret_key=muspell_config.warehouse_secret_key,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    secret_name="catalog",
+                    secret_value=tenant,
+                ),
+            )
+
+            starrocks_username = f"{ProductName}_{tenant}"
+            starrocks_password = generate_password(length=20)
+
+            # Create the StarRocks catalog
+            await run_activity(
+                activity=CreateStarRocksUserActivity,
+                arg=RegisterStarrocksUserModel(
+                    muspell_config=muspell_config,
+                    tenant=tenant,
+                    catalog_name=tenant,
+                    user_name=starrocks_username,
+                    user_password=starrocks_password,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="sr_username",
+                    key_value=starrocks_username,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="sr_password",
+                    key_value=starrocks_password,
+                ),
+            )
+
+            tenant_config = f"{config.env}.toml"
+            code_system_config = "code_systems.toml"
+            config_dir = "app/config"
+
+            # setup tenant configmap
+            for config_map in [
+                {
+                    "name": "muspell-config",
+                    "key": tenant_config,
+                    "template_file_name": f"{config.env}-tenant-config.tmpl.toml",
+                },
+                {
+                    "name": "muspell-config-system",
+                    "key": code_system_config,
+                    "template_file_name": f"{config.env}-tenant-system.tmpl.toml",
+                },
+            ]:
+                await run_activity(
+                    activity=K8sConfigMapCreationActivity,
+                    arg=K8sConfigMapCreationActivityModel(
+                        namespace=tenant,
+                        name=config_map["name"],
+                        template_file_name=config_map["template_file_name"],
+                        destination_file_name=config_map["key"],
+                        cloudflare_r2_folder_path="muspell-config",
+                        template_payload={"tenant": tenant, "enableMPI": enable_mpi},
+                    ),
+                )
 
             # kubernetes service
             await run_activity(
@@ -677,8 +685,6 @@ class MuspellOnboardingWorkflow(Workflow):
                     ports={"http": 8080},
                 ),
             )
-
-            template_env = get_env(template_path=TemplatePath)
 
             template = template_env.get_template("istio-rules.json")
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
@@ -722,98 +728,149 @@ class MuspellOnboardingWorkflow(Workflow):
                     container_ports={"http": 8080},
                     volume_mounts=[
                         {
-                            "name": "env-volume",
-                            "mount_path": f"/{config_dir}/{env_config}",
-                            "sub_path": env_config,
-                        },
-                        {
-                            "name": "tenant-volume",
+                            "name": "muspell-config",
                             "mount_path": f"/{config_dir}/{tenant_config}",
                             "sub_path": tenant_config,
                         },
+                        {
+                            "name": "muspell-config-system",
+                            "mount_path": f"/{config_dir}/{code_system_config}",
+                            "sub_path": code_system_config,
+                        },
                     ],
                     volumes=[
                         {
-                            "name": "env-volume",
-                            "config_map_name": "muspell-env-config",
-                            "key": env_config,
-                            "path": env_config,
-                        },
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "muspell-tenant-config",
+                            "name": "muspell-config",
+                            "config_map_name": "muspell-config",
                             "key": tenant_config,
                             "path": tenant_config,
                         },
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                    ],
-                ),
-            )
-
-            # statefulset pod creation for dicom
-            await run_activity(
-                activity=KubernetesDeploymentActivity,
-                arg=KubernetesDeploymentActivityModel(
-                    namespace=tenant,
-                    name="muspell-dicom",
-                    docker_image="orthancteam/orthanc:24.8.1",
-                    request_resource={
-                        "cpu": pydash.get(muspell, "serverSpec.request_cpu"),
-                        "memory": pydash.get(muspell, "serverSpec.request_memory"),
-                    },
-                    limit_resource={
-                        "cpu": pydash.get(muspell, "serverSpec.limit_cpu"),
-                        "memory": pydash.get(muspell, "serverSpec.limit_memory"),
-                    },
-                    container_ports={},
-                    volume_mounts=[
                         {
-                            "name": "dicom-volume",
-                            "mount_path": "/etc/orthanc/orthanc.json",
-                            "sub_path": dicom_config,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "dicom-volume",
-                            "config_map_name": "muspell-dicom-config",
-                            "key": dicom_config,
-                            "path": dicom_config,
+                            "name": "muspell-config-system",
+                            "config_map_name": "muspell-config-system",
+                            "key": code_system_config,
+                            "path": code_system_config,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "WEB_CONCURRENCY", "value": "5"},
-                        {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
+                        {
+                            "name": "DATABASE_URL",
+                            "value": (
+                                f"postgresql://{postgres_username}:{postgres_password}"
+                                f"@{config.postgres.host}:{config.postgres.port}"
+                                f"/{postgres_database_name}?sslmode=disable&application_name="
+                                f"{postgres_database_name}&options=-c search_path%3D{postgres_schema_name},public"
+                            ),
+                        },
                     ],
                 ),
             )
 
-            # kubernetes service for dicom
+            # vm pod scraper
             await run_activity(
-                activity=KubernetesServiceActivity,
-                arg=KubernetesServiceActivityModel(
+                activity=VMPodScrapperActivity,
+                arg=VMPodScrapperActivityModel(
                     namespace=tenant,
-                    service_name="muspell-dicom",
-                    ports={"http": 8042},
+                    name="muspell-metrics",
+                    app="muspell-archive",
+                    path="/metrics/",
+                    interval="15s",
+                ),
+            )
+
+            # propagate the dns record
+            await run_activity(
+                activity=PropagateDNSRecordActivity,
+                arg=PropagateDNSRecordActivityModel(
+                    domain_name=f"{tenant}.api.{muspell_config.domain_name}",
                 ),
             )
 
             # check pod running status
-            for pod in ["muspell-archive", "muspell-dicom"]:
+            await run_activity(
+                activity=CheckPodRunningStatusActivity,
+                arg=CheckPodRunningStatusActivityModel(
+                    namespace=tenant,
+                    name="muspell-archive",
+                ),
+                retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+            )
+
+            if application_list:
+                # Read column config and update the same in Postgres.
+                col_template = template_env.get_template("column_config.json")
+                column_config_str = col_template.render(application_list=application_list)
+                # column_config = ijson_loads(column_config_str)
+
+                org_template = template_env.get_template("organization_config.json")
+                organization_config_str = org_template.render(application_list=application_list)
+                # organization_config = ijson_loads(organization_config_str)
+
+                # update the config in Postgres
                 await run_activity(
-                    activity=CheckPodRunningStatusActivity,
-                    arg=CheckPodRunningStatusActivityModel(
-                        namespace=tenant,
-                        name=pod,
+                    activity=MuspellConfigUpdateJobActivity,
+                    arg=MuspellConfigUpdateJobActivityModel(
+                        column_config=column_config_str,
+                        organization_config=organization_config_str,
+                        schema_name=postgres_schema_name,
+                        database_name=postgres_database_name,
+                        username=postgres_username,
+                        password=postgres_password,
                     ),
-                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
-                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
+
+            if config.env != "production":
+                # create bucket
+                r2_bucket_name = f"ma-{tenant}"
+                await run_activity(
+                    activity=CreateCloudflareBucketActivity,
+                    arg=CreateCloudflareBucketActivityModel(bucket_name=r2_bucket_name),
+                )
+
+                r2_credentials: CloudflareBucketCredentials = await run_activity(
+                    activity=CreateCloudflareBucketCredentialsActivity,
+                    arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=r2_bucket_name, read_only=False),
+                )
+
+                # r2 access key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key="r2_documents_access_key",
+                        key_value=r2_credentials.access_key,
+                    ),
+                )
+
+                # r2 secret key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key="r2_documents_secret_key",
+                        key_value=r2_credentials.secret_key,
+                    ),
+                )
+
+                # r2 endpoint added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key="r2_endpoint",
+                        key_value=config.cloudflare.r2_endpoint,
+                    ),
+                )
+
+                # Create pipeline for ETL job
 
             # update tenant status
             await run_activity(
@@ -846,8 +903,8 @@ class MuspellOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=UpdateTenantStatusActivity,
                 arg=TenantCliStatus(
-                    tenant_name=pydash.get(muspell, "tenant"),
-                    status=TenantStatusEnum.Failed,
+                    tenant_name=tenant,
+                    status=TenantStatusEnum.ProvisioningFailed,
                     error_msg=str(e),
                     product=ProductEnum.muspell,
                 ),

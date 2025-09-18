@@ -5,7 +5,7 @@ from app.core.settings import AppSettings, get_settings
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.starrocks_utils import CreateStarRocksInputModel
+from app.starrocks_utils import CreateStarRocksInputModel, RegisterStarrocksUserModel
 
 
 class CreateStarRocksCatalogActivity(Activity):
@@ -46,3 +46,33 @@ class CreateStarRocksCatalogActivity(Activity):
         )
 
         await create_starrocks_catalog(starrocks_input)
+
+
+class CreateStarRocksUserActivity(Activity):
+    """
+    CreateStarRocksUserActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="CreateStarRocksUserActivity")
+    async def defn(activity_input: RegisterStarrocksUserModel) -> None:
+        """
+        CreateStarRocksUserActivity
+        """
+        from app.starrocks_utils import register_user
+
+        await register_user(activity_input)

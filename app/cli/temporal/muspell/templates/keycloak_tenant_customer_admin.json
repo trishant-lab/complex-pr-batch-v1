@@ -16,5 +16,12 @@
     "impersonate": true,
     "manage": true
   },
+  {% if applicationaccess %}
+  "attributes": {
+    "applicationaccess": [
+      <<applicationaccess|safe>>
+    ]
+  },
+  {% endif %}
   "groups": []
 }

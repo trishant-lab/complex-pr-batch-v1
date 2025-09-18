@@ -39,7 +39,7 @@ async def get_temporary_credentials(config: AppSettings, bucket_name: str) -> Te
         bucket=bucket_name,
         parent_access_key_id=config.cloudflare.access_key,
         permission="object-read-write",
-        ttl_seconds=10 * 60,
+        ttl_seconds=20 * 60,
     )
 
 

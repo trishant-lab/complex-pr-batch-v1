@@ -25,6 +25,10 @@ from app.cli.temporal.activities.deployment_pod_creation import (
 from app.cli.temporal.activities.dexit_novu_setup import DexitNovuSetupActivity
 from app.cli.temporal.activities.dexit_zsegment_creation import ZSegmentSetupActivity
 from app.cli.temporal.activities.fax_setup import FaxSetupActivity
+from app.cli.temporal.activities.insert_subscription_details import (
+    InsertSubscriptionDetailsActivity,
+    InsertSubscriptionDetailsActivityModel,
+)
 from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
@@ -55,6 +59,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakServiceAccountSetupActivity,
     KeycloakServiceAccountSetupActivityModel,
 )
+
+from app.cli.temporal.activities.lago_service import LagoProperties, LagoSetupActivity
 from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
@@ -169,6 +175,8 @@ class DexitCommonOnboardingWorkflow(Workflow):
             TemporalNamespaceActivity.defn,
             TemporalSearchAttributesCreationActivity.defn,
             FaxSetupActivity.defn,
+            InsertSubscriptionDetailsActivity.defn,
+            LagoSetupActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
             PostgresDatabaseCreationActivity.defn,
             KeycloakServiceAccountSetupActivity.defn,
@@ -383,6 +391,62 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     data={
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
+                ),
+            )
+
+            # setup subscription
+            subscription_result = await run_activity(
+                activity=InsertSubscriptionDetailsActivity,
+                arg=InsertSubscriptionDetailsActivityModel(
+                    tenant_name=tenant,
+                    product=ProductEnum.dexit,
+                    plancode=pydash.get(dexit, "planName", "Basic"),
+                    name="Active Subscription",
+                ),
+            )
+
+
+            # setup lago
+            external_customer_id = subscription_result.customer_id
+            lago_subscription_id = subscription_result.subscription_id
+            lago_plan_code = pydash.get(dexit, "planName", "Basic")
+            lago_api_key = dexit_config.lago.api_key
+            lago_api_url = dexit_config.lago.api_url
+
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="external_customer_id",
+                    secret_value=str(external_customer_id),
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="lago_subscription_id",
+                    secret_value=str(lago_subscription_id),
+                ),
+            )
+
+            await run_activity(
+                activity=LagoSetupActivity,
+                arg=LagoProperties(
+                    tenant=tenant,
+                    customer_id=external_customer_id,
+                    customer_name=tenant,
+                    customer_email=email,
+                    subscription_id=lago_subscription_id,
+                    plan_code=lago_plan_code,
+                    api_key=lago_api_key,
+                    api_url=lago_api_url,
                 ),
             )
 
