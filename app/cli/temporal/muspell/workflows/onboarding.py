@@ -85,7 +85,7 @@ from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, Up
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.muspell.models.muspellSpec import MuspellArchiveSpec
 from app.common import generate_password
-from app.core.ijson import ijson_loads
+from app.core.ijson import ijson_dumps, ijson_loads
 
 from typing import TYPE_CHECKING
 
@@ -541,7 +541,8 @@ class MuspellOnboardingWorkflow(Workflow):
 
             if application_list:
                 applicationaccess_template = template_env.get_template("applicationaccess.json")
-                applicationaccess = applicationaccess_template.render(application_list=application_list)
+                applicationaccess_json = applicationaccess_template.render(application_list=application_list)
+                applicationaccess = ijson_dumps(applicationaccess_json)
 
             # keycloak tenant customer admin user setup
             await run_activity(
@@ -753,7 +754,15 @@ class MuspellOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "DATABASE_URL", "value": f"postgresql://{postgres_username}:{postgres_password}@db-cluster-ha.postgresql.svc.cluster.local:5432/muspell?sslmode=disable&application_name=muspell&options=-c search_path%3D{postgres_schema_name},public"}
+                        {
+                            "name": "DATABASE_URL",
+                            "value": (
+                                f"postgresql://{postgres_username}:{postgres_password}"
+                                "@db-cluster-ha.postgresql.svc.cluster.local:5432"
+                                "/muspell?sslmode=disable&application_name=muspell&options=-c "
+                                f"search_path%3D{postgres_schema_name},public"
+                            ),
+                        },
                     ],
                 ),
             )
@@ -856,7 +865,7 @@ class MuspellOnboardingWorkflow(Workflow):
                         tenant=f"{ProductName}_{tenant}",
                         vault=OnePasswordVaultName,
                         server_item=server_item,
-                        key="r2_documents_access_key",
+                        key="r2_endpoint",
                         key_value=config.cloudflare.r2_endpoint,
                     ),
                 )
