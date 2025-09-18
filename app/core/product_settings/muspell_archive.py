@@ -27,3 +27,5 @@ class MuspellArchiveSettings(BaseModel):
     spark_network_name: str = "sparknet"
     spark_container_ip: str = ""
     spart_runner_host_ip: str = ""
+
+    copy_ui_bundle: bool = True
