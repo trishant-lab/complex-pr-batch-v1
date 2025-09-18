@@ -199,7 +199,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 return
 
             postgres_schema_name = tenant
-            postgres_database_name = "muspell"
+            postgres_database_name = muspell_config.database_name
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
             image_tag = "production" if config.env == "production" else "sprint"
