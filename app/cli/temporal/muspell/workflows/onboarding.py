@@ -396,20 +396,21 @@ class MuspellOnboardingWorkflow(Workflow):
 
             bundle_path = "bundle/dist"
 
-            # copy artifacts to bucket
-            await run_activity(
-                activity=CopyArtifactsToBucketActivity,
-                arg=CopyArtifactsToBucketActivityModel(
-                    bucket_name=bucket_name,
-                    src_object_name=src_object_name,
-                    dest_dir=dest_dir,
-                    bundle_path=bundle_path,
-                    bundle_name="bundle.zip",
-                    tenant=tenant,
-                ),
-                retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
-                start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
-            )
+            if muspell_config.copy_ui_bundle:
+                # copy artifacts to bucket
+                await run_activity(
+                    activity=CopyArtifactsToBucketActivity,
+                    arg=CopyArtifactsToBucketActivityModel(
+                        bucket_name=bucket_name,
+                        src_object_name=src_object_name,
+                        dest_dir=dest_dir,
+                        bundle_path=bundle_path,
+                        bundle_name="bundle.zip",
+                        tenant=tenant,
+                    ),
+                    retry_policy=CopyArtifactsToBucketActivity.get_retry_policy(),
+                    start_to_close_timeout=CopyArtifactsToBucketActivity.get_timeout(),
+                )
 
             credentials: CloudflareBucketCredentials = await run_activity(
                 activity=CreateCloudflareBucketCredentialsActivity,
