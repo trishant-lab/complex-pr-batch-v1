@@ -801,19 +801,19 @@ class MuspellOnboardingWorkflow(Workflow):
             if application_list:
                 # Read column config and update the same in Postgres.
                 col_template = template_env.get_template("column_config.json")
-                output = col_template.render(application_list=application_list)
-                column_config = ijson_loads(output)
+                column_config_str = col_template.render(application_list=application_list)
+                # column_config = ijson_loads(column_config_str)
 
                 org_template = template_env.get_template("organization_config.json")
-                output = org_template.render(application_list=application_list)
-                organization_config = ijson_loads(output)
+                organization_config_str = org_template.render(application_list=application_list)
+                # organization_config = ijson_loads(organization_config_str)
 
                 # update the config in Postgres
                 await run_activity(
                     activity=MuspellConfigUpdateJobActivity,
                     arg=MuspellConfigUpdateJobActivityModel(
-                        column_config=column_config,
-                        organization_config=organization_config,
+                        column_config=column_config_str,
+                        organization_config=organization_config_str,
                         schema_name=postgres_schema_name,
                         database_name=postgres_database_name,
                         username=postgres_username,

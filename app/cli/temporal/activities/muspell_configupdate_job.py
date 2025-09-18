@@ -15,8 +15,8 @@ class MuspellConfigUpdateJobActivityModel(LaunchpadCLIBaseModel):
     MuspellConfigUpdateJobActivityModel
     """
 
-    column_config: dict
-    organization_config: dict
+    column_config: str
+    organization_config: str
     schema_name: str
     database_name: str
     username: str
