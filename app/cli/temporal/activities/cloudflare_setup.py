@@ -159,7 +159,7 @@ class CopyArtifactsToBucketActivity(Activity):
         """
         Timeout for the activity
         """
-        return timedelta(minutes=10)
+        return timedelta(minutes=20)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
