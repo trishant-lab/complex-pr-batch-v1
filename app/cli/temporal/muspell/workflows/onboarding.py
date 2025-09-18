@@ -758,9 +758,9 @@ class MuspellOnboardingWorkflow(Workflow):
                             "name": "DATABASE_URL",
                             "value": (
                                 f"postgresql://{postgres_username}:{postgres_password}"
-                                "@db-cluster-ha.postgresql.svc.cluster.local:5432"
-                                "/muspell?sslmode=disable&application_name=muspell&options=-c "
-                                f"search_path%3D{postgres_schema_name},public"
+                                f"@{config.postgres.host}:{config.postgres.port}"
+                                f"/{postgres_database_name}?sslmode=disable&application_name="
+                                f"{postgres_database_name}&options=-c search_path%3D{postgres_schema_name},public"
                             ),
                         },
                     ],
