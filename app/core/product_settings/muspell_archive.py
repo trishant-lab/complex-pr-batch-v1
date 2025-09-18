@@ -29,3 +29,4 @@ class MuspellArchiveSettings(BaseModel):
     spart_runner_host_ip: str = ""
 
     copy_ui_bundle: bool = True
+    database_name: str = "muspell"
