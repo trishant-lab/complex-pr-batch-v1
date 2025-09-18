@@ -583,9 +583,8 @@ class MuspellOnboardingWorkflow(Workflow):
                             "lastname": "Agrawal",
                         },
                     ],
-                    roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     template_payload={"applicationaccess": applicationaccess} if applicationaccess else None,
-                    group_path=f"{ProductName}/Admin",
+                    roles=[role for role in roles if role != "_developer"],
                 ),
             )
 
