@@ -183,6 +183,8 @@ def create_keycloak_user(
         },
     )
 
+    log_info(user_config)
+
     keycloak_client.create_user(ijson_loads(user_config), realm_name)
     user_id = keycloak_client.get_user_id(username=username, realm_name=realm_name)
     if roles:
