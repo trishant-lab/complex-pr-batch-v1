@@ -112,6 +112,7 @@ class KubernetesStatefulSetActivity(Activity):
                     spec=V1PodSpec(
                         node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                        scheduler_name="volcano",
                         init_containers=(
                             [
                                 V1Container(

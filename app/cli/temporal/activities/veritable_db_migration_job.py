@@ -1,7 +1,7 @@
 import asyncio
 from datetime import timedelta
-import kubernetes as k8s
 
+import kubernetes as k8s
 from kubernetes.client import (
     BatchV1Api,
     V1ConfigMapKeySelector,
@@ -32,7 +32,6 @@ from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 
-
 JOB_BACKOFF_LIMIT = 3
 MAX_RETRIES = 1
 
@@ -54,7 +53,6 @@ class VeritableDatabaseMigrationJobActivityModel(LaunchpadCLIBaseModel):
     argument: str
     job_type: str
     product: str
-
 
 
 async def poll_job_status(job_resource: Resource, namespace: str, job_name: str) -> bool:
@@ -87,8 +85,6 @@ async def poll_job_status(job_resource: Resource, namespace: str, job_name: str)
         await asyncio.sleep(check_interval)
         iteration += 1
     return False
-
-
 
 
 class VeritableDatabaseMigrationJobActivity(Activity):
@@ -133,6 +129,7 @@ class VeritableDatabaseMigrationJobActivity(Activity):
                     spec=V1PodSpec(
                         node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                        scheduler_name="volcano",
                         containers=[
                             V1Container(
                                 name=activity_model.job_name,

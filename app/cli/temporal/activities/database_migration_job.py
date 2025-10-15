@@ -91,6 +91,7 @@ class DatabaseMigrationJobActivity(Activity):
                     spec=V1PodSpec(
                         node_selector={"app": "314e"},
                         image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
+                        scheduler_name="volcano",
                         containers=[
                             V1Container(
                                 name=activity_model.job_name,

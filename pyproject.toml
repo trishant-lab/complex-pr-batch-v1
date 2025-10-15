@@ -11,7 +11,7 @@ dependencies = [
     "aiohttp==3.12.14",
     "async-lru==2.0.4,<3",
     "asyncpg==0.30.0,<0.31",
-    "authlib==1.3.1,<2",
+    "authlib==1.6.5",
     "better-profanity==0.7.0,<0.8",
     "casbin==1.36.1,<2",
     "cffi==1.17.1,<2",
