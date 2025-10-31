@@ -414,14 +414,12 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
-
             # setup lago
             external_customer_id = subscription_result.customer_id
             lago_subscription_id = subscription_result.subscription_id
             lago_plan_code = pydash.get(dexit, "planName", "Basic")
             lago_api_key = dexit_config.lago.api_key
             lago_api_url = dexit_config.lago.api_url
-
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
@@ -825,30 +823,34 @@ class DexitCommonOnboardingWorkflow(Workflow):
             task_ids = []
 
             # Model deployment - Classification
-            task_ids.append(await run_activity(
-                activity=ClassificationModelDeploymentActivity,
-                arg=ModelDeploymentActivityModel(
-                    tenant=tenant,
-                    storage_access_key=credentials.access_key,
-                    storage_secret_key=credentials.secret_key,
-                    storage_bucket_name=bucket_name,
-                ),
-                retry_policy=ClassificationModelDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=ClassificationModelDeploymentActivity.get_timeout(),
-            ))
+            task_ids.append(
+                await run_activity(
+                    activity=ClassificationModelDeploymentActivity,
+                    arg=ModelDeploymentActivityModel(
+                        tenant=tenant,
+                        storage_access_key=credentials.access_key,
+                        storage_secret_key=credentials.secret_key,
+                        storage_bucket_name=bucket_name,
+                    ),
+                    retry_policy=ClassificationModelDeploymentActivity.get_retry_policy(),
+                    start_to_close_timeout=ClassificationModelDeploymentActivity.get_timeout(),
+                )
+            )
 
             # Model deployment - Entity
-            task_ids.append(await run_activity(
-                activity=EntityModelDeploymentActivity,
-                arg=ModelDeploymentActivityModel(
-                    tenant=tenant,
-                    storage_access_key=credentials.access_key,
-                    storage_secret_key=credentials.secret_key,
-                    storage_bucket_name=bucket_name,
-                ),
-                retry_policy=EntityModelDeploymentActivity.get_retry_policy(),
-                start_to_close_timeout=EntityModelDeploymentActivity.get_timeout(),
-            ))
+            task_ids.append(
+                await run_activity(
+                    activity=EntityModelDeploymentActivity,
+                    arg=ModelDeploymentActivityModel(
+                        tenant=tenant,
+                        storage_access_key=credentials.access_key,
+                        storage_secret_key=credentials.secret_key,
+                        storage_bucket_name=bucket_name,
+                    ),
+                    retry_policy=EntityModelDeploymentActivity.get_retry_policy(),
+                    start_to_close_timeout=EntityModelDeploymentActivity.get_timeout(),
+                )
+            )
 
             # Store task IDs in S3
             await run_activity(
@@ -973,6 +975,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 "dexit-worker-dsl": "dsl_processing_worker",
                 "dexit-worker-dslp": "dsl_processing_worker_priority",
                 "dexit-worker-event": "event_processing_worker",
+                "dexit-worker-ml": "ml_workers",
             }
 
             for key, value in cli_pods.items():

@@ -298,7 +298,7 @@
         },
         {
           "name": "_manage-document-type",
-          "description": "create and edit document types and document type groups.",
+          "description": "Manage Document Types",
           "composite": false,
           "clientRole": true,
           "attributes": {}
@@ -312,14 +312,91 @@
         },
         {
           "name": "_manage-organisation",
-          "description": "manage organisation details.",
+          "description": "Workspace Settings",
           "composite": false,
           "clientRole": true,
           "attributes": {}
         },
         {
           "name": "_manage-users",
-          "description": "add and delete users, modify user access permissions.",
+          "description": "Manage Users",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_document-review",
+          "description": "Review Documents",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_reports",
+          "description": "Analytics",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_manage-faxes",
+          "description": "Manage Fax Numbers",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_access-zsegment-screen",
+          "description": "Access ZSegment's Interfaces and Messages screens",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_delete-document",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_internal-admin",
+          "description": "314e admin",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_manage-deficiency",
+          "description": "Signature Deficiency",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_manage-subscription",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_manage-workflow",
+          "description": "Manage Workflow",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_roi",
+          "description": "Release of Information",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "_standalone-launch",
+          "description": "Allow Standalone Launch",
           "composite": false,
           "clientRole": true,
           "attributes": {}
