@@ -1,7 +1,25 @@
 from pydantic import BaseModel
+from pydantic_settings import BaseSettings
 
 from app.core.product_settings.common import Lago, PostgresSettings
 
+class ClearMLSettings(BaseSettings):
+    """Settings for ClearML"""
+
+    access_key: str = ""
+    secret_key: str = ""
+
+
+class DexitModelDeploymentSettings(BaseSettings):
+    """Settings for Model Deployment"""
+
+    clearml: ClearMLSettings = ClearMLSettings()
+    classification_source_repo: str = ""
+    entity_source_repo: str = ""
+    destination_revision: str = "v1.0.0"
+    hf_token: str = ""
+    classification_source_revision: str = ""
+    entity_source_revision: str = ""
 
 class DexitSettings(BaseModel):
     """
@@ -37,3 +55,5 @@ class DexitSettings(BaseModel):
 
     tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
     email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
+
+    dexit_model_deployment: DexitModelDeploymentSettings = DexitModelDeploymentSettings()

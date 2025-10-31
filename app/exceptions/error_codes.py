@@ -254,3 +254,17 @@ R1020 = {
     "followUpAction": [],
     "possibleResolutions": ["Please use signup enterprise API endpoint!"],
 }
+
+R1021 = {
+    "statusCode": status.HTTP_409_CONFLICT,
+    "displayMessage": "Space already exists!",
+    "followUpAction": [],
+    "possibleResolutions": ["Please use a different space name or provision to an existing space"],
+}
+
+R1022 = {
+    "statusCode": status.HTTP_404_NOT_FOUND,
+    "displayMessage": "Space not found!",
+    "followUpAction": [],
+    "possibleResolutions": ["Please check the space name and try again"],
+}

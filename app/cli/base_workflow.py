@@ -73,3 +73,11 @@ class ProductWorkflow(abc.ABC):
         Get the workflow id for the given schema
         """
         raise NotImplementedError
+
+    @staticmethod
+    @abc.abstractmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        Provision a space
+        """
+        raise NotImplementedError

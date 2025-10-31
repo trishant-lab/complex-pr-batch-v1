@@ -56,3 +56,7 @@ INVALID_COUPON_CODE: ServerErrorModel = ServerErrorModel.initialize(code="R1016"
 
 # tenant_link
 TENANT_LINK_NOT_SENT: ServerErrorModel = ServerErrorModel.initialize(code="C3002")
+
+# space
+SPACE_ALREADY_EXISTS: ServerErrorModel = ServerErrorModel.initialize(code="R1021")
+SPACE_NOT_FOUND: ServerErrorModel = ServerErrorModel.initialize(code="R1022")
