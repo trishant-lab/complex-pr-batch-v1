@@ -18,6 +18,12 @@ from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
+from app.cli.temporal.activities.dexit_model_deployment import (
+    ClassificationModelDeploymentActivity,
+    EntityModelDeploymentActivity,
+    StoreClearMLTasksActivity,
+    ModelDeploymentActivityModel,
+)
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
@@ -162,6 +168,9 @@ class DexitCommonOnboardingWorkflow(Workflow):
             K8sNamespaceCreationActivity.defn,
             K8sSecretCreationActivity.defn,
             DatabaseMigrationJobActivity.defn,
+            ClassificationModelDeploymentActivity.defn,
+            EntityModelDeploymentActivity.defn,
+            StoreClearMLTasksActivity.defn,
             DexitNovuSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
             KeycloakClientSetupActivity.defn,
@@ -811,6 +820,48 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     job_type="atlas",
                     product=ProductName,
                 ),
+            )
+
+            task_ids = []
+
+            # Model deployment - Classification
+            task_ids.append(await run_activity(
+                activity=ClassificationModelDeploymentActivity,
+                arg=ModelDeploymentActivityModel(
+                    tenant=tenant,
+                    storage_access_key=credentials.access_key,
+                    storage_secret_key=credentials.secret_key,
+                    storage_bucket_name=bucket_name,
+                ),
+                retry_policy=ClassificationModelDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=ClassificationModelDeploymentActivity.get_timeout(),
+            ))
+
+            # Model deployment - Entity
+            task_ids.append(await run_activity(
+                activity=EntityModelDeploymentActivity,
+                arg=ModelDeploymentActivityModel(
+                    tenant=tenant,
+                    storage_access_key=credentials.access_key,
+                    storage_secret_key=credentials.secret_key,
+                    storage_bucket_name=bucket_name,
+                ),
+                retry_policy=EntityModelDeploymentActivity.get_retry_policy(),
+                start_to_close_timeout=EntityModelDeploymentActivity.get_timeout(),
+            ))
+
+            # Store task IDs in S3
+            await run_activity(
+                activity=StoreClearMLTasksActivity,
+                arg=ModelDeploymentActivityModel(
+                    tenant=tenant,
+                    storage_access_key=credentials.access_key,
+                    storage_secret_key=credentials.secret_key,
+                    storage_bucket_name=bucket_name,
+                    task_ids=task_ids,
+                ),
+                retry_policy=StoreClearMLTasksActivity.get_retry_policy(),
+                start_to_close_timeout=StoreClearMLTasksActivity.get_timeout(),
             )
 
             # kubernetes service

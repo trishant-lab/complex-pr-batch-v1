@@ -357,6 +357,24 @@ class KeycloakAdminClient:
             idp_alias,
         )
 
+    def get_mappers_from_client(self: "KeycloakAdminClient", client_id: str, realm_name: str) -> list:
+        """
+        Returns all protocol mappers from a client
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_mappers_from_client(client_id=client_id)
+
+    def update_client_mapper(
+        self: "KeycloakAdminClient", client_id: str, mapper_id: str, payload: dict, realm_name: str
+    ) -> None:
+        """
+        Update a client protocol mapper
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        self.kc_client.update_client_mapper(client_id=client_id, mapper_id=mapper_id, payload=payload)
+
 
 @lru_cache
 def get_keycloak_manager(is_prod: bool = False) -> "KeycloakAdminClient":
