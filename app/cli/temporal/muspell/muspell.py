@@ -88,3 +88,10 @@ class MuspellArchiveWorkflow(ProductWorkflow):
         from app.cli.temporal.muspell.workflows.onboarding import MuspellOnboardingWorkflow
 
         return MuspellOnboardingWorkflow.get_workflow_id(schema)
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        raise NotImplementedError

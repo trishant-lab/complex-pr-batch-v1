@@ -120,3 +120,10 @@ class PricedxWorkflow(ProductWorkflow):
         from app.cli.temporal.pricedx.workflows.onboarding import PricedxOnboardingWorkflow
 
         return PricedxOnboardingWorkflow.get_workflow_id(schema)
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        raise NotImplementedError

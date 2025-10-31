@@ -82,3 +82,10 @@ class HdpWorkflow(ProductWorkflow):
         from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
 
         return HDPOnboardingWorkflow.get_workflow_id(schema)
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        raise NotImplementedError
