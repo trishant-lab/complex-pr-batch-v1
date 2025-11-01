@@ -77,7 +77,6 @@ class ClearMLManager:
 
     async def setup_clearml_config(self) -> None:
         """Setup the clearml config"""
-
         os.environ['CLEARML__FILES_SERVER'] = self.files_server
         os.environ['CLEARML__ACCESS_KEY'] = self.access_key
         os.environ['CLEARML__SECRET_KEY'] = self.secret_key
@@ -92,7 +91,7 @@ class ClearMLManager:
 
         try:
             # Open files manually for I/O redirection
-            async with aiofiles.open(clearml_conf_path, 'r') as infile, aiofiles.open(output_path, 'w') as outfile:
+            async with aiofiles.open(clearml_conf_path) as infile, aiofiles.open(output_path, 'w') as outfile:
                 process = await asyncio.create_subprocess_exec(
                     'envsubst',
                     stdin=infile,
@@ -102,7 +101,8 @@ class ClearMLManager:
 
                 _, stderr = await process.communicate()
                 if process.returncode != 0:
-                    raise RuntimeError(stderr.decode())
+                    logger.error(f"Error executing command: {stderr.decode()}")
+                    raise RuntimeError("Failed to process clearml.conf")
 
             logger.success("Successfully processed and moved clearml.conf to home directory")
 
