@@ -77,9 +77,6 @@ class ClearMLManager:
 
     async def setup_clearml_config(self) -> None:
         """Setup the clearml config"""
-        def handle_process_error(stderr: bytes) -> None:
-            logger.error(f'Error executing command: {stderr}')
-            raise RuntimeError(f'Error executing command: {stderr}')
 
         os.environ['CLEARML__FILES_SERVER'] = self.files_server
         os.environ['CLEARML__ACCESS_KEY'] = self.access_key
@@ -88,24 +85,30 @@ class ClearMLManager:
         os.environ['CLEARML__STORAGE_ACCESS_KEY'] = self.storage_access_key
         os.environ['CLEARML__STORAGE_SECRET_KEY'] = self.storage_secret_key
 
+        current_dir = AsyncPath(__file__).parent
+        temporal_dir = current_dir.parent
+        clearml_conf_path = temporal_dir / 'dexit' / 'templates' / 'clearml.conf'
+        output_path = (await AsyncPath.home()) / 'clearml.conf'
+
         try:
-            current_dir = AsyncPath(__file__).parent
-            temporal_dir = current_dir.parent
-            clearml_conf_path = temporal_dir / 'dexit' / 'templates' / 'clearml.conf'
+            # Open files manually for I/O redirection
+            async with aiofiles.open(clearml_conf_path, 'r') as infile, aiofiles.open(output_path, 'w') as outfile:
+                process = await asyncio.create_subprocess_exec(
+                    'envsubst',
+                    stdin=infile,
+                    stdout=outfile,
+                    stderr=asyncio.subprocess.PIPE
+                )
 
-            process = await asyncio.create_subprocess_exec(
-                'envsubst',  f'< {clearml_conf_path} > ~/clearml.conf',
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
+                _, stderr = await process.communicate()
+                if process.returncode != 0:
+                    raise RuntimeError(stderr.decode())
 
-            _, stderr = await process.communicate()
-            if process.returncode != 0:
-                handle_process_error(stderr)
-            logger.success('Successfully processed and moved clearml.conf to home directory')
-        except RuntimeError as e:
-            logger.error(f'Error executing command: {e}')
+            logger.success("Successfully processed and moved clearml.conf to home directory")
+
+        except Exception as e:
+            logger.error(f"Error executing command: {e}")
+
 
 async def copy_huggingface_repo(
     source_repo_id: str,
@@ -212,8 +215,9 @@ async def setup_clearml_task(
 
         task.upload_artifact("Output Artifacts", output_artifacts_data)
         logger.success("Uploaded parsed Output Artifacts to ClearML")
-
-        return task.id
+        task_id = task.id
+        task.close()
+        return task_id
 
     except Exception as e:
         logger.error(f'Error initializing ClearMLManager: {e}')
