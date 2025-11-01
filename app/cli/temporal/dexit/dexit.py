@@ -127,3 +127,10 @@ class DexitWorkflow(ProductWorkflow):
         )
 
         await handle.signal(DexitDeProvisioningWorkflow.decline)
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        raise NotImplementedError
