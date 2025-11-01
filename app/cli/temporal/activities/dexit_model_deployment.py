@@ -102,7 +102,7 @@ class ClearMLManager:
                 _, stderr = await process.communicate()
                 if process.returncode != 0:
                     logger.error(f"Error executing command: {stderr.decode()}")
-                    raise RuntimeError("Failed to process clearml.conf")
+                    raise RuntimeError("Failed to process clearml.conf") # noqa: TRY301
 
             logger.success("Successfully processed and moved clearml.conf to home directory")
 
