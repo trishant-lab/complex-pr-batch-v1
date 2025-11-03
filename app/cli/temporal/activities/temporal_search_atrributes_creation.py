@@ -55,11 +55,11 @@ class TemporalSearchAttributesCreationActivity(Activity):
             search_attributes = {
                 "DexitWorkflowId": IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD,
                 "isWaiting": IndexedValueType.INDEXED_VALUE_TYPE_BOOL,
-                "EventReference": IndexedValueType.INDEXED_VALUE_TYPE_TEXT,
+                "EventReference": IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD,
                 "TaskStartTime": IndexedValueType.INDEXED_VALUE_TYPE_DATETIME,
                 "User": IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD_LIST,
                 "Groups": IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD_LIST,
-                "TaskNumber": IndexedValueType.INDEXED_VALUE_TYPE_INT,
+                "TaskNumber": IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD,
                 "ActivityId": IndexedValueType.INDEXED_VALUE_TYPE_TEXT,
                 "ActivityName": IndexedValueType.INDEXED_VALUE_TYPE_TEXT,
                 "isSubWorkflow": IndexedValueType.INDEXED_VALUE_TYPE_BOOL,

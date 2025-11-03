@@ -101,8 +101,7 @@ class ClearMLManager:
 
                 _, stderr = await process.communicate()
                 if process.returncode != 0:
-                    logger.error(f"Error executing command: {stderr.decode()}")
-                    raise RuntimeError("Failed to process clearml.conf") # noqa: TRY301
+                    raise RuntimeError(stderr.decode())  # noqa: TRY301
 
             logger.success("Successfully processed and moved clearml.conf to home directory")
 
@@ -122,13 +121,11 @@ async def copy_huggingface_repo(
     if ignore_files is None:
         ignore_files = IGNORED_FILES
 
-    # huggingface_hub.login(token=hf_token)
-    hf_api = huggingface_hub.HfApi()
+    hf_api = huggingface_hub.HfApi(token=hf_token)
 
     # Create the destination repo if it doesn't exist
     hf_api.create_repo(
         repo_id=destination_repo_id,
-        token=hf_token,
         private=True,
         repo_type="model",
         exist_ok=True,
@@ -139,11 +136,10 @@ async def copy_huggingface_repo(
         branch=destination_revision,
         revision="main",
         exist_ok=True,
-        token=hf_token,
     )
 
     # List the files in the source repo
-    hf_file_system = huggingface_hub.HfFileSystem()
+    hf_file_system = huggingface_hub.HfFileSystem(token=hf_token)
     source_files: list[str] = hf_file_system.ls(source_repo_id, detail=False, revision=source_revision)
 
     for idx, source_file in enumerate(source_files):
@@ -168,8 +164,7 @@ async def copy_huggingface_repo(
             repo_id=destination_repo_id,
             repo_type="model",
             revision=destination_revision,
-            commit_message=f"Add {source_file} to {destination_repo_id}@{destination_revision}",
-            token=hf_token
+            commit_message=f"Add {source_file} to {destination_repo_id}@{destination_revision}"
         )
 
         cache_dir = os.path.expanduser("~/.cache/huggingface/hub")
