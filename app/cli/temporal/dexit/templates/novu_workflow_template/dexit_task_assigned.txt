@@ -1,16 +1,16 @@
 {
-    "name": "dexit-workflow-task-create",
-    "description": "Workflow task created",
+    "name": "dexit-task-assigned",
+    "description": "Workflow task assigned",
     "tags": [],
     "steps": [
       {
         "template": {
-          "content": "Workflow task created for Workflow - << '{{workflow.name}}' >> with task - << '{{workflow.event_reference}}' >>",
+          "content": "Task assigned for Workflow - << '{{task.workflow_name}}' >> with task - << '{{task.name}}' >>",
           "type": "in_app",
           "cta": {
               "type": "redirect",
               "data": {
-                "url": "/tasks/<< '{{workflow.task_number}}' >>"
+                "url": "/tasks/<< {{task.id}} >>"
               }
             }
         },
@@ -19,10 +19,10 @@
       },
       {
         "template": {
-          "content": "Workflow task created for Workflow - << '{{workflow.name}}' >> with task - << '{{workflow.event_reference}}' >>",
+          "content": "Task assigned for Workflow - << '{{task.workflow_name}}' >> with task - << '{{task.name}}' >>",
           "type": "email",
           "senderName":"DexIt",
-          "subject":"Workflow task created",
+          "subject":"Task assigned",
           "contentType":"customHtml"
         },
         "active": true,
@@ -30,7 +30,7 @@
       },
       {
         "template": {
-          "content": "Workflow task created for Workflow - << '{{workflow.name}}' >> with task - << '{{workflow.event_reference}}' >>",
+          "content": "Task assigned for Workflow - << '{{task.workflow_name}}' >> with task - << '{{task.name}}' >>",
           "type": "chat"
         },
         "active": true,
