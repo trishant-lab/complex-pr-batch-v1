@@ -10,7 +10,7 @@
           "cta": {
               "type": "redirect",
               "data": {
-                "url": "/tasks/<< {{task.id}} >>"
+                "url": "/tasks/<< '{{task.id}}' >>"
               }
             }
         },
