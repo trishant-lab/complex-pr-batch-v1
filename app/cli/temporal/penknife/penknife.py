@@ -90,3 +90,10 @@ class PenknifeWorkflow(ProductWorkflow):
         from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
 
         return PenknifeOnboardingWorkflow.get_workflow_id(schema)
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        raise NotImplementedError

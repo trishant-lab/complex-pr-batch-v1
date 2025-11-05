@@ -120,3 +120,10 @@ class PractiflyWorkflow(ProductWorkflow):
         from app.cli.temporal.practifly.workflows.onboarding import PractiflyOnboardingWorkflow
 
         return PractiflyOnboardingWorkflow.get_workflow_id(schema)
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        raise NotImplementedError

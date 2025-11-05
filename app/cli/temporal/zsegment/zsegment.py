@@ -82,3 +82,10 @@ class ZSegmentWorkflow(ProductWorkflow):
         Deploy a product
         """
         raise NotImplementedError("ZSegment deployment is not implemented")
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        raise NotImplementedError

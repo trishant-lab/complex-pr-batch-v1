@@ -103,3 +103,10 @@ class VeritableWorkflow(ProductWorkflow):
         )
 
         await handle.signal(VeritableDeProvisioningWorkflow.decline)
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        raise NotImplementedError
