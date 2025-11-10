@@ -68,3 +68,10 @@ class TenantResponseModel(BaseModel):
 class SuggestTenantNamesResponseModel(BaseModel):
     tenant_names: list[str]
     domain: str
+
+
+class SpaceResponseModel(BaseModel):
+    spacename: str
+    status: TenantStatusEnum
+    tenantname: str
+    created: datetime

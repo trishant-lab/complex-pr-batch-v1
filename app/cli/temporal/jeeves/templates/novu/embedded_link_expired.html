@@ -1,0 +1,14 @@
+p>Hello {{eventsubscriber.first_name}} {{eventsubscriber.last_name}},</p>
+    <p>We would like to inform you that the following embedded asset(s) link has expired and requires your attention.</p>
+    <p><b>Expired Links:</b></p>
+    <ol>
+      {{#each step.events}}
+      <li>
+        <a href="{{embed_link.embed_asset_link}}">{{embed_link.asset_title}}</a>-{{embed_link.expiration_date}}
+      </li>
+      {{/each}}
+    </ol>
+    <p>
+      Regards,<br/>
+      {{email_signature}}
+    </p>

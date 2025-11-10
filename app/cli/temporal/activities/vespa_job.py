@@ -27,11 +27,12 @@ from app.cli.k8s_resource_base_class import K8sResourceBaseClass
 from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
-from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec
+from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec, SpaceSpec
 from app.core.settings import get_settings
 from app.utils.file_operations import get_opendal_file_client
 
 TENANT_CONFIG_FILE = "tenant-config.json"
+SPACE_CONFIG_FILE = "{space_name}.json"
 
 
 class VespaDeleteActivityModel(LaunchpadCLIBaseModel):
@@ -132,19 +133,20 @@ class VespaJob(K8sResourceBaseClass):
     Vespa Job
     """
 
-    def __init__(self: "VespaJob", jeeves: JeevesSpec) -> None:
+    def __init__(self: "VespaJob", jeeves: JeevesSpec | SpaceSpec, space_name: str, image_tag: str) -> None:
         """
         Constructor
         """
-        self.jeeves: JeevesSpec = jeeves
+        self.jeeves: JeevesSpec | SpaceSpec = jeeves
+        self.space_name: str = space_name
         self.k8s_dynamic_client = get_dynamic_client()
         self.resource = get_resource(
             dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Job, api_version="batch/v1"
         )
         self.env = get_settings().env
-        self.job_name = "jeeves-vespa-job"
+        self.job_name = f"jeeves-vespa-job-{space_name}"
         self.job_type = "vespa"
-        self.image_tag = "production" if self.env == "production" else "sprint"
+        self.image_tag = image_tag
 
     def payload(self: "VespaJob") -> dict:
         """
@@ -179,11 +181,17 @@ class VespaJob(K8sResourceBaseClass):
                                         mount_path=f"/config/{TENANT_CONFIG_FILE}",
                                         sub_path=TENANT_CONFIG_FILE,
                                         read_only=True,
-                                    )
+                                    ),
+                                    V1VolumeMount(
+                                        name=f"{self.space_name.split('-')[-1]}-volume",
+                                        mount_path=f"/config/{SPACE_CONFIG_FILE.format(space_name=self.space_name.split('-')[-1])}",
+                                        sub_path=SPACE_CONFIG_FILE.format(space_name=self.space_name.split("-")[-1]),
+                                        read_only=True,
+                                    ),
                                 ],
                                 image=f"registry.314ecorp.tech/jeeves-app:{self.image_tag}",
                                 command=["/bin/sh", "-c"],
-                                args=["python3 /app/provisioning/vespa_setup.py"],
+                                args=[f"python3 /app/provisioning/vespa_setup.py {self.space_name}"],
                             )
                         ],
                         volumes=[
@@ -192,6 +200,18 @@ class VespaJob(K8sResourceBaseClass):
                                 config_map=V1ConfigMapVolumeSource(
                                     name="jeeves-tenant-config",
                                     items=[V1KeyToPath(key=TENANT_CONFIG_FILE, path=TENANT_CONFIG_FILE)],
+                                ),
+                            ),
+                            V1Volume(
+                                name=f"{self.space_name.split('-')[-1]}-volume",
+                                config_map=V1ConfigMapVolumeSource(
+                                    name=f"{self.space_name}-config",
+                                    items=[
+                                        V1KeyToPath(
+                                            key=SPACE_CONFIG_FILE.format(space_name=self.space_name.split("-")[-1]),
+                                            path=SPACE_CONFIG_FILE.format(space_name=self.space_name.split("-")[-1]),
+                                        )
+                                    ],
                                 ),
                             ),
                         ],
@@ -222,6 +242,16 @@ class VespaJob(K8sResourceBaseClass):
             log_error(f"Vespa job not found for {self.jeeves.tenant}")
 
 
+class VespaJobActivityModel(LaunchpadCLIBaseModel):
+    """
+    VespaJobActivityModel
+    """
+
+    jeeves: JeevesSpec | SpaceSpec
+    space_name: str
+    image_tag: str
+
+
 class VespaJobActivity(Activity):
     @staticmethod
     def get_timeout() -> timedelta:
@@ -243,10 +273,12 @@ class VespaJobActivity(Activity):
 
     @staticmethod
     @activity.defn(name="VespaJobActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(activity_model: VespaJobActivityModel) -> None:
         """
         Callable for the activity
         """
-        vespa_job = VespaJob(jeeves=jeeves)
+        vespa_job = VespaJob(
+            jeeves=activity_model.jeeves, space_name=activity_model.space_name, image_tag=activity_model.image_tag
+        )
         vespa_job.delete()
         vespa_job.put()

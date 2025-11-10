@@ -1,6 +1,6 @@
 {
-    "clientId": "jeeves",
-    "name": "jeeves",
+    "clientId": "jeeves-<<space>>",
+    "name": "jeeves-<<space>>",
     "description": "Jeeves application client",
     "rootUrl": "https://<<tenant>>.<<domain>>",
     "adminUrl": "https://<<tenant>>.<<domain>>",
@@ -12,14 +12,11 @@
     "redirectUris": [
         "https://jeeves-agent.<<chatwoot_domain>>/*",
         "https://<<tenant>>.<<domain>>/*",
-        "https://auth.314ecorp.com/auth/realms/help/broker/jeeves-<<tenant>>/endpoint",
-        "https://help.okjeeves.app/auth/realms/help/broker/jeeves-<<tenant>>/endpoint",
-        "jeeves://auth-callback"
+        "https://auth.314ecorp.com/auth/realms/help/broker/jeeves-<<tenant>>/endpoint"
     ],
     "webOrigins": [
         "https://jeeves-agent.<<chatwoot_domain>>",
-        "https://<<tenant>>.<<domain>>",
-        "https://tauri.localhost"
+        "https://<<tenant>>.<<domain>>"
     ],
     "notBefore": 0,
     "bearerOnly": false,
@@ -93,23 +90,6 @@
           "access.token.claim": "true",
           "claim.name": "ehr_app_name",
           "jsonType.label": "String",
-          "access.tokenResponse.claim": "false"
-        }
-      },
-      {
-        "name": "spaces",
-        "protocol": "openid-connect",
-        "protocolMapper": "oidc-hardcoded-claim-mapper",
-        "consentRequired": false,
-        "config": {
-          "introspection.token.claim": "true",
-          "claim.value": "{\"jeeves-<<space>>\": \"<<space_name>>\"}",
-          "userinfo.token.claim": "true",
-          "id.token.claim": "true",
-          "lightweight.claim": "false",
-          "access.token.claim": "true",
-          "claim.name": "spaces",
-          "jsonType.label": "JSON",
           "access.tokenResponse.claim": "false"
         }
       }

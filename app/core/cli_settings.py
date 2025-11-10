@@ -9,6 +9,7 @@ class WorkerQueues(str, Enum):
     dexit_deboarding = "dexit_deboarding"
     jeeves_onboarding = "jeeves_onboarding"
     jeeves_deboarding = "jeeves_deboarding"
+    jeeves_space_creation = "jeeves_space_creation"
     hdp_onboarding = "hdp_onboarding"
     hdp_deboarding = "hdp_deboarding"
     muspell_onboarding = "muspell_onboarding"
@@ -84,6 +85,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
     from app.cli.temporal.workflows.payments.verify import OnboardPaymentVerifyWorkflow
     from app.cli.temporal.workflows.webhooks.invoice import InvoiceWebhookEventWorkflow
     from app.cli.temporal.zsegment.workflows.onboarding import ZSegmentOnboardingWorkflow
+    from app.cli.temporal.jeeves.workflows.space_creation import JeevesSpaceCreationWorkflow
 
     workers_config = {
         "WORKER_1_PROCESS": {
@@ -97,6 +99,7 @@ def get_workers_config() -> dict[str, WorkerConfig]:
                 WorkerQueues.zsegment_onboarding: {ZSegmentOnboardingWorkflow},
                 WorkerQueues.veritable_onboarding: {VeritableOnboardingWorkflow},
                 WorkerQueues.pricedx_onboarding: {PricedxOnboardingWorkflow},
+                WorkerQueues.jeeves_space_creation: {JeevesSpaceCreationWorkflow},
             },
             "count": 3,
         },

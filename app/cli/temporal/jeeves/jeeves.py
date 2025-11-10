@@ -128,3 +128,18 @@ class JeevesWorkflow(ProductWorkflow):
         )
 
         await handle.signal(JeevesDeProvisioningWorkflow.decline)
+
+    @staticmethod
+    async def space_provision(schema: dict) -> None:
+        """
+        space_provision method
+        """
+        from app.cli.temporal.jeeves.workflows.space_creation import JeevesSpaceCreationWorkflow
+        from app.cli.temporal.jeeves.models.jeeves_spec import SpaceSpec
+        from app.cli.temporal.starter import trigger_workflow
+
+        await trigger_workflow(
+            workflow_input=SpaceSpec(**schema),
+            workflow=JeevesSpaceCreationWorkflow,
+            queue=WorkerQueues.jeeves_space_creation,
+        )

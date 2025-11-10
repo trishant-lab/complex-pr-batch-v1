@@ -34,7 +34,7 @@ from app.cli.temporal.activities.deployment_pod_creation import (
 from app.cli.temporal.activities.jeeves_fetch_latest_tag import (
     JeevesFetchLatestTagActivity,
 )
-from app.cli.temporal.activities.jeeves_novu_setup import JeevesNovuSetupActivity
+from app.cli.temporal.activities.jeeves_novu_setup import JeevesNovuSetupActivity, JeevesNovuSetupActivityModel
 from app.cli.temporal.activities.k8s_config_map import (
     K8sConfigMapCreationActivity,
     K8sConfigMapCreationActivityModel,
@@ -69,7 +69,6 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
-    get_ehr_based_idp_template,
     KeycloakOrganisationSetupActivity,
 )
 from app.cli.temporal.activities.one_password import (
@@ -83,8 +82,6 @@ from app.cli.temporal.activities.one_password import (
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
-    MatomoUserMappingActivity,
-    MatomoUserMappingActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesActivityModel,
@@ -126,7 +123,7 @@ from app.cli.temporal.activities.update_tenant_status import (
     TenantCliStatus,
     UpdateTenantStatusActivity,
 )
-from app.cli.temporal.activities.vespa_job import VespaJobActivity
+from app.cli.temporal.activities.vespa_job import VespaJobActivity, VespaJobActivityModel
 from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperActivity,
     VMPodScrapperActivityModel,
@@ -181,7 +178,6 @@ class JeevesOnboardingWorkflow(Workflow):
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
             KeycloakUserMappingActivity.defn,
-            MatomoUserMappingActivity.defn,
             PostgresGrantAllPrivilegesOnTableActivity.defn,
             K8sNamespaceCreationActivity.defn,
             K8sSecretCreationActivity.defn,
@@ -217,8 +213,6 @@ class JeevesOnboardingWorkflow(Workflow):
             OnePasswordInsertIfNotExistsActivity.defn,
             JeevesFetchLatestTagActivity.defn,
             KeycloakCreateGroupActivity.defn,
-            JeevesFetchLatestTagActivity.defn,
-            KeycloakCreateGroupActivity.defn,
             KeycloakOrganisationSetupActivity.defn,
             CopyThumbnailTemplateActivity.defn,
             PostgresGrantAllPrivilegesOnSchemaActivity.defn,
@@ -226,6 +220,27 @@ class JeevesOnboardingWorkflow(Workflow):
             PostgresGrantAllPrivilegesOnTablesActivity.defn,
             PostgresGrantAllPrivilegesOnFunctionsActivity.defn,
         ]
+
+    @staticmethod
+    def get_space_config(tenant: str, ehr: str) -> dict[str, str]:
+        """
+        Return a generic space config based on EHR for initial tenant setup.
+        Specific space names (tenant-ehr) will be handled by Space Creation Workflow.
+        """
+        if ehr not in {"cerner", "epic"}:
+            raise ValueError(f"Invalid ehr value: {ehr}. Must be 'cerner' or 'epic'.")
+
+        idp_template_map = {
+            "cerner": "keycloak_cerner_ehr_idp_flows.json",
+            "epic": "keycloak_epic_ehr_idp_flows.json",
+        }
+        return {
+            "keycloak_client_name": f"{ProductName}-{ehr}",
+            "vespa_index_name": f"jeeves_{tenant}_{ehr}",
+            "product_space_name": f"{ProductName}-{tenant}-{ehr}",
+            "db_schema_name": f"{tenant}-{ehr}",
+            "idp_template": idp_template_map[ehr],
+        }
 
     @classmethod
     def get_workflow_id(cls: "Workflow", jeeves: JeevesSpec) -> str:
@@ -249,6 +264,10 @@ class JeevesOnboardingWorkflow(Workflow):
         is_deployment = pydash.get(jeeves, "is_deployment")
         ehr_used = pydash.get(jeeves, "whichEhrDoesYourCompanyUse")
         customer_domain: str = pydash.get(jeeves, "customerDomain")
+        space_name_config: dict[str, str] = JeevesOnboardingWorkflow.get_space_config(tenant=tenant, ehr=ehr_used)
+        product_tenant_name = f"{ProductName}-{tenant}"
+        product_space_name = space_name_config["product_space_name"]
+        client_name = space_name_config["keycloak_client_name"]
 
         try:
             if not pydash.get(jeeves, "emailSent") and not is_deployment:
@@ -283,15 +302,15 @@ class JeevesOnboardingWorkflow(Workflow):
                 )
                 return
 
-            postgres_schema_name = tenant
-            postgres_database_name = "jeeves"
+            postgres_schema_name = space_name_config["db_schema_name"]
+            postgres_database_name = ProductName
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="auth_secret",
@@ -302,7 +321,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="keycloak_attribute_to_match_user",
@@ -313,7 +332,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="ehr_field_to_match_user",
@@ -324,14 +343,15 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="keycloak_auth_url",
-                    secret_value=f"https://{tenant}.{jeeves_config.domain_name}",
+                    secret_value=config.keycloak.auth_url,
                 ),
             )
 
+            # Postgres User Creation (tenant-wide)
             await run_activity(
                 activity=PostgresUserCreationActivity,
                 arg=PostgresUserCreationActivityModel(
@@ -344,7 +364,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="pg_password",
@@ -355,7 +375,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="atlas_pg_dsn",
@@ -376,7 +396,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="pg_dsn",
@@ -384,6 +404,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # Postgres Schema Creation and Privileges (for the initial default space)
             await run_activity(
                 activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
@@ -396,7 +417,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_space_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="db_schema_name",
@@ -422,14 +443,6 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             await run_activity(
-                activity=MatomoUserMappingActivity,
-                arg=MatomoUserMappingActivityModel(
-                    username=postgres_username,
-                    database_name=postgres_database_name,
-                ),
-            )
-
-            await run_activity(
                 activity=PostgresGrantAllPrivilegesOnTableActivity,
                 arg=PostgresGrantAllPrivilegesOnTableActivityModel(
                     database_name=postgres_database_name,
@@ -441,14 +454,6 @@ class JeevesOnboardingWorkflow(Workflow):
                         "keycloak_role",
                         "keycloak_group",
                         "user_role_mapping",
-                        "matomo_log_visit",
-                        "matomo_log_action",
-                        "matomo_log_media",
-                        "matomo_log_link_visit_action",
-                        "matomo_log_visit_view",
-                        "matomo_log_action_view",
-                        "matomo_log_media_view",
-                        "matomo_log_link_visit_action_view",
                         "federated_identity",
                         "user_group_membership",
                         "assetevents",
@@ -493,6 +498,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # Kubernetes Namespace and Secrets (tenant-wide)
             await run_activity(
                 activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(namespace=tenant),
@@ -521,29 +527,13 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # setup chatwoot
-            await run_activity(
-                activity=ChatwootSetupActivity,
-                arg=ChatwootSetupActivityModel(
-                    tenant=tenant,
-                    product=ProductName,
-                    config=jeeves_config,
-                ),
-            )
-
-            # setup novu
-            await run_activity(
-                activity=JeevesNovuSetupActivity,
-                arg=jeeves,
-            )
-
-            # setup redis
+            # Redis Setup (tenant-wide)
             redis_tenant_password = generate_password(length=20)
             await run_activity(
                 activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
                     namespace=tenant,
-                    product=ProductName,
+                    product=product_space_name,
                     redis_tenant_password=redis_tenant_password,
                 ),
             )
@@ -551,7 +541,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_space_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="redis_password",
@@ -562,7 +552,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="redis_dsn",
@@ -570,10 +560,22 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # Initial space_names for the main tenant, will be updated by space creation
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="space_names",
+                    key_value=client_name,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="org_domains",
@@ -581,7 +583,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # dns setup for api
+            # Cloudflare DNS & Bucket Setup
             await run_activity(
                 activity=CreateCloudflareDNSRecordActivity,
                 arg=CreateCloudflareDNSRecordActivityModel(
@@ -643,12 +645,6 @@ class JeevesOnboardingWorkflow(Workflow):
                     retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
                     start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
                 )
-                image_tag = "production"
-                server_image_tag = await workflow.execute_activity(
-                    activity=JeevesFetchLatestTagActivity.defn,
-                    retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
-                    start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
-                )
                 dest_dir = f"{bucket_name}/"
 
             docker_image = f"registry.314ecorp.tech/jeeves-app:{server_image_tag}"
@@ -675,11 +671,11 @@ class JeevesOnboardingWorkflow(Workflow):
                 arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=bucket_name, read_only=False),
             )
 
-            # cdn base url added to onepassword
+            # CDN and S3 credentials (tenant-wide)
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="base_url_cdn",
@@ -691,7 +687,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_media_bucket_name",
@@ -703,7 +699,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_access_key",
@@ -715,7 +711,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_secret_key",
@@ -726,7 +722,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_ui_bucket_name",
@@ -737,7 +733,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_ui_bucket_access_key",
@@ -749,7 +745,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_ui_bucket_secret_key",
@@ -761,7 +757,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="base_ui_url",
@@ -772,7 +768,51 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="space_config_file_path_template",
+                    key_value="/config/{space}.json",
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=product_space_name,
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="space_display_name",
+                    secret_value=ehr_used.capitalize(),
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=product_space_name,
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="vespa_index_name",
+                    secret_value=space_name_config["vespa_index_name"],
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=product_space_name,
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    secret_name="space_name",
+                    secret_value=client_name,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="mpd_api",
@@ -783,7 +823,7 @@ class JeevesOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
+                    tenant=product_tenant_name,
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     key="s3_mpd_api",
@@ -791,22 +831,48 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # setup configmaps
-            tenant_config = "tenant-config.json"
-            rclone_config = "rclone.conf"
+            # Novu Setup
+            await run_activity(
+                activity=JeevesNovuSetupActivity,
+                arg=JeevesNovuSetupActivityModel(
+                    jeeves=jeeves,
+                    space_name=product_space_name,
+                ),
+            )
+
+            # Chatwoot Setup
+            await run_activity(
+                activity=ChatwootSetupActivity,
+                arg=ChatwootSetupActivityModel(
+                    tenant_space_name=product_space_name,
+                    tenant=tenant,
+                    product=ProductName,
+                    config=jeeves_config,
+                ),
+            )
+
+            # K8s ConfigMap Setup (tenant-wide and for initial space)
+            tenant_config_file = "tenant-config.json"
+            rclone_config_file = "rclone.conf"
             config_dir = "config"
+            space_config_file = f"{ehr_used}.json"
 
             # setup tenant configmap
             for config_map in [
                 {
                     "name": "jeeves-tenant-config",
-                    "key": tenant_config,
+                    "key": tenant_config_file,
                     "template_file_name": f"{config.env}-tenant-config.tmpl.json",
                 },
                 {
                     "name": "jeeves-rclone-config",
-                    "key": rclone_config,
+                    "key": rclone_config_file,
                     "template_file_name": f"{config.env}-rclone.tmpl.conf",
+                },
+                {
+                    "name": f"jeeves-{ehr_used}-config",
+                    "key": space_config_file,
+                    "template_file_name": f"{config.env}-space-tenant-config.tmpl.json",
                 },
             ]:
                 await run_activity(
@@ -817,7 +883,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         template_file_name=config_map["template_file_name"],
                         destination_file_name=config_map["key"],
                         cloudflare_r2_folder_path="jeeves-config",
-                        template_payload={"tenant": tenant},
+                        template_payload={"tenant": tenant, "space": ehr_used},  # 'space' here refers to the EHR type
                     ),
                 )
 
@@ -834,11 +900,13 @@ class JeevesOnboardingWorkflow(Workflow):
                         "company_name": pydash.get(jeeves, "companyNameProvidersOrPayersOnly"),
                         "chatwoot_domain": jeeves_config.chatwoot_domain,
                         "smtp_password": jeeves_config.keycloak_smtp_password,
+                        "space": ehr_used,
+                        "space_name": ehr_used.capitalize(),
                     },
                 ),
             )
 
-            # keycloak client setup
+            # Keycloak Client Setup (tenant-wide, main client)
             await run_activity(
                 activity=KeycloakClientSetupActivity,
                 arg=KeycloakClientSetupActivityModel(
@@ -846,8 +914,28 @@ class JeevesOnboardingWorkflow(Workflow):
                     realm_name=realm_name,
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
-                    template_name="keycloak_jeeves_client.json",
-                    template_payload={"chatwoot_domain": jeeves_config.chatwoot_domain},
+                    template_name="keycloak_jeeves_client.json",  # This is the main client for the tenant
+                    template_payload={
+                        "chatwoot_domain": jeeves_config.chatwoot_domain,
+                        "space_name": ehr_used.capitalize(),
+                        "space": ehr_used,
+                    },
+                ),
+            )
+
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=jeeves_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_jeeves_space_client.json",
+                    template_payload={
+                        "chatwoot_domain": jeeves_config.chatwoot_domain,
+                        "space": ehr_used,
+                        "space_name": ehr_used.capitalize(),
+                    },
                 ),
             )
 
@@ -867,11 +955,11 @@ class JeevesOnboardingWorkflow(Workflow):
                 "_JEEVESALL",
             ]
 
-            # keycloak client roles setup
+            # Keycloak client roles setup
             await run_activity(
                 activity=KeycloakCreateClientRolesActivity,
                 arg=KeycloakCreateClientRolesActivityModel(
-                    client_name="jeeves",
+                    client_name=client_name,
                     realm_name=realm_name,
                     roles=roles,
                 ),
@@ -881,33 +969,34 @@ class JeevesOnboardingWorkflow(Workflow):
                 activity=KeycloakCreateGroupActivity,
                 arg=KeycloakCreateGroupActivityModel(
                     realm_name=realm_name,
-                    client_name="jeeves",
+                    client_name=client_name,
                     template_path=TemplatePath,
                     template_name="keycloak_jeeves_group.json",
+                    template_payload={"space": ehr_used},
                 ),
             )
 
-            # keycloak user group setup
+            # Keycloak user group setup
             await run_activity(
                 activity=KeycloakCreateGroupActivity,
                 arg=KeycloakCreateGroupActivityModel(
                     realm_name=realm_name,
-                    client_name="jeeves",
+                    client_name=client_name,
                     template_path=TemplatePath,
                     template_name="keycloak_user_group.json",
-                    parent_group_name=ProductName,
+                    parent_group_name=client_name,
                 ),
             )
 
-            # Create IDP mappers
+            # Create IDP mappers (for the initial EHR space)
             await run_activity(
                 activity=JeevesKeycloakCreateIDPFlowActivity,
-                arg=KeycloakClientSetupActivityModel(
+                arg=KeycloakClientSetupActivityModel(  # This model is suitable for passing these parameters
                     tenant=tenant,
                     realm_name=realm_name,
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
-                    template_name=get_ehr_based_idp_template(ehr=ehr_used),
+                    template_name=space_name_config["idp_template"],  # Use the idp_template from initial space config
                     template_payload={"idp_config": jeeves_config.idp_config},
                 ),
             )
@@ -928,6 +1017,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     is_prod=True,
                 ),
             )
+
             # if customer_domain:
             #     await run_activity(
             #         activity=KeycloakOrganisationSetupActivity,
@@ -941,12 +1031,12 @@ class JeevesOnboardingWorkflow(Workflow):
             #         ),
             #     )
 
-            # keycloak tenant customer admin user setup
+            # Keycloak tenant customer admin user setup for the initial EHR space
             await run_activity(
                 activity=KeycloakCreateTenantCustomerAdminUserActivity,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
-                    client_name="jeeves",
+                    client_name=client_name,
                     username=email,
                     email=email,
                     firstname=first_name,
@@ -954,16 +1044,16 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
-                    group_path=f"{ProductName}/Admin",
+                    group_path=f"{client_name}/Admin",
                 ),
             )
 
-            # keycloak internal users setup
+            # Keycloak internal users setup for the initial EHR space
             await run_activity(
                 activity=KeycloakCreateInternalUsersActivity,
                 arg=KeycloakCreateInternalUsersActivityModel(
                     realm_name=realm_name,
-                    client_name="jeeves",
+                    client_name=client_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
                     users=[
@@ -1008,50 +1098,54 @@ class JeevesOnboardingWorkflow(Workflow):
                         },
                     ],
                     roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
-                    group_path=f"{ProductName}/Admin",
+                    group_path=f"{client_name}/Admin",
                 ),
             )
 
-            # atlas job
+            # Atlas Job (for the initial default space)
             await run_activity(
                 activity=DatabaseMigrationJobActivity,
                 arg=DatabaseMigrationJobActivityModel(
                     namespace=tenant,
-                    job_name="jeeves-db-schema-migration-job",
+                    job_name=f"jeeves-db-schema-migration-job-{ehr_used}",
                     docker_image=docker_image,
                     volume_mounts=[
                         {
-                            "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
+                            "name": f"{ehr_used}-volume",
+                            "mount_path": f"/{config_dir}/{space_config_file}",
+                            "sub_path": space_config_file,
                         },
                     ],
                     volumes=[
                         {
-                            "name": "tenant-volume",
-                            "config_map_name": "jeeves-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
+                            "name": f"{ehr_used}-volume",
+                            "config_map_name": f"jeeves-{ehr_used}-config",
+                            "key": space_config_file,
+                            "path": space_config_file,
                         },
                     ],
                     container_envs=[
-                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{space_config_file}"},
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
                     ],
-                    argument="python3 /app/provisioning/atlas_migration.py",
-                    job_type="atlas",
+                    argument=f"python3 /app/provisioning/dbmate_migration.py {client_name}",
+                    job_type="dbmate",
                     product=ProductName,
                 ),
             )
 
-            # vespa job
+            # Vespa Job (for the initial default space)
             await run_activity(
                 activity=VespaJobActivity,
-                arg=jeeves,
+                arg=VespaJobActivityModel(
+                    jeeves=jeeves,
+                    space_name=client_name,
+                    image_tag=image_tag,
+                ),
             )
 
-            # kubernetes service
+            # Kubernetes Service (tenant-wide)
             await run_activity(
                 activity=KubernetesServiceActivity,
                 arg=KubernetesServiceActivityModel(
@@ -1067,16 +1161,8 @@ class JeevesOnboardingWorkflow(Workflow):
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
             http_list = ijson_loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
 
-            # kubernetes virtual service
+            # Kubernetes Virtual Service (tenant-wide)
             await run_activity(
                 activity=KubernetesIstioVirtualServiceActivity,
                 arg=KubernetesIstioVirtualServiceActivityModel(
@@ -1097,7 +1183,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # deployment pod creation for server
+            # Deployment Pod Creation for server (tenant-wide, mounting initial space config)
             await run_activity(
                 activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
@@ -1116,8 +1202,13 @@ class JeevesOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
+                            "mount_path": f"/{config_dir}/{tenant_config_file}",
+                            "sub_path": tenant_config_file,
+                        },
+                        {
+                            "name": f"{ehr_used}-volume",
+                            "mount_path": f"/{config_dir}/{space_config_file}",
+                            "sub_path": space_config_file,
                         },
                         {"name": "rclone-volume", "mount_path": "/root/.config/rclone/", "read_only": True},
                     ],
@@ -1125,27 +1216,33 @@ class JeevesOnboardingWorkflow(Workflow):
                         {
                             "name": "tenant-volume",
                             "config_map_name": "jeeves-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
+                            "key": tenant_config_file,
+                            "path": tenant_config_file,
+                        },
+                        {
+                            "name": f"{ehr_used}-volume",
+                            "config_map_name": f"jeeves-{ehr_used}-config",
+                            "key": space_config_file,
+                            "path": space_config_file,
                         },
                         {
                             "name": "rclone-volume",
                             "config_map_name": "jeeves-rclone-config",
-                            "key": rclone_config,
-                            "path": rclone_config,
+                            "key": rclone_config_file,
+                            "path": rclone_config_file,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config_file}"},
                         {"name": "WEB_CONCURRENCY", "value": "1"},
                         {"name": "EXTRACTOR_ENABLED", "value": "FALSE"},
                     ],
                 ),
             )
 
-            # deployment pod creation for cli
+            # Deployment Pod Creation for CLI (tenant-wide, mounting initial space config)
             await run_activity(
                 activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
@@ -1164,8 +1261,13 @@ class JeevesOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
+                            "mount_path": f"/{config_dir}/{tenant_config_file}",
+                            "sub_path": tenant_config_file,
+                        },
+                        {
+                            "name": f"{ehr_used}-volume",
+                            "mount_path": f"/{config_dir}/{space_config_file}",
+                            "sub_path": space_config_file,
                         },
                         {"name": "rclone-volume", "mount_path": "/root/.config/rclone/", "read_only": True},
                     ],
@@ -1173,26 +1275,32 @@ class JeevesOnboardingWorkflow(Workflow):
                         {
                             "name": "tenant-volume",
                             "config_map_name": "jeeves-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
+                            "key": tenant_config_file,
+                            "path": tenant_config_file,
                         },
                         {
                             "name": "rclone-volume",
                             "config_map_name": "jeeves-rclone-config",
-                            "key": rclone_config,
-                            "path": rclone_config,
+                            "key": rclone_config_file,
+                            "path": rclone_config_file,
+                        },
+                        {
+                            "name": f"{ehr_used}-volume",
+                            "config_map_name": f"jeeves-{ehr_used}-config",
+                            "key": space_config_file,
+                            "path": space_config_file,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config}"},
+                        {"name": "APP_CONFIG_FILE", "value": f"/{config_dir}/{tenant_config_file}"},
                         {"name": "EXTRACTOR_ENABLED", "value": "TRUE"},
                     ],
                 ),
             )
 
-            # vm pod scraper
+            # VM Pod Scrapper (tenant-wide)
             await run_activity(
                 activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
@@ -1204,7 +1312,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # temporal namespace creation
+            # Temporal Namespace Creation (tenant-wide)
             await run_activity(
                 activity=TemporalNamespaceActivity,
                 arg=TemporalNamespaceActivityModel(
@@ -1212,7 +1320,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # ai voice setup
+            # AI Voice Setup (tenant-wide)
             await run_activity(
                 activity=AiVoiceSetupActivity,
                 arg=AiVoiceSetupActivityModel(
@@ -1229,7 +1337,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # propagate the dns record
+            # Propagate DNS Record (tenant-wide)
             await run_activity(
                 activity=PropagateDNSRecordActivity,
                 arg=PropagateDNSRecordActivityModel(
@@ -1237,7 +1345,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # check pod running status
+            # Check Pod Running Status (tenant-wide)
             for pod in ["jeeves", "jeeves-worker"]:
                 await run_activity(
                     activity=CheckPodRunningStatusActivity,
@@ -1248,13 +1356,14 @@ class JeevesOnboardingWorkflow(Workflow):
                 )
 
             if not is_deployment:
-                # update tenant status
+                # Update tenant status
                 await run_activity(
                     activity=UpdateTenantStatusActivity,
                     arg=TenantCliStatus(
                         tenant_name=tenant,
                         status=TenantStatusEnum.Provisioned,
                         product=ProductEnum.jeeves,
+                        space_name=client_name,  # Report the initial space name
                     ),
                 )
 
@@ -1268,6 +1377,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         status=TenantStatusEnum.ProvisioningFailed,
                         error_msg=str(e),
                         product=ProductEnum.jeeves,
+                        space_name=client_name,
                     ),
                 )
             await run_activity(

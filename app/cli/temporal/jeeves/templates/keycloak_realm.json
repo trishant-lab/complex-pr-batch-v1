@@ -2,7 +2,7 @@
   "id": "<<tenant>>",
   "realm": "<<tenant>>",
   "displayName": "<<company_name>>",
-  "displayNameHtml": "",
+  "displayNameHtml": "<<company_name>>",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
@@ -764,6 +764,23 @@
                       "jsonType.label": "String",
                       "access.tokenResponse.claim": "false"
                   }
+              },
+              {
+                "name": "spaces",
+                "protocol": "openid-connect",
+                "protocolMapper": "oidc-hardcoded-claim-mapper",
+                "consentRequired": false,
+                "config": {
+                  "introspection.token.claim": "true",
+                  "claim.value": "{\"jeeves-<<space>>\": \"<<space_name>>\"}",
+                  "userinfo.token.claim": "true",
+                  "id.token.claim": "true",
+                  "lightweight.claim": "false",
+                  "access.token.claim": "true",
+                  "claim.name": "spaces",
+                  "jsonType.label": "JSON",
+                  "access.tokenResponse.claim": "false"
+                }
               }
           ],
           "defaultClientScopes": [
@@ -3007,7 +3024,7 @@
       "actionTokenGeneratedByUserLifespan.execute-actions": "",
       "cibaExpiresIn": "120",
       "actionTokenGeneratedByUserLifespan-idp-verify-account-via-email": "",
-      "frontendUrl": "",
+      "frontendUrl": "https://<<tenant>>.<<domain>>/auth",
       "organizationsEnabled": "true",
       "shortVerificationUri": "",
       "actionTokenGeneratedByUserLifespan.reset-credentials": "",

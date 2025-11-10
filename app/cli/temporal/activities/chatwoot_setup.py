@@ -19,7 +19,10 @@ CONTENT_TYPE = "application/json"
 
 
 class ChatwootSetup:
-    def __init__(self: "ChatwootSetup", tenant: str, product: str, config: JeevesSettings) -> None:
+    def __init__(
+        self: "ChatwootSetup", tenant_space_name: str, tenant: str, product: str, config: JeevesSettings
+    ) -> None:
+        self.tenant_space_name: str = tenant_space_name
         self.tenant: str = tenant
         self.config = config
         self.product: str = product
@@ -28,7 +31,7 @@ class ChatwootSetup:
         self.chatwoot_default_user_password = config.chatwoot_default_user_password
 
         self.onepassword_util = OnePasswordUtil(
-            tenant=f"{product}_{self.tenant}",
+            tenant=f"{self.tenant_space_name}",
             server_item="application-config",
             vault=self.product,
         )
@@ -45,7 +48,7 @@ class ChatwootSetup:
         url = f"{self.chatwoot_base_url}/platform/api/v1/accounts"
 
         data = {
-            "name": self.tenant,
+            "name": self.tenant_space_name,
         }
         async with aiohttp.ClientSession() as session:
             response = await session.post(url=url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=20))
@@ -54,7 +57,7 @@ class ChatwootSetup:
                 logger.error(f"Failed to create account in chatwoot : {response_json}")
                 raise RuntimeError(f"Failed to create account in chatwoot : {response_json}")
 
-            logger.info(f"chatwoot account created successfully : {self.tenant}")
+            logger.info(f"chatwoot account created successfully : {self.tenant_space_name}")
             return response_json.get("id")
 
     async def create_chatwoot_user(self: "ChatwootSetup") -> dict:
@@ -65,12 +68,12 @@ class ChatwootSetup:
             "api_access_token": self.chatwoot_platform_api_token,
             "Content-Type": CONTENT_TYPE,
         }
-
         url = f"{self.chatwoot_base_url}/platform/api/v1/users"
+        _, tenant, space = self.tenant_space_name.split("-")
 
         data: dict = {
-            "name": f"{self.product} Assistant {self.tenant}",
-            "email": f"{self.product.lower()}assistant.{self.tenant}@314ecorp.com",
+            "name": f"{self.product} Assistant {tenant}{space}",
+            "email": f"{self.product.lower()}assistant.{tenant}{space}@314ecorp.com",
             "password": self.chatwoot_default_user_password,
             "custom_attributes": {},
         }
@@ -84,7 +87,7 @@ class ChatwootSetup:
             if response.status >= 400:
                 logger.error(f"Failed to create user in chatwoot : {response.status}")
                 raise RuntimeError(f"Failed to create user in chatwoot : {response.status}")
-            logger.info(f"chatwoot user created successfully apiuser {self.tenant}")
+            logger.info(f"chatwoot user created successfully apiuser {self.tenant_space_name}")
             return await response.json()
 
     async def add_user_to_account(self: "ChatwootSetup", user_id: int, account_id: int) -> int:
@@ -108,7 +111,9 @@ class ChatwootSetup:
             if response.status >= 400:
                 logger.error(f"Failed to add user to chatwoot account : {response_json}")
                 raise HTTPException(f"Failed to add user to chatwoot account : {response_json}")
-            logger.info(f"user added to chatwoot account successfully. user id:{user_id}")
+            logger.info(
+                f"user added to chatwoot account successfully. user id:{user_id} for space:{self.tenant_space_name}"
+            )
             return response.status
 
     async def create_account_agent_bot(self: "ChatwootSetup", user_api_key: str, account_id: int) -> dict:
@@ -390,8 +395,9 @@ class ChatwootSetupActivityModel(LaunchpadCLIBaseModel):
     ChatwootSetupActivityModel
     """
 
-    tenant: str
+    tenant_space_name: str
     product: str
+    tenant: str
     config: JeevesSettings
 
 
@@ -421,7 +427,10 @@ class ChatwootSetupActivity(Activity):
         Callable for the activity
         """
         chatwoot_setup = ChatwootSetup(
-            tenant=activity_model.tenant, product=activity_model.product, config=activity_model.config
+            tenant_space_name=activity_model.tenant_space_name,
+            product=activity_model.product,
+            config=activity_model.config,
+            tenant=activity_model.tenant,
         )
         await chatwoot_setup.setup()
 

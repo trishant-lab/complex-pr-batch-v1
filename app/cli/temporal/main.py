@@ -4,6 +4,7 @@ from app.cli.temporal.dexit.workflows.onboarding import DexitOnboardingWorkflow
 from app.cli.temporal.hdp.workflows.onboarding import HDPOnboardingWorkflow
 from app.cli.temporal.jeeves.workflows.deprovisioning import JeevesDeProvisioningWorkflow
 from app.cli.temporal.jeeves.workflows.onboarding import JeevesOnboardingWorkflow
+from app.cli.temporal.jeeves.workflows.space_creation import JeevesSpaceCreationWorkflow
 from app.cli.temporal.muspell.workflows.onboarding import MuspellOnboardingWorkflow
 from app.cli.temporal.penknife.workflows.deprovisioning import PenknifeDeProvisioningWorkflow
 from app.cli.temporal.penknife.workflows.onboarding import PenknifeOnboardingWorkflow
@@ -43,6 +44,7 @@ WORKFLOW_MAPPER: dict[str, type[Workflow | ScheduleWorkflow]] = {
         PricedxDeProvisioningWorkflow,
         VeritableDeProvisioningWorkflow,
         VeritableDeploymentWorkflow,
+        JeevesSpaceCreationWorkflow,
     ]
 }
 

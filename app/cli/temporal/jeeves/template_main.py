@@ -19,27 +19,6 @@ async def get_layout_content() -> str:
     return await get_template_from_file("novu/layout_content.html")
 
 
-async def get_assignment_created_custom_email() -> str:
-    """
-    Get the custom email for the Novu notifications
-    """
-    return await get_template_from_file("novu/assignment_created_custom_email_content.html")
-
-
-async def get_assignment_updated_custom_email() -> str:
-    """
-    Get the custom email for the Novu notifications
-    """
-    return await get_template_from_file("novu/assignment_updated_mail.html")
-
-
-async def get_asset_created_custom_email() -> str:
-    """
-    Get the custom email for the Novu notifications
-    """
-    return await get_template_from_file("novu/asset_created_custom_mail.html")
-
-
 async def get_assignment_due_in_15_days_custom_email() -> str:
     """
     Get the custom email for the Novu notifications
@@ -96,13 +75,6 @@ async def get_asset_expired_custom_email() -> str:
     return await get_template_from_file("novu/asset_expired_mail.html")
 
 
-async def get_asset_deleted_custom_email() -> str:
-    """
-    Get the custom email for the Novu notifications
-    """
-    return await get_template_from_file("novu/asset_deleted_mail.html")
-
-
 async def get_asset_updated_custom_email() -> str:
     """
     Get the custom email for the Novu notifications
@@ -150,3 +122,52 @@ async def get_asset_assigned_email() -> str:
     Get the custom email for the Novu notifications
     """
     return await get_template_from_file("novu/asset_assigned_mail.html")
+
+
+async def get_assignment_completion_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/assignment_completion.html")
+
+
+async def get_assignment_revoked_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/assignment_revoked.html")
+
+
+async def get_embedded_link_expiring_in_30_days_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/embedded_link_expiring_in_30_days.html")
+
+
+async def get_embedded_link_expiring_in_7_days_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/embedded_link_expiring_in_7_days.html")
+
+
+async def get_embedded_link_expiring_in_1_day_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/embedded_link_expiring_in_1_day.html")
+
+
+async def get_embedded_link_expired_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/embedded_link_expired.html")
+
+
+async def get_asset_shared_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/asset_shared.html")
