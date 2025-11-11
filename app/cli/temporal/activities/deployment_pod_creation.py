@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import yaml
 from kubernetes.client import (
     V1ConfigMapKeySelector,
     V1ConfigMapVolumeSource,
@@ -347,4 +348,89 @@ class KubernetesDeploymentUpdateActivity(Activity):
             log_info(f"Deployment '{activity_model.name}' updated successfully.")
         except Exception as e:
             log_error(f"Failed to apply updated deployment in namespace {activity_model.namespace}: {e!s}")
+            raise
+
+
+class KedaApplyTemplatedYamlActivityModel(LaunchpadCLIBaseModel):
+    """
+    Model for applying a KEDA YAML manifest that will be templated.
+    """
+
+    namespace: str
+    yaml_content: str
+
+
+class KedaApplyTemplatedYamlActivity(Activity):
+    """
+    A generic Temporal activity to apply a KEDA (or any Kubernetes) YAML
+    manifest. It replaces '<<tenant>>' placeholders with the provided namespace.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Returns the timeout for the activity.
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Returns the retry policy for the activity.
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=2.0,
+            maximum_attempts=3,
+        )
+
+    @staticmethod
+    @activity.defn(name="KedaApplyTemplatedYamlActivity")
+    async def defn(activity_model: KedaApplyTemplatedYamlActivityModel) -> None:
+        """
+        Applies a Kubernetes resource from a YAML string after substituting
+        """
+        tenant_namespace = activity_model.namespace
+        log_info(f"Preparing to apply templated YAML manifest to namespace '{tenant_namespace}'...")
+
+        try:
+            k8s_dynamic_client = get_dynamic_client()
+
+            # Load the now-templated YAML content into a Python dictionary
+            body = yaml.safe_load(activity_model.yaml_content)
+            if not body:
+                log_info(f"No YAML content found in '{activity_model.yaml_content}'")
+                return
+
+            # Extract essential metadata from the YAML for logging and API discovery
+            api_version = body.get("apiVersion")
+            kind = body.get("kind")
+            metadata = body.get("metadata", {})
+            name = metadata.get("name")
+
+            if not all([api_version, kind, name]):
+                log_error("YAML content must include apiVersion, kind, and metadata.name.")
+                return
+
+            body["metadata"]["namespace"] = tenant_namespace
+
+            log_info(f"Applying resource '{kind}/{name}' to namespace '{tenant_namespace}'...")
+
+            # Discover the resource API for the object
+            api_resource = k8s_dynamic_client.resources.get(api_version=api_version, kind=kind)
+
+            # Sanitize and apply the resource using server-side apply
+            payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
+
+            api_resource.server_side_apply(
+                body=payload,
+                force_conflicts=True,
+                namespace=tenant_namespace,
+                field_manager="keda-autoscaler-activity",
+            )
+
+            log_info(f"Successfully applied '{kind}/{name}' in namespace '{tenant_namespace}'")
+
+        except Exception as e:
+            log_error(f"Failed to apply templated YAML in namespace '{tenant_namespace}': {e!s}")
             raise

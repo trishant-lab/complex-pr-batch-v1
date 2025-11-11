@@ -1,0 +1,41 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  labels:
+    scaledobject.keda.sh/name: jeeves-server-autoscaler
+  name: jeeves-server-autoscaler
+  namespace: <<tenant>>
+spec:
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          policies:
+          - periodSeconds: 90
+            type: Pods
+            value: 1
+          stabilizationWindowSeconds: 300
+        scaleUp:
+          policies:
+          - periodSeconds: 30
+            type: Pods
+            value: 1
+          stabilizationWindowSeconds: 0
+    scalingModifiers: {}
+  maxReplicaCount: 6
+  minReplicaCount: 2
+  pollingInterval: 15
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: jeeves
+  triggers:
+  - metadata:
+      activationThreshold: "40"
+      metricName: starlette_requests_in_progress
+      query: sum(starlette_requests_in_progress{path_template!="/metrics/", namespace="<<tenant>>"})/(sum(kube_deployment_status_replicas{deployment="jeeves",
+        exported_namespace="<<tenant>>"}) or 1)
+      serverAddress: http://vmselect-vmcluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus
+      threshold: "50"
+    metricType: Value
+    type: prometheus

@@ -30,6 +30,8 @@ from app.cli.temporal.activities.database_migration_job import (
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
+    KedaApplyTemplatedYamlActivity,
+    KedaApplyTemplatedYamlActivityModel,
 )
 from app.cli.temporal.activities.jeeves_fetch_latest_tag import (
     JeevesFetchLatestTagActivity,
@@ -70,6 +72,7 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
     KeycloakOrganisationSetupActivity,
+    template_render,
 )
 from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivity,
@@ -219,6 +222,7 @@ class JeevesOnboardingWorkflow(Workflow):
             PostgresGrantAllPrivilegesOnSequencesActivity.defn,
             PostgresGrantAllPrivilegesOnTablesActivity.defn,
             PostgresGrantAllPrivilegesOnFunctionsActivity.defn,
+            KedaApplyTemplatedYamlActivity.defn,
         ]
 
     @staticmethod
@@ -1366,6 +1370,35 @@ class JeevesOnboardingWorkflow(Workflow):
                         space_name=client_name,  # Report the initial space name
                     ),
                 )
+            yaml_content = template_render(
+                template_path=TemplatePath,
+                template_name="keda-prometheus-scaledobject-server.tmpl.yaml",
+                template_payload={
+                    "tenant": tenant,
+                },
+            )
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    yaml_content=yaml_content,
+                ),
+            )
+
+            yaml_content = template_render(
+                template_path=TemplatePath,
+                template_name="keda-prometheus-scaledobject-worker.tmpl.yaml",
+                template_payload={
+                    "tenant": tenant,
+                },
+            )
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    yaml_content=yaml_content,
+                ),
+            )
 
         except Exception as e:
             workflow.logger.error(f"Error in onboarding workflow: {e}")
