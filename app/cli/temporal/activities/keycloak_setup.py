@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import jinja2
+import orjson
 from pydash import py_
 from temporalio import activity
 from temporalio.common import RetryPolicy
@@ -12,7 +13,6 @@ from app.core.ijson import ijson_loads
 from app.core.settings import AppSettings, get_settings
 from app.one_password_util import OnePasswordUtil
 from app.template_env import get_env
-from app.utils.file_operations import get_opendal_file_client
 
 JINJA_ENV_AUTOESCAPE: str = "jinja_env.autoescape"
 
@@ -31,19 +31,6 @@ def template_render(
         jinja_env.autoescape = template_payload[JINJA_ENV_AUTOESCAPE]
         del template_payload[JINJA_ENV_AUTOESCAPE]
     return template.render(**(template_payload if template_payload else {}))
-
-
-def get_ehr_based_idp_template(ehr: str) -> str:
-    """
-    Return IDP template based on EHR
-    """
-    match ehr.lower():
-        case "cerner":
-            return "keycloak_cerner_ehr_idp_flows.json"
-        case "epic":
-            return "keycloak_epic_ehr_idp_flows.json"
-        case _:
-            return "keycloak_idp_and_flows.json"
 
 
 def create_keycloak_realm(
@@ -81,7 +68,21 @@ def create_keycloak_realm(
         },
     )
 
-    keycloak_client.create_realm(ijson_loads(realm_config), skip_exists=True)
+    realm_json = ijson_loads(realm_config)
+    selected_identity_providers = template_payload.get("identityProvider") if template_payload else None
+    if selected_identity_providers is not None and len(selected_identity_providers) > 0:
+        if "identityProviders" in realm_json:
+            realm_json["identityProviders"] = [
+                idp for idp in realm_json["identityProviders"] if idp["alias"] in selected_identity_providers
+            ]
+        if "identityProviderMappers" in realm_json:
+            realm_json["identityProviderMappers"] = [
+                mapper
+                for mapper in realm_json["identityProviderMappers"]
+                if mapper["identityProviderAlias"] in selected_identity_providers
+            ]
+
+    keycloak_client.create_realm(realm_json, skip_exists=True)
 
 
 def create_keycloak_client(
@@ -287,6 +288,7 @@ async def create_keycloak_group(
     template_path: str,
     template_name: str,
     parent_group_name: str | None = None,
+    template_payload: dict | None = None,
 ) -> None:
     """
     Create keycloak group
@@ -295,8 +297,13 @@ async def create_keycloak_group(
 
     client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
 
-    opendal_file_operations = get_opendal_file_client()
-    user_groups = ijson_loads(await opendal_file_operations.read_file_str(f"{template_path}/{template_name}"))
+    group_config = template_render(
+        template_path=template_path,
+        template_name=template_name,
+        template_payload=template_payload,
+    )
+    log_info(group_config)
+    user_groups = ijson_loads(group_config)
     parent_group_id = (
         keycloak_client.get_group_id_by_path(realm_name=realm_name, path=parent_group_name)
         if parent_group_name
@@ -1080,6 +1087,7 @@ class KeycloakCreateGroupActivityModel(LaunchpadCLIBaseModel):
     template_path: str
     template_name: str
     parent_group_name: str | None = None
+    template_payload: dict | None = None
 
 
 class KeycloakCreateGroupActivity(Activity):
@@ -1113,6 +1121,7 @@ class KeycloakCreateGroupActivity(Activity):
             template_path=activity_model.template_path,
             template_name=activity_model.template_name,
             parent_group_name=activity_model.parent_group_name,
+            template_payload=activity_model.template_payload,
         )
 
         log_info("Created keycloak Groups successfully")
@@ -1166,3 +1175,109 @@ class KeycloakOrganisationSetupActivity(Activity):
         )
 
         log_info("Created keycloak Organisation successfully")
+
+
+def update_jeeves_space_mapper(
+    space_name: str,
+    space_display_name: str,
+    mapper: dict,
+) -> None:
+    """
+    Update Jeeves space mapper
+    """
+    config_value = mapper["config"]
+    claim_value = orjson.loads(config_value.get("claim.value", "{}"))
+    claim_value.update({space_name: space_display_name})
+    config_value["claim.value"] = orjson.dumps(claim_value).decode()
+    mapper["config"] = config_value
+
+
+def update_keycloak_client_mapper(
+    realm_name: str,
+    client_name: str,
+    space_name: str,
+    space_display_name: str,
+    mapper_name: str,
+) -> None:
+    """
+    Update Keycloak client mapper to add new space mapping
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    client_id = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+    if not client_id:
+        msg = f"Client '{client_name}' not found in realm '{realm_name}'"
+        log_error(msg)
+        raise ValueError(msg)
+
+    mappers = keycloak_client.get_mappers_from_client(client_id=client_id, realm_name=realm_name)
+
+    mapper = next((mapper for mapper in mappers if mapper["name"] == mapper_name), None)
+
+    if not mapper:
+        msg = f"{mapper_name} mapper not found for client '{client_name}'"
+        log_error(msg)
+        raise ValueError(msg)
+
+    update_jeeves_space_mapper(space_name=space_name, space_display_name=space_display_name, mapper=mapper)
+
+    keycloak_client.update_client_mapper(
+        client_id=client_id,
+        mapper_id=mapper["id"],
+        payload=mapper,
+        realm_name=realm_name,
+    )
+
+    log_info(
+        f"Successfully updated Keycloak client {mapper_name} mapper for space: {space_name} in client: {client_name}"
+    )
+
+
+class KeycloakUpdateClientMapperActivityModel(LaunchpadCLIBaseModel):
+    """
+    Keycloak Update Client Mapper Activity Model
+    """
+
+    realm_name: str
+    client_name: str
+    space_name: str
+    space_display_name: str
+    mapper_name: str = "spaces"
+
+
+class KeycloakUpdateClientMapperActivity(Activity):
+    """
+    Update Keycloak client mapper to add new space mapping
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakUpdateClientMapperActivity")
+    async def defn(activity_model: KeycloakUpdateClientMapperActivityModel) -> None:
+        """
+        Update Keycloak client mapper with new space mapping
+        """
+        update_keycloak_client_mapper(
+            realm_name=activity_model.realm_name,
+            client_name=activity_model.client_name,
+            space_name=activity_model.space_name,
+            space_display_name=activity_model.space_display_name,
+            mapper_name=activity_model.mapper_name,
+        )
+
+        log_info(
+            f"Keycloak client mapper updated successfully for space: {activity_model.space_name} "
+            f"in client: {activity_model.client_name}"
+        )

@@ -14,6 +14,7 @@ from app.exceptions import errors
 from app.models.input_param_patterns import TENANT_NAME_PATTERN, TOKEN_PATTERN
 from app.models.product import ProductEnum
 from app.models.tenant import (
+    SpaceResponseModel,
     SuggestTenantNamesResponseModel,
     TenantCreateRequestModel,
     TenantResponseModel,
@@ -200,3 +201,23 @@ async def verify_tenant_name_by_keycloak(
         raise errors.ALREADY_ALLOCATED_TENANT_NAME.exc()
     if profanity.contains_profanity(tenant_name):
         raise errors.EXPLICIT_WORDS_NOT_ALLOWED.exc()
+
+
+@tenant_router.get(
+    "/{product}/listAllSpaces",
+    operation_id="listAllSpaces",
+    response_model=list[SpaceResponseModel],
+)
+async def list_spaces(
+    product: ProductEnum = Path(...), tenant_id: UUID | None = None, _: dict = Depends(get_oauth_scheme())
+) -> list[SpaceResponseModel]:
+    """
+    @param product:
+    @param tenant_id:
+    @param _:
+    @return:
+    """
+    db: DBManager = await get_db_manager()
+    parameters = {"tenant_id": str(tenant_id) if tenant_id else None, "product": product.value}
+    response = await db.fetch_all("get_spaces.sql", **parameters)
+    return [SpaceResponseModel(**dict(space)) for space in response if space]

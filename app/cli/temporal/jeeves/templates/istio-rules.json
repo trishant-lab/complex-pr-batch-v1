@@ -82,19 +82,5 @@
         "match": [
             {"uri": {"prefix": "/socket.io/"}}
         ]
-    },
-    {
-        "name": "jeeves-ui",
-        "route": [
-            {
-                "destination": {
-                    "host": "varnish-svc.varnish.svc.cluster.local",
-                    "port": {"number": 80}
-                }
-            }
-        ],
-        "match": [
-            {"uri": {"prefix": "/"}}
-        ]
     }
 ]

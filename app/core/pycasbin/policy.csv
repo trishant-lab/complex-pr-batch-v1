@@ -47,6 +47,7 @@ p, PRACTIFLY_EDIT_GROUP, /api/v1/product/Practifly/renderForm, GET
 p, PRICEDX_EDIT_GROUP, /api/v1/product/Pricedx/renderForm, GET
 
 p, ADMINS, /api/v1/tenant/{product}, GET
+p, ADMINS, /api/v1/tenant/{product}/listAllSpaces, GET
 p, JEEVES_VIEW_GROUP, /api/v1/tenant/Jeeves, GET
 p, DEXIT_VIEW_GROUP, /api/v1/tenant/Dexit, GET
 p, PENKNIFE_VIEW_GROUP, /api/v1/tenant/Penknife, GET
@@ -115,6 +116,8 @@ p, MUSPELL_VIEW_GROUP, /api/v1/provisioning/Muspell/workflowSteps, GET
 p, VERITABLE_VIEW_GROUP, /api/v1/provisioning/Veritable/workflowSteps, GET
 p, PRACTIFLY_VIEW_GROUP, /api/v1/provisioning/Practifly/workflowSteps, GET
 p, PRICEDX_VIEW_GROUP, /api/v1/provisioning/Pricedx/workflowSteps, GET
+p, JEEVES_EDIT_GROUP, /api/v1/provisioning/jeeves/space/reprovision, POST
+p, JEEVES_EDIT_GROUP, /api/v1/provisioning/jeeves/space, POST
 
 p, ADMINS, /api/v1/deprovisioning/{product}, POST
 p, JEEVES_EDIT_GROUP, /api/v1/deprovisioning/Jeeves, POST

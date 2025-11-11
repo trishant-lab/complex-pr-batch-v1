@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import yaml
 from kubernetes.client import (
     V1ConfigMapKeySelector,
     V1ConfigMapVolumeSource,
@@ -21,6 +22,7 @@ from kubernetes.client import (
     V1Volume,
     V1VolumeMount,
 )
+from kubernetes.dynamic.exceptions import NotFoundError
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
@@ -217,4 +219,218 @@ class KubernetesDeploymentActivity(Activity):
             log_info(f"Deployment created in namespace {activity_model.namespace}")
         except Exception as e:
             log_error(f"Failed to create Deployment in namespace {activity_model.namespace}: {e!s}")
+            raise
+
+
+class KubernetesDeploymentUpdateActivityModel(LaunchpadCLIBaseModel):
+    """
+    KubernetesDeploymentUpdateActivityModel
+    """
+
+    namespace: str
+    name: str
+
+    docker_image: str | None = None
+    volume_mounts: list | None = None
+    volumes: list | None = None
+    container_envs: list | None = None
+    replicas: int | None = None
+
+
+class KubernetesDeploymentUpdateActivity(Activity):
+    """
+    KubernetesDeploymentUpdateActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        get_timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        get_retry_policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=5), maximum_attempts=3)
+
+    @staticmethod
+    @activity.defn(name="KubernetesDeploymentUpdateActivity")
+    async def defn(activity_model: KubernetesDeploymentUpdateActivityModel) -> None:
+        """
+        KubernetesDeploymentUpdateActivityModel
+        """
+        k8s_dynamic_client = get_dynamic_client()
+        resource = get_resource(
+            dynamic_client=k8s_dynamic_client,
+            kind=ResourceKindEnum.Deployment,
+            api_version=K8S_RESOURCE_VERSION,
+        )
+
+        try:
+            log_info(
+                f"Fetching existing deployment '{activity_model.name}' from namespace '{activity_model.namespace}'..."
+            )
+            existing_deployment_obj = resource.get(name=activity_model.name, namespace=activity_model.namespace)
+        except NotFoundError:
+            log_error(
+                f"Deployment '{activity_model.name}' not found in namespace "
+                f"'{activity_model.namespace}'. Cannot update."
+            )
+            raise
+
+        deployment_as_dict = existing_deployment_obj.to_dict()
+
+        if activity_model.volumes is not None:
+            log_info("Updating volumes...")
+            spec_volumes = deployment_as_dict["spec"]["template"]["spec"].setdefault("volumes", [])
+            existing_volume_names = {vol["name"] for vol in spec_volumes}
+
+            new_volumes_as_dicts = []
+            for volume in activity_model.volumes:
+                volume_name = volume["name"]
+                if volume_name in existing_volume_names:
+                    log_info(f"Volume '{volume_name}' already exists. Skipping.")
+                    continue
+                if volume.get("config_map_name"):
+                    new_volumes_as_dicts.append(
+                        {
+                            "name": volume["name"],
+                            "configMap": {
+                                "name": volume["config_map_name"],
+                                "items": [{"key": volume["key"], "path": volume["path"]}],
+                            },
+                        }
+                    )
+            spec_volumes.extend(new_volumes_as_dicts)
+
+        if activity_model.volume_mounts is not None:
+            log_info("Updating volume mounts...")
+            container_mounts = deployment_as_dict["spec"]["template"]["spec"]["containers"][0].setdefault(
+                "volumeMounts", []
+            )
+            existing_mount_names = {mount["name"] for mount in container_mounts}
+
+            new_mounts_as_dicts = []
+            for vm in activity_model.volume_mounts:
+                mount_name = vm["name"]
+                if mount_name in existing_mount_names:
+                    log_info(f"Volume mount '{mount_name}' already exists. Skipping.")
+                    continue
+
+                mount_dict = {"name": vm["name"], "mountPath": vm["mount_path"]}
+                if vm.get("sub_path"):
+                    mount_dict["subPath"] = vm["sub_path"]
+                if vm.get("read_only") is not None:
+                    mount_dict["readOnly"] = vm["read_only"]
+                new_mounts_as_dicts.append(mount_dict)
+            container_mounts.extend(new_mounts_as_dicts)
+
+        if activity_model.docker_image is not None:
+            log_info(f"Updating docker image to '{activity_model.docker_image}'")
+            deployment_as_dict["spec"]["template"]["spec"]["containers"][0]["image"] = activity_model.docker_image
+
+        if "managedFields" in deployment_as_dict["metadata"]:
+            del deployment_as_dict["metadata"]["managedFields"]
+
+        payload = k8s_dynamic_client.client.sanitize_for_serialization(deployment_as_dict)
+
+        try:
+            log_info(f"Applying updated deployment '{activity_model.name}'")
+            k8s_dynamic_client.server_side_apply(
+                resource=resource,
+                body=payload,
+                field_manager="temporal-update-activity",
+                force_conflicts=True,
+            )
+            log_info(f"Deployment '{activity_model.name}' updated successfully.")
+        except Exception as e:
+            log_error(f"Failed to apply updated deployment in namespace {activity_model.namespace}: {e!s}")
+            raise
+
+
+class KedaApplyTemplatedYamlActivityModel(LaunchpadCLIBaseModel):
+    """
+    Model for applying a KEDA YAML manifest that will be templated.
+    """
+
+    namespace: str
+    yaml_content: str
+
+
+class KedaApplyTemplatedYamlActivity(Activity):
+    """
+    A generic Temporal activity to apply a KEDA (or any Kubernetes) YAML
+    manifest. It replaces '<<tenant>>' placeholders with the provided namespace.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Returns the timeout for the activity.
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Returns the retry policy for the activity.
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=2.0,
+            maximum_attempts=3,
+        )
+
+    @staticmethod
+    @activity.defn(name="KedaApplyTemplatedYamlActivity")
+    async def defn(activity_model: KedaApplyTemplatedYamlActivityModel) -> None:
+        """
+        Applies a Kubernetes resource from a YAML string after substituting
+        """
+        tenant_namespace = activity_model.namespace
+        log_info(f"Preparing to apply templated YAML manifest to namespace '{tenant_namespace}'...")
+
+        try:
+            k8s_dynamic_client = get_dynamic_client()
+
+            # Load the now-templated YAML content into a Python dictionary
+            body = yaml.safe_load(activity_model.yaml_content)
+            if not body:
+                log_info(f"No YAML content found in '{activity_model.yaml_content}'")
+                return
+
+            # Extract essential metadata from the YAML for logging and API discovery
+            api_version = body.get("apiVersion")
+            kind = body.get("kind")
+            metadata = body.get("metadata", {})
+            name = metadata.get("name")
+
+            if not all([api_version, kind, name]):
+                log_error("YAML content must include apiVersion, kind, and metadata.name.")
+                return
+
+            body["metadata"]["namespace"] = tenant_namespace
+
+            log_info(f"Applying resource '{kind}/{name}' to namespace '{tenant_namespace}'...")
+
+            # Discover the resource API for the object
+            api_resource = k8s_dynamic_client.resources.get(api_version=api_version, kind=kind)
+
+            # Sanitize and apply the resource using server-side apply
+            payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
+
+            api_resource.server_side_apply(
+                body=payload,
+                force_conflicts=True,
+                namespace=tenant_namespace,
+                field_manager="keda-autoscaler-activity",
+            )
+
+            log_info(f"Successfully applied '{kind}/{name}' in namespace '{tenant_namespace}'")
+
+        except Exception as e:
+            log_error(f"Failed to apply templated YAML in namespace '{tenant_namespace}': {e!s}")
             raise

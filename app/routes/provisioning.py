@@ -30,6 +30,7 @@ from app.route_utils.product import validate_email_domain, validate_provisioning
 from app.routes.product import get_product
 from app.routes.tenant import TenantCreateRequestModel, create_tenant, get_existing_tenant_names
 from app.slack_utils import send_slack_msg
+from app.cli.temporal.jeeves.models.jeeves_spec import SpaceSpec
 
 provisioning_router = APIRouter()
 
@@ -476,3 +477,124 @@ async def get_workflow_steps(
     ]
 
     return [WorkflowSteps(**activity) for activity in workflow_steps.values()]
+
+
+@provisioning_router.post("/jeeves/space", operation_id="spaceProvisioning")
+async def space_provisioning(
+    space_details: dict,
+    _: dict = Depends(get_oauth_scheme()),
+) -> dict:
+    """
+    Trigger space creation workflow for Jeeves product
+    Creates a new space (EHR configuration) for an existing tenant
+    """
+    # Validate and create SpaceSpec model
+    space_spec = SpaceSpec(**space_details)
+
+    # Check if tenant exists
+    db: DBManager = await get_db_manager()
+    tenant_response = await db.fetch_one(
+        "get_tenant_by_name.sql",
+        tenant_name=space_spec.tenant,
+        product=ProductEnum.jeeves.value,
+    )
+
+    if not tenant_response:
+        raise errors.TENANT_NOT_FOUND.exc()
+
+    # Check if space already exists
+    existing_spaces = await db.fetch_all(
+        "get_spaces.sql",
+        product=ProductEnum.jeeves.value,
+        tenant_id=str(tenant_response["id"]),
+    )
+
+    if f"jeeves-{space_spec.space}" in [space["spacename"] for space in existing_spaces]:
+        raise errors.SPACE_ALREADY_EXISTS.exc()
+
+    # Create space record in database
+    await db.fetch_one(
+        "create_space.sql",
+        spacename=f"jeeves-{space_spec.space}",
+        tenant_name=space_spec.tenant,
+        product=ProductEnum.jeeves.value,
+        status=TenantStatusEnum.Provisioning.value,
+        errors=ijson_dumps({}),
+    )
+
+    # Trigger workflow using ProductWorkflow pattern
+    product_workflow: ProductWorkflow = ProductEnum.get_class(ProductEnum.jeeves)()
+    await product_workflow.space_provision(space_spec.model_dump())
+
+    logger.info(f"Triggered space creation workflow for tenant: {space_spec.tenant}, space: {space_spec.space}")
+
+    return {
+        "message": "Space provisioning started",
+        "tenant": space_spec.tenant,
+        "space": space_spec.space,
+    }
+
+
+@provisioning_router.post("/jeeves/space/reprovision", operation_id="spaceReprovision")
+async def space_reprovision(
+    tenant_name: str,
+    space: str,
+    _: dict = Depends(get_oauth_scheme()),
+) -> dict:
+    """
+    Reprovision (retry) space creation workflow for Jeeves product
+    """
+    # Check if tenant exists
+    db: DBManager = await get_db_manager()
+    tenant_response = await db.fetch_one(
+        "get_tenant_by_name.sql",
+        tenant_name=tenant_name,
+        product=ProductEnum.jeeves.value,
+    )
+    if not tenant_response:
+        raise errors.TENANT_NOT_FOUND.exc()
+
+    # Check if space exists
+    existing_spaces = await db.fetch_all(
+        "get_spaces.sql",
+        product=ProductEnum.jeeves.value,
+        tenant_id=str(tenant_response["id"]),
+    )
+
+    space_exists = f"jeeves-{space}" in [space["spacename"] for space in existing_spaces]
+    if not space_exists:
+        raise errors.SPACE_NOT_FOUND.exc()
+
+    # Update space status to Reprovisioning
+    await db.fetch_one(
+        "update_space_status.sql",
+        spacename=f"jeeves-{space}",
+        tenant_name=tenant_name,
+        product=ProductEnum.jeeves.value,
+        status=TenantStatusEnum.Provisioning.value,
+        errors=ijson_dumps({}),
+    )
+
+    # Get tenant data to extract required fields
+    data = ijson_loads(tenant_response["data"])
+
+    # Create SpaceSpec with tenant data
+    space_spec = SpaceSpec(
+        tenant=tenant_name,
+        space=space,
+        ehr=space,
+        email=tenant_response["email"],
+        firstName=data.get("firstName", ""),
+        lastName=data.get("lastName", ""),
+    )
+
+    product_workflow: ProductWorkflow = ProductEnum.get_class(ProductEnum.jeeves)()
+    await product_workflow.space_provision(space_spec.model_dump())
+
+    logger.info(f"Retriggered space creation workflow for tenant: {tenant_name}, space: {space}")
+
+    return {
+        "message": "Space reprovisioning started",
+        "tenant": tenant_name,
+        "space": space,
+    }

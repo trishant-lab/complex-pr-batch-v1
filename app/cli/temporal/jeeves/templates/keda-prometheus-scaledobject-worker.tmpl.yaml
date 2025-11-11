@@ -1,0 +1,38 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: jeeves-worker-autoscaler
+  namespace: <<tenant>>
+spec:
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          policies:
+          - periodSeconds: 90
+            type: Pods
+            value: 1
+          stabilizationWindowSeconds: 300
+        scaleUp:
+          policies:
+          - periodSeconds: 30
+            type: Pods
+            value: 1
+          stabilizationWindowSeconds: 0
+    scalingModifiers: {}
+  maxReplicaCount: 4
+  minReplicaCount: 2
+  pollingInterval: 15
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: jeeves-worker
+  triggers:
+  - metadata:
+      activationThreshold: "20"
+      metricName: approximate_backlog_count
+      query: sum(approximate_backlog_count{exported_namespace="jeeves_<<tenant>>", taskqueue="main_processing_task_queue"})
+      serverAddress: http://vmselect-vmcluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus
+      threshold: "25"
+    metricType: Value
+    type: prometheus

@@ -16,17 +16,17 @@ async def add_ai_voices_to_storage(tenant: str, config: JeevesSettings) -> None:
     Add AI voices to storage
     """
     ui_bucket_name = await OnePasswordUtil(
-        tenant=f"jeeves_{tenant}",
+        tenant=f"jeeves-{tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).get_key(key="s3_ui_bucket_name")
     ui_access_key = await OnePasswordUtil(
-        tenant=f"jeeves_{tenant}",
+        tenant=f"jeeves-{tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).get_key(key="s3_ui_bucket_access_key")
     ui_secret_key = await OnePasswordUtil(
-        tenant=f"jeeves_{tenant}",
+        tenant=f"jeeves-{tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).get_key(key="s3_ui_bucket_secret_key")
@@ -44,17 +44,17 @@ async def copy_thumbnail_to_storage(tenant: str, config: JeevesSettings) -> None
     Add AI voices to storage
     """
     ui_bucket_name = await OnePasswordUtil(
-        tenant=f"jeeves_{tenant}",
+        tenant=f"jeeves-{tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).get_key(key="s3_ui_bucket_name")
     ui_access_key = await OnePasswordUtil(
-        tenant=f"jeeves_{tenant}",
+        tenant=f"jeeves-{tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).get_key(key="s3_ui_bucket_access_key")
     ui_secret_key = await OnePasswordUtil(
-        tenant=f"jeeves_{tenant}",
+        tenant=f"jeeves-{tenant}",
         server_item="application-config",
         vault="Jeeves",
     ).get_key(key="s3_ui_bucket_secret_key")

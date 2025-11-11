@@ -9,13 +9,12 @@ from novu.dto import IntegrationDto
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.temporal.core.base import Activity
+from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 from app.cli.temporal.jeeves.jeeves import JeevesSpec
+from app.cli.temporal.jeeves.models.jeeves_spec import SpaceSpec
 from app.cli.temporal.jeeves.template_main import (
     get_account_created_custom_email,
-    get_asset_created_custom_email,
-    get_asset_deleted_custom_email,
     get_asset_expired_custom_email,
     get_asset_expiring_in_1_day_custom_email,
     get_asset_expiring_in_7_days_custom_email,
@@ -23,12 +22,15 @@ from app.cli.temporal.jeeves.template_main import (
     get_asset_published_custom_email,
     get_asset_updated_custom_email,
     get_assignment_assigned_custom_email,
-    get_assignment_created_custom_email,
+    get_assignment_completion_email,
     get_assignment_due_in_1_day_custom_email,
     get_assignment_due_in_7_days_custom_email,
     get_assignment_due_in_15_days_custom_email,
     get_assignment_overdue_custom_email,
-    get_assignment_updated_custom_email,
+    get_assignment_revoked_email,
+    get_embedded_link_expiring_in_1_day_email,
+    get_embedded_link_expiring_in_30_days_email,
+    get_embedded_link_expiring_in_7_days_email,
     get_feedback_created_custom_email,
     get_layout_content,
     get_review_comment_added_custom_email,
@@ -283,48 +285,6 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
 
     template_definitions: list[dict] = [
         {
-            "event_name": "jeeves-assignment-created",
-            "custom_email": await get_assignment_created_custom_email(),
-            "email_subject": "Assignments are created in Jeeves",
-            "chat_content": ('Assignment "{{assignment.title}}" created'),
-            "inapp_content": (
-                "Assignments are created in Jeeves.<br />\n"
-                "{{#each step.events}}\n"
-                "Assignment title : {{assignment.name}}.<br />\n"
-                "{{/each}}"
-            ),
-            "config": config,
-            "novu_api_key": novu_api_key,
-        },
-        {
-            "event_name": "jeeves-assignment-updated",
-            "custom_email": await get_assignment_updated_custom_email(),
-            "email_subject": "Assignments are updated in Jeeves",
-            "chat_content": ('Assignment "{{assignment.title}}" updated'),
-            "inapp_content": (
-                "Assignments are updated in Jeeves.<br />\n"
-                "{{#each step.events}}\n"
-                "Assignment title : {{assignment.name}}."
-                "<br />"
-                "{{/each}}"
-            ),
-            "config": config,
-            "novu_api_key": novu_api_key,
-        },
-        {
-            "event_name": "jeeves-asset-created",
-            "custom_email": await get_asset_created_custom_email(),
-            "email_subject": "New Assets created in Jeeves",
-            "chat_content": ('Asset "{{asset.asset_title}}" is created.'),
-            "inapp_content": (
-                "New assets are created.<br />\n"
-                "{{#each step.events}}\n"
-                "Asset title:  {{asset.asset_title}}<br />{{/each}}"
-            ),
-            "config": config,
-            "novu_api_key": novu_api_key,
-        },
-        {
             "event_name": "jeeves-assignment-due-in-15-days",
             "custom_email": await get_assignment_due_in_15_days_custom_email(),
             "email_subject": "Reminder: Assignments Due in 15 Days",
@@ -421,18 +381,6 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             "novu_api_key": novu_api_key,
         },
         {
-            "event_name": "jeeves-asset-deleted",
-            "custom_email": await get_asset_deleted_custom_email(),
-            "email_subject": "Assets deleted from Jeeves",
-            "chat_content": ('Asset "{{asset.asset_title}}" is deleted.'),
-            "inapp_content": (
-                "Following Assets are deleted from Jeeeves<br />{{#each step.events}}"
-                "Asset title:  {{asset.asset_title}}<br />{{/each}}"
-            ),
-            "config": config,
-            "novu_api_key": novu_api_key,
-        },
-        {
             "event_name": "jeeves-asset-updated",
             "custom_email": await get_asset_updated_custom_email(),
             "email_subject": "Assets updated in Jeeves",
@@ -519,6 +467,68 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             "config": config,
             "novu_api_key": novu_api_key,
         },
+        {
+            "event_name": "jeeves-assignment-completion",
+            "custom_email": await get_assignment_completion_email(),
+            "email_subject": "Assignment Completed: '{{{assignment.name}}}'",
+            "chat_content": (
+                "Congratulations! 🎉 You have successfully "
+                "completed the assignment '{{assignment.name}}' on {{assignment.completed_date}}."
+            ),
+            "inapp_content": (
+                "Congratulations! 🎉 You have successfully completed the "
+                "assignment '{{assignment.name}}' on {{assignment.completed_date}}."
+            ),
+            "in_app_redirect_url": "{{assignment.link}}",
+            "config": config,
+            "novu_api_key": novu_api_key,
+        },
+        {
+            "event_name": "jeeves-assignment-revoked",
+            "custom_email": await get_assignment_revoked_email(),
+            "email_subject": "Assignment has been updated with new assets.",
+            "chat_content": (
+                "Your completion status has been reset for {{assignment_title}}."
+                " Please review the updated assets to mark it complete again."
+            ),
+            "inapp_content": (
+                "Your completion status has been reset for {{assignment_title}}."
+                " Please review the updated assets to mark it complete again."
+            ),
+            "in_app_redirect_url": "/my-assignments/{{assignment_id}}",
+            "config": config,
+            "novu_api_key": novu_api_key,
+        },
+        {
+            "event_name": "jeeves-embedded-link-expiring-in-30-days",
+            "custom_email": await get_embedded_link_expiring_in_30_days_email(),
+            "email_subject": "Action Required: Embedded Asset(s) link Expiring In 30 Days",
+            "chat_content": ("You have one or more embedded asset links expiring in 30 days."),
+            "inapp_content": ("You have one or more embedded asset links expiring in 30 days."),
+            "in_app_redirect_url": "/assets/embedded-assets",
+            "config": config,
+            "novu_api_key": novu_api_key,
+        },
+        {
+            "event_name": "jeeves-embedded-link-expiring-in-7-days",
+            "custom_email": await get_embedded_link_expiring_in_7_days_email(),
+            "email_subject": "Action Required: Embedded Asset(s) link Expiring In 7 Days",
+            "chat_content": ("You have one or more embedded asset links expiring in 7 days."),
+            "inapp_content": ("You have one or more embedded asset links expiring in 7 days."),
+            "in_app_redirect_url": "/assets/embedded-assets",
+            "config": config,
+            "novu_api_key": novu_api_key,
+        },
+        {
+            "event_name": "jeeves-embedded-link-expired",
+            "custom_email": await get_embedded_link_expiring_in_1_day_email(),
+            "email_subject": "Action Required: Embedded Asset(s) link Expired",
+            "chat_content": ("You have one or more embedded asset links that have expired."),
+            "inapp_content": ("You have one or more embedded asset links that have expired."),
+            "in_app_redirect_url": "/assets/embedded-assets",
+            "config": config,
+            "novu_api_key": novu_api_key,
+        },
     ]
     await asyncio.gather(
         *[
@@ -602,9 +612,10 @@ class NovuSetup:
     This class will be used to setup the Novu environment
     """
 
-    def __init__(self: "NovuSetup", jeeves: JeevesSpec) -> None:
+    def __init__(self: "NovuSetup", jeeves: JeevesSpec, space_name: str) -> None:
         self.jeeves: JeevesSpec = jeeves
         self.config: AppSettings = get_settings()
+        self.space_name: str = space_name
 
     async def get_access_token(self: "NovuSetup") -> str:
         """
@@ -708,7 +719,7 @@ class NovuSetup:
         """
         config: AppSettings = get_settings()
 
-        organization_name = f"jeeves_{self.jeeves.tenant}"
+        organization_name = f"{self.space_name}"
         access_token = await self.get_access_token()
         organization = await self.get_organizations_by_name(organization_name=organization_name, token=access_token)
         if not organization:
@@ -724,7 +735,7 @@ class NovuSetup:
 
         # store in 1Password
         await OnePasswordUtil(
-            tenant=f"Jeeves_{self.jeeves.tenant}",
+            tenant=f"{self.space_name}",
             server_item="application-config",
             vault="Jeeves",
         ).insert_if_not_exists(key="novu_api_key", value=api_keys)
@@ -735,7 +746,16 @@ class NovuSetup:
         # add the integration provider
         add_integration_provider(config=config, novu_api_key=api_keys)
 
-        log_info(f"Novu environment setup completed for tenant: {self.jeeves.tenant}")
+        log_info(f"Novu environment setup completed for tenant: {self.space_name}")
+
+
+class JeevesNovuSetupActivityModel(LaunchpadCLIBaseModel):
+    """
+    JeevesNovuSetupActivityModel
+    """
+
+    jeeves: JeevesSpec | SpaceSpec
+    space_name: str
 
 
 class JeevesNovuSetupActivity(Activity):
@@ -759,9 +779,9 @@ class JeevesNovuSetupActivity(Activity):
 
     @staticmethod
     @activity.defn(name="JeevesNovuSetupActivity")
-    async def defn(jeeves: JeevesSpec) -> None:
+    async def defn(activity_model: JeevesNovuSetupActivityModel) -> None:
         """
         Callable for the activity
         """
-        jeeves_novu_setup = NovuSetup(jeeves=jeeves)
+        jeeves_novu_setup = NovuSetup(jeeves=activity_model.jeeves, space_name=activity_model.space_name)
         await jeeves_novu_setup.setup_novu()
