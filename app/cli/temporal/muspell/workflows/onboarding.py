@@ -52,6 +52,7 @@ from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
 from app.cli.temporal.activities.keycloak_setup import (
+    JeevesKeycloakCreateIDPFlowActivity,
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
@@ -154,6 +155,7 @@ class MuspellOnboardingWorkflow(Workflow):
             OnePasswordInsertIfNotExistsActivity.defn,
             MuspellConfigUpdateJobActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
+            JeevesKeycloakCreateIDPFlowActivity.defn,
         ]
 
     @classmethod
@@ -485,6 +487,9 @@ class MuspellOnboardingWorkflow(Workflow):
                     domain=muspell_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
+                    template_payload={
+                        "smtp_password": muspell_config.keycloak_smtp_password
+                    }
                 ),
             )
 
@@ -533,6 +538,21 @@ class MuspellOnboardingWorkflow(Workflow):
                     client_name="muspell",
                     realm_name=realm_name,
                     roles=roles,
+                ),
+            )
+
+            # keycloak idp setup
+            await run_activity(
+                activity=JeevesKeycloakCreateIDPFlowActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=muspell_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_idp_and_flows.json",
+                    template_payload={
+                        "google_idp_secret": muspell_config.google_idp_secret
+                    }
                 ),
             )
 
@@ -588,12 +608,14 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            catalog_name = f"ma{tenant}"
+
             # Create the StarRocks catalog
             await run_activity(
                 activity=CreateStarRocksCatalogActivity,
                 arg=CreateStarRocksCatalogActivityModel(
                     tenant=tenant,
-                    catalog_name=tenant,
+                    catalog_name=catalog_name,
                     warehouse_access_key=muspell_config.warehouse_access_key,
                     warehouse_secret_key=muspell_config.warehouse_secret_key,
                 ),
@@ -606,7 +628,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     secret_name="catalog",
-                    secret_value=tenant,
+                    secret_value=catalog_name,
                 ),
             )
 
@@ -619,7 +641,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 arg=RegisterStarrocksUserModel(
                     muspell_config=muspell_config,
                     tenant=tenant,
-                    catalog_name=tenant,
+                    catalog_name=catalog_name,
                     user_name=starrocks_username,
                     user_password=starrocks_password,
                 ),
@@ -802,11 +824,9 @@ class MuspellOnboardingWorkflow(Workflow):
                 # Read column config and update the same in Postgres.
                 col_template = template_env.get_template("column_config.json")
                 column_config_str = col_template.render(application_list=application_list)
-                # column_config = ijson_loads(column_config_str)
 
                 org_template = template_env.get_template("organization_config.json")
                 organization_config_str = org_template.render(application_list=application_list)
-                # organization_config = ijson_loads(organization_config_str)
 
                 # update the config in Postgres
                 await run_activity(
