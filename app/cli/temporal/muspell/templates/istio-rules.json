@@ -1,55 +1,202 @@
 [
-  {
-      "name": "muspell-api",
-      "route": [
-          {
-              "destination": {
-                  "host": "muspell-archive.<<tenant>>.svc.cluster.local",
-                  "port": {"number": 8080}
-              },
-              "headers": {
-                  "response": {
-                      "add": {
-                          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
-                      }
-                  }
-              }
-          }
-      ],
-      "match": [
-          {"uri": {"regex": "^/api/v1/.*"}},
-          {"uri": {"regex": "^/public/api/v1/.*"}}
-      ],
-      "retries": {"attempts": 2, "retryOn":  "reset"}
-  },
-  {
-      "name": "muspell-log-collect",
-      "route": [
-          {
-              "destination": {
-                  "host": "grafana-agent.monitoring-system.svc.cluster.local",
-                  "port": {"number": 12347}
-              }
-          }
-      ],
-      "match": [
-          {"uri": {"prefix": "/logcollect"}}
-      ],
-      "rewrite": {"uri": "/collect"}
-  },
-  {
-      "name": "muspell-analytics",
-      "route": [
-          {
-              "destination": {
-                  "host": "matomo-server.matomo.svc.cluster.local",
-                  "port": {"number": 80}
-              }
-          }
-      ],
-      "match": [
-          {"uri": {"prefix": "/analytics/"}}
-      ],
-      "rewrite": {"uri": "/"}
-  }
+    {
+        "name": "muspell-api",
+        "route": [
+            {
+                "destination": {
+                    "host": "muspell-archive.<<tenant>>.svc.cluster.local",
+                    "port": {
+                        "number": 8080
+                    }
+                },
+                "headers": {
+                    "response": {
+                        "add": {
+                            "Cache-Control": "no-cache"
+                        }
+                    }
+                }
+            }
+        ],
+        "match": [
+            {
+                "uri": {
+                    "regex": "^/api/v1/.*"
+                }
+            },
+            {
+                "uri": {
+                    "regex": "^/public/api/v1/.*"
+                }
+            }
+        ],
+        "retries": {
+            "attempts": 2,
+            "retryOn": "reset"
+        }
+    },
+    {
+        "name": "muspell-log-collect",
+        "route": [
+            {
+                "destination": {
+                    "host": "grafana-agent.monitoring-system.svc.cluster.local",
+                    "port": {
+                        "number": 12347
+                    }
+                }
+            }
+        ],
+        "match": [
+            {
+                "uri": {
+                    "prefix": "/logcollect"
+                }
+            }
+        ],
+        "rewrite": {
+            "uri": "/collect"
+        }
+    },
+    {
+        "name": "muspell-analytics",
+        "route": [
+            {
+                "destination": {
+                    "host": "matomo-server.matomo.svc.cluster.local",
+                    "port": {
+                        "number": 80
+                    }
+                }
+            }
+        ],
+        "match": [
+            {
+                "uri": {
+                    "prefix": "/analytics/"
+                }
+            }
+        ],
+        "rewrite": {
+            "uri": "/"
+        }
+    },
+    {
+        "name": "muspell-dicom",
+        "corsPolicy": {
+            "allowHeaders": [
+                "Authorization",
+                "Content-Type"
+            ],
+            "allowMethods": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
+            ],
+            "allowOrigin": [
+                "https://<<tenant>>.<<domain_name>>"
+            ]
+        },
+        "match": [
+            {
+                "uri": {
+                    "regex": "(/dicom-web/.*|/instances/.*|/studies/.*|/series/.*|/patients/.*|/wadu/.*)"
+                }
+            }
+        ],
+        "route": [
+            {
+                "destination": {
+                    "host": "muspell-dicom.<<tenant>>.svc.cluster.local",
+                    "port": {
+                        "number": 8042
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "kestra",
+        "corsPolicy": {
+            "allowHeaders": [
+                "Authorization",
+                "Content-Type",
+                "traceparent"
+            ],
+            "allowMethods": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
+            ],
+            "allowOrigin": [
+                "https://<<tenant>>.<<domain_name>>",
+                "http://localhost:7000"
+            ]
+        },
+        "match": [
+            {
+                "uri": {
+                    "prefix": "/etl/"
+                }
+            }
+        ],
+        "rewrite": {
+            "uri": "/"
+        },
+        "route": [
+            {
+                "destination": {
+                    "host": "svckestraservice.muspell.svc.cluster.local",
+                    "port": {
+                        "number": 8080
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "muspell-superset",
+        "corsPolicy": {
+            "allowCredentials": true,
+            "allowHeaders": [
+                "Authorization",
+                "Content-Type",
+                "traceparent",
+                "x-csrftoken"
+            ],
+            "allowMethods": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
+            ],
+            "allowOrigin": [
+                "https://<<tenant>>.<<domain_name>>",
+                "http://localhost:7000"
+            ]
+        },
+        "match": [
+            {
+                "uri": {
+                    "prefix": "/superset"
+                }
+            }
+        ],
+        "route": [
+            {
+                "destination": {
+                    "host": "muspell-superset.<<tenant>>.svc.cluster.local",
+                    "port": {
+                        "number": 8088
+                    }
+                },
+                "weight": 100
+            }
+        ]
+    }
 ]

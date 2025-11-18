@@ -65,6 +65,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivityModel,
 )
 from app.cli.temporal.activities.one_password import (
+    CreatePasswordActivity,
+    CreatePasswordActivityModel,
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
     OnePasswordInsertIfNotExistsActivity,
@@ -73,6 +75,8 @@ from app.cli.temporal.activities.one_password import (
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
+    PostgresDatabaseCreationActivity,
+    PostgresDatabaseCreationActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
@@ -156,6 +160,8 @@ class MuspellOnboardingWorkflow(Workflow):
             MuspellConfigUpdateJobActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
+            CreatePasswordActivity.defn,
+            PostgresDatabaseCreationActivity.defn,
         ]
 
     @classmethod
@@ -206,7 +212,52 @@ class MuspellOnboardingWorkflow(Workflow):
             postgres_password = generate_password(length=20)
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/muspell-app:{image_tag}"
+            superset_docker_image = "registry.314ecorp.tech/superset:5.0.0"
             server_item = "production-config" if config.env == "production" else "integration-config"
+            dicom_database_name = f"{ProductName}_dicom_{tenant}"
+            dicom_database_password = await run_activity(
+                    activity=CreatePasswordActivity,
+                    arg=CreatePasswordActivityModel(length=20),
+                )
+            superset_schema_name = f"{tenant}_superset"
+
+            # create postgres database for dicom
+            await run_activity(
+                activity=PostgresDatabaseCreationActivity,
+                arg=PostgresDatabaseCreationActivityModel(
+                    database_name=dicom_database_name,
+                ),
+            )
+
+            # create postgres user for dicom
+            await run_activity(
+                activity=PostgresUserCreationActivity,
+                arg=PostgresUserCreationActivityModel(
+                    username=dicom_database_name,
+                    database_name=dicom_database_name,
+                    password=dicom_database_password,
+                ),
+            )
+
+            # create one password for dicom database password
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="pg_dicom_password",
+                    secret_value=dicom_database_password,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
+                arg=PostgresGrantAccessToUserActivityModel(
+                    username=dicom_database_name,
+                    database_name=dicom_database_name,
+                ),
+            )
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
@@ -283,6 +334,25 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            #create postgres schema and grant access for superset
+            await run_activity(
+                activity=PostgresSchemaCreationActivity,
+                arg=PostgresSchemaCreationActivityModel(
+                    schema_name=superset_schema_name,
+                    username=postgres_username,
+                    database_name=postgres_database_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
+                arg=PostgresGrantAccessToUserActivityModel(
+                    schema_name=superset_schema_name,
+                    username=postgres_username,
+                    database_name=postgres_database_name,
+                ),
+            )
+
             await run_activity(
                 activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(namespace=tenant),
@@ -302,11 +372,12 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             # secret setup for redis password
+            cache_secret_name = "cache-secret"
             await run_activity(
                 activity=K8sSecretCreationActivity,
                 arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
-                    name="cache-secret",
+                    name=cache_secret_name,
                     string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
             )
@@ -370,16 +441,9 @@ class MuspellOnboardingWorkflow(Workflow):
                             "allowed": {
                                 "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
                                 "origins": ["*"],
-                                "headers": [
-                                    "Authorization",
-                                    "content-type",
-                                    "x-amz-*",
-                                    "traceparent",
-                                    "x-highlight-request",
-                                    "X-LOGINSERVICEAREA",
-                                ],
+                                "headers": ["*"],
                             },
-                            "exposeHeaders": ["ETag", "Location", "Content-Disposition"],
+                            "exposeHeaders": ["ETag", "Content-Length", "Location", "Content-Disposition"],
                         }
                     ],
                 ),
@@ -420,6 +484,7 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             # cdn base url added to onepassword
+            base_url = f"https://{tenant}.{muspell_config.domain_name}"
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
@@ -427,10 +492,11 @@ class MuspellOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="base_url_cdn",
-                    key_value=f"https://{tenant}.{muspell_config.domain_name}",
+                    key_value=base_url,
                 ),
             )
 
+            auth_url = f"https://{tenant}.{muspell_config.domain_name}"
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
@@ -438,7 +504,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="keycloak_auth_url",
-                    key_value=f"https://{tenant}.{muspell_config.domain_name}",
+                    key_value=auth_url,
                 ),
             )
 
@@ -672,6 +738,8 @@ class MuspellOnboardingWorkflow(Workflow):
             tenant_config = f"{config.env}.toml"
             code_system_config = "code_systems.toml"
             config_dir = "app/config"
+            # TODO: Add this config file and handle storage for this
+            dicom_config = "dicom-config.json"
 
             # setup tenant configmap
             for config_map in [
@@ -684,6 +752,11 @@ class MuspellOnboardingWorkflow(Workflow):
                     "name": "muspell-config-system",
                     "key": code_system_config,
                     "template_file_name": f"{config.env}-tenant-system.tmpl.toml",
+                },
+                {
+                    "name": "muspell-dicom-config",
+                    "key": dicom_config,
+                    "template_file_name": f"{config.env}-dicom-config.tmpl.json",
                 },
             ]:
                 await run_activity(
@@ -709,17 +782,9 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
+            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env, domain_name=muspell_config.domain_name)
 
             http_list = ijson_loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
 
             # kubernetes virtual service
             await run_activity(
@@ -732,7 +797,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # statefulset pod creation for server
+            # Deployment pod creation for server
             await run_activity(
                 activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
@@ -789,6 +854,56 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # Deployment pod creation for dicom
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
+                    namespace=tenant,
+                    name="muspell-dicom",
+                    docker_image="orthancteam/orthanc:24.8.1",
+                    request_resource={
+                        "cpu": pydash.get(muspell, "serverSpec.request_cpu"),
+                        "memory": pydash.get(muspell, "serverSpec.request_memory"),
+                    },
+                    limit_resource={
+                        "cpu": pydash.get(muspell, "serverSpec.limit_cpu"),
+                        "memory": pydash.get(muspell, "serverSpec.limit_memory"),
+                    },
+                    container_ports={},
+                    volume_mounts=[
+                        {
+                            "name": "dicom-volume",
+                            "mount_path": "/etc/orthanc/orthanc.json",
+                            "sub_path": dicom_config,
+                        },
+                    ],
+                    volumes=[
+                        {
+                            "name": "dicom-volume",
+                            "config_map_name": "muspell-dicom-config",
+                            "key": dicom_config,
+                            "path": dicom_config,
+                        },
+                    ],
+                    container_envs=[
+                        {"name": "DEPLOYMENT", "value": config.env},
+                        {"name": "CLIENT_CODE", "value": tenant},
+                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
+                        {"name": "RELEASE_VERSION", "value": image_tag},
+                    ],
+                ),
+            )
+
+            # kubernetes service for dicom
+            await run_activity(
+                activity=KubernetesServiceActivity,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="muspell-dicom",
+                    ports={"http": 8042},
+                ),
+            )
+
             # vm pod scraper
             await run_activity(
                 activity=VMPodScrapperActivity,
@@ -809,16 +924,103 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # check pod running status
+            superset_password = generate_password(length=20)
+            superset_secret_name = "superset-secrets"
+            # Super setup for muspell
             await run_activity(
-                activity=CheckPodRunningStatusActivity,
-                arg=CheckPodRunningStatusActivityModel(
+                activity=K8sSecretCreationActivity,
+                arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
-                    name="muspell-archive",
+                    name=superset_secret_name,
+                    type="Opaque",
+                    data={
+                        "SUPERSET_SECRET_KEY": superset_password,
+                    },
                 ),
-                retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
-                start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
             )
+
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
+                    namespace=tenant,
+                    name="muspell-superset",
+                    docker_image=superset_docker_image,
+                    request_resource={
+                        "cpu": pydash.get(muspell, "serverSpec.request_cpu"),
+                        "memory": pydash.get(muspell, "serverSpec.request_memory"),
+                    },
+                    limit_resource={
+                        "cpu": pydash.get(muspell, "serverSpec.limit_cpu"),
+                        "memory": pydash.get(muspell, "serverSpec.limit_memory"),
+                    },
+                    container_ports={},
+                    volume_mounts=[],
+                    volumes=[],
+                    container_envs=[
+                        {
+                            "name": "SUPERSET_SECRET_KEY",
+                            "value_from": {"secret_key_ref": {"name": superset_secret_name, "key": "SUPERSET_SECRET_KEY"}},
+                        },                        
+                        {
+                            "name": "DATABASE_PASSWORD",
+                            "value_from": {"secret_key_ref": {"name": superset_secret_name, "key": "DATABASE_PASSWORD"}},
+                        },
+                        {
+                            "name": "REDIS_PASSWORD",
+                            "value_from": {"secret_key_ref": {"name": cache_secret_name, "key": "REDIS_PASSWORD"}},
+                        },
+                        {"name": "PYTHONUNBUFFERED", "value": "1"},
+                        {"name": "COMPOSE_PROJECT_NAME", "value": "superset"},
+                        {"name": "DEV_MODE", "value": "true"},
+                        {"name": "DATABASE_SCHEMA", "value": superset_schema_name},
+                        {"name": "DATABASE_DB", "value": postgres_database_name},
+                        {"name": "DATABASE_HOST", "value": config.postgres.host},
+                        {"name": "DATABASE_PORT", "value": config.postgres.port},
+                        {"name": "DATABASE_DIALECT", "value": "postgresql"},
+                        {"name": "DATABASE_USER", "value": postgres_username},
+                        {"name": "REDIS_HOST", "value": config.redis.host},
+                        {"name": "REDIS_PORT", "value": str(config.redis.port)},
+                        {"name": "KEYCLOAK_CLIENT_ID", "value": "muspell"},
+                        {"name": "KEYCLOAK_REALM", "value": tenant},
+                        {"name": "KEYCLOAK_AUTH_URL", "value": f"{auth_url}/auth/"},
+                        {"name": "SUPERSET_CONFIG_PATH", "value": "/app/superset_config.py"},
+                        {"name": "SUPERSET_BASE_URL", "value": f"{base_url}/superset"},
+                        {"name": "SCRIPT_NAME", "value": "/superset"},
+                        {"name": "PYTHONPATH", "value": "/app/pythonpath:/app/docker/pythonpath_dev"},
+                        {"name": "FLASK_DEBUG", "value": "true"},
+                        {"name": "SUPERSET_ENV", "value": "production"},
+                        {"name": "SUPERSET_LOAD_EXAMPLES", "value": "no"},
+                        {"name": "CYPRESS_CONFIG", "value": "false"},
+                        {"name": "SUPERSET_PORT", "value": "8088"},
+                        {"name": "ENABLE_PLAYWRIGHT", "value": "false"},
+                        {"name": "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD", "value": "true"},
+                        {"name": "BUILD_SUPERSET_FRONTEND_IN_DOCKER", "value": "false"},
+                        {"name": "SUPERSET_LOG_LEVEL", "value": "info"},
+                    ],
+                ),
+            )
+
+            # kubernetes service for superset
+            await run_activity(
+                activity=KubernetesServiceActivity,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="muspell-superset",
+                    ports={"http": 8088},
+                ),
+            )
+
+            # check pod running status
+            for pod in ["muspell-archive", "muspell-dicom", "muspell-superset"]:
+                await run_activity(
+                    activity=CheckPodRunningStatusActivity,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             if application_list:
                 # Read column config and update the same in Postgres.
