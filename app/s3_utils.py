@@ -4,10 +4,11 @@ import os
 from pathlib import Path
 
 from app.cli.temporal.muspell import TemplatePath
+from app.core.settings import S3Settings
 from app.template_env import get_env
 from loguru import logger
 
-from app.core.settings import AppSettings, get_settings
+from app.core.settings import AppSettings
 from app.utils.file_operations import get_opendal_file_client
 from app.utils.s3_operations import OpendalS3Client
 from app.utils.subprocess_execution import run_command
@@ -182,7 +183,7 @@ def copy_files_to_s3(
     os.system(f"mc copy {input_path} launchpad/{output_path}")  # nosec
 
 
-async def create_minio_user(config: AppSettings, access_key: str, secret_key: str) -> tuple[str, str]:
+async def create_minio_user(s3_config: S3Settings, access_key: str, secret_key: str) -> tuple[str, str]:
     """
     Create a Minio user using mc client via subprocess
     """
@@ -194,9 +195,9 @@ async def create_minio_user(config: AppSettings, access_key: str, secret_key: st
                 "alias",
                 "set",
                 "minio",
-                config.s3_int.endpoint,
-                config.s3_int.access_key,
-                config.s3_int.secret_key,
+                s3_config.endpoint,
+                s3_config.access_key,
+                s3_config.secret_key,
             ],
         )
 
@@ -213,12 +214,12 @@ async def create_minio_user(config: AppSettings, access_key: str, secret_key: st
         raise MinioUserCreationError(f"Failed to create Minio user: {e}")
 
 
-async def create_minio_bucket(config: AppSettings, bucket_name: str, region_name: str) -> None:
+async def create_minio_bucket(s3_config: S3Settings, bucket_name: str, region_name: str) -> None:
     """
     Create a Minio bucket using mc client via subprocess
     """
     await run_command(
-        *["mc", "alias", "set", "minio", config.s3_int.endpoint, config.s3_int.access_key, config.s3_int.secret_key],
+        *["mc", "alias", "set", "minio", s3_config.endpoint, s3_config.access_key, s3_config.secret_key],
     )
 
     await run_command(
@@ -228,21 +229,19 @@ async def create_minio_bucket(config: AppSettings, bucket_name: str, region_name
     logger.info(f"Created Minio bucket '{bucket_name}' in region '{region_name}' successfully")
 
 
-async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
+async def attach_minio_policy(s3_config: S3Settings, bucket_name: str, access_key: str) -> None:
     """
     Create a Minio policy and attach it to a user using mc client via subprocess
     """
-    config: AppSettings = get_settings()
-
     await run_command(
         [
             "mc",
             "alias",
             "set",
             "minio",
-            config.s3_int.endpoint,
-            config.s3_int.access_key,
-            config.s3_int.secret_key,
+            s3_config.endpoint,
+            s3_config.access_key,
+            s3_config.secret_key,
         ]
     )
 

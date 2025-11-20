@@ -150,7 +150,7 @@
         "route": [
             {
                 "destination": {
-                    "host": "svckestraservice.muspell.svc.cluster.local",
+                    "host": "muspellkestra.shkestra.svc.cluster.local",
                     "port": {
                         "number": 8080
                     }

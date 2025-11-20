@@ -9,7 +9,7 @@ from app.cli.temporal.models.minio import (
     CreateMinioUserActivityModel,
     MinioBucketCredentials,
 )
-from app.core.settings import AppSettings, get_settings
+from app.core.settings import AppSettings, S3Settings, get_settings
 
 
 class CreateMinioBucketActivity(Activity):
@@ -41,8 +41,10 @@ class CreateMinioBucketActivity(Activity):
 
         from app.s3_utils import create_minio_bucket
 
+        s3_config: S3Settings = activity_input.s3_config if activity_input.s3_config is not None else config.s3_int
+
         await create_minio_bucket(
-            config=config,
+            s3_config=s3_config,
             bucket_name=activity_input.bucket_name,
             region_name=activity_input.region_name,
         )
@@ -75,7 +77,12 @@ class AttachMinioPolicyActivity(Activity):
         """
         from app.s3_utils import attach_minio_policy
 
+        config: AppSettings = get_settings()
+
+        s3_config: S3Settings = activity_input.s3_config if activity_input.s3_config is not None else config.s3_int
+
         await attach_minio_policy(
+            s3_config=s3_config,
             bucket_name=activity_input.bucket_name,
             access_key=activity_input.access_key,
         )
@@ -106,12 +113,14 @@ class CreateMinioUserActivity(Activity):
         """
         Create Minio user
         """
-        config: AppSettings = get_settings()
-
         from app.s3_utils import create_minio_user
 
+        config: AppSettings = get_settings()
+
+        s3_config: S3Settings = activity_input.s3_config if activity_input.s3_config is not None else config.s3_int
+
         return await create_minio_user(
-            config=config,
+            s3_config=s3_config,
             access_key=activity_input.access_key,
             secret_key=activity_input.secret_key,
         )

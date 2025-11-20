@@ -20,6 +20,11 @@ from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivityModel,
 )
 from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
+from app.cli.temporal.activities.minio_setup import (
+    AttachMinioPolicyActivity,
+    CreateMinioBucketActivity,
+    CreateMinioUserActivity,
+)
 from app.cli.temporal.activities.muspell_configupdate_job import (
     MuspellConfigUpdateJobActivity,
     MuspellConfigUpdateJobActivityModel,
@@ -45,6 +50,11 @@ from app.cli.temporal.models.cloudflare import (
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivityModel,
     UpdateCORSForBucketActivityModel,
+)
+from app.cli.temporal.models.minio import (
+    AttachMinioPolicyActivityModel,
+    CreateMinioBucketActivityModel,
+    CreateMinioUserActivityModel,
 )
 from app.cli.temporal.models.starrocks import CreateStarRocksCatalogActivityModel
 from app.cli.temporal.muspell import TemplatePath
@@ -94,11 +104,12 @@ from app.core.ijson import ijson_dumps, ijson_loads
 
 from typing import TYPE_CHECKING
 
+from app.one_password_util import OnePasswordUtil
 from app.starrocks_utils import RegisterStarrocksUserModel
 
 if TYPE_CHECKING:
     from app.core.product_settings.muspell_archive import MuspellArchiveSettings
-from app.core.settings import AppSettings, get_settings
+from app.core.settings import AppSettings, S3Settings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 import pydash
@@ -162,6 +173,9 @@ class MuspellOnboardingWorkflow(Workflow):
             JeevesKeycloakCreateIDPFlowActivity.defn,
             CreatePasswordActivity.defn,
             PostgresDatabaseCreationActivity.defn,
+            CreateMinioUserActivity.defn,
+            CreateMinioBucketActivity.defn,
+            AttachMinioPolicyActivity.defn,
         ]
 
     @classmethod
@@ -216,10 +230,15 @@ class MuspellOnboardingWorkflow(Workflow):
             server_item = "production-config" if config.env == "production" else "integration-config"
             dicom_database_name = f"{ProductName}_dicom_{tenant}"
             dicom_database_password = await run_activity(
-                    activity=CreatePasswordActivity,
-                    arg=CreatePasswordActivityModel(length=20),
-                )
+                activity=CreatePasswordActivity,
+                arg=CreatePasswordActivityModel(length=20),
+            )
             superset_schema_name = f"{tenant}_superset"
+            onepassword_util = OnePasswordUtil(
+                tenant="INTEGRATION_COMMON_CONFIG",
+                server_item=server_item,
+                vault=OnePasswordVaultName,
+            )
 
             # create postgres database for dicom
             await run_activity(
@@ -243,7 +262,7 @@ class MuspellOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
+                    tenant=f"{ProductName}_{tenant}",
                     server_item=server_item,
                     vault=OnePasswordVaultName,
                     secret_name="pg_dicom_password",
@@ -334,7 +353,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            #create postgres schema and grant access for superset
+            # create postgres schema and grant access for superset
             await run_activity(
                 activity=PostgresSchemaCreationActivity,
                 arg=PostgresSchemaCreationActivityModel(
@@ -496,7 +515,10 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            auth_url = f"https://{tenant}.{muspell_config.domain_name}"
+            auth_url = onepassword_util.get_key("keycloak_auth_url")
+            if auth_url is None:
+                auth_url = f"https://{tenant}.{muspell_config.domain_name}"
+
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
@@ -544,6 +566,142 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # only create these buckets for integration setup
+            if config.env != "production":
+                # create bucket in r2
+                r2_bucket_name = f"ma-{tenant}"
+                await run_activity(
+                    activity=CreateCloudflareBucketActivity,
+                    arg=CreateCloudflareBucketActivityModel(bucket_name=r2_bucket_name),
+                )
+
+                r2_credentials: CloudflareBucketCredentials = await run_activity(
+                    activity=CreateCloudflareBucketCredentialsActivity,
+                    arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=r2_bucket_name, read_only=False),
+                )
+
+                # r2 access key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant="INTEGRATION_COMMON_CONFIG",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_r2_documents_bucket_name",
+                        key_value=r2_bucket_name,
+                    ),
+                )
+
+                # r2 access key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant="INTEGRATION_COMMON_CONFIG",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_r2_documents_access_key",
+                        key_value=r2_credentials.access_key,
+                    ),
+                )
+
+                # r2 secret key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant="INTEGRATION_COMMON_CONFIG",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_r2_documents_secret_key",
+                        key_value=r2_credentials.secret_key,
+                    ),
+                )
+
+                # r2 endpoint added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_r2_endpoint",
+                        key_value=config.cloudflare.r2_endpoint,
+                    ),
+                )
+
+                minio_bucket_name = f"ma-{tenant}"
+
+                access_key = f"{tenant}_files"
+                secret_key = generate_password(length=16)
+                s3_config = S3Settings()
+                s3_config.access_key = muspell_config.warehouse_access_key
+                s3_config.secret_key = muspell_config.warehouse_secret_key
+                s3_config.endpoint = muspell_config.s3_endpoint
+
+                # create minio user and bucket
+                await run_activity(
+                    activity=CreateMinioUserActivity,
+                    arg=CreateMinioUserActivityModel(access_key=access_key, secret_key=secret_key, s3_config=s3_config),
+                )
+
+                await run_activity(
+                    activity=CreateMinioBucketActivity,
+                    arg=CreateMinioBucketActivityModel(
+                        bucket_name=minio_bucket_name, region_name=muspell_config.minio_region, s3_config=s3_config
+                    ),
+                )
+
+                await run_activity(
+                    activity=AttachMinioPolicyActivity,
+                    arg=AttachMinioPolicyActivityModel(
+                        bucket_name=minio_bucket_name, access_key=access_key, s3_config=s3_config
+                    ),
+                )
+
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant="INTEGRATION_COMMON_CONFIG",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_minio_endpoint",
+                        key_value=muspell_config.s3_endpoint,
+                    ),
+                )
+
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant="INTEGRATION_COMMON_CONFIG",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_minio_bucket",
+                        key_value=minio_bucket_name,
+                    ),
+                )
+
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant="INTEGRATION_COMMON_CONFIG",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_minio_access_key",
+                        key_value=access_key,
+                    ),
+                )
+
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant="INTEGRATION_COMMON_CONFIG",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_minio_secret_key",
+                        key_value=secret_key,
+                    ),
+                )
+            # endif integration specific flow
+
             realm_name = tenant
             # keycloak realm setup
             await run_activity(
@@ -553,9 +711,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     domain=muspell_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
-                    template_payload={
-                        "smtp_password": muspell_config.keycloak_smtp_password
-                    }
+                    template_payload={"smtp_password": muspell_config.keycloak_smtp_password},
                 ),
             )
 
@@ -616,9 +772,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     domain=muspell_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_idp_and_flows.json",
-                    template_payload={
-                        "google_idp_secret": muspell_config.google_idp_secret
-                    }
+                    template_payload={"google_idp_secret": muspell_config.google_idp_secret},
                 ),
             )
 
@@ -782,7 +936,9 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env, domain_name=muspell_config.domain_name)
+            output = template.render(
+                tenant=tenant, image_tag=image_tag, env=config.env, domain_name=muspell_config.domain_name
+            )
 
             http_list = ijson_loads(output)
 
@@ -959,11 +1115,15 @@ class MuspellOnboardingWorkflow(Workflow):
                     container_envs=[
                         {
                             "name": "SUPERSET_SECRET_KEY",
-                            "value_from": {"secret_key_ref": {"name": superset_secret_name, "key": "SUPERSET_SECRET_KEY"}},
-                        },                        
+                            "value_from": {
+                                "secret_key_ref": {"name": superset_secret_name, "key": "SUPERSET_SECRET_KEY"}
+                            },
+                        },
                         {
                             "name": "DATABASE_PASSWORD",
-                            "value_from": {"secret_key_ref": {"name": superset_secret_name, "key": "DATABASE_PASSWORD"}},
+                            "value_from": {
+                                "secret_key_ref": {"name": superset_secret_name, "key": "DATABASE_PASSWORD"}
+                            },
                         },
                         {
                             "name": "REDIS_PASSWORD",
@@ -1040,55 +1200,6 @@ class MuspellOnboardingWorkflow(Workflow):
                         database_name=postgres_database_name,
                         username=postgres_username,
                         password=postgres_password,
-                    ),
-                )
-
-            if config.env != "production":
-                # create bucket
-                r2_bucket_name = f"ma-{tenant}"
-                await run_activity(
-                    activity=CreateCloudflareBucketActivity,
-                    arg=CreateCloudflareBucketActivityModel(bucket_name=r2_bucket_name),
-                )
-
-                r2_credentials: CloudflareBucketCredentials = await run_activity(
-                    activity=CreateCloudflareBucketCredentialsActivity,
-                    arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=r2_bucket_name, read_only=False),
-                )
-
-                # r2 access key added to onepassword
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key="r2_documents_access_key",
-                        key_value=r2_credentials.access_key,
-                    ),
-                )
-
-                # r2 secret key added to onepassword
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key="r2_documents_secret_key",
-                        key_value=r2_credentials.secret_key,
-                    ),
-                )
-
-                # r2 endpoint added to onepassword
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key="r2_endpoint",
-                        key_value=config.cloudflare.r2_endpoint,
                     ),
                 )
 
