@@ -218,11 +218,11 @@ async def create_minio_bucket(s3_config: S3Settings, bucket_name: str, region_na
     Create a Minio bucket using mc client via subprocess
     """
     await run_command(
-        *["mc", "alias", "set", "minio", s3_config.endpoint, s3_config.access_key, s3_config.secret_key],
+        ["mc", "alias", "set", "minio", s3_config.endpoint, s3_config.access_key, s3_config.secret_key],
     )
 
     await run_command(
-        *["mc", "mb", "--region", region_name, f"minio/{bucket_name}"],
+        ["mc", "mb", "--region", region_name, f"minio/{bucket_name}"],
     )
 
     logger.info(f"Created Minio bucket '{bucket_name}' in region '{region_name}' successfully")
