@@ -892,7 +892,6 @@ class MuspellOnboardingWorkflow(Workflow):
             tenant_config = f"{config.env}.toml"
             code_system_config = "code_systems.toml"
             config_dir = "app/config"
-            # TODO: Add this config file and handle storage for this
             dicom_config = "dicom-config.json"
 
             # setup tenant configmap
