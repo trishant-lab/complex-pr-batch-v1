@@ -7,7 +7,6 @@ from app.cli.temporal.models.minio import (
     AttachMinioPolicyActivityModel,
     CreateMinioBucketActivityModel,
     CreateMinioUserActivityModel,
-    MinioBucketCredentials,
 )
 from app.core.settings import AppSettings, S3Settings, get_settings
 
