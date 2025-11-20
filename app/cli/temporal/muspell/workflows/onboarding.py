@@ -515,7 +515,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            auth_url = onepassword_util.get_key("keycloak_auth_url")
+            auth_url = await onepassword_util.get_key("keycloak_auth_url")
             if auth_url is None:
                 auth_url = f"https://{tenant}.{muspell_config.domain_name}"
 
@@ -1090,6 +1090,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     type="Opaque",
                     data={
                         "SUPERSET_SECRET_KEY": superset_password,
+                        "DATABASE_PASSWORD": postgres_password,
                     },
                 ),
             )
