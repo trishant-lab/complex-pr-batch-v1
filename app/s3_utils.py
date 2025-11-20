@@ -251,14 +251,14 @@ async def attach_minio_policy(s3_config: S3Settings, bucket_name: str, access_ke
     # Use a temporary file with context manager to ensure cleanup
 
     opendal_file_operations = get_opendal_file_client()
-    async with opendal_file_operations.temp_file() as temp_file:
-        await temp_file.write(rendered_policy.encode())
-        temp_file_path = temp_file.name
+    async with opendal_file_operations.temp_dir() as temp_dir:
+        policy_file_path = os.path.join(opendal_file_operations.tempdir_root, temp_dir, "minio_policy.json")
+        await opendal_file_operations.write_file(policy_file_path, rendered_policy.encode())
 
         try:
             # Create the policy using mc admin
             await run_command(
-                ["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
+                ["mc", "admin", "policy", "create", "minio", "bucketpolicy", policy_file_path],
             )
 
             # Attach the policy to the user
@@ -267,10 +267,9 @@ async def attach_minio_policy(s3_config: S3Settings, bucket_name: str, access_ke
             )
 
             logger.info(f"Attached policy to user {access_key} successfully")
-        finally:
-            # Ensure the temporary file is removed even if an exception occurs
-            if os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
+        except Exception as e:
+            logger.error(f"Failed to attach policy to user {access_key}: {e}")
+            raise
 
 
 class MinioUserCreationError(Exception):
