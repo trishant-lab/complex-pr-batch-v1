@@ -183,7 +183,7 @@ def copy_files_to_s3(
     os.system(f"mc copy {input_path} launchpad/{output_path}")  # nosec
 
 
-async def create_minio_user(s3_config: S3Settings, access_key: str, secret_key: str) -> tuple[str, str]:
+async def create_minio_user(s3_config: S3Settings, access_key: str, secret_key: str) -> None:
     """
     Create a Minio user using mc client via subprocess
     """
@@ -207,7 +207,6 @@ async def create_minio_user(s3_config: S3Settings, access_key: str, secret_key: 
         )
 
         logger.info(f"Created Minio user {access_key} successfully")
-        return access_key, secret_key
 
     except Exception as e:
         logger.error(f"Failed to create Minio user: {e}")

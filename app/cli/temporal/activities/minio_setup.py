@@ -109,7 +109,7 @@ class CreateMinioUserActivity(Activity):
 
     @staticmethod
     @activity.defn(name="CreateMinioUserActivity")
-    async def defn(activity_input: CreateMinioUserActivityModel) -> MinioBucketCredentials:
+    async def defn(activity_input: CreateMinioUserActivityModel) -> None:
         """
         Create Minio user
         """
@@ -119,7 +119,7 @@ class CreateMinioUserActivity(Activity):
 
         s3_config: S3Settings = activity_input.s3_config if activity_input.s3_config is not None else config.s3_int
 
-        return await create_minio_user(
+        await create_minio_user(
             s3_config=s3_config,
             access_key=activity_input.access_key,
             secret_key=activity_input.secret_key,
