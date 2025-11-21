@@ -1088,7 +1088,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     namespace=tenant,
                     name=superset_secret_name,
                     type="Opaque",
-                    data={
+                    string_data={
                         "SUPERSET_SECRET_KEY": superset_password,
                         "DATABASE_PASSWORD": postgres_password,
                     },
