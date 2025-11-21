@@ -696,8 +696,8 @@ class MuspellOnboardingWorkflow(Workflow):
                         tenant="INTEGRATION_COMMON_CONFIG",
                         vault=OnePasswordVaultName,
                         server_item=server_item,
-                        key=f"{tenant}_minio_secret_key",
-                        key_value=secret_key,
+                        secret_name=f"{tenant}_minio_secret_key",
+                        secret_value=secret_key,
                     ),
                 )
             # endif integration specific flow
