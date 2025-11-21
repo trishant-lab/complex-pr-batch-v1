@@ -104,7 +104,6 @@ from app.core.ijson import ijson_dumps, ijson_loads
 
 from typing import TYPE_CHECKING
 
-from app.one_password_util import OnePasswordUtil
 from app.starrocks_utils import RegisterStarrocksUserModel
 
 if TYPE_CHECKING:
@@ -234,11 +233,6 @@ class MuspellOnboardingWorkflow(Workflow):
                 arg=CreatePasswordActivityModel(length=20),
             )
             superset_schema_name = f"{tenant}_superset"
-            onepassword_util = OnePasswordUtil(
-                tenant="INTEGRATION_COMMON_CONFIG",
-                server_item=server_item,
-                vault=OnePasswordVaultName,
-            )
 
             # create postgres database for dicom
             await run_activity(
@@ -515,9 +509,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            auth_url = await onepassword_util.get_key("keycloak_auth_url")
-            if auth_url is None:
-                auth_url = f"https://{tenant}.{muspell_config.domain_name}"
+            auth_url = config.keycloak.auth_url
 
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
@@ -1138,8 +1130,8 @@ class MuspellOnboardingWorkflow(Workflow):
                         {"name": "DATABASE_PORT", "value": str(config.postgres.port)},
                         {"name": "DATABASE_DIALECT", "value": "postgresql"},
                         {"name": "DATABASE_USER", "value": postgres_username},
-                        {"name": "REDIS_HOST", "value": config.redis.host},
-                        {"name": "REDIS_PORT", "value": str(config.redis.port)},
+                        {"name": "REDIS_HOST", "value": f"cache.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS_PORT", "value": "6379"},
                         {"name": "KEYCLOAK_CLIENT_ID", "value": "muspell"},
                         {"name": "KEYCLOAK_REALM", "value": tenant},
                         {"name": "KEYCLOAK_AUTH_URL", "value": f"{auth_url}/auth/"},

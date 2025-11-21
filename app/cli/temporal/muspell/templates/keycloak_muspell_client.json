@@ -10,7 +10,8 @@
     "alwaysDisplayInConsole": false,
     "clientAuthenticatorType": "client-secret",
     "redirectUris": [
-        "https://<<tenant>>.<<domain>>/*"
+        "https://<<tenant>>.<<domain>>/*",
+        "https://<<tenant>>.api.<<domain>>/*"
     ],
     "webOrigins": [
         "https://<<tenant>>.<<domain>>"

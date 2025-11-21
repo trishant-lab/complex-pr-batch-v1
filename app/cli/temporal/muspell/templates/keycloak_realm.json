@@ -3006,7 +3006,7 @@
       "actionTokenGeneratedByUserLifespan.execute-actions": "",
       "cibaExpiresIn": "120",
       "actionTokenGeneratedByUserLifespan-idp-verify-account-via-email": "",
-      "frontendUrl": "https://<<tenant>>.<<domain>>/auth",
+      "frontendUrl": "",
       "organizationsEnabled": "false",
       "shortVerificationUri": "",
       "actionTokenGeneratedByUserLifespan.reset-credentials": "",
