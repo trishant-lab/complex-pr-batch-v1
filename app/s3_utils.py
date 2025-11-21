@@ -221,6 +221,15 @@ async def create_minio_bucket(s3_config: S3Settings, bucket_name: str, region_na
         ["mc", "alias", "set", "minio", s3_config.endpoint, s3_config.access_key, s3_config.secret_key],
     )
 
+    try:
+        # Check if bucket exists first
+        _ = await run_command(["mc", "ls", f"minio/{bucket_name}"])
+        logger.info(f"Minio bucket '{bucket_name}' already exists, skipping creation")
+        return
+    except Exception as e:
+        # Bucket doesn't exist or ls failed, proceed with creation
+        logger.info(f"Bucket not found: {e}, proceeding with creation")
+
     await run_command(
         ["mc", "mb", "--region", region_name, f"minio/{bucket_name}"],
     )
@@ -260,16 +269,32 @@ async def attach_minio_policy(s3_config: S3Settings, bucket_name: str, access_ke
             await run_command(
                 ["mc", "admin", "policy", "create", "minio", "bucketpolicy", policy_file_path],
             )
+            logger.info("Created MinIO policy 'bucketpolicy' successfully")
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "already exists" in error_msg or "policy already exists" in error_msg:
+                logger.info("MinIO policy 'bucketpolicy' already exists, skipping creation")
+            else:
+                logger.error(f"Failed to create MinIO policy: {e}")
+                raise
 
+        try:
             # Attach the policy to the user
             await run_command(
                 ["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
             )
-
             logger.info(f"Attached policy to user {access_key} successfully")
         except Exception as e:
-            logger.error(f"Failed to attach policy to user {access_key}: {e}")
-            raise
+            error_msg = str(e).lower()
+            if (
+                "already attached" in error_msg
+                or "policy already attached" in error_msg
+                or "already exists" in error_msg
+            ):
+                logger.info(f"Policy already attached to user {access_key}, skipping attachment")
+            else:
+                logger.error(f"Failed to attach policy to user {access_key}: {e}")
+                raise
 
 
 class MinioUserCreationError(Exception):
