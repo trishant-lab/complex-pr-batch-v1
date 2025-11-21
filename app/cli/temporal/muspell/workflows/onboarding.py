@@ -620,7 +620,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 await run_activity(
                     activity=OnePasswordInsertIfNotExistsActivity,
                     arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
+                        tenant="INTEGRATION_COMMON_CONFIG",
                         vault=OnePasswordVaultName,
                         server_item=server_item,
                         key=f"{tenant}_r2_endpoint",
