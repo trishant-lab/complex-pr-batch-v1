@@ -1109,7 +1109,7 @@ class MuspellOnboardingWorkflow(Workflow):
                         "cpu": pydash.get(muspell, "serverSpec.limit_cpu"),
                         "memory": pydash.get(muspell, "serverSpec.limit_memory"),
                     },
-                    container_ports={},
+                    container_ports={"http": 8088},
                     volume_mounts=[],
                     volumes=[],
                     container_envs=[
@@ -1135,7 +1135,7 @@ class MuspellOnboardingWorkflow(Workflow):
                         {"name": "DATABASE_SCHEMA", "value": superset_schema_name},
                         {"name": "DATABASE_DB", "value": postgres_database_name},
                         {"name": "DATABASE_HOST", "value": config.postgres.host},
-                        {"name": "DATABASE_PORT", "value": config.postgres.port},
+                        {"name": "DATABASE_PORT", "value": str(config.postgres.port)},
                         {"name": "DATABASE_DIALECT", "value": "postgresql"},
                         {"name": "DATABASE_USER", "value": postgres_username},
                         {"name": "REDIS_HOST", "value": config.redis.host},
