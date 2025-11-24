@@ -19,7 +19,8 @@
         "match": [
             {"uri": {"regex": "^/api/v1/.*"}},
             {"uri": {"prefix": "/docs"}},
-            {"uri": {"prefix": "/redoc"}}
+            {"uri": {"prefix": "/redoc"}},
+            {"uri": {"regex": "^/public/api/v1/.*"}}
         ]
     },
     {
