@@ -51,11 +51,6 @@ from app.cli.temporal.models.cloudflare import (
     PropagateDNSRecordActivityModel,
     UpdateCORSForBucketActivityModel,
 )
-from app.cli.temporal.models.minio import (
-    AttachMinioPolicyActivityModel,
-    CreateMinioBucketActivityModel,
-    CreateMinioUserActivityModel,
-)
 from app.cli.temporal.models.starrocks import CreateStarRocksCatalogActivityModel
 from app.cli.temporal.muspell import TemplatePath
 from app.cli.activity_util import run_activity
@@ -108,7 +103,7 @@ from app.starrocks_utils import RegisterStarrocksUserModel
 
 if TYPE_CHECKING:
     from app.core.product_settings.muspell_archive import MuspellArchiveSettings
-from app.core.settings import AppSettings, S3Settings, get_settings
+from app.core.settings import AppSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 import pydash
@@ -619,80 +614,80 @@ class MuspellOnboardingWorkflow(Workflow):
                         key_value=config.cloudflare.r2_endpoint,
                     ),
                 )
+                # endif integration specific flow
 
-                minio_bucket_name = f"ma-{tenant}"
+            # minio_bucket_name = f"ma-{tenant}"
 
-                access_key = f"{tenant}_files"
-                secret_key = generate_password(length=16)
-                s3_config = S3Settings()
-                s3_config.access_key = muspell_config.warehouse_access_key
-                s3_config.secret_key = muspell_config.warehouse_secret_key
-                s3_config.endpoint = muspell_config.s3_endpoint
+            # access_key = f"{tenant}_files"
+            # secret_key = generate_password(length=16)
+            # s3_config = S3Settings()
+            # s3_config.access_key = muspell_config.warehouse_access_key
+            # s3_config.secret_key = muspell_config.warehouse_secret_key
+            # s3_config.endpoint = muspell_config.s3_endpoint
 
-                # create minio user and bucket
-                await run_activity(
-                    activity=CreateMinioUserActivity,
-                    arg=CreateMinioUserActivityModel(access_key=access_key, secret_key=secret_key, s3_config=s3_config),
-                )
+            # # create minio user and bucket
+            # await run_activity(
+            #     activity=CreateMinioUserActivity,
+            #     arg=CreateMinioUserActivityModel(access_key=access_key, secret_key=secret_key, s3_config=s3_config),
+            # )
 
-                await run_activity(
-                    activity=CreateMinioBucketActivity,
-                    arg=CreateMinioBucketActivityModel(
-                        bucket_name=minio_bucket_name, region_name=muspell_config.minio_region, s3_config=s3_config
-                    ),
-                )
+            # await run_activity(
+            #     activity=CreateMinioBucketActivity,
+            #     arg=CreateMinioBucketActivityModel(
+            #         bucket_name=minio_bucket_name, region_name=muspell_config.minio_region, s3_config=s3_config
+            #     ),
+            # )
 
-                await run_activity(
-                    activity=AttachMinioPolicyActivity,
-                    arg=AttachMinioPolicyActivityModel(
-                        bucket_name=minio_bucket_name, access_key=access_key, s3_config=s3_config
-                    ),
-                )
+            # await run_activity(
+            #     activity=AttachMinioPolicyActivity,
+            #     arg=AttachMinioPolicyActivityModel(
+            #         bucket_name=minio_bucket_name, access_key=access_key, s3_config=s3_config
+            #     ),
+            # )
 
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant="INTEGRATION_COMMON_CONFIG",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key=f"{tenant}_minio_endpoint",
-                        key_value=muspell_config.s3_endpoint,
-                    ),
-                )
+            # await run_activity(
+            #     activity=OnePasswordInsertIfNotExistsActivity,
+            #     arg=OnePasswordInsertIfNotExistsActivityModel(
+            #         tenant="INTEGRATION_COMMON_CONFIG",
+            #         vault=OnePasswordVaultName,
+            #         server_item=server_item,
+            #         key=f"{tenant}_minio_endpoint",
+            #         key_value=muspell_config.s3_endpoint,
+            #     ),
+            # )
 
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant="INTEGRATION_COMMON_CONFIG",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key=f"{tenant}_minio_bucket",
-                        key_value=minio_bucket_name,
-                    ),
-                )
+            # await run_activity(
+            #     activity=OnePasswordInsertIfNotExistsActivity,
+            #     arg=OnePasswordInsertIfNotExistsActivityModel(
+            #         tenant="INTEGRATION_COMMON_CONFIG",
+            #         vault=OnePasswordVaultName,
+            #         server_item=server_item,
+            #         key=f"{tenant}_minio_bucket",
+            #         key_value=minio_bucket_name,
+            #     ),
+            # )
 
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant="INTEGRATION_COMMON_CONFIG",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key=f"{tenant}_minio_access_key",
-                        key_value=access_key,
-                    ),
-                )
+            # await run_activity(
+            #     activity=OnePasswordInsertIfNotExistsActivity,
+            #     arg=OnePasswordInsertIfNotExistsActivityModel(
+            #         tenant="INTEGRATION_COMMON_CONFIG",
+            #         vault=OnePasswordVaultName,
+            #         server_item=server_item,
+            #         key=f"{tenant}_minio_access_key",
+            #         key_value=access_key,
+            #     ),
+            # )
 
-                await run_activity(
-                    activity=OnePasswordCreateOrUpdateActivity,
-                    arg=OnePasswordCreateOrUpdateActivityModel(
-                        tenant="INTEGRATION_COMMON_CONFIG",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        secret_name=f"{tenant}_minio_secret_key",
-                        secret_value=secret_key,
-                    ),
-                )
-            # endif integration specific flow
+            # await run_activity(
+            #     activity=OnePasswordCreateOrUpdateActivity,
+            #     arg=OnePasswordCreateOrUpdateActivityModel(
+            #         tenant="INTEGRATION_COMMON_CONFIG",
+            #         vault=OnePasswordVaultName,
+            #         server_item=server_item,
+            #         secret_name=f"{tenant}_minio_secret_key",
+            #         secret_value=secret_key,
+            #     ),
+            # )
 
             realm_name = tenant
             # keycloak realm setup
