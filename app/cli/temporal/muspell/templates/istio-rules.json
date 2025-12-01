@@ -120,6 +120,7 @@
     {
         "name": "kestra",
         "corsPolicy": {
+            "allowCredentials": true,
             "allowHeaders": [
                 "Authorization",
                 "Content-Type",
