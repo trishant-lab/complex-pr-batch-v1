@@ -145,6 +145,13 @@
                 }
             }
         ],
+        "headers": {
+            "request": {
+                "set": {
+                    "Authorization": "Basic <<kestra_basic_auth>>"
+                }
+            }
+        },
         "rewrite": {
             "uri": "/"
         },
