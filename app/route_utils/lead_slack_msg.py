@@ -118,3 +118,29 @@ def leads_add_payment_details(customer: CustomerResponse, product: ProductEnum) 
     text = "Customer has added 'Payment Information'"
     blocks = _get_leads_block_from_customer_response(text, customer)
     _send_lead_msg(text, blocks, product)
+
+
+def portal_link_request(email: str, product: ProductEnum) -> None:
+    """
+    Send email to slack
+    """
+    text = f"{product.value} Portal Access Request"
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": text,
+            },
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Email:* {email}",
+                },
+            ],
+        },
+    ]
+    _send_lead_msg(text, blocks, product)

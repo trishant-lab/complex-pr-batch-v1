@@ -6,6 +6,7 @@ from app.exceptions import errors
 from app.mail_templates.main import tenant_link_mail
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.product import ProductEnum
+from app.route_utils.lead_slack_msg import portal_link_request
 from app.route_utils.recaptcha import validate_recaptcha
 from app.route_utils.session_util import get_treated_email
 from app.sendgrid_utils import send_mail
@@ -44,6 +45,7 @@ async def get_portal_link(
             env_prefix=env_prefix,
             product=product.value.lower(),
         )
+        portal_link_request(email, product)
         if not tenant_links:
             raise errors.CUSTOMER_NOT_FOUND.exc()
 
