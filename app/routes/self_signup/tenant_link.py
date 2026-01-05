@@ -5,6 +5,7 @@ from app.core.db import DBManager, get_db_manager
 from app.exceptions import errors
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
 from app.route_utils.lead_slack_msg import portal_link_request
 from app.route_utils.product import validate_email_domain
 from app.route_utils.recaptcha import validate_recaptcha
@@ -66,6 +67,7 @@ async def get_portal_link(
             env_suffix=app_config.tenant_fqdn,
             env_prefix=env_prefix,
             product=product.value.lower(),
+            TenantStatusEnum=TenantStatusEnum,
         )
         portal_link_request(email, product)
         if tenant_links:
