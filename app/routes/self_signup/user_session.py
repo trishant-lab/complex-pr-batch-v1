@@ -44,7 +44,7 @@ async def get_session(
     """
     email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
-    await UserOTP.validate_otp(product, email, otp)
+    await UserOTP.validate_otp(product, email, otp, UserOTP.SUFFIX)
     token = await UserSession.get_session_token(product, email)
 
     provisioned, customer_record = await get_first_subscription_status(email, db, product)
