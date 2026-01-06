@@ -6,7 +6,7 @@ from app.exceptions import errors
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
-from app.route_utils.lead_slack_msg import portal_link_request
+from app.route_utils.lead_slack_msg import portal_link_otp_request, portal_link_request
 from app.route_utils.product import validate_email_domain
 from app.route_utils.recaptcha import validate_recaptcha
 from app.route_utils.session_util import get_treated_email
@@ -36,7 +36,7 @@ async def get_otp_for_portal_link(
     email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
     await UserOTP.create_portal_link_otp(email, product)
-    portal_link_request(email, product)
+    portal_link_otp_request(email, product)
 
 
 @router.post(
@@ -69,8 +69,9 @@ async def get_portal_link(
             product=product.value.lower(),
             TenantStatusEnum=TenantStatusEnum,
         )
-        portal_link_request(email, product)
+        urls = [x["tenantlinks"] for x in tenant_links]
+        portal_link_request(email, product, urls)
         if tenant_links:
-            return [x["tenantlinks"] for x in tenant_links]
+            return urls
         raise errors.CUSTOMER_NOT_FOUND.exc()
     raise errors.TENANT_LINK_NOT_SENT.exc()
