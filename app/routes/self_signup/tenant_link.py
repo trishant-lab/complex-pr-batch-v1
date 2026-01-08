@@ -3,26 +3,27 @@ from pydantic import EmailStr
 
 from app.core.db import DBManager, get_db_manager
 from app.exceptions import errors
-from app.mail_templates.main import tenant_link_mail
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.product import ProductEnum
-from app.route_utils.lead_slack_msg import portal_link_request
+from app.models.tenant import TenantStatusEnum
+from app.route_utils.lead_slack_msg import portal_link_otp_request, portal_link_request
+from app.route_utils.product import validate_email_domain
 from app.route_utils.recaptcha import validate_recaptcha
 from app.route_utils.session_util import get_treated_email
-from app.sendgrid_utils import send_mail
+from app.route_utils.user_otp import UserOTP
 
 router = APIRouter()
 
 
-@router.post(
-    "/{product}",
-    operation_id="getPortalLink",
+@router.get(
+    "/{product}/OTP",
+    operation_id="getOTPForPortalLink",
     dependencies=[
         Depends(ResilientRateLimiter(seconds=10)),
         Depends(ResilientRateLimiter(times=5, seconds=60)),
     ],
 )
-async def get_portal_link(
+async def get_otp_for_portal_link(
     email: EmailStr,
     product: ProductEnum = Path(...),
     _: str = Depends(validate_recaptcha),
@@ -32,6 +33,28 @@ async def get_portal_link(
     @param _:
     @return:
     """
+    email = get_treated_email(email)
+    validate_email_domain(product=product, email=email)
+    await UserOTP.create_portal_link_otp(email, product)
+    portal_link_otp_request(email, product)
+
+
+@router.post(
+    "/{product}",
+    operation_id="getPortalLink",
+    dependencies=[Depends(ResilientRateLimiter(times=3, seconds=30))],
+)
+async def get_portal_link(
+    email: EmailStr,
+    otp: int,
+    product: ProductEnum = Path(...),
+) -> list[str]:
+    """
+    @param email:
+    @param _:
+    @return:
+    """
+    await UserOTP.validate_otp(product, email, otp, UserOTP.PORTAL_LINK_OTP_SUFFIX)
     app_config = ProductEnum.get_product_settings(product)
 
     email = get_treated_email(email)
@@ -44,20 +67,11 @@ async def get_portal_link(
             env_suffix=app_config.tenant_fqdn,
             env_prefix=env_prefix,
             product=product.value.lower(),
+            TenantStatusEnum=TenantStatusEnum,
         )
-        portal_link_request(email, product)
-        if not tenant_links:
-            raise errors.CUSTOMER_NOT_FOUND.exc()
-
-        suffix = "s" if len(tenant_links) > 1 else ""
-        subject = f"Important: Link{suffix} to your {product.value} Portal{suffix}"
-        content = tenant_link_mail(tenant_links=tenant_links, product=product)
-        response = await send_mail(
-            to_email=email,
-            email_from=app_config.sendgrid.support_mail,
-            subject=subject,
-            from_name=product.value,
-            content=content,
-        )
-        if response["responseStatus"] != 202:
-            raise errors.TENANT_LINK_NOT_SENT.exc()
+        urls = [x["tenantlinks"] for x in tenant_links]
+        portal_link_request(email, product, urls)
+        if tenant_links:
+            return urls
+        raise errors.CUSTOMER_NOT_FOUND.exc()
+    raise errors.TENANT_LINK_NOT_SENT.exc()

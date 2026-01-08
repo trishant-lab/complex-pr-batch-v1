@@ -8,7 +8,7 @@ readme = "README.md"
 dependencies = [
     "1password==1.0.7,<2",
     "aiofiles==24.1.0,<25",
-    "aiohttp==3.12.14",
+    "aiohttp>=3.13.3",
     "aiopath>=0.7.7",
     "async-lru==2.0.4,<3",
     "asyncpg==0.30.0,<0.31",

@@ -78,6 +78,24 @@ def otp_verification_mail(otp: int, plan_name: str, product: ProductEnum) -> str
             raise ValueError(f"Invalid product: {product}")
 
 
+def otp_verification_mail_for_portal_link(otp: int, product: ProductEnum) -> str:
+    """
+    @param otp:
+    @param product:
+    @return:
+    """
+    match product:
+        case ProductEnum.veritable:
+            template = env.get_template("veritable/otp_verification_mail_portal_link.html")
+            return template.render(
+                otp=otp,
+                expiry_minutes=settings.redis.otp_expiration // 60,
+                support_email=settings.veritable.sendgrid.support_mail,
+            )
+        case _:
+            raise ValueError(f"Invalid product: {product}")
+
+
 def periodic_invoice_mail(
     product: ProductEnum,
     name: str,

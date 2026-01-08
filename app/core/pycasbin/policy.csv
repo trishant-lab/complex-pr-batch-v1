@@ -212,6 +212,7 @@ p, PUBLIC, /api/v1/onboard/{product}/status, GET
 p, PUBLIC, /api/v1/webhooks/billing/{product}/events, POST
 p, PUBLIC, /api/v1/tenant/{product}/validateTenantName/{tenant_name}, GET
 p, PUBLIC, /api/v1/tenant/{product}/suggestTenantNames, GET
+p, PUBLIC, /api/v1/portalLink/{product}/OTP, GET
 p, PUBLIC, /api/v1/portalLink/{product}, POST
 
 g, ADMINS, Admin

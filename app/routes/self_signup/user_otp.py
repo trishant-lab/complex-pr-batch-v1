@@ -35,5 +35,5 @@ async def get_otp(
     """
     email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
-    await UserOTP.create_and_send_otp(email, plan_name, product)
+    await UserOTP.create_signup_otp(email, plan_name, product)
     leads_otp_sent(email, product)
