@@ -62,7 +62,7 @@ dependencies = [
     "stripe==11.5.0,<12",
     "supervisor==4.2.5,<5",
     "temporalio==1.9.0,<2",
-    "urllib3==2.6.2",
+    "urllib3==2.6.3",
     "uuid7==0.1.0",
     "uvicorn==0.30.3,<0.31",
 ]
