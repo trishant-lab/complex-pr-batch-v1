@@ -56,7 +56,8 @@ class FeeResponse(BaseResponseModel):
     precise_total_amount: str | None = None
     taxes_precise_amount: str | None = None
     total_amount_currency: str | None = None
-    units: float | None = None
+    units: str | None = None
+    total_aggregated_units: str | None = None
     events_count: int | None = None
     payment_status: str | None = None
     created_at: str | None = None

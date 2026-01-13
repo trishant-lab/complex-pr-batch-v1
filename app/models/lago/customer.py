@@ -4,6 +4,8 @@ from app.models.lago.tax import TaxesResponse
 
 class CustomerBillingConfiguration(LagoBaseModel):
     invoice_grace_period: int | None = None
+    subscription_invoice_issuing_date_anchor: str | None = None
+    subscription_invoice_issuing_date_adjustment: str | None = None
     payment_provider: str | None = None
     payment_provider_code: str | None = None
     provider_customer_id: str | None = None
