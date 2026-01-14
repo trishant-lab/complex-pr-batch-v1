@@ -226,7 +226,7 @@ class JeevesOnboardingWorkflow(Workflow):
         ]
 
     @staticmethod
-    def get_space_config(tenant: str, ehr: str) -> dict[str, str]:
+    def get_space_config(tenant: str, ehr: str, space_display_name: str) -> dict[str, str]:
         """
         Return a generic space config based on EHR for initial tenant setup.
         Specific space names (tenant-ehr) will be handled by Space Creation Workflow.
@@ -244,6 +244,7 @@ class JeevesOnboardingWorkflow(Workflow):
             "product_space_name": f"{ProductName}-{tenant}-{ehr}",
             "db_schema_name": f"{tenant}-{ehr}",
             "idp_template": idp_template_map[ehr],
+            "space_display_name": space_display_name,
         }
 
     @classmethod
@@ -268,10 +269,14 @@ class JeevesOnboardingWorkflow(Workflow):
         is_deployment = pydash.get(jeeves, "is_deployment")
         ehr_used = pydash.get(jeeves, "whichEhrDoesYourCompanyUse")
         customer_domain: str = pydash.get(jeeves, "customerDomain")
-        space_name_config: dict[str, str] = JeevesOnboardingWorkflow.get_space_config(tenant=tenant, ehr=ehr_used)
+        space_display_name = pydash.get(jeeves, "spaceDisplayName", ehr_used.capitalize())
+        space_name_config: dict[str, str] = JeevesOnboardingWorkflow.get_space_config(
+            tenant=tenant, ehr=ehr_used, space_display_name=space_display_name
+        )
         product_tenant_name = f"{ProductName}-{tenant}"
         product_space_name = space_name_config["product_space_name"]
         client_name = space_name_config["keycloak_client_name"]
+        space_display_name = space_name_config["space_display_name"]
 
         try:
             if not pydash.get(jeeves, "emailSent") and not is_deployment:
@@ -787,7 +792,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="space_display_name",
-                    secret_value=ehr_used.capitalize(),
+                    secret_value=space_display_name,
                 ),
             )
 
@@ -905,7 +910,7 @@ class JeevesOnboardingWorkflow(Workflow):
                         "chatwoot_domain": jeeves_config.chatwoot_domain,
                         "smtp_password": jeeves_config.keycloak_smtp_password,
                         "space": ehr_used,
-                        "space_name": ehr_used.capitalize(),
+                        "space_name": space_display_name,
                     },
                 ),
             )
@@ -921,7 +926,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_name="keycloak_jeeves_client.json",  # This is the main client for the tenant
                     template_payload={
                         "chatwoot_domain": jeeves_config.chatwoot_domain,
-                        "space_name": ehr_used.capitalize(),
+                        "space_name": space_display_name,
                         "space": ehr_used,
                     },
                 ),
@@ -938,7 +943,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     template_payload={
                         "chatwoot_domain": jeeves_config.chatwoot_domain,
                         "space": ehr_used,
-                        "space_name": ehr_used.capitalize(),
+                        "space_name": space_display_name,
                     },
                 ),
             )

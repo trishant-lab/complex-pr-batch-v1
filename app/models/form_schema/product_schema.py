@@ -196,6 +196,18 @@ class JeevesSchema(BaseFormSchema):
             "order": 8,
         },
     )
+    spaceDisplayName: str = Field(
+        default="Epic",
+        json_schema_extra={
+            "name": "spaceDisplayName",
+            "label": "Space Display Name",
+            "subtype": "text",
+            "className": "form-control",
+            "placeholder": "e.g. Epic EHR",
+            "mapTo": "spaceDisplayName",
+            "order": 9,
+        },
+    )
 
 
 class DexitSchema(BaseFormSchema):
