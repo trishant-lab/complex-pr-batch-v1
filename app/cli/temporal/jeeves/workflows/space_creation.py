@@ -122,7 +122,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
         ]
 
     @staticmethod
-    def get_space_config(tenant: str, space: str) -> dict[str, str]:
+    def get_space_config(tenant: str, space: str, space_display_name: str) -> dict[str, str]:
         """
         Return space config based on space
         """
@@ -137,6 +137,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
             "space_name": f"{tenant}-{space}",
             "db_schema_name": f"{tenant}-{space}",
             "idp_template": idp_template_map.get(space, "keycloak_idp_and_flows.json"),
+            "space_display_name": space_display_name,
         }
 
     @classmethod
@@ -153,14 +154,16 @@ class JeevesSpaceCreationWorkflow(Workflow):
         """
         config: AppSettings = get_settings()
         jeeves_config: JeevesSettings = config.jeeves
+        space_display_name = jeeves.get("spaceDisplayName")
         email = jeeves.get("email", "")
         tenant = jeeves.get("tenant", "")
         space = jeeves.get("space", "")
         first_name = jeeves.get("firstName", "")
         last_name = jeeves.get("lastName", "")
-        space_config: dict[str, str] = JeevesSpaceCreationWorkflow.get_space_config(tenant, space)
+        space_config: dict[str, str] = JeevesSpaceCreationWorkflow.get_space_config(tenant, space, space_display_name)
         space_name = space_config["space_name"]
         product_space_name = f"{ProductName}-{space_name}"
+        space_display_name = space_config["space_display_name"]
 
         try:
             # Postgres Setup
@@ -304,7 +307,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item="application-config",
                     secret_name="space_display_name",
-                    secret_value=space.capitalize(),
+                    secret_value=space_display_name,
                 ),
             )
 
@@ -530,7 +533,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     realm_name=realm_name,
                     client_name=ProductName,
                     space_name=client_name,
-                    space_display_name=space.capitalize(),
+                    space_display_name=space_display_name,
                 ),
             )
 
@@ -540,7 +543,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     realm_name=realm_name,
                     client_name="formauth",
                     space_name=client_name,
-                    space_display_name=space.capitalize(),
+                    space_display_name=space_display_name,
                 ),
             )
 
