@@ -62,11 +62,12 @@ async def get_portal_link(
         db: DBManager = await get_db_manager()
         env_prefix = "https://"
         tenant_links = await db.fetch_all(
-            "get_tenant_link.sql",
+            "get_tenant_link_from_keycloak.sql",
             email=email,
             env_suffix=app_config.tenant_fqdn,
             env_prefix=env_prefix,
             product=product.value.lower(),
+            roles=ProductEnum.get_client_roles(product),
             TenantStatusEnum=TenantStatusEnum,
         )
         urls = [x["tenantlinks"] for x in tenant_links]

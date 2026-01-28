@@ -1,5 +1,10 @@
+import os
+import re
 from enum import Enum
+from functools import lru_cache
 from typing import Any
+
+from loguru import logger
 
 from app.cli.temporal.dexit.dexit import DexitWorkflow
 from app.cli.temporal.dexit.models.dexit_spec import DexitSpec
@@ -22,6 +27,63 @@ from app.cli.temporal.zsegment.zsegment import ZSegmentWorkflow
 from app.core.product_settings.common import SelfSignupSettings, Stripe
 from app.models.add_ons.veritable import VeritableAddOn, VeritableFeature
 from app.models.enums import AddOn, Feature
+
+# Base directory for product templates
+_TEMPLATES_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Pattern for unquoted template variables like: <<varname | safe>> or <<varname | tojson>> - these break JSON
+_UNQUOTED_TEMPLATE_VAR_PATTERN = re.compile(r"<<\w+\s*\|\s*(?:safe|tojson)>>")
+
+
+def _substitute_template_variables(content: str) -> str:
+    """
+    Substitute template variables in keycloak_realm.json to make it valid JSON.
+
+    - Unquoted variables like `<<customerClientRoles | safe>>` or `<<customerClientRoles | tojson>>`
+      are replaced with `[]` (these are raw template expressions that would be replaced with arrays)
+    - Quoted variables like `"<<tenant>>"` are left as-is since they're valid JSON strings
+    """
+    return _UNQUOTED_TEMPLATE_VAR_PATTERN.sub("[]", content)
+
+
+@lru_cache(maxsize=16)
+def _load_client_roles_from_template(product: "ProductEnum") -> list[str]:
+    """
+    Load client roles from the product's keycloak_realm.json template.
+    Used for portal link lookup to filter out default/system roles.
+
+    The template file contains <<placeholder>> syntax. Unquoted ones like
+    `<<customerClientRoles | safe>>` break JSON parsing, so we substitute
+    them with dummy values before parsing.
+    """
+    from app.core.ijson import ijson_loads
+    from app.utils.file_operations import get_opendal_file_client
+
+    product_name = product.value.lower()
+    template_path = os.path.join(
+        _TEMPLATES_BASE_DIR,
+        "cli",
+        "temporal",
+        product_name,
+        "templates",
+        "keycloak_realm.json",
+    )
+
+    if not os.path.exists(template_path):
+        logger.warning(f"Keycloak realm template not found: {template_path}")
+        return []
+
+    content = get_opendal_file_client().read_file_sync_str(template_path)
+
+    # Substitute unquoted template variables to make valid JSON
+    content = _substitute_template_variables(content)
+
+    realm_config = ijson_loads(content)
+    client_roles = realm_config.get("roles", {}).get("client", {})
+
+    # Get roles for the product's client (client name = product name lowercase)
+    product_client_roles = client_roles.get(product_name, [])
+    return [role["name"] for role in product_client_roles if isinstance(role, dict) and "name" in role]
 
 
 class ProductEnum(str, Enum):
@@ -197,6 +259,14 @@ class ProductEnum(str, Enum):
         Get the self signup products
         """
         return [cls.veritable, cls.pricedx]
+
+    @classmethod
+    def get_client_roles(cls: "ProductEnum", enum_value: "ProductEnum") -> list[str]:
+        """
+        Get the valid client roles for a product by reading from keycloak realm template.
+        Used for portal link lookup to filter out default/system roles.
+        """
+        return _load_client_roles_from_template(enum_value)
 
 
 def validate_self_signup_products() -> None:
