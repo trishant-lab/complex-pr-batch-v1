@@ -1,3 +1,4 @@
 [[IgnoredVulns]]
-id = "GHSA-7f5h-v6xp-fcq8"
-reason = "Vulnerability related to starlette"
+id = "GHSA-7gcm-g887-7qv7"
+ignoreUntil = 2026-03-01 # Optional exception expiry date
+reason = "Not resolved yet"
