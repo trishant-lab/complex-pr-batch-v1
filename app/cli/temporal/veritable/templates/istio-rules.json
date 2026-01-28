@@ -20,7 +20,8 @@
             {"uri": {"regex": "^/api/v1/.*"}},
             {"uri": {"prefix": "/docs"}},
             {"uri": {"prefix": "/redoc"}},
-            {"uri": {"regex": "^/patient/.*"}}
+            {"uri": {"regex": "^/patient/.*"}},
+            {"uri": {"regex": "^/public/api/.*"}}
         ]
     },
     {

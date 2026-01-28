@@ -1199,6 +1199,7 @@
           "config": {
             "user.attribute": "foo",
             "access.token.claim": "true",
+            "userinfo.token.claim": "true",
             "claim.name": "resource_access.${client_id}.roles",
             "jsonType.label": "String",
             "multivalued": "true"

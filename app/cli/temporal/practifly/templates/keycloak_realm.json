@@ -81,27 +81,6 @@
         "clientRole": false,
         "containerId": "<<realm_name>>",
         "attributes": {}
-      },
-      {
-        "name": "PF_INTERNAL_ADMIN",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "<<realm_name>>",
-        "attributes": {}
-      },
-      {
-        "name": "PF_CMS_ADMIN",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "<<realm_name>>",
-        "attributes": {}
-      },
-      {
-        "name": "PF_CMS_USER",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "<<realm_name>>",
-        "attributes": {}
       }
     ],
     "client": {
@@ -363,6 +342,29 @@
           "clientRole": true,
           "attributes": {}
         }
+      ],
+      "practifly": [
+        {
+          "name": "PF_CMS_ADMIN",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "PF_CMS_USER",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "PF_INTERNAL_ADMIN",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        }
       ]
     }
   },
@@ -371,20 +373,20 @@
       "name": "pf-customer-admin",
       "path": "/pf-customer-admin",
       "attributes": {},
-      "realmRoles": [
-        "PF_CMS_ADMIN"
-      ],
-      "clientRoles": {},
+      "realmRoles": [],
+      "clientRoles": {
+        "practifly": ["PF_CMS_ADMIN"]
+      },
       "subGroups": []
     },
     {
       "name": "pf-internal-admin",
       "path": "/pf-internal-admin",
       "attributes": {},
-      "realmRoles": [
-        "PF_INTERNAL_ADMIN"
-      ],
-      "clientRoles": {},
+      "realmRoles": [],
+      "clientRoles": {
+        "practifly": ["PF_INTERNAL_ADMIN"]
+      },
       "subGroups": []
     },
     {
@@ -393,7 +395,7 @@
       "attributes": {},
       "realmRoles": [],
       "clientRoles": {
-        "app": [
+        "practifly": [
           "PF_CMS"
         ]
       },
@@ -877,6 +879,70 @@
         "offline_access",
         "microprofile-jwt"
       ]
+    },
+    {
+      "clientId": "practifly",
+      "name": "practifly role application client",
+      "description": "",
+      "rootUrl": "https://<<tenant>>.practifly.<<domain>>",
+      "adminUrl": "https://<<tenant>>.practifly.<<domain>>",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "http://<<tenant>>.api.practifly.<<domain>>/*",
+        "https://<<tenant>>.api.practifly.<<domain>>/*",
+        "http://<<tenant>>.practifly.<<domain>>/*",
+        "https://<<tenant>>.practifly.<<domain>>/*"
+      ],
+      "webOrigins": [
+        "https://<<tenant>>.api.practifly.<<domain>>",
+        "http://<<tenant>>.api.practifly.<<domain>>",
+        "https://<<tenant>>.practifly.<<domain>>",
+        "http://<<tenant>>.practifly.<<domain>>"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "10800",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "use.refresh.tokens": "true",
+        "oidc.ciba.grant.enabled": "false",
+        "backchannel.logout.session.required": "true",
+        "client_credentials.use_refresh_token": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "require.pushed.authorization.requests": "false",
+        "acr.loa.map": "{}",
+        "display.on.consent.screen": "false",
+        "token.response.type.bearer.lower-case": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
     }
   ],
   "clientScopes": [
@@ -1191,6 +1257,7 @@
           "consentRequired": false,
           "config": {
             "user.attribute": "foo",
+            "userinfo.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "resource_access.${client_id}.roles",
             "jsonType.label": "String",
