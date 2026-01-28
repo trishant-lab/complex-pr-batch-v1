@@ -3,12 +3,16 @@ This module sets up Jinja2 SQL library and provides helper functions to execute
 the SQL template and returns the data
 """
 
+from typing import Any
 import uuid
+from collections.abc import AsyncGenerator, Iterable
+from contextlib import asynccontextmanager
 from os import path
 
 import asyncpg
 import jinja2
 from asyncpg import Connection, Record
+from loguru import logger
 from pydantic import PostgresDsn
 from pydantic_core import MultiHostUrl
 
@@ -74,11 +78,10 @@ class DBManager:
         :return:
         """
         schema_name: str = db_schema_name or self.schema_name
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
-                await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
-                await conn.execute(query)
+        async with start_transaction(self) as conn:
+            await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
+            await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
+            await conn.execute(query)
 
     async def fetch_all(
         self: "DBManager",
@@ -102,11 +105,10 @@ class DBManager:
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
         mapping = {key: f"${i!s}" for i, key in enumerate(values.keys(), start=1)}
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
-                await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
-                return await conn.fetch(query % mapping, *values.values())
+        async with start_transaction(self) as conn:
+            await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
+            await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
+            return await conn.fetch(query % mapping, *values.values())
 
     async def fetch_one(
         self: "DBManager",
@@ -129,11 +131,10 @@ class DBManager:
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
         mapping = {key: f"${i!s}" for i, key in enumerate(values.keys(), start=1)}
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
-                await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
-                return await conn.fetchrow(query % mapping, *values.values())
+        async with start_transaction(self) as conn:
+            await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
+            await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
+            return await conn.fetchrow(query % mapping, *values.values())
 
     async def execute(
         self: "DBManager",
@@ -157,11 +158,10 @@ class DBManager:
         assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
         query, values = self.jsql._prepare_query(template, data=kwargs)
         mapping = {key: f"${i!s}" for i, key in enumerate(values.keys(), start=1)}
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
-                await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
-                await conn.execute(query % mapping, *values.values())
+        async with start_transaction(self) as conn:
+            await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
+            await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
+            await conn.execute(query % mapping, *values.values())
 
     def _prepare_execute_many_queries(self: "DBManager", queries: list[tuple[str, dict]]) -> list:
         """
@@ -188,12 +188,11 @@ class DBManager:
         schema_name: str = db_schema_name or self.schema_name
         _queries = self._prepare_execute_many_queries(queries)
 
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
-                await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
-                for sqlfile, query, mapping, values in _queries:
-                    await conn.execute(query % mapping, *values.values())
+        async with start_transaction(self) as conn:
+            await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
+            await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
+            for sqlfile, query, mapping, values in _queries:
+                await conn.execute(query % mapping, *values.values())
 
     async def fetch_many(
         self: "DBManager",
@@ -207,23 +206,33 @@ class DBManager:
         schema_name: str = db_schema_name or self.schema_name
         _queries = self._prepare_execute_many_queries(queries)
         results = []
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
-                await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
-                for sqlfile, query, mapping, values in _queries:
-                    results.append(await conn.fetch(query % mapping, *values.values()))
+        async with start_transaction(self) as conn:
+            await conn.execute(f'SET SEARCH_PATH TO "{schema_name}", public;')
+            await set_trigger_parameters(conn=conn, trigger_parameters=trigger_parameters)
+            for sqlfile, query, mapping, values in _queries:
+                results.append(await conn.fetch(query % mapping, *values.values()))
         return results
+
+    def get_query(
+        self: "DBManager",
+        sqlfile: str,
+        **kwargs: int | str | Iterable | uuid.UUID | dict | None,
+    ) -> tuple[Any, Any]:
+        """
+        Returns query
+        """
+        template: jinja2.Template = self.jsql.env.get_template(sqlfile)
+        assert template, CANNOT_FIND_TEMPLATE_ERROR_MSG
+        query, values = self.jsql._prepare_query(template, data=kwargs)
+        mapping = {key: f"${i!s}" for i, key in enumerate(values.keys(), start=1)}
+        return query % mapping, values
 
     async def create_database(self: "DBManager", db_name: str) -> None:
         """
         Creates a new database. This method should be called outside of any transaction.
         """
         async with self.pool.acquire() as conn:
-            # Disable autocommit to run CREATE DATABASE
-            # await conn.execute('SET autocommit = on;')
             await conn.execute(f'CREATE DATABASE "{db_name}";')
-            # await conn.execute('SET autocommit = off;')
 
 
 class _Connection(Connection):
@@ -274,3 +283,28 @@ async def database() -> DBManager:
     Dependency to get Database manager
     """
     return await get_db_manager()
+
+
+@asynccontextmanager
+async def start_transaction(db: DBManager) -> AsyncGenerator[Connection]:
+    """
+    creates database transaction
+    """
+    try:
+        async with db.pool.acquire() as conn:
+            async with conn.transaction():  # raises ConnectionDoesNotExistError
+                yield conn
+
+    except asyncpg.exceptions.ConnectionDoesNotExistError:
+        logger.warning("Database connection failed. Expiring connections...")
+        logger.warning("Pool generation count: %s", db.pool._generation)
+        await db.pool.expire_connections()
+        logger.warning("Pool generation count: %s", db.pool._generation)
+
+        async with db.pool.acquire() as conn:
+            async with conn.transaction():
+                yield conn
+
+    except asyncpg.exceptions.PostgresError as e:
+        logger.warning(e)
+        raise
