@@ -98,6 +98,8 @@ if TYPE_CHECKING:
     from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 
 ProductName = "veritable"
+APP_CONFIG_DIR = "/config"
+METRICS_PATH = "/metrics/"
 
 
 @workflow.defn(sandboxed=False)
@@ -635,7 +637,7 @@ class VeritableDeploymentWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
+                        {"name": "APP_CONFIG_DIR", "value": APP_CONFIG_DIR},
                         {
                             "name": "POSTGRES__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
@@ -745,7 +747,7 @@ class VeritableDeploymentWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "APP_CONFIG_DIR", "value": "/config"},
+                        {"name": "APP_CONFIG_DIR", "value": APP_CONFIG_DIR},
                         {
                             "name": "POSTGRES__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
@@ -784,7 +786,7 @@ class VeritableDeploymentWorkflow(Workflow):
             # Common env vars for worker deployments (same as veritable-cli)
             worker_base_envs = [
                 {"name": "DEPLOYMENT", "value": config.env},
-                {"name": "APP_CONFIG_DIR", "value": "/config"},
+                {"name": "APP_CONFIG_DIR", "value": APP_CONFIG_DIR},
                 {
                     "name": "POSTGRES__PASSWORD",
                     "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
@@ -936,7 +938,7 @@ class VeritableDeploymentWorkflow(Workflow):
                     namespace=tenant,
                     name="veritable-metrics",
                     app="veritable",
-                    path="/metrics/",
+                    path=METRICS_PATH,
                     interval="5s",
                 ),
             )
@@ -948,7 +950,7 @@ class VeritableDeploymentWorkflow(Workflow):
                     namespace=tenant,
                     name="veritable-cli-metrics",
                     app="veritable-cli",
-                    path="/metrics/",
+                    path=METRICS_PATH,
                     interval="5s",
                 ),
             )
@@ -960,7 +962,7 @@ class VeritableDeploymentWorkflow(Workflow):
                     namespace=tenant,
                     name="veritable-worker-metrics",
                     app="veritable-worker",
-                    path="/metrics/",
+                    path=METRICS_PATH,
                     interval="5s",
                 ),
             )
