@@ -141,7 +141,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             )
 
             # delete stateful sets
-            for name in ["veritable", "veritable-cli"]:
+            for name in ["veritable", "veritable-cli", "veritable-worker", "veritable-worker-critical"]:
                 await run_activity(
                     activity=StatefulSetPodDeletionActivity,
                     arg=StatefulSetPodDeletionActivityModel(
@@ -235,7 +235,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             )
 
             # delete vm pod scrappers
-            for scrapper in ["veritable-metrics", "veritable-cli-metrics"]:
+            for scrapper in ["veritable-metrics", "veritable-cli-metrics", "veritable-worker-metrics"]:
                 await run_activity(
                     activity=VMPodScrapperDeletionActivity,
                     arg=VMPodScrapperDeletionActivityModel(

@@ -19,6 +19,8 @@ from app.cli.temporal.activities.veritable_db_migration_job import (
     VeritableDatabaseMigrationJobActivity,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
+    KedaApplyTemplatedYamlActivity,
+    KedaApplyTemplatedYamlActivityModel,
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
 )
@@ -38,6 +40,7 @@ from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, K
 from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
+    template_render,
 )
 from app.cli.temporal.activities.one_password import (
     OnePasswordGetActivity,
@@ -138,6 +141,7 @@ class VeritableDeploymentWorkflow(Workflow):
             StatefulSetPodDeletionActivity.defn,
             OnePasswordGetActivity.defn,
             K8sSecretFetchActivity.defn,
+            KedaApplyTemplatedYamlActivity.defn,
         ]
 
     @classmethod
@@ -777,6 +781,146 @@ class VeritableDeploymentWorkflow(Workflow):
                 ),
             )
 
+            # Common env vars for worker deployments (same as veritable-cli)
+            worker_base_envs = [
+                {"name": "DEPLOYMENT", "value": config.env},
+                {"name": "APP_CONFIG_DIR", "value": "/config"},
+                {
+                    "name": "POSTGRES__PASSWORD",
+                    "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
+                },
+                {"name": "POSTGRES__USER", "value": postgres_username},
+                {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
+                {
+                    "name": "REDIS__PASSWORD",
+                    "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
+                },
+                {"name": "RELEASE_VERSION", "value": image_tag},
+                {"name": "IS_CLI", "value": "TRUE"},
+                {"name": "ORG_NAME", "value": pydash.get(veritable, "organization")},
+                {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
+                {
+                    "name": "NOVU__API_KEY",
+                    "value_from": {"secret_key_ref": {"name": novu_secret_name, "key": "api-key"}},
+                },
+                {
+                    "name": "TENANT_S3__ACCESS_KEY",
+                    "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "access-key"}},
+                },
+                {
+                    "name": "TENANT_S3__SECRET_KEY",
+                    "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
+                },
+            ] + (
+                [{"name": "SELECTED_APPS", "value": ijson_dumps(pydash.get(veritable, "selectedApps"))}]
+                if pydash.get(veritable, "selectedApps")
+                else []
+            )
+
+            worker_volume_mounts = [
+                {
+                    "name": "custom-volume",
+                    "mount_path": f"/{config_dir}/{custom_config}",
+                    "sub_path": custom_config,
+                },
+                {
+                    "name": "env-volume",
+                    "mount_path": f"/{config_dir}/{env_config}",
+                    "sub_path": env_config,
+                },
+                {
+                    "name": "tenant-volume",
+                    "mount_path": f"/{config_dir}/{tenant_config}",
+                    "sub_path": tenant_config,
+                },
+                {
+                    "name": "provisioning-volume",
+                    "mount_path": f"/{config_dir}/{provisioning_config}",
+                    "sub_path": provisioning_config,
+                },
+            ]
+
+            worker_volumes = [
+                {
+                    "name": "tenant-volume",
+                    "config_map_name": "veritable-tenant-config",
+                    "key": tenant_config,
+                    "path": tenant_config,
+                },
+                {
+                    "name": "custom-volume",
+                    "config_map_name": "veritable-custom-config",
+                    "key": custom_config,
+                    "path": custom_config,
+                },
+                {
+                    "name": "env-volume",
+                    "config_map_name": "veritable-env-config",
+                    "key": env_config,
+                    "path": env_config,
+                },
+                {
+                    "name": "provisioning-volume",
+                    "config_map_name": "veritable-provisioning-config",
+                    "key": provisioning_config,
+                    "path": provisioning_config,
+                },
+            ]
+
+            # Deployment pod creation for veritable-worker (HIGH/MEDIUM/LOW queues)
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
+                    namespace=tenant,
+                    name="veritable-worker",
+                    docker_image=docker_image,
+                    replicas=1,
+                    request_resource={
+                        "cpu": pydash.get(veritable, "workerSpec.request_cpu"),
+                        "memory": pydash.get(veritable, "workerSpec.request_memory"),
+                    },
+                    limit_resource={
+                        "cpu": pydash.get(veritable, "workerSpec.limit_cpu"),
+                        "memory": pydash.get(veritable, "workerSpec.limit_memory"),
+                    },
+                    container_ports={"http": 8000},
+                    volume_mounts=worker_volume_mounts,
+                    volumes=worker_volumes,
+                    container_envs=[
+                        *worker_base_envs,
+                        {"name": "WORKER_MODE", "value": "priority"},
+                        {"name": "WORKER_QUEUES", "value": "HIGH,MEDIUM,LOW"},
+                    ],
+                ),
+            )
+
+            # Deployment pod creation for veritable-worker-critical (CRITICAL queue)
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
+                    namespace=tenant,
+                    name="veritable-worker-critical",
+                    docker_image=docker_image,
+                    replicas=1,
+                    request_resource={
+                        "cpu": pydash.get(veritable, "workerSpec.request_cpu"),
+                        "memory": pydash.get(veritable, "workerSpec.request_memory"),
+                    },
+                    limit_resource={
+                        "cpu": pydash.get(veritable, "workerSpec.limit_cpu"),
+                        "memory": pydash.get(veritable, "workerSpec.limit_memory"),
+                    },
+                    container_ports={"http": 8000},
+                    volume_mounts=worker_volume_mounts,
+                    volumes=worker_volumes,
+                    container_envs=[
+                        *worker_base_envs,
+                        {"name": "WORKER_MODE", "value": "priority"},
+                        {"name": "WORKER_QUEUES", "value": "CRITICAL"},
+                    ],
+                ),
+            )
+
             # temporal namespace creation
             await run_activity(
                 activity=TemporalNamespaceActivity,
@@ -809,8 +953,52 @@ class VeritableDeploymentWorkflow(Workflow):
                 ),
             )
 
+            # vm pod scraper for veritable-worker (covers both worker and worker-critical via shared app label)
+            await run_activity(
+                activity=VMPodScrapperActivity,
+                arg=VMPodScrapperActivityModel(
+                    namespace=tenant,
+                    name="veritable-worker-metrics",
+                    app="veritable-worker",
+                    path="/metrics/",
+                    interval="5s",
+                ),
+            )
+
+            # KEDA ScaledObject for veritable-worker
+            yaml_content = template_render(
+                template_path=TemplatePath,
+                template_name="keda-prometheus-scaledobject-worker.tmpl.yaml",
+                template_payload={
+                    "tenant": tenant,
+                },
+            )
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    yaml_content=yaml_content,
+                ),
+            )
+
+            # KEDA ScaledObject for veritable-worker-critical
+            yaml_content = template_render(
+                template_path=TemplatePath,
+                template_name="keda-prometheus-scaledobject-worker-critical.tmpl.yaml",
+                template_payload={
+                    "tenant": tenant,
+                },
+            )
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    yaml_content=yaml_content,
+                ),
+            )
+
             # check pod running status
-            for pod in ["veritable", "veritable-cli"]:
+            for pod in ["veritable", "veritable-cli", "veritable-worker", "veritable-worker-critical"]:
                 await run_activity(
                     activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(
