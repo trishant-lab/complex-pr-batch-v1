@@ -28,11 +28,27 @@ spec:
     kind: Deployment
     name: veritable-worker
   triggers:
-  - metadata:
-      activationThreshold: "20"
-      metricName: approximate_backlog_count
-      query: sum(approximate_backlog_count{exported_namespace="veritable_<<tenant>>", taskqueue=~"HIGH|MEDIUM|LOW"})
-      serverAddress: http://vmselect-vmcluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus
-      threshold: "25"
-    metricType: Value
-    type: prometheus
+  - type: temporal
+    metadata:
+      endpoint: temporal-frontend.temporal.svc.cluster.local:7233
+      namespace: veritable_<<tenant>>
+      taskQueue: HIGH
+      targetQueueSize: "20"
+      activationTargetQueueSize: "10"
+      queueTypes: workflow,activity
+  - type: temporal
+    metadata:
+      endpoint: temporal-frontend.temporal.svc.cluster.local:7233
+      namespace: veritable_<<tenant>>
+      taskQueue: MEDIUM
+      targetQueueSize: "20"
+      activationTargetQueueSize: "10"
+      queueTypes: workflow,activity
+  - type: temporal
+    metadata:
+      endpoint: temporal-frontend.temporal.svc.cluster.local:7233
+      namespace: veritable_<<tenant>>
+      taskQueue: LOW
+      targetQueueSize: "20"
+      activationTargetQueueSize: "10"
+      queueTypes: workflow,activity

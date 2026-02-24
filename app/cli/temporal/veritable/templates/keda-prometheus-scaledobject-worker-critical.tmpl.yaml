@@ -15,7 +15,7 @@ spec:
           stabilizationWindowSeconds: 300
         scaleUp:
           policies:
-          - periodSeconds: 15
+          - periodSeconds: 30
             type: Pods
             value: 2
           stabilizationWindowSeconds: 0
@@ -28,11 +28,11 @@ spec:
     kind: Deployment
     name: veritable-worker-critical
   triggers:
-  - metadata:
-      activationThreshold: "10"
-      metricName: approximate_backlog_count
-      query: sum(approximate_backlog_count{exported_namespace="veritable_<<tenant>>", taskqueue="CRITICAL"})
-      serverAddress: http://vmselect-vmcluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus
-      threshold: "10"
-    metricType: Value
-    type: prometheus
+  - type: temporal
+    metadata:
+      endpoint: temporal-frontend.temporal.svc.cluster.local:7233
+      namespace: veritable_<<tenant>>
+      taskQueue: CRITICAL
+      targetQueueSize: "10"
+      activationTargetQueueSize: "10"
+      queueTypes: workflow,activity
