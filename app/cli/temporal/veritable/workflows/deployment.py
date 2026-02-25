@@ -955,15 +955,16 @@ class VeritableDeploymentWorkflow(Workflow):
                 ),
             )
 
-            # vm pod scraper for veritable-worker (covers both worker and worker-critical via shared app label)
+            # vm pod scraper for veritable-worker (covers both worker and worker-critical)
             await run_activity(
                 activity=VMPodScrapperActivity,
                 arg=VMPodScrapperActivityModel(
                     namespace=tenant,
                     name="veritable-worker-metrics",
                     app="veritable-worker",
-                    path=METRICS_PATH,
+                    path="/metrics",
                     interval="5s",
+                    app_match_values=["veritable-worker", "veritable-worker-critical"],
                 ),
             )
 
