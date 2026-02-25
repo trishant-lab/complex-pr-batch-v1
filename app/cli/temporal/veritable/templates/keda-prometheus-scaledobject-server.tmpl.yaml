@@ -34,7 +34,7 @@ spec:
       activationThreshold: "10"
       metricName: starlette_requests_in_progress_per_replica_avg
       query: avg_over_time(sum(starlette_requests_in_progress{path_template!="/metrics/", namespace="<<tenant>>", job="<<tenant>>/veritable-metrics"})[2m]) / (sum(kube_deployment_status_replicas{deployment="veritable", exported_namespace="<<tenant>>"}) or 1)
-      serverAddress: http://vmselect-vm-cluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus
+      serverAddress: http://vmselect-vmcluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus
       threshold: "15"
     metricType: Value
     type: prometheus
