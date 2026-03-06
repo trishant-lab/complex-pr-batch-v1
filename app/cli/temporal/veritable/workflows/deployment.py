@@ -14,6 +14,7 @@ from app.cli.temporal.activities.cloudflare_setup import (
     CreateCloudflareDNSRecordActivity,
     LinkBucketToDomainActivity,
     PropagateDNSRecordActivity,
+    UpdateCORSForBucketActivity,
 )
 from app.cli.temporal.activities.veritable_db_migration_job import (
     VeritableDatabaseMigrationJobActivity,
@@ -82,6 +83,7 @@ from app.cli.temporal.models.cloudflare import (
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivityModel,
 )
 from app.cli.temporal.veritable import TemplatePath
 from app.cli.temporal.veritable.models.veritable_spec import VeritableSpec
@@ -285,6 +287,29 @@ class VeritableDeploymentWorkflow(Workflow):
                 await run_activity(
                     activity=CreateCloudflareBucketActivity,
                     arg=CreateCloudflareBucketActivityModel(bucket_name=data_bucket),
+                )
+
+                # update cors for data bucket
+                await run_activity(
+                    activity=UpdateCORSForBucketActivity,
+                    arg=UpdateCORSForBucketActivityModel(
+                        bucket_name=data_bucket,
+                        rules=[
+                            {
+                                "allowed": {
+                                    "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                    "origins": ["*"],
+                                    "headers": [
+                                        "Authorization",
+                                        "content-type",
+                                        "x-amz-*",
+                                        "traceparent",
+                                    ],
+                                },
+                                "exposeHeaders": ["ETag", "Location"],
+                            }
+                        ],
+                    ),
                 )
 
                 credentials: CloudflareBucketCredentials = await run_activity(
