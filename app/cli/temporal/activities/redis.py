@@ -1,259 +1,94 @@
 import base64
-import datetime
 from datetime import timedelta
 
-from kubernetes.client import (
-    V1ConfigMap,
-    V1ConfigMapList,
-    V1ConfigMapVolumeSource,
-    V1Container,
-    V1ContainerPort,
-    V1EnvVar,
-    V1EnvVarSource,
-    V1KeyToPath,
-    V1LocalObjectReference,
-    V1ObjectMeta,
-    V1Pod,
-    V1PodList,
-    V1PodSpec,
-    V1PodStatus,
-    V1PodTemplateSpec,
-    V1SecretKeySelector,
-    V1Service,
-    V1ServicePort,
-    V1ServiceSpec,
-    V1StatefulSet,
-    V1StatefulSetSpec,
-    V1Volume,
-    V1VolumeMount,
-)
-from kubernetes.dynamic.exceptions import ConflictError
+import redis as redis_client
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.cli.k8s_resource_base_class import K8sResourceBaseClass
-from app.cli.k8s_util import (
-    ResourceKindEnum,
-    api_client,
-    get_dynamic_client,
-    get_k8s_core_v1_api_client,
-    get_resource,
-)
+from app.cli.k8s_util import get_k8s_core_v1_api_client
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
-from app.cli.temporal.core.log import log_error, log_info
+from app.cli.temporal.core.log import log_info
 
-CACHE_HOST = "cache.{tenant}.svc.cluster.local"
+CACHE_HOST = "cache.cache.svc.cluster.local"
 CACHE_PORT = 6379
-CACHE_SERVICE_NAME = "cache"
+CACHE_NAMESPACE = "cache"
 CACHE_SECRET_NAME = "cache-secret"
-CONFIGMAP_NAME = "cache-conf"
-CONFIGMAP_KEY = "cache.conf"
-CONFIG_VOLUME_NAME = "cache-config-volume"
-CONFIG_VOLUME_MOUNT_PATH = "/config/cache.conf"
-
-K8S_RESOURCE_VERSION = "apps/v1"
 
 
-def get_secret(namespace: str, secret_name: str, secret_key: str) -> str:
+def get_kvrocks_namespace_name(product: str, tenant: str) -> str:
     """
-    Get secret
+    Build a unique KVRocks namespace name from product and tenant to avoid collisions.
+    """
+    return f"{product}_{tenant}"
+
+
+def get_cache_master_password() -> str:
+    """
+    Read the master password from cache-secret in the cache namespace.
     """
     k8s_client = get_k8s_core_v1_api_client()
     secret = k8s_client.read_namespaced_secret(
-        name=secret_name,
-        namespace=namespace,
+        name=CACHE_SECRET_NAME,
+        namespace=CACHE_NAMESPACE,
     )
-    return base64.b64decode(secret.data[secret_key]).decode()
+    return base64.b64decode(secret.data["REDIS_PASSWORD"]).decode()
 
 
-async def restart_cache_statefulset(namespace: str) -> None:
+def get_redis_connection() -> redis_client.Redis:
     """
-    Restart statefulset
+    Get a Redis connection to the shared KVRocks instance in the cache namespace.
     """
-    _now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat() + "Z"
-    body = {"spec": {"template": {"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": _now}}}}}
-    api_client.AppsV1Api().patch_namespaced_stateful_set(
-        name=CACHE_SERVICE_NAME,
-        namespace=namespace,
-        body=body,
+    return redis_client.Redis(
+        host=CACHE_HOST,
+        port=CACHE_PORT,
+        password=get_cache_master_password(),
+        decode_responses=True,
     )
 
 
-class CacheConfigMap:
+def add_redis_namespace(namespace: str, product: str, token: str) -> None:
     """
-    Cache ConfigMap
+    Add a KVRocks namespace using the NAMESPACE ADD command.
+    If the namespace already exists, overwrites the token via NAMESPACE SET.
+    Pipelines CONFIG REWRITE to persist the change to kvrocks.conf on disk.
     """
-
-    def __init__(self: "CacheConfigMap", tenant: str) -> None:
-        """
-        Constructor
-        """
-        self.core_v1_api = get_k8s_core_v1_api_client()
-        self.namespace = tenant
-        self.name = CONFIGMAP_NAME
-
-    def get_configmap(self: "CacheConfigMap") -> dict | None:
-        """
-        Get and parse configmap data
-        Returns dict of key-value pairs from configmap data or None if not found
-        """
-        configmaps: V1ConfigMapList = self.core_v1_api.list_namespaced_config_map(
-            namespace=self.namespace, field_selector=f"metadata.name={self.name}"
-        )
-
-        if not configmaps.items:
-            return None
-
-        raw_data = configmaps.items[0].data
-        parsed_data = {}
-        for value in raw_data.values():
-            for line in value.split("\n"):
-                if line:  # Skip empty lines
-                    key, value = line.split(" ", 1)  # Split on first space only
-                    parsed_data[key] = value
-
-        return parsed_data
-
-    def create_or_update_configmap(self: "CacheConfigMap", product: str, redis_tenant_password: str) -> None:
-        """
-        Create or update configmap
-        """
-        data = self.get_configmap()
-
-        if data:
-            data[f"namespace.{product}"] = redis_tenant_password
-            self.core_v1_api.replace_namespaced_config_map(
-                namespace=self.namespace,
-                name=self.name,
-                body=V1ConfigMap(
-                    api_version="v1",
-                    kind=ResourceKindEnum.ConfigMap.value,
-                    metadata=V1ObjectMeta(namespace=self.namespace, name=self.name),
-                    data={CONFIGMAP_KEY: "\n".join(f"{k} {v}" for k, v in data.items())},
-                ),
-            )
-        else:
-            data = {
-                "port": CACHE_PORT,
-                "bind": "0.0.0.0",  # noqa: S104
-                f"namespace.{product}": redis_tenant_password,
-            }  # nosec
-            self.core_v1_api.create_namespaced_config_map(
-                namespace=self.namespace,
-                body=V1ConfigMap(
-                    api_version="v1",
-                    kind=ResourceKindEnum.ConfigMap.value,
-                    metadata=V1ObjectMeta(namespace=self.namespace, name=self.name),
-                    data={CONFIGMAP_KEY: "\n".join(f"{k} {v}" for k, v in data.items())},
-                ),
-            )
-        log_info(f"ConfigMap {self.name} created successfully")
-
-    def delete_namespace_from_configmap(self: "CacheConfigMap", product: str) -> None:
-        """
-        Delete configmap
-        """
-        data = self.get_configmap()
-        if data and f"namespace.{product}" in data:
-            data.pop(f"namespace.{product}")
-            self.core_v1_api.replace_namespaced_config_map(
-                namespace=self.namespace,
-                name=self.name,
-                body=V1ConfigMap(
-                    api_version="v1",
-                    kind=ResourceKindEnum.ConfigMap.value,
-                    metadata=V1ObjectMeta(namespace=self.namespace, name=self.name),
-                    data={CONFIGMAP_KEY: "\n".join(f"{k} {v}" for k, v in data.items())},
-                ),
-            )
-        log_info(f"Namespace {product} deleted successfully from configmap {self.name}")
-
-
-class RedisService(K8sResourceBaseClass):
-    """
-    Namespace class
-    """
-
-    def __init__(self: "RedisService", tenant: str) -> None:
-        """
-        Constructor
-        """
-        self.k8s_dynamic_client = get_dynamic_client()
-        self.resource = get_resource(
-            dynamic_client=self.k8s_dynamic_client, kind=ResourceKindEnum.Service, api_version="v1"
-        )
-        self.tenant = tenant
-
-    def payload(self: "RedisService") -> None:
-        """
-        k8s resource payload
-        """
-        body = V1Service(
-            api_version="v1",
-            kind=ResourceKindEnum.Service.value,
-            metadata=V1ObjectMeta(
-                name=CACHE_SERVICE_NAME,
-                namespace=self.tenant,
-                labels={"app": CACHE_SERVICE_NAME, "kind": "redis"},
-            ),
-            spec=V1ServiceSpec(
-                selector={"app": CACHE_SERVICE_NAME, "kind": "redis"},
-                type="ClusterIP",
-                ports=[
-                    V1ServicePort(
-                        name="redis",
-                        port=6379,
-                        target_port=6379,
-                    )
-                ],
-            ),
-        )
-
-        return self.k8s_dynamic_client.client.sanitize_for_serialization(body)
-
-    def put(self: "RedisService") -> None:
-        """
-        k8s server side apply
-        """
+    ns_name = get_kvrocks_namespace_name(product, namespace)
+    with get_redis_connection() as r:
         try:
-            self.k8s_dynamic_client.server_side_apply(
-                resource=self.resource,
-                body=self.payload(),
-                field_manager="kubectl-client-side-apply",
-            )
-            log_info(f"Service {CACHE_SERVICE_NAME}-service created successfully")
-        except ConflictError as e:
-            log_error(
-                f"Service {CACHE_SERVICE_NAME} already exists in namespace"
-                f" {self.tenant} and cannot be updated due to conflict"
-                f" {e}"
-            )
-
-    def delete(self: "RedisService") -> None:
-        """
-        Don't delete Service
-        """
-        # Don't delete Service
-        pass
+            pipe = r.pipeline()
+            pipe.execute_command("NAMESPACE", "ADD", ns_name, token)
+            pipe.execute_command("CONFIG", "REWRITE")
+            pipe.execute()
+            log_info(f"Namespace {ns_name} added and persisted to disk")
+        except redis_client.ResponseError as e:
+            if "namespace" in str(e) and "already exists" in str(e):
+                pipe = r.pipeline()
+                pipe.execute_command("NAMESPACE", "SET", ns_name, token)
+                pipe.execute_command("CONFIG", "REWRITE")
+                pipe.execute()
+                log_info(f"Namespace {ns_name} already existed, token updated and persisted to disk")
+            else:
+                raise
 
 
-def check_if_redis_is_running(namespace: str) -> bool:
+def delete_redis_namespace(namespace: str, product: str) -> None:
     """
-    Check if Redis is running
+    Delete a KVRocks namespace using the NAMESPACE DEL command.
+    Pipelines CONFIG REWRITE to persist the change to kvrocks.conf on disk.
     """
-    core_v1_api_client = get_k8s_core_v1_api_client()
-    pods: V1PodList = core_v1_api_client.list_namespaced_pod(
-        namespace=namespace,
-        label_selector=f"app={CACHE_SERVICE_NAME}",
-    )
-    if pods.items:
-        pod: V1Pod = pods.items[0]
-        v1_pod_status: V1PodStatus = pod.status
-        if v1_pod_status.phase == "Running":
-            return True
-        elif v1_pod_status.phase == "Failed":
-            return False
-    return False
+    ns_name = get_kvrocks_namespace_name(product, namespace)
+    with get_redis_connection() as r:
+        try:
+            pipe = r.pipeline()
+            pipe.execute_command("NAMESPACE", "DEL", ns_name)
+            pipe.execute_command("CONFIG", "REWRITE")
+            pipe.execute()
+            log_info(f"Namespace {ns_name} deleted and persisted to disk")
+        except redis_client.ResponseError as e:
+            if "namespace" in str(e) and "not found" in str(e):
+                log_info(f"Namespace {ns_name} not found, nothing to delete")
+            else:
+                raise
 
 
 class RedisSetupActivityModel(LaunchpadCLIBaseModel):
@@ -293,90 +128,13 @@ class RedisSetupActivity(Activity):
     @activity.defn(name="RedisSetupActivity")
     async def defn(activity_model: RedisSetupActivityModel) -> None:
         """
-        Create redis setup
+        Add a namespace to the shared KVRocks instance via NAMESPACE command.
         """
-        k8s_dynamic_client = get_dynamic_client()
-        redis_resource = get_resource(
-            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version=K8S_RESOURCE_VERSION
-        )
-
-        CacheConfigMap(activity_model.namespace).create_or_update_configmap(
+        add_redis_namespace(
+            namespace=activity_model.namespace,
             product=activity_model.product,
-            redis_tenant_password=activity_model.redis_tenant_password,
+            token=activity_model.redis_tenant_password,
         )
-
-        if not check_if_redis_is_running(activity_model.namespace):
-            body = V1StatefulSet(
-                api_version=K8S_RESOURCE_VERSION,
-                kind=ResourceKindEnum.StatefulSet.value,
-                metadata=V1ObjectMeta(namespace=activity_model.namespace, name=CACHE_SERVICE_NAME),
-                spec=V1StatefulSetSpec(
-                    replicas=1,
-                    selector={"matchLabels": {"app": CACHE_SERVICE_NAME, "kind": "redis"}},
-                    service_name=f"{CACHE_SERVICE_NAME}-service",
-                    template=V1PodTemplateSpec(
-                        metadata=V1ObjectMeta(labels={"app": CACHE_SERVICE_NAME, "kind": "redis"}),
-                        spec=V1PodSpec(
-                            image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-                            node_selector={"app": "314e"},
-                            containers=[
-                                V1Container(
-                                    name=CACHE_SERVICE_NAME,
-                                    image="apache/kvrocks:2.12.1",
-                                    args=["--requirepass", "$(REDIS_PASSWORD)", "--config", CONFIG_VOLUME_MOUNT_PATH],
-                                    ports=[V1ContainerPort(container_port=CACHE_PORT, protocol="TCP")],
-                                    image_pull_policy="Always",
-                                    env=[
-                                        V1EnvVar(
-                                            name="REDIS_PASSWORD",
-                                            value_from=V1EnvVarSource(
-                                                secret_key_ref=V1SecretKeySelector(
-                                                    key="REDIS_PASSWORD", name=CACHE_SECRET_NAME
-                                                )
-                                            ),
-                                        )
-                                    ],
-                                    volume_mounts=[
-                                        V1VolumeMount(
-                                            name=CONFIG_VOLUME_NAME,
-                                            mount_path=CONFIG_VOLUME_MOUNT_PATH,
-                                            sub_path=CONFIGMAP_KEY,
-                                        )
-                                    ],
-                                )
-                            ],
-                            volumes=[
-                                V1Volume(
-                                    name=CONFIG_VOLUME_NAME,
-                                    config_map=V1ConfigMapVolumeSource(
-                                        name=CONFIGMAP_NAME,
-                                        items=[V1KeyToPath(key=CONFIGMAP_KEY, path=CONFIGMAP_KEY)],
-                                    ),
-                                )
-                            ],
-                        ),
-                    ),
-                ),
-            )
-
-            payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-            try:
-                k8s_dynamic_client.server_side_apply(
-                    resource=redis_resource,
-                    body=payload,
-                    field_manager="kubectl-client-side-apply",
-                    force_conflicts=True,
-                )
-            except ConflictError as e:
-                log_error(
-                    f"StatefulSet {CACHE_SERVICE_NAME} already exists in namespace"
-                    f" {activity_model.namespace} and cannot be updated due to conflict"
-                    f" {e}"
-                )
-
-        await restart_cache_statefulset(activity_model.namespace)
-        RedisService(activity_model.namespace).put()
-        log_info(f"Redis {CACHE_SERVICE_NAME} created successfully")
 
 
 class RedisSetupFromSecretActivityModel(LaunchpadCLIBaseModel):
@@ -392,21 +150,17 @@ class RedisSetupFromSecretActivityModel(LaunchpadCLIBaseModel):
 
 class RedisSetupFromSecretActivity(Activity):
     """
-    RedisSetupFromSecretActivity
+    RedisSetupFromSecretActivity — reads the namespace token from a tenant K8s secret.
     """
 
     @staticmethod
     def get_timeout() -> timedelta:
-        """
-        Get timeout
-        """
+        """Get timeout."""
         return timedelta(seconds=300)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
-        """
-        Get retry policy
-        """
+        """Get retry policy."""
         return RetryPolicy(
             initial_interval=timedelta(seconds=10),
             backoff_coefficient=3,
@@ -417,92 +171,19 @@ class RedisSetupFromSecretActivity(Activity):
     @activity.defn(name="RedisSetupFromSecretActivity")
     async def defn(activity_model: RedisSetupFromSecretActivityModel) -> None:
         """
-        Create redis setup
+        Read namespace token from tenant secret and add namespace to the shared KVRocks instance.
         """
-        k8s_dynamic_client = get_dynamic_client()
-        redis_resource = get_resource(
-            dynamic_client=k8s_dynamic_client, kind=ResourceKindEnum.StatefulSet, api_version=K8S_RESOURCE_VERSION
+        k8s_client = get_k8s_core_v1_api_client()
+        secret = k8s_client.read_namespaced_secret(
+            name=activity_model.secret_name,
+            namespace=activity_model.namespace,
         )
-
-        CacheConfigMap(activity_model.namespace).create_or_update_configmap(
+        token = base64.b64decode(secret.data[activity_model.password_key]).decode()
+        add_redis_namespace(
+            namespace=activity_model.namespace,
             product=activity_model.product,
-            redis_tenant_password=get_secret(
-                namespace=activity_model.namespace,
-                secret_name=activity_model.secret_name,
-                secret_key=activity_model.password_key,
-            ),
+            token=token,
         )
-
-        #
-
-        body = V1StatefulSet(
-            api_version=K8S_RESOURCE_VERSION,
-            kind=ResourceKindEnum.StatefulSet.value,
-            metadata=V1ObjectMeta(namespace=activity_model.namespace, name=CACHE_SERVICE_NAME),
-            spec=V1StatefulSetSpec(
-                replicas=1,
-                selector={"matchLabels": {"app": CACHE_SERVICE_NAME, "kind": "redis"}},
-                service_name=f"{CACHE_SERVICE_NAME}-service",
-                template=V1PodTemplateSpec(
-                    metadata=V1ObjectMeta(labels={"app": CACHE_SERVICE_NAME, "kind": "redis"}),
-                    spec=V1PodSpec(
-                        image_pull_secrets=[V1LocalObjectReference(name="registrycred")],
-                        node_selector={"app": "314e"},
-                        containers=[
-                            V1Container(
-                                name=CACHE_SERVICE_NAME,
-                                image="apache/kvrocks:2.5.1",
-                                args=["--requirepass", "$(REDIS_PASSWORD)", "--config", CONFIG_VOLUME_MOUNT_PATH],
-                                ports=[V1ContainerPort(container_port=CACHE_PORT, protocol="TCP")],
-                                image_pull_policy="Always",
-                                env=[
-                                    V1EnvVar(
-                                        name="REDIS_PASSWORD",
-                                        value_from=V1EnvVarSource(
-                                            secret_key_ref=V1SecretKeySelector(
-                                                key="REDIS_PASSWORD", name=CACHE_SECRET_NAME
-                                            )
-                                        ),
-                                    )
-                                ],
-                                volume_mounts=[
-                                    V1VolumeMount(
-                                        name=CONFIG_VOLUME_NAME,
-                                        mount_path=CONFIG_VOLUME_MOUNT_PATH,
-                                        sub_path=CONFIGMAP_KEY,
-                                    )
-                                ],
-                            )
-                        ],
-                        volumes=[
-                            V1Volume(
-                                name=CONFIG_VOLUME_NAME,
-                                config_map=V1ConfigMapVolumeSource(
-                                    name=CONFIGMAP_NAME,
-                                    items=[V1KeyToPath(key=CONFIGMAP_KEY, path=CONFIGMAP_KEY)],
-                                ),
-                            )
-                        ],
-                    ),
-                ),
-            ),
-        )
-
-        payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
-        try:
-            k8s_dynamic_client.server_side_apply(
-                resource=redis_resource,
-                body=payload,
-                field_manager="kubectl-client-side-apply",
-            )
-        except ConflictError as e:
-            log_error(
-                f"StatefulSet {CACHE_SERVICE_NAME} already exists in namespace"
-                f" {activity_model.namespace} and cannot be updated due to conflict"
-                f" {e}"
-            )
-        RedisService(activity_model.namespace).put()
-        log_info(f"Redis {CACHE_SERVICE_NAME} created successfully")
 
 
 class RedisDeleteNamespaceActivityModel(LaunchpadCLIBaseModel):
@@ -541,7 +222,6 @@ class RedisDeleteNamespaceActivity(Activity):
     @activity.defn(name="RedisDeleteNamespaceActivity")
     async def defn(activity_model: RedisDeleteNamespaceActivityModel) -> None:
         """
-        Delete redis namespace
+        Delete a namespace from the shared KVRocks instance via NAMESPACE command.
         """
-        CacheConfigMap(activity_model.namespace).delete_namespace_from_configmap(activity_model.product)
-        await restart_cache_statefulset(activity_model.namespace)
+        delete_redis_namespace(namespace=activity_model.namespace, product=activity_model.product)
