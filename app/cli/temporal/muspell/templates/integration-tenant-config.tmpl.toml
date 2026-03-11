@@ -18,7 +18,7 @@ url = "{{ op://Muspell Archive/integration-config/INTEGRATION_COMMON_CONFIG/mini
 region = "custom"
 
 [redis]
-url = "redis://:{{ op://Muspell Archive/integration-config/muspell_archive_<<tenant>>/redis_password }}@cache.<<tenant>>.svc.cluster.local:6379"
+url = "redis://:{{ op://Muspell Archive/integration-config/muspell_archive_<<tenant>>/redis_password }}@cache.cache.svc.cluster.local:6379"
 chart_ttl = 300
 
 [log]

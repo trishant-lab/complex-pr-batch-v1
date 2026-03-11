@@ -42,8 +42,8 @@
 
   "INSTANCE.ID": "engine1",
 
-  "REDIS.HOST": "cache.<<tenantName>>.svc.cluster.local",
+  "REDIS.HOST": "cache.cache.svc.cluster.local",
   "REDIS.PORT": "6379",
-  "REDIS.USERNAME": "zsegment",
+  "REDIS.USERNAME": "zsegment_<<tenantName>>",
   "REDIS.PASSWORD": "<<redisPassword>>"
 }

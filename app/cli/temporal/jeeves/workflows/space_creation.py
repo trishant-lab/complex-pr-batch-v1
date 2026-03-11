@@ -238,7 +238,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
             )
 
             # Redis Setup (using existing tenant redis)
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{product_space_name}_{tenant}-{generate_password(length=20)}"
             await run_activity(
                 activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(

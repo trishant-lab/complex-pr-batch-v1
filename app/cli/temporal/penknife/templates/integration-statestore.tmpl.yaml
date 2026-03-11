@@ -6,9 +6,9 @@ spec:
   version: v1
   metadata:
     - name: redisHost
-      value: cache.<<tenant>>.svc.cluster.local:6379
+      value: cache.cache.svc.cluster.local:6379
     - name: redisPassword
-      value: {{ op://314e DevOps/integration/cache/cache-admin-password }}
+      value: {{ op://Penknife/application-config/PENKNIFE_<<tenant>>/redis_password }}
     - name: actorStateStore #Specifies whether the state store is being used for actor state data.
       value: "true"
     - name: keyPrefix
