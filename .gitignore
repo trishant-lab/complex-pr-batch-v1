@@ -780,3 +780,7 @@ openapi.json
 # End of https://www.toptal.com/developers/gitignore/api/linux,osx,macos,windows,vim,visualstudiocode,intellij+all,java,maven,python,rust,node,git,yarn,reactnative
 
 rootfs/etc/services.d/launchpadcli/workersd.conf
+
+
+scripts/poc_keycloak_jeeves_local.py
+scripts/poc_keycloak_local.py
