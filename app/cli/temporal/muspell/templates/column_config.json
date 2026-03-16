@@ -1,358 +1,122 @@
 {
     "selectedColumns": {
-        {% for application in application_list %}
-        "<<application>>": {
-            "Account": [
-                "coverage",
-                "accountDescription",
-                "status"
-            ],
+        "__all__": {
             "Allergy": [
+                "codeAndName",
+                "manifestation",
                 "severity",
                 "onsetDate",
                 "type",
                 "category",
                 "criticality",
                 "lastOccurrence",
-                "manifestation",
                 "recordedBy",
                 "assertedBy",
-                "verification"
-            ],
-            "CarePlan": [
-                "type",
-                "timePeriod",
-                "targetDate",
-                "addressedCondition",
-                "reason",
-                "outcome",
-                "status",
-                "createdBy"
-            ],
-            "CareTeam": [
-                "teamName",
-                "organization",
-                "reason",
-                "status",
-                "comments",
-                "type",
-                "location",
-                "accountNumber",
-                "primaryContact",
-                "specialities",
-                "npi"
-            ],
-            "Charge": [
-                "chargeId",
-                "codeAndName",
-                "serviceDate",
-                "quantity",
-                "totalCost",
-                "encounterDate",
-                "billingPeriod",
-                "serviceProvider",
-                "accountNumber",
-                "status"
-            ],
-            "Claim": [
-                "claimFrequency",
-                "claimType",
-                "use",
-                "submittedDate",
-                "status",
-                "claimBillType",
-                "billingPeriod",
-                "claimAmount",
-                "priority",
-                "facilityType"
-            ],
-            "Condition": [
-                "clinicalStatus",
-                "icdCode",
-                "icdName",
-                "codeAndName",
-                "onset",
-                "resolvedOn",
-                "category",
-                "severity",
-                "bodySite",
-                "recordedBy",
-                "assertedBy",
-                "verification"
+                "verification",
+                "clinicalStatus"
             ],
             "Document": [
-                "author",
                 "serviceDate",
-                "authenticator",
+                "dictatedOn",
                 "documents",
                 "fileType",
-                "dictatedOn",
-                "documentStatus",
                 "category",
+                "author",
+                "authenticator",
                 "createdOn"
             ],
             "Encounter": [
                 "class",
                 "classCode",
+                "classHistory",
                 "serviceType",
-                "reason",
                 "priority",
-                "diagnosis",
+                "reason",
+                "participants",
+                "patientContact",
                 "admitSource",
                 "dischargeDisposition",
                 "location",
-                "departmentSpecialty",
                 "specialCourtesy",
                 "accountNumber",
-                "status"
-            ],
-            "FamilyHistory": [
-                "name",
-                "condition",
-                "codeAndName",
-                "onset",
-                "outcome",
-                "reason",
-                "gender",
-                "age",
-                "status"
-            ],
-            "Imaging": [
-                "performedDate",
-                "dictatedOn",
-                "category",
-                "codeAndName",
-                "report",
-                "image",
-                "performedBy",
-                "author",
-                "interpreters",
-                "interpretation",
-                "status"
-            ],
-            "Immunization": [
-                "codeAndName",
-                "dateAdministered",
-                "expirationDate",
-                "route",
-                "quantity",
-                "bodySite",
-                "targetDisease",
-                "administeredBy",
                 "status",
-                "reasonNotDone",
-                "immunizationReason",
-                "lotNumber",
-                "manufacturer",
-                "fundingSource"
-            ],
-            "InsuranceCoverage": [
-                "coverageType",
-                "coverageNumber",
-                "planName",
-                "addressOfPayor",
-                "phoneOfPayor",
-                "policyHolder",
-                "patientPolicyNumber",
-                "relationship",
-                "subscriber",
-                "subscriberId",
-                "groupName",
-                "groupNumber",
-                "nameOfEmployer",
-                "locationOfEmployer",
-                "employmentStatus",
-                "financialClass",
-                "coverageStatus"
-            ],
-            "Laboratory": [
-                "category",
-                "codeAndName",
-                "value",
-                "report",
-                "performedBy",
-                "interpretation",
-                "referenceRange",
-                "status",
-                "specimenType",
-                "specimenSource"
-            ],
-            "LegacyScans": [
-                "availableOn",
-                "documentDescription",
-                "authoredBy",
-                "serviceProvider",
-                "authenticatorProvider",
-                "document",
-                "documentStatus"
-            ],
-            "MedicationAdministered": [
-                "codeAndName",
-                "category",
-                "administeredBy",
-                "reason",
-                "dose",
-                "doseRoute",
-                "sig",
-                "bodySite",
-                "status"
-            ],
-            "MedicationOrdered": [
-                "codeAndName",
-                "category",
-                "orderedBy",
-                "reason",
-                "dose",
-                "timing",
-                "doseRoute",
-                "sig",
-                "quantityPerDispense",
-                "status",
-                "amount",
-                "class"
-            ],
-            "MedicationTaking": [
-                "codeAndName",
-                "category",
-                "reason",
-                "dateAsserted",
-                "dose",
-                "timing",
-                "doseRoute",
-                "sig",
-                "reportedBy",
-                "status"
-            ],
-            "Order": [
-                "orderNumberPlacer",
-                "orderNumberLab",
-                "codeAndName",
-                "orderDetail",
-                "category",
-                "priority",
-                "occurrence",
-                "quantity",
-                "performedBy",
-                "orderBy",
-                "reason",
-                "groupId",
-                "location",
-                "bodySite",
-                "specimenType",
-                "status"
-            ],
-            "Patient": [
-                "race",
-                "preferredLanguage",
-                "birthSex",
-                "mergedFromMrns",
-                "previousNames",
-                "ethnicity",
-                "mothersName",
-                "employmentStatus",
-                "occupation",
-                "sexualOrientation",
-                "religion",
-                "affiliation",
-                "primaryCarePhysician",
-                "familyPhysician",
-                "preferredLab",
-                "patientPharmacy"
-            ],
-            "Problem": [
-                "clinicalStatus",
-                "icdCode",
-                "icdName",
-                "codeAndName",
-                "onset",
-                "resolvedOn",
-                "severity",
-                "category",
-                "bodySite",
-                "assertedBy",
-                "recordedBy",
-                "verification"
-            ],
-            "Procedure": [
-                "codeAndName",
-                "category",
-                "performedBy",
-                "reason",
-                "bodySite",
-                "outcome",
-                "complication",
-                "device",
-                "followUp",
-                "recordedBy",
-                "status",
-                "report"
-            ],
-            "Questionnaire": [
-                "value",
-                "report",
-                "recordedBy",
-                "status"
-            ],
-            "RoiDisclosure": [
-                "encounterId",
-                "financialNumber",
-                "orderId",
-                "accessionNumber",
-                "clientName",
-                "facility",
-                "building",
-                "nurseUnit",
-                "outputDevice",
-                "purpose",
-                "requester",
-                "authorizationReceived",
-                "notes",
-                "requestId",
-                "requestType",
-                "requestDate",
-                "requestStatus",
-                "requestingPersonnel",
-                "receivingPersonnel",
-                "reportTemplate",
-                "requestedSections",
-                "renderedSections",
-                "pages",
-                "eventId",
-                "room",
-                "bed",
-                "outputType",
-                "chartRoute",
-                "routeStop",
-                "destination",
-                "diskLabel",
-                "parentRequestId",
-                "reportRequestId",
-                "resubmitCount",
-                "scope",
-                "beginDate",
-                "endDate"
-            ],
-            "SocialHistory": [
-                "codeAndName",
-                "value",
-                "recordedBy",
-                "method",
-                "status"
-            ],
-            "VitalSign": [
-                "codeAndName",
-                "value",
-                "interpretation",
-                "referenceRange",
-                "bodySite",
-                "status"
+                "additionalAttributes"
             ]
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    },
-    "drawerAttributes": {
+        },
         {% for application in application_list %}
         "<<application>>": {
+            "Allergy": [
+                "codeAndName",
+                "manifestation",
+                "severity",
+                "onsetDate",
+                "type",
+                "category",
+                "criticality",
+                "lastOccurrence",
+                "recordedBy",
+                "assertedBy",
+                "verification",
+                "clinicalStatus"
+            ],
+            "Document": [
+                "serviceDate",
+                "dictatedOn",
+                "documents",
+                "fileType",
+                "category",
+                "author",
+                "authenticator",
+                "createdOn"
+            ],
+            "Encounter": [
+                "class",
+                "classCode",
+                "classHistory",
+                "serviceType",
+                "priority",
+                "reason",
+                "participants",
+                "patientContact",
+                "admitSource",
+                "dischargeDisposition",
+                "location",
+                "specialCourtesy",
+                "accountNumber",
+                "status",
+                "additionalAttributes"
+            ]
+        }{% if not loop.last %
+        },
+        {% endif %
+        }
+        {% endfor %
+        },
+        "auditLogs": [
+            "launchType",
+            "userName",
+            "userEmail",
+            "userFirstName",
+            "userLastName",
+            "liveEhrMrn",
+            "sourceSystemName",
+            "systemMrn",
+            "patientFirstName",
+            "patientLastName",
+            "screenName",
+            "action",
+            "liveEhrUserId",
+            "loginDepartmentId",
+            "loginServiceAreaName",
+            "systemLoginId",
+            "userProviderNpi",
+            "userTemplateId",
+            "muspellMrn",
+            "userProviderType"
+        ]
+    },
+    "drawerAttributes": {
+        "__all__": {
             "Account": {
                 "additionalAttributes": {
                     "hideInDrawer": false,
@@ -373,11 +137,11 @@
             },
             "Allergy": {
                 "additionalAttributes": {
-                    "hideInDrawer": false,
+                    "hideInDrawer": true,
                     "location": "drawer-only"
                 },
                 "notes": {
-                    "hideInDrawer": false,
+                    "hideInDrawer": true,
                     "location": "drawer-only"
                 }
             },
@@ -733,6 +497,16 @@
                     "location": "drawer-only"
                 }
             },
+            "SurgicalHistory": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
             "VitalSign": {
                 "additionalAttributes": {
                     "hideInDrawer": false,
@@ -743,8 +517,416 @@
                     "location": "drawer-only"
                 }
             }
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
+        },
+        {% for application in application_list %
+        }
+        "<<application>>": {
+            "Account": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "balance": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "diagnosis": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "procedure": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Allergy": {
+                "additionalAttributes": {
+                    "hideInDrawer": true,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": true,
+                    "location": "drawer-only"
+                }
+            },
+            "AuditLog": {},
+            "CarePlan": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "goals": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "CareTeam": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "participants": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Charge": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "ChildDevelopment": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Claim": {
+                "billingProvider": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "careTeam": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "claimNumber": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "diagnosis": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "diagnosisRelatedGroup": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "encounter": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "enterer": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "occurrence": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "occurrenceSpan": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "otherInsurance": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "payee": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "payment": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "payor": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "procedure": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "productsAndServices": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "responses": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "subscriber": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "supportingInfo": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "valueCodes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Condition": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Document": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "documentDetails": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Encounter": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "classCode": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "classHistory": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "participants": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "patientContact": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "FamilyHistory": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Imaging": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Immunization": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "InsuranceCoverage": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Laboratory": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "specimenNumber": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "LegacyScans": {
+                "documentDetails": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "MedicationAdministered": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "MedicationOrdered": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "attributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "ingredient": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "signature": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "MedicationTaking": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "NutritionOrder": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "signature": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Order": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "attributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "note": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "signature": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Patient": {},
+            "PregnancyHistory": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Problem": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Procedure": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "Questionnaire": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "RoiDisclosure": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "SocialHistory": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "SurgicalHistory": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            },
+            "VitalSign": {
+                "additionalAttributes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                },
+                "notes": {
+                    "hideInDrawer": false,
+                    "location": "drawer-only"
+                }
+            }
+        }{% if not loop.last %
+        },
+        {% endif %
+        }
+        {% endfor %
+        }
     },
     "splitScreenColumnDef": {}
 }
