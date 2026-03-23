@@ -16,9 +16,6 @@ from app.cli.temporal.activities.cloudflare_setup import (
     PropagateDNSRecordActivity,
     UpdateCORSForBucketActivity,
 )
-from app.cli.temporal.activities.veritable_db_migration_job import (
-    VeritableDatabaseMigrationJobActivity,
-)
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
@@ -73,6 +70,9 @@ from app.cli.temporal.activities.tenant_crd import (
     TenantCrdCreationActivity,
     TenantCrdCreationActivityModel,
 )
+from app.cli.temporal.activities.veritable_db_migration_job import (
+    VeritableDatabaseMigrationJobActivity,
+)
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
 from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
@@ -123,6 +123,7 @@ class VeritableDeploymentWorkflow(Workflow):
             CreateCloudflareDNSRecordActivity.defn,
             CreateCloudflareBucketActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
+            UpdateCORSForBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
