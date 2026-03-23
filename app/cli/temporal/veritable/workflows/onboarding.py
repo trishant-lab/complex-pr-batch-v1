@@ -374,16 +374,6 @@ class VeritableOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # secret setup for postgres password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="postgres-secret",
-                    string_data={"POSTGRES_PASSWORD": postgres_password},
-                ),
-            )
-
             # setup redis
             await run_activity(
                 activity=RedisSetupActivity,
