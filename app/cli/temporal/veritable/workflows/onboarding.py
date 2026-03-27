@@ -15,10 +15,7 @@ from app.cli.temporal.activities.cloudflare_setup import (
     CreateCloudflareDNSRecordActivity,
     LinkBucketToDomainActivity,
     PropagateDNSRecordActivity,
-)
-from app.cli.temporal.activities.veritable_db_migration_job import (
-    VeritableDatabaseMigrationJobActivity,
-    VeritableDatabaseMigrationJobActivityModel,
+    UpdateCORSForBucketActivity,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
@@ -78,6 +75,10 @@ from app.cli.temporal.activities.tenant_crd import (
     TenantCrdExistsActivityModel,
 )
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.veritable_db_migration_job import (
+    VeritableDatabaseMigrationJobActivity,
+    VeritableDatabaseMigrationJobActivityModel,
+)
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuOnboardingActivity
 from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
@@ -88,6 +89,7 @@ from app.cli.temporal.models.cloudflare import (
     CreateCloudflareDNSRecordActivityModel,
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivityModel,
 )
 from app.cli.temporal.models.onboard import CustomerWorkflowInput
 from app.cli.temporal.veritable import TemplatePath
@@ -131,6 +133,7 @@ class VeritableOnboardingWorkflow(Workflow):
             CreateCloudflareDNSRecordActivity.defn,
             CreateCloudflareBucketActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
+            UpdateCORSForBucketActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
             CopyArtifactsToBucketActivity.defn,
@@ -287,6 +290,29 @@ class VeritableOnboardingWorkflow(Workflow):
             await run_activity(
                 activity=CreateCloudflareBucketActivity,
                 arg=CreateCloudflareBucketActivityModel(bucket_name=data_bucket),
+            )
+
+            # update cors for data bucket
+            await run_activity(
+                activity=UpdateCORSForBucketActivity,
+                arg=UpdateCORSForBucketActivityModel(
+                    bucket_name=data_bucket,
+                    rules=[
+                        {
+                            "allowed": {
+                                "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                "origins": ["*"],
+                                "headers": [
+                                    "Authorization",
+                                    "content-type",
+                                    "x-amz-*",
+                                    "traceparent",
+                                ],
+                            },
+                            "exposeHeaders": ["ETag", "Location"],
+                        }
+                    ],
+                ),
             )
 
             credentials: CloudflareBucketCredentials = await run_activity(
