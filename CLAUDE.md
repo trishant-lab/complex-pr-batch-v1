@@ -8,59 +8,17 @@ Launchpad is a multi-tenant onboarding and provisioning microservice used by mul
 
 ## Commands
 
-### Dependencies
+See `.claude/common-operations.md` for the full command reference. Key commands:
+
 ```bash
-uv sync --frozen          # Install all dependencies (requires uv package manager)
-pre-commit install        # Set up pre-commit hooks
+uv sync --frozen                      # Install dependencies
+ruff format . && ruff check .         # Format + lint
+uv run pytest --cov=./app test/ -s -v -W ignore::DeprecationWarning:opentelemetry.instrumentation.dependencies --cov-report term-missing
+uv run python app/pre_commit_checks.py  # Validate OpenAPI spec + worker config sync
+dbmate new {name}                     # Create migration in db/migrations/
 ```
 
-### Running Locally
-```bash
-# Start API server
-uvicorn app.main:fastapi_app --port 8000
-
-# Start Temporal workers (via supervisor)
-IS_CLI=TRUE supervisord -c /etc/services.d/launchpadcli/supervisord.conf
-```
-
-### Linting & Formatting
-```bash
-ruff format .             # Format code
-ruff check .              # Lint
-ruff check --fix .        # Lint with auto-fix
-```
-
-### Testing
-```bash
-# Run full test suite with coverage
-uv run pytest --cov=./app test/ -s -v \
-  -W ignore::DeprecationWarning:opentelemetry.instrumentation.dependencies \
-  --cov-report term-missing
-
-# Run a single test file
-uv run pytest test/test_file.py -s -v
-
-# Run a single test
-uv run pytest test/test_file.py::TestClass::test_method -s -v
-```
-
-### Database Migrations
-```bash
-dbmate new {migration_name}    # Create new migration in db/migrations/
-python db/migrate.py           # Apply migrations (requires APP_CONFIG_FILE)
-```
-
-Migration files live in `db/migrations/` (SQL with `-- migrate:up` / `-- migrate:down` sections). Atlas Go migrations in `atlas_go/`.
-
-### Pre-commit Checks
-Pre-commit hooks run: `uv-sort`, `ruff-format`, `ruff`, `bandit`, `osv-scanner`, `gitleaks`, and a custom `app/pre_commit_checks.py` that validates OpenAPI spec and worker config sync.
-
-When `osv-scanner` blocks a commit due to a vulnerable dependency: update the version in `pyproject.toml`, run `uv lock --upgrade-package <pkg>`, and re-commit. See `.claude/rules/coding-patterns.md` for the full process.
-
-### Docker Build
-```bash
-./docker-build.sh         # Custom multi-stage build
-```
+Pre-commit hooks: `uv-sort`, `ruff-format`, `ruff`, `bandit`, `osv-scanner`, `gitleaks`, `pre_commit_checks.py`. When `osv-scanner` blocks: see `.claude/rules/coding-patterns.md`.
 
 ## Architecture
 
@@ -68,64 +26,17 @@ When `osv-scanner` blocks a commit due to a vulnerable dependency: update the ve
 ```
 app/core/ -> app/models/ -> app/routes/ | app/cli/ | app/utils/
 ```
-**`app/core/` must not import from other app directories** (except standard lib and third-party). Models are purely functional -- no database queries in model files.
+**`app/core/` must not import from other app directories.** Models are purely functional -- no database queries in model files.
 
 ### Key Layers
 
-**API Server** (`app/main.py`): FastAPI app as `fastapi_app`. API prefix is `/api/v1/`.
-
-**Routes** (`app/routes/`):
-
-| Route prefix | Module | Purpose |
-|---|---|---|
-| `/provisioning/{product}` | `provisioning.py` | Trigger tenant provisioning workflow |
-| `/deprovisioning/{product}` | `deprovisioning.py` | Trigger tenant deprovisioning |
-| `/tenant/{product}` | `tenant.py` | List/update tenants |
-| `/product` | `product.py` | List products |
-| `/User/{product}` | `users.py` | User management |
-| `/EmailTemplate/{product}` | `email_templates.py` | Email template CRUD |
-| `/deployment/{product}` | `deployment.py` | K8s deployment ops |
-| `/webhooks/billing` | `webhooks/billing_events.py` | Lago invoice webhooks |
-
-**Self-Signup Routes** (`app/routes/self_signup/`):
-
-| Route prefix | Module | Purpose |
-|---|---|---|
-| `/signup/{product}` | `signup.py` | User registration |
-| `/plans/{product}` | `plans.py` | Pricing plans |
-| `/addOns/{product}` | `add_ons.py` | Product add-ons |
-| `/coupon/{product}` | `coupon.py` | Coupon validation |
-| `/subscriptions/{product}` | `subscriptions.py` | Subscription management |
-| `/onboard` | `onboard.py` | Start onboarding workflow |
-| `/session/{product}` | `user_session.py` | Session/token management |
-| `/otp/{product}` | `user_otp.py` | OTP generation/validation |
-| `/portalLink/{product}` | `tenant_link.py` | Portal link generation |
-
-**Temporal Workers** (`app/cli/temporal/`): Three supervisor-managed worker processes with queue-based workflow routing (`app/core/cli_settings.py`). Per-product workflow packages:
-- `veritable/`, `jeeves/`, `dexit/`, `penknife/`, `practifly/`, `pricedx/`, `zsegment/`, `hdp/`, `muspell/`
-- Each contains `workflows/onboarding.py` and optionally `deprovisioning.py`
-- 60+ activities in `activities/` (K8s, Postgres, Keycloak, CloudFlare, DNS, 1Password, email, billing)
-- Base classes in `app/cli/temporal/core/base.py`: `Activity`, `Workflow`, `ScheduleWorkflow`
-
-**Database** (`app/core/db.py`): AsyncPG with connection pooling. Raw SQL via Jinja2-templated queries in `app/sql/` (no ORM). `DBManager` provides `fetch_all`, `fetch_one`, `execute`, `execute_many`.
-
-**Configuration** (`app/core/settings.py`): Loaded from JSON config files via `APP_CONFIG_DIR` env var using OpenDAL. Separate product configs in `app/core/product_settings/`. Accessed via `get_settings()` singleton.
-
-**Authentication & Authorization**:
-- Keycloak for OAuth2/OIDC (`app/core/oauth2.py`)
-- PyCasbin for RBAC (`app/core/pycasbin/`)
-- Middleware stack order (important): PrometheusMiddleware -> AuthorizationMiddleware -> AuthenticationMiddleware -> CORSMiddleware -> LoggerMiddleware
-
-**Products** (`app/models/product.py`): `ProductEnum` with 8 supported products. Each product has its own Temporal workflow package, config settings, and Keycloak realm/template files.
-
-### Key Patterns
-- **Async-first**: All I/O uses async/await
-- **Pydantic V2** for all request/response models
-- **UUID v7** for primary keys
-- **OpenDAL** for cloud-agnostic blob/file storage
-- **Jinja2 SQL** templates in `app/sql/` -- no raw SQL string concatenation
-- **S6 overlay** for process management in Docker (uvicorn server + Temporal workers)
-- **Per-product provisioning**: Each product is a self-contained workflow package
+- **API Server**: `app/main.py` (`fastapi_app`), prefix `/api/v1/`
+- **Routes**: `app/routes/` (provisioning, tenant, users, email templates, deployment, webhooks) + `app/routes/self_signup/` (signup, plans, add-ons, subscriptions, OTP, session)
+- **Temporal Workers**: `app/cli/temporal/` — 3 supervisor-managed processes, per-product workflow packages, 60+ activities. Base classes in `core/base.py`.
+- **Database**: AsyncPG + Jinja2 SQL templates in `app/sql/` (no ORM). `DBManager` in `app/core/db.py`.
+- **Config**: JSON via `APP_CONFIG_DIR` + OpenDAL. Product configs in `app/core/product_settings/`.
+- **Auth**: Keycloak OAuth2 + PyCasbin RBAC (`app/core/pycasbin/`)
+- **Products**: `ProductEnum` in `app/models/product.py` (8 products, each with workflow package + config + templates)
 
 ## Code Change Discipline
 - **DRY within a single file** -- when making the same structural change on multiple lines in one file, stop and consider whether a utility function, helper, or (for Jinja SQL) a custom filter would be better than duplicating the pattern. Propose the abstraction before applying the repetitive change.
