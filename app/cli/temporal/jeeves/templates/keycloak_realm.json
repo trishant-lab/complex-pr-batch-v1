@@ -77,6 +77,9 @@
                       "realm-management": [
                           "manage-users"
                       ],
+                      "broker": [
+                          "read-token"
+                      ],
                       "account": [
                           "manage-account",
                           "view-profile"
@@ -279,7 +282,6 @@
                   "attributes": {}
               }
           ],
-          "formauth": [],
           "account": [
               {
                   "name": "manage-account",
@@ -385,7 +387,7 @@
   "localizationTexts": {},
   "webAuthnPolicyRpEntityName": "keycloak",
   "webAuthnPolicySignatureAlgorithms": [
-      "ES256"
+      "ES256", "RS256", "RS384"
   ],
   "webAuthnPolicyRpId": "",
   "webAuthnPolicyAttestationConveyancePreference": "not specified",
@@ -398,7 +400,7 @@
   "webAuthnPolicyExtraOrigins": [],
   "webAuthnPolicyPasswordlessRpEntityName": "keycloak",
   "webAuthnPolicyPasswordlessSignatureAlgorithms": [
-      "ES256"
+      "ES256", "RS256", "RS384"
   ],
   "webAuthnPolicyPasswordlessRpId": "",
   "webAuthnPolicyPasswordlessAttestationConveyancePreference": "not specified",
@@ -688,115 +690,6 @@
               "basic"
           ],
           "optionalClientScopes": []
-      },
-      {
-          "clientId": "formauth",
-          "name": "formauth",
-          "description": "",
-          "rootUrl": "https://<<tenant>>.<<domain>>",
-          "adminUrl": "https://<<tenant>>.<<domain>>",
-          "baseUrl": "https://<<tenant>>.<<domain>>/login.html",
-          "surrogateAuthRequired": false,
-          "enabled": true,
-          "alwaysDisplayInConsole": false,
-          "clientAuthenticatorType": "client-secret",
-          "redirectUris": [
-              "https://jeeves-agent.<<chatwoot_domain>>/*",
-              "https://<<tenant>>.<<domain>>/*"
-          ],
-          "webOrigins": [
-              "https://jeeves-agent.<<chatwoot_domain>>",
-              "https://<<tenant>>.<<domain>>"
-          ],
-          "notBefore": 0,
-          "bearerOnly": false,
-          "consentRequired": false,
-          "standardFlowEnabled": true,
-          "implicitFlowEnabled": true,
-          "directAccessGrantsEnabled": true,
-          "serviceAccountsEnabled": false,
-          "publicClient": true,
-          "frontchannelLogout": false,
-          "protocol": "openid-connect",
-          "attributes": {
-              "client.introspection.response.allow.jwt.claim.enabled": "false",
-              "login_theme": "314e-login-theme",
-              "post.logout.redirect.uris": "+",
-              "oauth2.device.authorization.grant.enabled": "false",
-              "backchannel.logout.revoke.offline.tokens": "false",
-              "use.refresh.tokens": "true",
-              "realm_client": "false",
-              "oidc.ciba.grant.enabled": "false",
-              "client.use.lightweight.access.token.enabled": "false",
-              "backchannel.logout.session.required": "true",
-              "client_credentials.use_refresh_token": "false",
-              "tls.client.certificate.bound.access.tokens": "false",
-              "require.pushed.authorization.requests": "false",
-              "acr.loa.map": "{}",
-              "display.on.consent.screen": "false",
-              "token.response.type.bearer.lower-case": "false",
-              "dpop.bound.access.tokens": "false"
-          },
-          "authenticationFlowBindingOverrides": {},
-          "fullScopeAllowed": true,
-          "nodeReRegistrationTimeout": -1,
-          "protocolMappers": [
-              {
-                  "name": "docker-v2-allow-all-mapper",
-                  "protocol": "docker-v2",
-                  "protocolMapper": "docker-v2-allow-all-mapper",
-                  "consentRequired": false,
-                  "config": {}
-              },
-              {
-                  "name": "idp_name",
-                  "protocol": "openid-connect",
-                  "protocolMapper": "oidc-usersessionmodel-note-mapper",
-                  "consentRequired": false,
-                  "config": {
-                      "user.session.note": "identity_provider",
-                      "introspection.token.claim": "true",
-                      "userinfo.token.claim": "true",
-                      "id.token.claim": "true",
-                      "lightweight.claim": "false",
-                      "access.token.claim": "true",
-                      "claim.name": "idp_name",
-                      "jsonType.label": "String",
-                      "access.tokenResponse.claim": "false"
-                  }
-              },
-              {
-                "name": "spaces",
-                "protocol": "openid-connect",
-                "protocolMapper": "oidc-hardcoded-claim-mapper",
-                "consentRequired": false,
-                "config": {
-                  "introspection.token.claim": "true",
-                  "claim.value": "{\"jeeves-<<space>>\": \"<<space_name>>\"}",
-                  "userinfo.token.claim": "true",
-                  "id.token.claim": "true",
-                  "lightweight.claim": "false",
-                  "access.token.claim": "true",
-                  "claim.name": "spaces",
-                  "jsonType.label": "JSON",
-                  "access.tokenResponse.claim": "false"
-                }
-              }
-          ],
-          "defaultClientScopes": [
-              "web-origins",
-              "acr",
-              "roles",
-              "profile",
-              "basic",
-              "email"
-          ],
-          "optionalClientScopes": [
-              "address",
-              "phone",
-              "offline_access",
-              "microprofile-jwt"
-          ]
       },
       {
 
@@ -1348,7 +1241,7 @@
                       "id.token.claim": "true",
                       "access.token.claim": "true",
                       "claim.name": "updated_at",
-                      "jsonType.label": "String",
+                      "jsonType.label": "long",
                       "userinfo.token.claim": "true"
                   }
               },
@@ -1462,6 +1355,49 @@
                   "config": {}
               }
           ]
+      },
+      {
+          "name": "saml_organization",
+          "description": "Organization Membership",
+          "protocol": "saml",
+          "attributes": {
+              "display.on.consent.screen": "false"
+          },
+          "protocolMappers": [
+              {
+                  "name": "organization",
+                  "protocol": "saml",
+                  "protocolMapper": "saml-organization-membership-mapper",
+                  "consentRequired": false,
+                  "config": {}
+              }
+          ]
+      },
+      {
+          "name": "organization",
+          "description": "Additional claims about the organization a subject belongs to",
+          "protocol": "openid-connect",
+          "attributes": {
+              "include.in.token.scope": "true",
+              "consent.screen.text": "${organizationScopeConsentText}",
+              "display.on.consent.screen": "true"
+          },
+          "protocolMappers": [
+              {
+                  "name": "organization",
+                  "protocol": "openid-connect",
+                  "protocolMapper": "oidc-organization-membership-mapper",
+                  "consentRequired": false,
+                  "config": {
+                      "id.token.claim": "true",
+                      "introspection.token.claim": "true",
+                      "access.token.claim": "true",
+                      "claim.name": "organization",
+                      "jsonType.label": "String",
+                      "multivalued": "true"
+                  }
+              }
+          ]
       }
   ],
   "defaultDefaultClientScopes": [
@@ -1478,7 +1414,9 @@
       "offline_access",
       "address",
       "phone",
-      "microprofile-jwt"
+      "microprofile-jwt",
+      "saml_organization",
+      "organization"
   ],
   "browserSecurityHeaders": {
       "contentSecurityPolicyReportOnly": "",
@@ -1636,7 +1574,7 @@
               "subComponents": {},
               "config": {
                   "kc.user.profile.config": [
-                      "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"ehremployeenumber\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrtemplatename\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrtemplateid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrtype\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrdirectaddress\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrlogindepartmentid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrsystemlogin\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrproviderid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrprovidertype\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrproviderspecialty\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrdepartmentid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrserviceareaid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrlocationid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrlocationname\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrfacilityid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrfacilityname\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrservicearea\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrdepartmentname\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ADGroups\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":true},{\"name\":\"ENTRA_ID\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":false},{\"name\":\"displayName\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"},{\"name\":\"user-ehr-metadata\",\"displayHeader\":\"User's EHR metadata\",\"displayDescription\":\"Attributes, which refer to user's EHR metadata\",\"annotations\":{}},{\"name\":\"user-federated-metadata\",\"displayHeader\":\"User's federated metadata\",\"displayDescription\":\"Attributes, which refer to user's federated metadata\\t  1\",\"annotations\":{}}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
+                      "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"ehremployeenumber\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrtemplatename\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrtemplateid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrtype\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrdirectaddress\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrlogindepartmentid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrsystemlogin\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrproviderid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":false},{\"name\":\"ehrprovidertype\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrproviderspecialty\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrdepartmentid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrserviceareaid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrlocationid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrlocationname\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrfacilityid\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrfacilityname\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrservicearea\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ehrdepartmentname\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-ehr-metadata\",\"multivalued\":true},{\"name\":\"ADGroups\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":true},{\"name\":\"ENTRA_ID\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":false},{\"name\":\"displayName\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":false},{\"name\":\"onPremisesSamAccountName\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":false},{\"name\":\"employeeId\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":false},{\"name\":\"onPremisesUserPrincipalName\",\"displayName\":\"\",\"validations\":{},\"annotations\":{},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"group\":\"user-federated-metadata\",\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"},{\"name\":\"user-ehr-metadata\",\"displayHeader\":\"User's EHR metadata\",\"displayDescription\":\"Attributes, which refer to user's EHR metadata\",\"annotations\":{}},{\"name\":\"user-federated-metadata\",\"displayHeader\":\"User's federated metadata\",\"displayDescription\":\"Attributes, which refer to user's federated metadata\\t  1\",\"annotations\":{}}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
                   ]
               }
           }
@@ -2068,6 +2006,72 @@
                   "userSetupAllowed": false
               }
           ]
+      },
+      {
+        "alias": "Browser - Conditional 2FA",
+        "description": "Flow to determine if any 2FA is required for the authentication",
+        "providerId": "basic-flow",
+        "topLevel": false,
+        "builtIn": true,
+        "authenticationExecutions": [
+          {
+            "authenticator": "conditional-user-configured",
+            "authenticatorFlow": false,
+            "requirement": "REQUIRED",
+            "priority": 10,
+            "autheticatorFlow": false,
+            "userSetupAllowed": false
+          },
+          {
+            "authenticator": "auth-otp-form",
+            "authenticatorFlow": false,
+            "requirement": "ALTERNATIVE",
+            "priority": 20,
+            "autheticatorFlow": false,
+            "userSetupAllowed": false
+          },
+          {
+            "authenticator": "webauthn-authenticator",
+            "authenticatorFlow": false,
+            "requirement": "DISABLED",
+            "priority": 30,
+            "autheticatorFlow": false,
+            "userSetupAllowed": false
+          },
+          {
+            "authenticator": "auth-recovery-authn-code-form",
+            "authenticatorFlow": false,
+            "requirement": "DISABLED",
+            "priority": 40,
+            "autheticatorFlow": false,
+            "userSetupAllowed": false
+          }
+        ]
+      },
+      {
+        "alias": "Browser - Conditional Organization",
+        "description": "Flow to determine if the organization identity-first login is to be used",
+        "providerId": "basic-flow",
+        "topLevel": false,
+        "builtIn": true,
+        "authenticationExecutions": [
+          {
+            "authenticator": "conditional-user-configured",
+            "authenticatorFlow": false,
+            "requirement": "REQUIRED",
+            "priority": 10,
+            "autheticatorFlow": false,
+            "userSetupAllowed": false
+          },
+          {
+            "authenticator": "organization",
+            "authenticatorFlow": false,
+            "requirement": "ALTERNATIVE",
+            "priority": 20,
+            "autheticatorFlow": false,
+            "userSetupAllowed": false
+          }
+        ]
       },
       {
           "alias": "EHR Simulator login New 314e first broker login Account verification options",
@@ -2845,6 +2849,14 @@
                   "priority": 60,
                   "autheticatorFlow": false,
                   "userSetupAllowed": false
+              },
+              {
+                "authenticator": "registration-terms-and-conditions",
+                "authenticatorFlow": false,
+                "requirement": "DISABLED",
+                "priority": 70,
+                "autheticatorFlow": false,
+                "userSetupAllowed": false
               }
           ]
       },
@@ -3005,6 +3017,42 @@
           "defaultAction": false,
           "priority": 1000,
           "config": {}
+      },
+      {
+        "alias": "webauthn-register",
+        "name": "Webauthn Register",
+        "providerId": "webauthn-register",
+        "enabled": true,
+        "defaultAction": false,
+        "priority": 70,
+        "config": {}
+      },
+      {
+        "alias": "webauthn-register-passwordless",
+        "name": "Webauthn Register Passwordless",
+        "providerId": "webauthn-register-passwordless",
+        "enabled": true,
+        "defaultAction": false,
+        "priority": 80,
+        "config": {}
+      },
+      {
+        "alias": "CONFIGURE_RECOVERY_AUTHN_CODES",
+        "name": "Recovery Authentication Codes",
+        "providerId": "CONFIGURE_RECOVERY_AUTHN_CODES",
+        "enabled": true,
+        "defaultAction": false,
+        "priority": 120,
+        "config": {}
+      },
+      {
+        "alias": "UPDATE_EMAIL",
+        "name": "Update Email",
+        "providerId": "UPDATE_EMAIL",
+        "enabled": true,
+        "defaultAction": false,
+        "priority": 70,
+        "config": {}
       }
   ],
   "browserFlow": "browser",
@@ -3041,7 +3089,7 @@
       "acr.loa.map": "{}",
       "adminEventsExpiration": "63072000"
   },
-  "keycloakVersion": "26.0.7",
+  "keycloakVersion": "26.5.2",
   "userManagedAccessAllowed": false,
   "organizationsEnabled": false,
   "clientProfiles": {

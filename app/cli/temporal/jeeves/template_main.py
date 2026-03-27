@@ -19,6 +19,13 @@ async def get_layout_content() -> str:
     return await get_template_from_file("novu/layout_content.html")
 
 
+async def get_digest_layout_content() -> str:
+    """
+    Get the Digest layout content for the Novu notifications
+    """
+    return await get_template_from_file("novu/digest_layout.html")
+
+
 async def get_assignment_due_in_15_days_custom_email() -> str:
     """
     Get the custom email for the Novu notifications
@@ -171,3 +178,24 @@ async def get_asset_shared_email() -> str:
     Get the custom email for the Novu notifications
     """
     return await get_template_from_file("novu/asset_shared.html")
+
+
+async def get_weekly_digest_email() -> str:
+    """
+    Get the custom email for Weekly Digest Notifications
+    """
+    return await get_template_from_file("novu/trainer_weekly_digest.html")
+
+
+async def get_daily_digest_email() -> str:
+    """
+    Get the custom email for Daily Digest Notifications
+    """
+    return await get_template_from_file("novu/trainer_daily_digest.html")
+
+
+async def get_asset_annotation_preset_share_email() -> str:
+    """
+    Get the custom email for the Novu notifications
+    """
+    return await get_template_from_file("novu/asset_annotation_preset_share.html")

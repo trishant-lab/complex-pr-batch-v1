@@ -51,7 +51,72 @@ async def update_space_status(
 
     except Exception as e:
         log_error(f"Error while updating space status for {tenant_name}/{space_name}: {e}")
-        raise e
+        raise
+
+
+async def create_space(
+    space_name: str,
+    tenant_name: str,
+    product: ProductEnum,
+    status: TenantStatusEnum,
+    error_message: None | str = None,
+) -> None:
+    """
+    Create a space record in the database if it does not already exist.
+    """
+    try:
+        errors_json = ijson_dumps({"error": error_message} if error_message else {})
+
+        parameters = {
+            "spacename": space_name,
+            "tenant_name": tenant_name,
+            "product": product.value,
+            "status": status.value,
+            "errors": errors_json,
+        }
+        db: DBManager = await get_db_manager()
+
+        existing = await db.fetch_one(
+            "get_space_by_name.sql", spacename=space_name, tenant_name=tenant_name, product=product.value
+        )
+        if existing:
+            log_info(f"Space {space_name} already exists for {tenant_name}, skipping creation")
+            return
+
+        await db.execute("create_space.sql", **parameters)
+        log_info(f"Space {space_name} created for {tenant_name} with status {status}")
+
+    except Exception as e:
+        log_error(f"Error while creating space entry for {tenant_name}/{space_name}: {e}")
+        raise
+
+
+class CreateSpaceActivity(Activity):
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """Timeout for the activity."""
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """RetryPolicy for the activity."""
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="CreateSpaceActivity")
+    async def defn(activity_input: SpaceStatusModel) -> None:
+        """Create a space record if it does not already exist."""
+        await create_space(
+            space_name=activity_input.space_name,
+            tenant_name=activity_input.tenant_name,
+            product=activity_input.product,
+            status=activity_input.status,
+            error_message=activity_input.error_msg,
+        )
 
 
 class UpdateSpaceStatusActivity(Activity):

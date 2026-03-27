@@ -19,7 +19,8 @@
     "webOrigins": [
         "https://jeeves-agent.<<chatwoot_domain>>",
         "https://<<tenant>>.<<domain>>",
-        "https://tauri.localhost"
+        "https://tauri.localhost",
+        "jeeves://auth-callback"
     ],
     "notBefore": 0,
     "bearerOnly": false,

@@ -238,7 +238,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
             )
 
             # Redis Setup (using existing tenant redis)
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{product_space_name}_{tenant}-{generate_password(length=20)}"
             await run_activity(
                 activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
@@ -455,6 +455,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -464,6 +465,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -473,6 +475,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -482,6 +485,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
