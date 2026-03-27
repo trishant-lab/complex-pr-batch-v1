@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ruff format *)",
+      "Bash(ruff check *)",
+      "Bash(pytest *)",
+      "Bash(uv sync *)",
+      "Bash(uv run *)",
+      "Bash(uv lock *)",
+      "Bash(dbmate new *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git show*)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(gh api *)",
+      "Bash(gh run watch *)",
+      "Bash(gh run list *)",
+      "Bash(python app/pre_commit_checks.py)",
+      "Bash(bandit *)",
+      "Bash(pre-commit run *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)"
+    ],
+    "deny": [
+      "Read(config/*)",
+      "Edit(config/*)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -fd*)",
+      "Bash(*--dangerously*)",
+      "Bash(*credentials*)",
+      "Bash(*secret*)",
+      "Bash(*password*)",
+      "Bash(*config/inttest*)",
+      "Bash(*env-config.json*)",
+      "Bash(*tenant-config.json*)"
+    ]
+  }
+}
