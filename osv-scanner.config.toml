@@ -1,0 +1,3 @@
+[[IgnoredVulns]]
+id = "GHSA-5239-wwwm-4pmq"
+reason = "pygments: no fix version available (Low severity, CVSS 3.3)"
