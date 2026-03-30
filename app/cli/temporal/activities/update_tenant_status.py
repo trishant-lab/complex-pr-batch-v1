@@ -42,11 +42,6 @@ async def update_tenant_status(
         }
         db: DBManager = await get_db_manager()
         await db.fetch_one("update_tenant.sql", **parameters)
-        if product == ProductEnum.jeeves:
-            try:
-                await db.execute("create_space.sql", **parameters)
-            except Exception as e:
-                log_error(f"Error while creating space entry for {tenant_name}, {space_name}: {e}")
 
         log_info(f"Tenant status updated for {tenant_name} to {status}")
 
