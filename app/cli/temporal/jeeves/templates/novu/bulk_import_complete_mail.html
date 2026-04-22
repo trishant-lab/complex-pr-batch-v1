@@ -1,0 +1,32 @@
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto;">
+  <p style="margin: 0 0 20px; font-size: 16px;">Hi {{author_name}},</p>
+
+  <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">
+    Your recent bulk upload has been processed successfully.
+  </p>
+
+  <div style="background-color: #ffffff; padding: 20px 24px; border-radius: 8px; margin: 0 0 28px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);">
+    <p style="margin: 0 0 16px; font-weight: 700; font-size: 13px; color: #111827; text-transform: uppercase; letter-spacing: 0.5px;">Summary</p>
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr><th style="display: none;">Field</th><th style="display: none;">Value</th></tr>
+      </thead>
+      <tr>
+        <td style="padding: 8px 12px 8px 0; color: #6b7280; width: 110px; vertical-align: top; font-size: 14px; font-weight: 500;">Completed</td>
+        <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-weight: 600;">{{completed_count}}</td>
+      </tr>
+      <tr style="border-top: 1px solid #f3f4f6;">
+        <td style="padding: 8px 12px 8px 0; color: #6b7280; vertical-align: top; font-size: 14px; font-weight: 500;">Failed</td>
+        <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-weight: 600;">{{failed_count}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">
+    The processed assets can be reviewed from the bulk upload dashboard.
+  </p>
+
+  <div style="margin: 0 0 24px;">
+    <a href="{{dashboard_link}}" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">View Dashboard</a>
+  </div>
+</div>

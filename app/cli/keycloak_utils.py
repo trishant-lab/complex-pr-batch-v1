@@ -100,6 +100,33 @@ class KeycloakAdminClient:
                 return None
             raise
 
+    def update_user_attributes(self: "KeycloakAdminClient", user_id: str, realm_name: str, attributes: dict) -> None:
+        """
+        Update keycloak user attributes. For attributes where the user already has a value,
+        appends the new value as a comma-separated entry instead of overriding.
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+
+        existing_user = self.kc_client.get_user(user_id=user_id)
+        existing_attributes = existing_user.get("attributes", {})
+
+        merged_attributes = {**existing_attributes}
+        for key, value in attributes.items():
+            existing_value = existing_attributes.get(key)
+            if existing_value:
+                # Keycloak stores attribute values as lists
+                existing_str = existing_value[0] if isinstance(existing_value, list) else existing_value
+                existing_values = [v.strip() for v in existing_str.split(",")]
+                if value not in existing_values:
+                    merged_attributes[key] = f"{existing_str},{value}"
+                else:
+                    merged_attributes[key] = existing_str
+            else:
+                merged_attributes[key] = value
+
+        self.kc_client.update_user(user_id=user_id, payload={"attributes": merged_attributes})
+
     def get_user_id(self: "KeycloakAdminClient", username: str, realm_name: str) -> str:
         """
         Returns keycloak user id
