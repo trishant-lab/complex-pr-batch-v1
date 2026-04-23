@@ -4,7 +4,7 @@ from datetime import timedelta
 import aiohttp
 import httpx
 from loguru import logger
-from novu.api import IntegrationApi, LayoutApi, NotificationGroupApi, NotificationTemplateApi
+from novu.api import IntegrationApi, NotificationTemplateApi
 from novu.dto import IntegrationDto
 from temporalio import activity
 from temporalio.common import RetryPolicy
@@ -16,6 +16,7 @@ from app.cli.temporal.jeeves.models.jeeves_spec import SpaceSpec
 from app.cli.temporal.jeeves.template_main import (
     get_account_created_custom_email,
     get_asset_annotation_preset_share_email,
+    get_asset_feedback_received_email,
     get_asset_shared_email,
     get_assignment_assigned_custom_email,
     get_assignment_completion_email,
@@ -24,6 +25,7 @@ from app.cli.temporal.jeeves.template_main import (
     get_assignment_due_in_15_days_custom_email,
     get_assignment_overdue_custom_email,
     get_assignment_revoked_email,
+    get_bulk_import_complete_email,
     get_daily_digest_email,
     get_digest_layout_content,
     get_layout_content,
@@ -38,34 +40,33 @@ DIGEST_LAYOUT_NAME = "Jeeves Digest Layout"
 JEEVES_LAYOUT_NAME = "Jeeves Layout"
 
 
-def get_default_notification_group_id(config: AppSettings, novu_api_key: str) -> str | None:
-    """
-
-    :return:
-    """
-    group_name: str = "General"
-    group_client = NotificationGroupApi(url=config.jeeves.novu_url, api_key=novu_api_key)
-    response = group_client.list()
-    for group in response.data:
-        if group.name == group_name:
-            return group._id
+def get_default_notification_group_id(novu_url: str, novu_api_key: str) -> str | None:
+    """Fetch the default notification group ID from Novu."""
+    response = httpx.get(
+        f"{novu_url}/v1/notification-groups",
+        headers={"Authorization": f"ApiKey {novu_api_key}"},
+        timeout=10,
+    )
+    response.raise_for_status()
+    for group in response.json().get("data", []):
+        return group.get("_id")
     return None
 
 
 def get_default_notification_layout_id(
-    config: AppSettings,
-    novu_api_key: str,
-    layout_name: str = JEEVES_LAYOUT_NAME,
+    novu_url: str, novu_api_key: str, layout_name: str = JEEVES_LAYOUT_NAME
 ) -> str | None:
-    """
-
-    :return:
-    """
-    layout_client = LayoutApi(url=config.jeeves.novu_url, api_key=novu_api_key)
-    response = layout_client.list()
-    for layout in response.data:
-        if layout.name == layout_name:
-            return layout._id
+    """Fetch a layout's ID by name from Novu (case-sensitive match)."""
+    response = httpx.get(
+        f"{novu_url}/v1/layouts",
+        headers={"Authorization": f"ApiKey {novu_api_key}"},
+        params={"page": 0, "pageSize": 100},
+        timeout=10,
+    )
+    response.raise_for_status()
+    for layout in response.json().get("data", []):
+        if layout.get("name") == layout_name:
+            return layout.get("_id")
     return None
 
 
@@ -184,8 +185,8 @@ async def create_novu_workflow_template(
     :param in_app_redirect_url:
     :return:
     """
-    layout_id = get_default_notification_layout_id(config, novu_api_key, layout_name=layout_name)
-    notification_group = get_default_notification_group_id(config, novu_api_key)
+    layout_id = get_default_notification_layout_id(config.jeeves.novu_url, novu_api_key, layout_name=layout_name)
+    notification_group = get_default_notification_group_id(config.jeeves.novu_url, novu_api_key)
     steps: list = []
     if digest:
         digest_step = build_step("Digest", "digest", "")
@@ -254,9 +255,11 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
     :return:
     """
     template_names: set = get_novu_notification_template(config=config, novu_api_key=novu_api_key)
-    jeeves_layout: str | None = get_default_notification_layout_id(config=config, novu_api_key=novu_api_key)
+    jeeves_layout: str | None = get_default_notification_layout_id(
+        novu_url=config.jeeves.novu_url, novu_api_key=novu_api_key
+    )
     jeeves_digest_layout: str | None = get_default_notification_layout_id(
-        config=config, novu_api_key=novu_api_key, layout_name=DIGEST_LAYOUT_NAME
+        novu_url=config.jeeves.novu_url, novu_api_key=novu_api_key, layout_name=DIGEST_LAYOUT_NAME
     )
     if jeeves_layout is None:
         layout_content = await get_layout_content()
@@ -327,13 +330,13 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
         {
             "event_name": "jeeves-assignment-assigned",
             "custom_email": await get_assignment_assigned_custom_email(),
-            "email_subject": "New Assignment: '{{assignment_title}}' Assigned by {{assignment_assigned_by}}",
-            "chat_content": "A new Assignment has been assigned to you.",
-            "inapp_content": "A new Assignment has been assigned to you.",
+            "email_subject": "New Assignment: {{assignment_title}}",
+            "inapp_content": "You have been assigned a new assignment: "
+            "{{assignment_title}} by {{assignment_assigned_by}}.",
             "config": config,
             "novu_api_key": novu_api_key,
             "digest": False,
-            "in_app_redirect_url": "/my-assignments/{{assignment_id}}",
+            "in_app_redirect_url": "{{redirecturl}}{{assignment_link}}",
         },
         {
             "event_name": "jeeves-account-created",
@@ -444,6 +447,32 @@ async def add_novu_templates(config: AppSettings, novu_api_key: str) -> None:
             "novu_api_key": novu_api_key,
             "digest": False,
             "layout_name": DIGEST_LAYOUT_NAME,
+        },
+        {
+            "event_name": "jeeves-bulk-import-complete",
+            "custom_email": await get_bulk_import_complete_email(),
+            "email_subject": "Your bulk upload has been processed",
+            "inapp_content": (
+                "Your assets uploaded through bulk publish have been processed."
+                " You can view and manage them all in one place."
+            ),
+            "config": config,
+            "novu_api_key": novu_api_key,
+            "digest": False,
+            "in_app_redirect_url": "/assets/bulk-publish/{{instance_id}}",
+        },
+        {
+            "event_name": "jeeves-asset-feedback-received",
+            "custom_email": await get_asset_feedback_received_email(),
+            "email_subject": "New feedback on {{asset.asset_name}}",
+            "inapp_content": (
+                "New feedback has been received on {{asset.asset_name}} from {{learner_name}} at {{timestamp}}. "
+                "Feedback: {{feedback}}"
+            ),
+            "config": config,
+            "novu_api_key": novu_api_key,
+            "digest": False,
+            "in_app_redirect_url": "/assets/{{asset.asset_id}}/preview?version={{asset.asset_version}}&tab=activity",
         },
     ]
     await asyncio.gather(

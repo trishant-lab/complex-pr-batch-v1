@@ -199,3 +199,17 @@ async def get_asset_annotation_preset_share_email() -> str:
     Get the custom email for the Novu notifications
     """
     return await get_template_from_file("novu/asset_annotation_preset_share.html")
+
+
+async def get_bulk_import_complete_email() -> str:
+    """
+    Get the custom email for bulk import complete Novu notifications
+    """
+    return await get_template_from_file("novu/bulk_import_complete_mail.html")
+
+
+async def get_asset_feedback_received_email() -> str:
+    """
+    Get the custom email for asset feedback received Novu notifications
+    """
+    return await get_template_from_file("novu/asset_feedback_received_mail.html")
