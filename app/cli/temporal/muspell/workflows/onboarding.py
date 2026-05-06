@@ -798,12 +798,6 @@ class MuspellOnboardingWorkflow(Workflow):
                     template_name="keycloak_tenant_internal_user.json",
                     users=[
                         {
-                            "username": "vaishnavi.sharma@314ecorp.com",
-                            "email": "vaishnavi.sharma@314ecorp.com",
-                            "firstname": "Vaishnavi",
-                            "lastname": "Sharma",
-                        },
-                        {
                             "username": "soumya.agarwal@314ecorp.com",
                             "email": "soumya.agarwal@314ecorp.com",
                             "firstname": "Soumya",
