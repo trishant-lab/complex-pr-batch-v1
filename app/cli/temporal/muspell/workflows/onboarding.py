@@ -809,7 +809,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            catalog_name = f"ma{tenant}"
+            catalog_name = f"{tenant}"
 
             # Create the StarRocks catalog
             await run_activity(

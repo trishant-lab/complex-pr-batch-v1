@@ -187,7 +187,6 @@
     ],
     "identityProviderMappers": [
         {
-            "id": "be2af865-870c-463c-bd4e-353d06ca5570",
             "name": "ehr_app_name",
             "identityProviderAlias": "muspell-epic-prod",
             "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
