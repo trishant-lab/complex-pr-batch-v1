@@ -1,51 +1,6 @@
 {
     "identityProviders": [
         {
-            "alias": "muspell-epic-prod",
-            "displayName": "",
-            "providerId": "oidc",
-            "enabled": true,
-            "trustEmail": false,
-            "storeToken": false,
-            "addReadTokenRoleOnCreate": false,
-            "authenticateByDefault": false,
-            "linkOnly": false,
-            "hideOnLogin": false,
-            "firstBrokerLoginFlowAlias": "test smartonfhir launch",
-            "config": {
-                "tokenUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2/token",
-                "acceptsPromptNoneForwardFromClient": "false",
-                "jwksUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/api/epic/2019/Security/Open/PublicKeys/530027/OIDC",
-                "isAccessTokenJWT": "false",
-                "filteredByClaim": "false",
-                "backchannelSupported": "false",
-                "caseSensitiveOriginalUsername": "false",
-                "issuer": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2",
-                "pkceMethod": "S256",
-                "loginHint": "false",
-                "clientAuthMethod": "client_secret_basic",
-                "syncMode": "LEGACY",
-                "clientSecret": "**********",
-                "requiresShortStateParameter": "true",
-                "allowedClockSkew": "0",
-                "defaultScope": "launch openid fhirUser",
-                "validateSignature": "true",
-                "clientId": "90706468-8e8a-4a07-b2c8-8159f75c0042",
-                "uiLocales": "false",
-                "disableNonce": "true",
-                "useJwksUrl": "true",
-                "sendClientIdOnLogout": "false",
-                "pkceEnabled": "true",
-                "authorizationUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2/authorize?aud=https://vendorservices.epic.com/interconnect-amcurprd-oauth/api/FHIR/R4",
-                "disableUserInfo": "false",
-                "sendIdTokenOnLogout": "true",
-                "passMaxAge": "false",
-                "disableTypeClaimCheck": "false",
-                "jwtAuthorizationGrantEnabled": "false",
-                "forwardParameters": "aud,launch"
-             }
-    },
-        {
             "alias": "google",
             "displayName": "",
             "providerId": "google",
@@ -186,16 +141,6 @@
         }
     ],
     "identityProviderMappers": [
-        {
-            "name": "ehr_app_name",
-            "identityProviderAlias": "muspell-epic-prod",
-            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
-            "config": {
-                "syncMode": "FORCE",
-                "attribute.value": "Epic",
-                "attribute": "ehr_app_name"
-            }
-        },
         {
             "name": "ehr_app_name",
             "identityProviderAlias": "ehrsimulatorapp",
