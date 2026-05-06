@@ -923,7 +923,11 @@ class MuspellOnboardingWorkflow(Workflow):
 
             template = template_env.get_template("istio-rules.json")
             output = template.render(
-                tenant=tenant, image_tag=image_tag, env=config.env, domain_name=muspell_config.domain_name, kestra_basic_auth=muspell_config.kestra_basic_auth
+                tenant=tenant,
+                image_tag=image_tag,
+                env=config.env,
+                domain_name=muspell_config.domain_name,
+                kestra_basic_auth=muspell_config.kestra_basic_auth,
             )
 
             http_list = ijson_loads(output)
@@ -1131,7 +1135,10 @@ class MuspellOnboardingWorkflow(Workflow):
                         {"name": "KEYCLOAK_REALM", "value": tenant},
                         {"name": "KEYCLOAK_AUTH_URL", "value": f"{auth_url}/auth/"},
                         {"name": "SUPERSET_CONFIG_PATH", "value": "/app/superset_config.py"},
-                        {"name": "SUPERSET_BASE_URL", "value": f"https://{tenant}.api.{muspell_config.domain_name}/superset"},
+                        {
+                            "name": "SUPERSET_BASE_URL",
+                            "value": f"https://{tenant}.api.{muspell_config.domain_name}/superset",
+                        },
                         {"name": "SCRIPT_NAME", "value": "/superset"},
                         {"name": "PYTHONPATH", "value": "/app/pythonpath:/app/docker/pythonpath_dev"},
                         {"name": "FLASK_DEBUG", "value": "true"},
