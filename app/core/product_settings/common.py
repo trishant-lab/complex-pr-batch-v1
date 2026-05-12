@@ -1,5 +1,9 @@
+from typing import Literal
+
 from pydantic import BaseModel, PostgresDsn
 from pydantic_core import MultiHostUrl
+
+SlackPurpose = Literal["default", "login"]
 
 
 class PostgresSettings(BaseModel):
@@ -38,6 +42,17 @@ class SlackSettings(BaseModel):
     login_channel_id: str = ""
     bot_token: str = ""
     bot_username: str = "Launchpad"
+
+    @property
+    def channels(self) -> dict[SlackPurpose, str]:
+        """
+        Purpose -> channel id. `default` is the fallback target when a
+        purpose-specific channel is unset.
+        """
+        return {
+            "default": self.channel_id,
+            "login": self.login_channel_id,
+        }
 
 
 class Lago(BaseModel):

@@ -1,21 +1,13 @@
 from functools import lru_cache
-from typing import Literal
 
 from loguru import logger
 from slack_sdk import WebClient
 
-from app.core.product_settings.common import SlackSettings
+from app.core.product_settings.common import SlackPurpose, SlackSettings
 from app.core.settings import AppSettings, get_settings
 from app.models.product import ProductEnum
 
 config: AppSettings = get_settings()
-
-SlackPurpose = Literal["signup", "login"]
-
-_CHANNEL_FIELD_BY_PURPOSE: dict[SlackPurpose, str] = {
-    "signup": "channel_id",
-    "login": "login_channel_id",
-}
 
 
 @lru_cache(maxsize=10)
@@ -45,27 +37,27 @@ def get_slack_settings(product: ProductEnum) -> SlackSettings:
 
 def _resolve_channel(slack_cfg: SlackSettings, product: ProductEnum, purpose: SlackPurpose) -> str:
     """
-    Map purpose to the configured channel id, falling back to the product's
-    signup channel when the requested purpose has no channel configured.
-    Warns on fallback so misconfig is visible.
+    Look up the channel id for the given purpose. Falls back to the product's
+    default channel when the requested purpose has no channel configured;
+    logs a warning so the misconfig is visible.
     """
-    channel_id: str = getattr(slack_cfg, _CHANNEL_FIELD_BY_PURPOSE[purpose])
+    channel_id = slack_cfg.channels[purpose]
     if channel_id:
         return channel_id
-    if purpose != "signup":
+    if purpose != "default":
         logger.warning(
-            "slack purpose={} unset for product={}; falling back to signup channel",
+            "slack purpose={} unset for product={}; falling back to default channel",
             purpose,
             product.value,
         )
-    return slack_cfg.channel_id
+    return slack_cfg.channels["default"]
 
 
 def send_slack_msg(
     product: ProductEnum,
     text: str,
     blocks: list[dict],
-    purpose: SlackPurpose = "signup",
+    purpose: SlackPurpose = "default",
 ) -> None:
     """
     Post a slack message for the given product to the channel configured for
