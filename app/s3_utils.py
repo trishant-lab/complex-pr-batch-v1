@@ -4,10 +4,11 @@ import os
 from pathlib import Path
 
 from app.cli.temporal.muspell import TemplatePath
+from app.core.settings import S3Settings
 from app.template_env import get_env
 from loguru import logger
 
-from app.core.settings import AppSettings, get_settings
+from app.core.settings import AppSettings
 from app.utils.file_operations import get_opendal_file_client
 from app.utils.s3_operations import OpendalS3Client
 from app.utils.subprocess_execution import run_command
@@ -182,7 +183,7 @@ def copy_files_to_s3(
     os.system(f"mc copy {input_path} launchpad/{output_path}")  # nosec
 
 
-async def create_minio_user(config: AppSettings, access_key: str, secret_key: str) -> tuple[str, str]:
+async def create_minio_user(s3_config: S3Settings, access_key: str, secret_key: str) -> None:
     """
     Create a Minio user using mc client via subprocess
     """
@@ -194,9 +195,9 @@ async def create_minio_user(config: AppSettings, access_key: str, secret_key: st
                 "alias",
                 "set",
                 "minio",
-                config.s3_int.endpoint,
-                config.s3_int.access_key,
-                config.s3_int.secret_key,
+                s3_config.endpoint,
+                s3_config.access_key,
+                s3_config.secret_key,
             ],
         )
 
@@ -206,43 +207,49 @@ async def create_minio_user(config: AppSettings, access_key: str, secret_key: st
         )
 
         logger.info(f"Created Minio user {access_key} successfully")
-        return access_key, secret_key
 
     except Exception as e:
         logger.error(f"Failed to create Minio user: {e}")
         raise MinioUserCreationError(f"Failed to create Minio user: {e}")
 
 
-async def create_minio_bucket(config: AppSettings, bucket_name: str, region_name: str) -> None:
+async def create_minio_bucket(s3_config: S3Settings, bucket_name: str, region_name: str) -> None:
     """
     Create a Minio bucket using mc client via subprocess
     """
     await run_command(
-        *["mc", "alias", "set", "minio", config.s3_int.endpoint, config.s3_int.access_key, config.s3_int.secret_key],
+        ["mc", "alias", "set", "minio", s3_config.endpoint, s3_config.access_key, s3_config.secret_key],
     )
 
+    try:
+        # Check if bucket exists first
+        _ = await run_command(["mc", "ls", f"minio/{bucket_name}"])
+        logger.info(f"Minio bucket '{bucket_name}' already exists, skipping creation")
+        return
+    except Exception as e:
+        # Bucket doesn't exist or ls failed, proceed with creation
+        logger.info(f"Bucket not found: {e}, proceeding with creation")
+
     await run_command(
-        *["mc", "mb", "--region", region_name, f"minio/{bucket_name}"],
+        ["mc", "mb", "--region", region_name, f"minio/{bucket_name}"],
     )
 
     logger.info(f"Created Minio bucket '{bucket_name}' in region '{region_name}' successfully")
 
 
-async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
+async def attach_minio_policy(s3_config: S3Settings, bucket_name: str, access_key: str) -> None:
     """
     Create a Minio policy and attach it to a user using mc client via subprocess
     """
-    config: AppSettings = get_settings()
-
     await run_command(
         [
             "mc",
             "alias",
             "set",
             "minio",
-            config.s3_int.endpoint,
-            config.s3_int.access_key,
-            config.s3_int.secret_key,
+            s3_config.endpoint,
+            s3_config.access_key,
+            s3_config.secret_key,
         ]
     )
 
@@ -253,26 +260,41 @@ async def attach_minio_policy(bucket_name: str, access_key: str) -> None:
     # Use a temporary file with context manager to ensure cleanup
 
     opendal_file_operations = get_opendal_file_client()
-    async with opendal_file_operations.temp_file() as temp_file:
-        await temp_file.write(rendered_policy.encode())
-        temp_file_path = temp_file.name
+    async with opendal_file_operations.temp_dir() as temp_dir:
+        policy_file_path = os.path.join(opendal_file_operations.tempdir_root, temp_dir, "minio_policy.json")
+        await opendal_file_operations.write_file(policy_file_path, rendered_policy.encode())
 
         try:
             # Create the policy using mc admin
             await run_command(
-                ["mc", "admin", "policy", "create", "minio", "bucketpolicy", temp_file_path],
+                ["mc", "admin", "policy", "create", "minio", "bucketpolicy", policy_file_path],
             )
+            logger.info("Created MinIO policy 'bucketpolicy' successfully")
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "already exists" in error_msg or "policy already exists" in error_msg:
+                logger.info("MinIO policy 'bucketpolicy' already exists, skipping creation")
+            else:
+                logger.error(f"Failed to create MinIO policy: {e}")
+                raise
 
+        try:
             # Attach the policy to the user
             await run_command(
                 ["mc", "admin", "policy", "attach", "minio", "bucketpolicy", "--user", access_key],
             )
-
             logger.info(f"Attached policy to user {access_key} successfully")
-        finally:
-            # Ensure the temporary file is removed even if an exception occurs
-            if os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
+        except Exception as e:
+            error_msg = str(e).lower()
+            if (
+                "already attached" in error_msg
+                or "policy already attached" in error_msg
+                or "already exists" in error_msg
+            ):
+                logger.info(f"Policy already attached to user {access_key}, skipping attachment")
+            else:
+                logger.error(f"Failed to attach policy to user {access_key}: {e}")
+                raise
 
 
 class MinioUserCreationError(Exception):

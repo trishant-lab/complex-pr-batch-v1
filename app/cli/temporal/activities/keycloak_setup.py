@@ -166,6 +166,7 @@ def create_keycloak_user(
     client_id: str | None = None,
     client_roles: list[dict] | None = None,
     template_payload: dict | None = None,
+    attributes: dict | None = None,
 ) -> str:
     """
     Create keycloak user
@@ -210,6 +211,12 @@ def create_keycloak_user(
             group_id=keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_path),
         )
 
+    if attributes:
+        try:
+            keycloak_client.update_user_attributes(user_id=user_id, realm_name=realm_name, attributes=attributes)
+        except Exception as e:
+            log_error(f"Failed to set attributes for user {username} in realm {realm_name}: {e}")
+
     return user_id
 
 
@@ -225,6 +232,7 @@ def create_tenant_customer_admin_user(
     group_path: str | None,
     roles: list[str] | None = None,
     template_payload: dict | None = None,
+    attributes: dict | None = None,
 ) -> None:
     """
     Create tenant customer admin user
@@ -241,6 +249,7 @@ def create_tenant_customer_admin_user(
         group_path=group_path,
         roles=roles,
         template_payload=template_payload,
+        attributes=attributes,
     )
 
 
@@ -264,6 +273,8 @@ def create_internal_users(
     client_roles = keycloak_client.get_client_roles(client_id=client_id, realm_name=realm_name)
 
     for user in users:
+        user_roles = user.get("roles", roles)
+        user_attributes = user.get("attributes")
         create_keycloak_user(
             realm_name=realm_name,
             client_name=client_name,
@@ -273,11 +284,12 @@ def create_internal_users(
             lastname=user["lastname"],
             template_path=template_path,
             template_name=template_name,
-            roles=roles,
+            roles=user_roles,
             group_path=group_path,
             client_id=client_id,
             client_roles=client_roles,
             template_payload=template_payload,
+            attributes=user_attributes,
         )
         log_info(f"Keycloak internal user {user['username']} created successfully")
 
@@ -320,13 +332,15 @@ async def create_keycloak_group(
             if parent_group_name
             else keycloak_client.get_group_id_by_path(realm_name=realm_name, path=group_name)
         )
-        if client_roles and set(roles).issubset(set(client_roles.values())):
-            keycloak_client.assign_role_to_group(
-                group_id=group_id,
-                client_id=client_id,
-                realm_name=realm_name,
-                roles=[{"id": id, "name": name} for id, name in client_roles.items() if name in roles],
-            )
+        missing_roles = set(roles) - set(client_roles.values())
+        if missing_roles:
+            raise ValueError(f"Client roles not found in realm '{realm_name}': {missing_roles}")
+        keycloak_client.assign_role_to_group(
+            group_id=group_id,
+            client_id=client_id,
+            realm_name=realm_name,
+            roles=[{"id": id, "name": name} for id, name in client_roles.items() if name in roles],
+        )
 
 
 def delete_keycloak_client(
@@ -686,6 +700,7 @@ class KeycloakCreateTenantCustomerAdminUserActivityModel(LaunchpadCLIBaseModel):
     template_name: str
     group_path: str | None = None
     template_payload: dict | None = None
+    attributes: dict | None = None
 
 
 class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
@@ -725,6 +740,7 @@ class KeycloakCreateTenantCustomerAdminUserActivity(Activity):
             template_name=activity_model.template_name,
             group_path=activity_model.group_path,
             template_payload=activity_model.template_payload,
+            attributes=activity_model.attributes,
         )
 
         log_info(f"Keycloak tenant customer admin user {activity_model.username} assigned to client roles successfully")

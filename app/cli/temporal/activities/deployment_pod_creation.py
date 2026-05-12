@@ -419,6 +419,16 @@ class KedaApplyTemplatedYamlActivity(Activity):
             # Discover the resource API for the object
             api_resource = k8s_dynamic_client.resources.get(api_version=api_version, kind=kind)
 
+            # If the resource already exists, skip — KEDA admission webhook blocks
+            # server_side_apply on re-runs even for the same ScaledObject name
+            try:
+                existing = api_resource.get(name=name, namespace=tenant_namespace)
+                if existing:
+                    log_info(f"'{kind}/{name}' already exists in namespace '{tenant_namespace}', skipping")
+                    return
+            except NotFoundError:
+                log_info(f"'{kind}/{name}' not found, proceeding with apply")
+
             # Sanitize and apply the resource using server-side apply
             payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
 
@@ -434,3 +444,60 @@ class KedaApplyTemplatedYamlActivity(Activity):
         except Exception as e:
             log_error(f"Failed to apply templated YAML in namespace '{tenant_namespace}': {e!s}")
             raise
+
+
+class FetchDeploymentImageTagActivityModel(LaunchpadCLIBaseModel):
+    """
+    Model for fetching the current image tag from a running deployment.
+    """
+
+    namespace: str
+    deployment_name: str
+
+
+class FetchDeploymentImageTagActivity(Activity):
+    """
+    Fetches the current container image tag from a running deployment in a namespace.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """Timeout for the activity."""
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """RetryPolicy for the activity."""
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=3,
+        )
+
+    @staticmethod
+    @activity.defn(name="FetchDeploymentImageTagActivity")
+    async def defn(activity_model: FetchDeploymentImageTagActivityModel) -> str:
+        """
+        Fetch the image tag from the first container of a running deployment.
+        Returns the tag portion of the image (after the last ':'), or 'production' as fallback.
+        """
+        try:
+            k8s_dynamic_client = get_dynamic_client()
+            resource = get_resource(
+                dynamic_client=k8s_dynamic_client,
+                kind=ResourceKindEnum.Deployment,
+                api_version=K8S_RESOURCE_VERSION,
+            )
+            deployment = resource.get(name=activity_model.deployment_name, namespace=activity_model.namespace)
+            image = deployment.spec.template.spec.containers[0].image
+            tag = image.rsplit(":", 1)[-1] if ":" in image else "production"
+            log_info(f"Current image tag for {activity_model.deployment_name} in {activity_model.namespace}: {tag}")
+            return tag
+        except NotFoundError:
+            log_error(
+                f"Deployment '{activity_model.deployment_name}' not found in namespace '{activity_model.namespace}'"
+            )
+            return "production"
+        except Exception as e:
+            log_error(f"Failed to fetch image tag from deployment {activity_model.deployment_name}: {e!s}")
+            return "production"

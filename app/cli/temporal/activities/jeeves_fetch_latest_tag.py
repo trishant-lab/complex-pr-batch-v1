@@ -43,9 +43,12 @@ class JeevesFetchLatestTagActivity(Activity):
             )
             if response.is_success:
                 tags = response.json().get("tags", [])
-                pattern = r"^jeeves-[\d\.]+$"
-                filtered_tags = sorted(tag for tag in tags if re.match(pattern, tag))
-                return filtered_tags[-1] if filtered_tags else "production"
+                pattern = r"^jeeves-(\d+\.\d+\.\d+)$"
+                filtered_tags = [tag for tag in tags if re.match(pattern, tag)]
+                if filtered_tags:
+                    filtered_tags.sort(key=lambda t: tuple(int(x) for x in t.removeprefix("jeeves-").split(".")))
+                    return filtered_tags[-1]
+                return "production"
             response.raise_for_status()
         except Exception as e:
             log_error(f"Error fetching latest tag: {e=}")
