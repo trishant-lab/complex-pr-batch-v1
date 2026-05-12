@@ -112,3 +112,28 @@ def test_connector_template_is_scoped_to_the_tenant() -> None:
 
     assert 'tenant=\\"acme\\"' in rendered
     assert "vm-alerting" in rendered
+
+
+def test_unknown_template_does_not_silently_reuse_camel(tmp_path) -> None:
+    """A new template without a kind branch must fail loud, not overwrite Camel."""
+    import pytest
+    from app.cli.temporal.activities.grafana_dashboard import (
+        GrafanaDashboard,
+        GrafanaDashboardProperties,
+    )
+
+    template = tmp_path / "grafana_dashboard_mystery.json"
+    template.write_text(
+        '{"title": "x", "uid": "y", "templating": {"list": []}, "panels": []}',
+        encoding="utf-8",
+    )
+    props = GrafanaDashboardProperties(
+        tenant="acme",
+        grafana_url="http://grafana.test",
+        api_key="k",
+        template_path=str(template),
+        datasource_uid="ds",
+    )
+    dash = GrafanaDashboard(props)
+    with pytest.raises(ValueError, match="Unrecognized Grafana dashboard template"):
+        dash.prepare_dashboard("acme")
