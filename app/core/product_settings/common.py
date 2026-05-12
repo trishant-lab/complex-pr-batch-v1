@@ -35,6 +35,7 @@ class SlackSettings(BaseModel):
     """
 
     channel_id: str = "C076N2B1FD4"
+    login_channel_id: str = ""
     bot_token: str = ""
     bot_username: str = "Launchpad"
 
