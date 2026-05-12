@@ -6,20 +6,6 @@ from app.slack_utils import SlackChannel, send_slack_msg
 settings = get_settings()
 
 
-def _send_lead_msg(text: str, blocks: list[dict], product: ProductEnum) -> None:
-    """
-    Send integration msg to slack & production to marketing channel
-    """
-    send_slack_msg(product, text, blocks)
-
-
-def _send_login_msg(text: str, blocks: list[dict], product: ProductEnum) -> None:
-    """
-    Send login-flow message to the configured login slack channel.
-    """
-    send_slack_msg(product, text, blocks, channel=SlackChannel.login)
-
-
 def _get_leads_block_from_customer_response(text: str, customer: CustomerResponse) -> list[dict]:
     """
     @param customer:
@@ -77,7 +63,7 @@ def leads_otp_verified(email: str, product: ProductEnum) -> None:
             ],
         },
     ]
-    _send_login_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, channel=SlackChannel.login)
 
 
 def leads_otp_sent(email: str, product: ProductEnum) -> None:
@@ -104,7 +90,7 @@ def leads_otp_sent(email: str, product: ProductEnum) -> None:
             ],
         },
     ]
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks)
 
 
 def leads_form_fill(customer: CustomerResponse, product: ProductEnum) -> None:
@@ -114,7 +100,7 @@ def leads_form_fill(customer: CustomerResponse, product: ProductEnum) -> None:
     """
     text = "Customer has filled 'Account Details' form"
     blocks = _get_leads_block_from_customer_response(text, customer)
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks)
 
 
 def leads_add_payment_details(customer: CustomerResponse, product: ProductEnum) -> None:
@@ -124,7 +110,7 @@ def leads_add_payment_details(customer: CustomerResponse, product: ProductEnum) 
     """
     text = "Customer has added 'Payment Information'"
     blocks = _get_leads_block_from_customer_response(text, customer)
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks)
 
 
 def portal_link_otp_request(email: str, product: ProductEnum) -> None:
@@ -150,7 +136,7 @@ def portal_link_otp_request(email: str, product: ProductEnum) -> None:
             ],
         },
     ]
-    _send_login_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, channel=SlackChannel.login)
 
 
 def portal_link_request(email: str, product: ProductEnum, urls: list[str] | None = None) -> None:
@@ -188,4 +174,4 @@ def portal_link_request(email: str, product: ProductEnum, urls: list[str] | None
             ],
         },
     ]
-    _send_login_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, channel=SlackChannel.login)

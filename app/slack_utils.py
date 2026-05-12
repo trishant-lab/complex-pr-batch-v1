@@ -28,13 +28,20 @@ def get_slack_client(product: ProductEnum) -> WebClient:
             return WebClient(token=config.slack.bot_token)
 
 
-def _resolve_channel(slack_cfg: SlackSettings, channel: SlackChannel) -> str:
+def _resolve_channel(product: ProductEnum, slack_cfg: SlackSettings, channel: SlackChannel) -> str:
     """
     Pick the channel id for the given kind. Login falls back to signup
-    channel when login_channel_id is unset.
+    channel when login_channel_id is unset, with a warning so misconfig
+    is visible instead of silently re-noising the signup channel.
     """
     if channel is SlackChannel.login:
-        return slack_cfg.login_channel_id or slack_cfg.channel_id
+        if slack_cfg.login_channel_id:
+            return slack_cfg.login_channel_id
+        logger.warning(
+            "login_channel_id unset for product={}; routing login slack message to signup channel_id",
+            product.value,
+        )
+        return slack_cfg.channel_id
     return slack_cfg.channel_id
 
 
@@ -52,7 +59,7 @@ def _send_message(product: ProductEnum, text: str, blocks: list[dict], channel: 
             case _:
                 slack_cfg = config.slack
 
-        channel_id = _resolve_channel(slack_cfg, channel)
+        channel_id = _resolve_channel(product, slack_cfg, channel)
         username = slack_cfg.bot_username
 
         client.chat_postMessage(
