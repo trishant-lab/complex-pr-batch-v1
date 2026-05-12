@@ -44,16 +44,23 @@ class GrafanaDashboard:
         # Each template needs its own branch: the final else is a fallback, so a
         # template added without one is silently published under another
         # dashboard's title and uid, overwriting it.
-        template_path_lower = self.properties.template_path.lower()
-        if "spring" in template_path_lower or "springboot" in template_path_lower:
+        kind = self._classify_dashboard_kind(self.properties.template_path)
+        if kind == "spring":
             dashboard_dict["title"] = f"{tenant_name} - Spring Boot 3.x Statistics"
             dashboard_dict["uid"] = f"spring_boot_{tenant_name}"
-        elif "connector" in template_path_lower:
+        elif kind == "connector":
             dashboard_dict["title"] = f"{tenant_name} - Connector"
             dashboard_dict["uid"] = f"zsegment-connector-{tenant_name}"
-        else:
+        elif kind == "camel":
             dashboard_dict["title"] = f"{tenant_name} - Apache Camel - Context view"
             dashboard_dict["uid"] = f"apache-camel-micrometer-{tenant_name}"
+        else:
+            # Do not silently reuse the Camel board — that overwrites another
+            # tenant dashboard when a new template ships without a branch.
+            raise ValueError(
+                f"Unrecognized Grafana dashboard template {self.properties.template_path!r}; "
+                "add an explicit branch in _classify_dashboard_kind before provisioning."
+            )
 
         self._hide_variables(dashboard_dict)
 
@@ -72,6 +79,24 @@ class GrafanaDashboard:
         """
         for variable in dashboard_dict.get("templating", {}).get("list", []):
             variable["hide"] = 2
+
+
+    @staticmethod
+    def _classify_dashboard_kind(template_path: str) -> str:
+        """
+        Map a template filename to a dashboard kind.
+
+        Returning a closed set forces new templates to get an explicit branch
+        instead of inheriting the Camel title/uid via the old else-fallback.
+        """
+        name = template_path.lower()
+        if "spring" in name or "springboot" in name:
+            return "spring"
+        if "connector" in name:
+            return "connector"
+        if "camel" in name or "apache" in name or "micrometer" in name:
+            return "camel"
+        return "unknown"
 
     async def create_dashboard(self, tenant_name: str) -> dict:
         """
