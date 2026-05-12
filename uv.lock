@@ -947,7 +947,7 @@ wheels = [
 
 [[package]]
 name = "lago-python-client"
-version = "1.36.0"
+version = "1.44.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "classes" },
@@ -956,9 +956,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "typeguard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/20/35320022d2dc0bd0a7b0c36274bcd8d2d2589b9445528f9f237dc07e29ad/lago_python_client-1.36.0.tar.gz", hash = "sha256:1dedc84010a38a1ccc05ee83bf9f723363e780186f71b5f56f74cc3557b3637e", size = 46458, upload-time = "2025-11-27T17:22:40.13Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/70/00523ec549a8010c056f7d2a748136ca95c8e7cf961a65e8e656c872bb5a/lago_python_client-1.44.0.tar.gz", hash = "sha256:ae3554354dab32580bde4ba729e5389567429e625b4930af90f62df95b0923cd", size = 60592, upload-time = "2026-03-19T17:02:11.155Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/81/642b517d4740242aaeece39fc151705c9c855c4b972bf099596d645ada80/lago_python_client-1.36.0-py3-none-any.whl", hash = "sha256:718838d30fc89de3b2fb748ed6278f18f546a8ad26327f18ae8d57a1482f83c9", size = 102071, upload-time = "2025-11-27T17:22:38.879Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/67/f712aa130a91b02fb39ff7662a8eff2c17e54bbe34a9ff386d6c57438682/lago_python_client-1.44.0-py3-none-any.whl", hash = "sha256:d5a96d3b3fcaa7167bf779b05064efe663079dd7907b9f94dffe1378d432a904", size = 123310, upload-time = "2026-03-19T17:02:10.019Z" },
 ]
 
 [[package]]
@@ -1064,7 +1064,7 @@ requires-dist = [
     { name = "huggingface-hub", specifier = "==1.2.3" },
     { name = "jinja2", specifier = "==3.1.6,<4" },
     { name = "kubernetes", specifier = "==31.0.0,<32" },
-    { name = "lago-python-client", specifier = "==1.36.0" },
+    { name = "lago-python-client", specifier = "==1.44.0" },
     { name = "loguru", specifier = "==0.7.3,<0.8" },
     { name = "lxml", specifier = "==5.3.1,<6" },
     { name = "mysql-connector-python", specifier = "==9.2.0,<10" },
