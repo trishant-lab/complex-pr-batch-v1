@@ -1,7 +1,7 @@
 from app.core.settings import get_settings
 from app.models.lago.customer import CustomerResponse
 from app.models.product import ProductEnum
-from app.slack_utils import send_slack_msg
+from app.slack_utils import SlackPurpose, send_slack_msg
 
 settings = get_settings()
 
@@ -39,7 +39,7 @@ def _get_leads_block_from_customer_response(text: str, customer: CustomerRespons
     ]
 
 
-def leads_otp_verified(email: str, product: ProductEnum, channel_id: str | None = None) -> None:
+def leads_otp_verified(email: str, product: ProductEnum, purpose: SlackPurpose = "signup") -> None:
     """
     @param email:
     send email to customer
@@ -63,10 +63,10 @@ def leads_otp_verified(email: str, product: ProductEnum, channel_id: str | None 
             ],
         },
     ]
-    send_slack_msg(product, text, blocks, channel_id=channel_id)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def leads_otp_sent(email: str, product: ProductEnum) -> None:
+def leads_otp_sent(email: str, product: ProductEnum, purpose: SlackPurpose = "signup") -> None:
     """
     @param email:
     send email to customer
@@ -90,30 +90,32 @@ def leads_otp_sent(email: str, product: ProductEnum) -> None:
             ],
         },
     ]
-    send_slack_msg(product, text, blocks)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def leads_form_fill(customer: CustomerResponse, product: ProductEnum) -> None:
+def leads_form_fill(customer: CustomerResponse, product: ProductEnum, purpose: SlackPurpose = "signup") -> None:
     """
     @param customer:
     send email to customer
     """
     text = "Customer has filled 'Account Details' form"
     blocks = _get_leads_block_from_customer_response(text, customer)
-    send_slack_msg(product, text, blocks)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def leads_add_payment_details(customer: CustomerResponse, product: ProductEnum) -> None:
+def leads_add_payment_details(
+    customer: CustomerResponse, product: ProductEnum, purpose: SlackPurpose = "signup"
+) -> None:
     """
     @param customer:
     send email to customer
     """
     text = "Customer has added 'Payment Information'"
     blocks = _get_leads_block_from_customer_response(text, customer)
-    send_slack_msg(product, text, blocks)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def portal_link_otp_request(email: str, product: ProductEnum, channel_id: str | None = None) -> None:
+def portal_link_otp_request(email: str, product: ProductEnum, purpose: SlackPurpose = "signup") -> None:
     """
     Notify slack: customer requested an OTP for a portal link (login flow).
     """
@@ -136,14 +138,14 @@ def portal_link_otp_request(email: str, product: ProductEnum, channel_id: str | 
             ],
         },
     ]
-    send_slack_msg(product, text, blocks, channel_id=channel_id)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
 def portal_link_request(
     email: str,
     product: ProductEnum,
     urls: list[str] | None = None,
-    channel_id: str | None = None,
+    purpose: SlackPurpose = "signup",
 ) -> None:
     """
     Notify slack: customer redeemed a portal link (login flow).
@@ -179,4 +181,4 @@ def portal_link_request(
             ],
         },
     ]
-    send_slack_msg(product, text, blocks, channel_id=channel_id)
+    send_slack_msg(product, text, blocks, purpose=purpose)

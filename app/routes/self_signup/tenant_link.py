@@ -11,7 +11,6 @@ from app.route_utils.product import validate_email_domain
 from app.route_utils.recaptcha import validate_recaptcha
 from app.route_utils.session_util import get_treated_email
 from app.route_utils.user_otp import UserOTP
-from app.slack_utils import get_slack_settings
 
 router = APIRouter()
 
@@ -37,7 +36,7 @@ async def get_otp_for_portal_link(
     email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
     await UserOTP.create_portal_link_otp(email, product)
-    portal_link_otp_request(email, product, channel_id=get_slack_settings(product).login_channel_id)
+    portal_link_otp_request(email, product, purpose="login")
 
 
 @router.post(
@@ -72,7 +71,7 @@ async def get_portal_link(
             TenantStatusEnum=TenantStatusEnum,
         )
         urls = [x["tenantlinks"] for x in tenant_links]
-        portal_link_request(email, product, urls, channel_id=get_slack_settings(product).login_channel_id)
+        portal_link_request(email, product, urls, purpose="login")
         if tenant_links:
             return urls
         raise errors.CUSTOMER_NOT_FOUND.exc()

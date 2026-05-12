@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from loguru import logger
 from slack_sdk import WebClient
@@ -8,6 +9,13 @@ from app.core.settings import AppSettings, get_settings
 from app.models.product import ProductEnum
 
 config: AppSettings = get_settings()
+
+SlackPurpose = Literal["signup", "login"]
+
+_CHANNEL_FIELD_BY_PURPOSE: dict[SlackPurpose, str] = {
+    "signup": "channel_id",
+    "login": "login_channel_id",
+}
 
 
 @lru_cache(maxsize=10)
@@ -35,23 +43,40 @@ def get_slack_settings(product: ProductEnum) -> SlackSettings:
             return config.slack
 
 
+def _resolve_channel(slack_cfg: SlackSettings, product: ProductEnum, purpose: SlackPurpose) -> str:
+    """
+    Map purpose to the configured channel id, falling back to the product's
+    signup channel when the requested purpose has no channel configured.
+    Warns on fallback so misconfig is visible.
+    """
+    channel_id: str = getattr(slack_cfg, _CHANNEL_FIELD_BY_PURPOSE[purpose])
+    if channel_id:
+        return channel_id
+    if purpose != "signup":
+        logger.warning(
+            "slack purpose={} unset for product={}; falling back to signup channel",
+            purpose,
+            product.value,
+        )
+    return slack_cfg.channel_id
+
+
 def send_slack_msg(
     product: ProductEnum,
     text: str,
     blocks: list[dict],
-    channel_id: str | None = None,
+    purpose: SlackPurpose = "signup",
 ) -> None:
     """
-    Post a slack message for the given product. When channel_id is provided,
-    it overrides the product's default channel; otherwise the product's
-    default channel_id is used.
+    Post a slack message for the given product to the channel configured for
+    the requested purpose.
     """
     try:
         slack_cfg = get_slack_settings(product)
-        target_channel = channel_id or slack_cfg.channel_id
+        channel_id = _resolve_channel(slack_cfg, product, purpose)
         client = get_slack_client(product)
         client.chat_postMessage(
-            channel=target_channel,
+            channel=channel_id,
             text=text,
             blocks=blocks,
             username=slack_cfg.bot_username,
