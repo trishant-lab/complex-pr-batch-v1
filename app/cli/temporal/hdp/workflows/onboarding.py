@@ -36,7 +36,7 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresUserCreationActivityModel,
 )
 from app.cli.temporal.activities.pvc_setup import PVCSetupActivity, PVCSetupActivityModel
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.redis import CACHE_HOST, RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
@@ -280,18 +280,8 @@ class HDPOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # secret setup for redis password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="cache-secret",
-                    string_data={"REDIS_PASSWORD": config.cache_admin_password},
-                ),
-            )
-
             # setup redis
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{ProductName}_{tenant}-{generate_password(length=20)}"
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
                 arg=OnePasswordCreateOrUpdateActivityModel(
@@ -556,7 +546,7 @@ class HDPOnboardingWorkflow(Workflow):
                         {"name": "DATABASE_USER", "value": f"{ProductName.lower()}_{tenant}"},
                         {"name": "DATABASE_PORT", "value": str(get_settings().postgres.port)},
                         {"name": "DATABASE_DIALECT", "value": "postgresql"},
-                        {"name": "REDIS_HOST", "value": f"cache-new.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS_HOST", "value": CACHE_HOST},
                         {"name": "REDIS_PORT", "value": "6379"},
                         {"name": "REDIS_PASSWORD", "value": redis_tenant_password},
                         {"name": "FLASK_APP", "value": "superset"},

@@ -55,7 +55,11 @@ from app.cli.temporal.activities.practifly_job import (
     PractiflyJobActivityModel,
 )
 from app.cli.temporal.activities.pvc_setup import PVCSetupActivity, PVCSetupActivityModel
-from app.cli.temporal.activities.redis import RedisSetupFromSecretActivity, RedisSetupFromSecretActivityModel
+from app.cli.temporal.activities.redis import (
+    CACHE_HOST,
+    RedisSetupFromSecretActivity,
+    RedisSetupFromSecretActivityModel,
+)
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
@@ -220,7 +224,7 @@ class PractiflyOnboardingWorkflow(Workflow):
             postgres_password = generate_password(length=20)
             postgres_secret_name = f"{ProductName}-postgres"
 
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{ProductName}_{tenant}-{generate_password(length=20)}"
             redis_secret_name = f"{ProductName}-redis"
 
             template_env = get_env(template_path=TemplatePath)
@@ -327,16 +331,6 @@ class PractiflyOnboardingWorkflow(Workflow):
                     data={
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
-                ),
-            )
-
-            # secret setup for redis master password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="cache-secret",
-                    string_data={"REDIS_PASSWORD": config.cache_admin_password},
                 ),
             )
 
@@ -685,7 +679,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": CACHE_HOST},
                         {
                             "name": "REDIS__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
@@ -778,7 +772,7 @@ class PractiflyOnboardingWorkflow(Workflow):
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": CACHE_HOST},
                         {
                             "name": "REDIS__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},

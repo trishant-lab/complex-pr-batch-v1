@@ -29,7 +29,7 @@ from app.cli.temporal.activities.muspell_configupdate_job import (
     MuspellConfigUpdateJobActivity,
     MuspellConfigUpdateJobActivityModel,
 )
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.redis import CACHE_HOST, RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
@@ -379,18 +379,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # secret setup for redis password
-            cache_secret_name = "cache-secret"
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name=cache_secret_name,
-                    string_data={"REDIS_PASSWORD": config.cache_admin_password},
-                ),
-            )
-
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{ProductName}_{tenant}-{generate_password(length=20)}"
 
             await run_activity(
                 activity=RedisSetupActivity,
@@ -1110,10 +1099,7 @@ class MuspellOnboardingWorkflow(Workflow):
                                 "secret_key_ref": {"name": superset_secret_name, "key": "DATABASE_PASSWORD"}
                             },
                         },
-                        {
-                            "name": "REDIS_PASSWORD",
-                            "value_from": {"secret_key_ref": {"name": cache_secret_name, "key": "REDIS_PASSWORD"}},
-                        },
+                        {"name": "REDIS_PASSWORD", "value": redis_tenant_password},
                         {"name": "PYTHONUNBUFFERED", "value": "1"},
                         {"name": "COMPOSE_PROJECT_NAME", "value": "superset"},
                         {"name": "DEV_MODE", "value": "true"},
@@ -1123,7 +1109,7 @@ class MuspellOnboardingWorkflow(Workflow):
                         {"name": "DATABASE_PORT", "value": str(config.postgres.port)},
                         {"name": "DATABASE_DIALECT", "value": "postgresql"},
                         {"name": "DATABASE_USER", "value": postgres_username},
-                        {"name": "REDIS_HOST", "value": f"cache.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS_HOST", "value": CACHE_HOST},
                         {"name": "REDIS_PORT", "value": "6379"},
                         {"name": "KEYCLOAK_CLIENT_ID", "value": "muspell"},
                         {"name": "KEYCLOAK_REALM", "value": tenant},

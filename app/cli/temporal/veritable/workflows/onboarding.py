@@ -60,7 +60,7 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
 )
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.redis import CACHE_HOST, RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
@@ -201,7 +201,7 @@ class VeritableOnboardingWorkflow(Workflow):
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
             postgres_secret_name = f"{ProductName}-postgres"
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{ProductName}_{tenant}-{generate_password(length=20)}"
             redis_secret_name = f"{ProductName}-redis"
             novu_secret_name = f"{ProductName}-novu"
 
@@ -401,26 +401,6 @@ class VeritableOnboardingWorkflow(Workflow):
                     data={
                         ".dockerconfigjson": config.docker_image_pull_secret,
                     },
-                ),
-            )
-
-            # secret setup for redis password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="cache-secret",
-                    string_data={"REDIS_PASSWORD": config.cache_admin_password},
-                ),
-            )
-
-            # secret setup for postgres password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="postgres-secret",
-                    string_data={"POSTGRES_PASSWORD": postgres_password},
                 ),
             )
 
@@ -790,7 +770,7 @@ class VeritableOnboardingWorkflow(Workflow):
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": CACHE_HOST},
                         {
                             "name": "REDIS__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
@@ -900,7 +880,7 @@ class VeritableOnboardingWorkflow(Workflow):
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
                         },
                         {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": f"cache.{tenant}.svc.cluster.local"},
+                        {"name": "REDIS__HOST", "value": CACHE_HOST},
                         {
                             "name": "REDIS__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},

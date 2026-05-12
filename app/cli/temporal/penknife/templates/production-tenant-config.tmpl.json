@@ -11,7 +11,7 @@
       "provider_client_id": "{{ op://Penknife/application-config/PRODUCTION_COMMON_CONFIG/provider_client_id }}",
       "provider_client_secret": "{{ op://Penknife/application-config/PRODUCTION_COMMON_CONFIG/provider_client_secret }}"
   },
-  "redis_dsn": "redis://redis:@cache-new.<<tenant>>.svc.cluster.local",
+  "redis_dsn": "redis://redis:@cache.cache.svc.cluster.local",
   "redis_password": "{{ op://Penknife/application-config/PENKNIFE_<<tenant>>/redis_password }}",
   "pg_dsn": "postgresql://penknife_<<tenant>>.penknife_<<tenant>>:{{ op://Penknife/application-config/PENKNIFE_<<tenant>>/pg_password }}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/penknife",
   "keycloak_dsn": "postgresql://keycloak:{{ op://Penknife/application-config/PRODUCTION_COMMON_CONFIG/postgres_keycloak_user_password }}@db-cluster-ha.postgresql.svc.cluster.local:5432/keycloak",

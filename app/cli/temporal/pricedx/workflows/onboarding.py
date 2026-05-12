@@ -312,18 +312,8 @@ class PricedxOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # secret setup for redis password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="cache-secret",
-                    string_data={"REDIS_PASSWORD": config.cache_admin_password},
-                ),
-            )
-
             # setup redis
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{ProductName}_{tenant}-{generate_password(length=20)}"
             await run_activity(
                 activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
