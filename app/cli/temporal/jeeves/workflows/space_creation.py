@@ -12,6 +12,8 @@ from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
+    FetchDeploymentImageTagActivity,
+    FetchDeploymentImageTagActivityModel,
     KubernetesDeploymentUpdateActivity,
     KubernetesDeploymentUpdateActivityModel,
 )
@@ -67,16 +69,19 @@ from app.cli.temporal.activities.update_space_status import (
 )
 from app.cli.temporal.activities.vespa_job import VespaJobActivity, VespaJobActivityModel
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.jeeves import TemplatePath
+from app.cli.temporal.jeeves import (
+    JEEVES_CLIENT_ROLES,
+    JEEVES_NON_PRODUCTION_INTERNAL_USERS,
+    JEEVES_PRODUCTION_INTERNAL_USERS,
+    OnePasswordVaultName,
+    ProductName,
+    TemplatePath,
+)
 from app.cli.temporal.jeeves.models.jeeves_spec import SpaceSpec
 from app.common import generate_password
 from app.core.settings import AppSettings, JeevesSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
-
-ProductName = "jeeves"
-OnePasswordVaultName = "Jeeves"
-JeevesSystemUser = "jeeves-systemuser@314ecorp.com"
 
 
 @workflow.defn(name="JeevesSpaceCreationWorkflow", sandboxed=False)
@@ -116,6 +121,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
             K8sConfigMapCreationActivity.defn,
             DatabaseMigrationJobActivity.defn,
             JeevesFetchLatestTagActivity.defn,
+            FetchDeploymentImageTagActivity.defn,
             UpdateSpaceStatusActivity.defn,
             OnePasswordGetActivity.defn,
             KubernetesDeploymentUpdateActivity.defn,
@@ -198,42 +204,6 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     schema_name=postgres_schema_name,
                     username=postgres_username,
                     database_name=postgres_database_name,
-                ),
-            )
-
-            await run_activity(
-                activity=PostgresGrantAllPrivilegesOnTablesActivity,
-                arg=PostgresGrantAllPrivilegesActivityModel(
-                    posthog_username=jeeves_config.posthog_username,
-                    database_name=postgres_database_name,
-                    schema_name=postgres_schema_name,
-                ),
-            )
-
-            await run_activity(
-                activity=PostgresGrantAllPrivilegesOnFunctionsActivity,
-                arg=PostgresGrantAllPrivilegesActivityModel(
-                    posthog_username=jeeves_config.posthog_username,
-                    database_name=postgres_database_name,
-                    schema_name=postgres_schema_name,
-                ),
-            )
-
-            await run_activity(
-                activity=PostgresGrantAllPrivilegesOnSequencesActivity,
-                arg=PostgresGrantAllPrivilegesActivityModel(
-                    posthog_username=jeeves_config.posthog_username,
-                    database_name=postgres_database_name,
-                    schema_name=postgres_schema_name,
-                ),
-            )
-
-            await run_activity(
-                activity=PostgresGrantAllPrivilegesOnSchemaActivity,
-                arg=PostgresGrantAllPrivilegesActivityModel(
-                    posthog_username=jeeves_config.posthog_username,
-                    database_name=postgres_database_name,
-                    schema_name=postgres_schema_name,
                 ),
             )
 
@@ -359,13 +329,14 @@ class JeevesSpaceCreationWorkflow(Workflow):
                 ),
             )
 
-            image_tag = "sprint"
-            if config.env == "production":
-                image_tag = await workflow.execute_activity(
-                    activity=JeevesFetchLatestTagActivity.defn,
-                    retry_policy=JeevesFetchLatestTagActivity.get_retry_policy(),
-                    start_to_close_timeout=JeevesFetchLatestTagActivity.get_timeout(),
-                )
+            # Fetch the current running image tag from the existing deployment in the namespace
+            image_tag = await run_activity(
+                activity=FetchDeploymentImageTagActivity,
+                arg=FetchDeploymentImageTagActivityModel(
+                    namespace=tenant,
+                    deployment_name="jeeves",
+                ),
+            )
 
             # Database migration job for space-specific schema
             docker_image = f"registry.314ecorp.tech/jeeves-app:{image_tag}"
@@ -455,6 +426,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -464,6 +436,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -473,6 +446,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -482,6 +456,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -496,25 +471,15 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     domain=jeeves_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_jeeves_space_client.json",
-                    template_payload={"chatwoot_domain": jeeves_config.chatwoot_domain, "space": space},
+                    template_payload={
+                        "chatwoot_domain": jeeves_config.chatwoot_domain,
+                        "space": space,
+                        "space_name": space_display_name,
+                    },
                 ),
             )
 
-            roles = [
-                "_access-broadcast",
-                "_access-assignment",
-                "_access-analytics",
-                "_access-setting",
-                "_allow-add-edit-asset",
-                "_allow-delete-asset",
-                "_allow-publish-asset",
-                "_allow-standalone-launch",
-                "_allow-view-asset",
-                "_access-user-list",
-                "_can-manage-user",
-                "_developer",
-                "_JEEVESALL",
-            ]
+            roles = JEEVES_CLIENT_ROLES
 
             # Keycloak client roles setup
             await run_activity(
@@ -583,8 +548,8 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     lastname=last_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
-                    roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     group_path=f"{client_name}/Admin",
+                    attributes={"ProtectedKCGroups": f"/{client_name}/Admin"},
                 ),
             )
 
@@ -596,48 +561,9 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     client_name=client_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=[
-                        {
-                            "username": "casey.post@314ecorp.com",
-                            "email": "casey.post@314ecorp.com",
-                            "firstname": "Casey",
-                            "lastname": "Post",
-                        },
-                        {
-                            "username": "nick.dejongh@314ecorp.com",
-                            "email": "nick.dejongh@314ecorp.com",
-                            "firstname": "Nick",
-                            "lastname": "DeJongh",
-                        },
-                        {
-                            "username": "ankush.govil@314ecorp.com",
-                            "email": "ankush.govil@314ecorp.com",
-                            "firstname": "Ankush",
-                            "lastname": "Govil",
-                        },
-                        {
-                            "username": JeevesSystemUser,
-                            "email": JeevesSystemUser,
-                            "firstname": "System",
-                            "lastname": "User",
-                        },
-                    ]
+                    users=JEEVES_PRODUCTION_INTERNAL_USERS
                     if config.env == "production"
-                    else [
-                        {
-                            "username": JeevesSystemUser,
-                            "email": JeevesSystemUser,
-                            "firstname": "System",
-                            "lastname": "User",
-                        },
-                        {
-                            "username": "sumanth.sm@314ecorp.com",
-                            "email": "sumanth.sm@314ecorp.com",
-                            "firstname": "Sumanth",
-                            "lastname": "S M",
-                        },
-                    ],
-                    roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    else JEEVES_NON_PRODUCTION_INTERNAL_USERS,
                     group_path=f"{client_name}/Admin",
                 ),
             )

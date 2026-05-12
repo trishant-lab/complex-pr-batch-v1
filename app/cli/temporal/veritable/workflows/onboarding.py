@@ -18,6 +18,8 @@ from app.cli.temporal.activities.cloudflare_setup import (
     UpdateCORSForBucketActivity,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
+    KedaApplyTemplatedYamlActivity,
+    KedaApplyTemplatedYamlActivityModel,
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
 )
@@ -36,6 +38,7 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
+    template_render,
 )
 from app.cli.temporal.activities.onboard.failure import OnboardFailureMailActivity
 from app.cli.temporal.activities.onboard.success import OnboardSuccessMailActivity
@@ -148,6 +151,7 @@ class VeritableOnboardingWorkflow(Workflow):
             TenantCrdCreationActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
             CheckPodRunningStatusActivity.defn,
+            KedaApplyTemplatedYamlActivity.defn,
             VeritableNovuOnboardingActivity.defn,
             OnboardSuccessMailActivity.defn,
             OnboardFailureMailActivity.defn,
@@ -758,6 +762,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         },
                     ],
                     container_envs=[
+                        {"name": "AUTOSCALED", "value": "TRUE"},
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "APP_CONFIG_DIR", "value": "/config"},
                         {
@@ -956,6 +961,22 @@ class VeritableOnboardingWorkflow(Workflow):
                         name=pod,
                     ),
                 )
+
+            # KEDA server ScaledObject for veritable deployment
+            yaml_content = template_render(
+                template_path=TemplatePath,
+                template_name="keda-prometheus-scaledobject-server.tmpl.yaml",
+                template_payload={
+                    "tenant": tenant,
+                },
+            )
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    yaml_content=yaml_content,
+                ),
+            )
 
             # create tenant crd
             await run_activity(

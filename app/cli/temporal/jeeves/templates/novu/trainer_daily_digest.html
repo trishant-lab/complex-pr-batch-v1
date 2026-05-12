@@ -1,0 +1,270 @@
+<table style="width: 100%; border-collapse: collapse; border-spacing: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <thead>
+        <tr>
+            <th style="padding-bottom: 30px; text-align: left; font-weight: normal;">
+                <table style="width: 100%; border-collapse: collapse; border-spacing: 0;">
+                    <tr>
+                        <td style="vertical-align: bottom; padding: 0;">
+                            <p style="margin: 0; color: #0284c7; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Daily Digest</p>
+                            <h1 style="margin: 6px 0 0 0; color: #0c4a6e; font-size: 28px; font-weight: 700; line-height: 1.2;"> Hello, {{eventsubscriber.first_name}} {{eventsubscriber.last_name}}</h1>
+                        </td>
+                        <td style="text-align: right; vertical-align: bottom; color: #075985; font-size: 14px; font-weight: 600; white-space: nowrap; padding: 0;">{{digest_date}}</td>
+                    </tr>
+                </table>
+            </th>
+        </tr>
+    </thead>
+
+    <tbody>
+        <tr>
+            <td style="vertical-align: top; padding: 0;">
+                {{#if expired_assets}}
+                <table style="width: 100%; margin-bottom: 12px; border-collapse: collapse; border-spacing: 0;">
+                    <thead>
+                        <tr>
+                            <th style="font-size: 18px; width: 28px; vertical-align: middle; padding: 0; text-align: left;">⏰</th>
+                            <th style="font-size: 16px; font-weight: 600; color: #1a202c; vertical-align: middle; padding: 0; text-align: left;">Assets expiring today</th>
+                        </tr>
+                    </thead>
+                </table>
+                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; color: #4a5568;">
+                    {{#if expired_assets.display_items.[1]}}
+                        These <b>{{expired_assets.expiring_link_count}} assets</b> will
+                    {{else}}
+                        {{#if expired_assets.remaining_expired}}
+                            These <b>{{expired_assets.expiring_link_count}} assets</b> will
+                        {{else}}
+                            This <b>1 asset</b> will
+                        {{/if}}
+                    {{/if}}
+                    no longer be visible to learners from tomorrow—review and renew to keep content visible.
+                </p>
+                {{#if expired_assets.display_items}}
+                <ul style="margin: 0 0 10px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #4a5568;">
+                    {{#each expired_assets.display_items}}
+                    <li>{{this.title}}</li>
+                    {{/each}}
+                </ul>
+                {{/if}}
+                {{#if expired_assets.remaining_expired}}
+                <p style="margin: 0 0 12px 20px; font-style: italic; font-size: 14px; color: #718096;">and {{expired_assets.remaining_expired}} more</p>
+                {{/if}}
+                <p style="margin: 0 0 32px 0; font-size: 14px;"><a href="{{expired_assets.link}}" style="color: #2563eb; text-decoration: underline;">Click here to view all the expiring assets</a></p>
+                {{/if}}
+
+                {{#if published_assets}}
+                <table style="width: 100%; margin-bottom: 12px; border-collapse: collapse; border-spacing: 0;">
+                    <thead>
+                        <tr>
+                            <th style="font-size: 18px; width: 28px; vertical-align: middle; padding: 0; text-align: left;">🚀</th>
+                            <th style="font-size: 16px; font-weight: 600; color: #1a202c; vertical-align: middle; padding: 0; text-align: left;">Asset published yesterday</th>
+                        </tr>
+                    </thead>
+                </table>
+                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; color: #4a5568;">
+                    New content is now live for learners. 
+                    {{#if published_assets.display_items.[1]}}
+                        <b>{{published_assets.published_count}} assets</b> were
+                    {{else}}
+                        {{#if published_assets.remaining_published}}
+                            <b>{{published_assets.published_count}} assets</b> were
+                        {{else}}
+                            <b>1 asset</b> was
+                        {{/if}}
+                    {{/if}}
+                    published yesterday.
+                </p>
+                {{#if published_assets.display_items}}
+                <ul style="margin: 0 0 10px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #4a5568;">
+                    {{#each published_assets.display_items}}
+                    <li>{{this.title}}</li>
+                    {{/each}}
+                </ul>
+                {{/if}}
+                {{#if published_assets.remaining_published}}
+                <p style="margin: 0 0 12px 20px; font-style: italic; font-size: 14px; color: #718096;">and {{published_assets.remaining_published}} more</p>
+                {{/if}}
+                <p style="margin: 0 0 32px 0; font-size: 14px;"><a href="{{published_assets.link}}" style="color: #2563eb; text-decoration: underline;">Click here to view all the {{published_assets.published_count}} assets</a></p>
+                {{/if}}
+
+                {{#if feedback}}
+                <table style="width: 100%; margin-bottom: 12px; border-collapse: collapse; border-spacing: 0;">
+                    <thead>
+                        <tr>
+                            <th style="font-size: 18px; width: 28px; vertical-align: middle; padding: 0; text-align: left;">💬</th>
+                            <th style="font-size: 16px; font-weight: 600; color: #1a202c; vertical-align: middle; padding: 0; text-align: left;">Feedback received yesterday</th>
+                        </tr>
+                    </thead>
+                </table>
+                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; color: #4a5568;">
+                    <b>{{feedback.feedback_count}} new feedback</b> 
+                    {{#if feedback.display_items.[1]}}were{{else}}was{{/if}}
+                    received yesterday. Here's what learners said:
+                </p>
+                {{#if feedback.display_items}}
+                <ul style="margin: 0 0 32px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #4a5568;">
+                    {{#each feedback.display_items}}
+                    <li>{{this.asset_title}} - {{this.sample_feedback}}</li>
+                    {{/each}}
+                </ul>
+                {{/if}}
+                {{/if}}
+
+                {{#if reactions}}
+                <table style="width: 100%; margin-bottom: 12px; border-collapse: collapse; border-spacing: 0;">
+                    <thead>
+                        <tr>
+                            <th style="font-size: 18px; width: 28px; vertical-align: middle; padding: 0; text-align: left;">👍</th>
+                            <th style="font-size: 16px; font-weight: 600; color: #1a202c; vertical-align: middle; padding: 0; text-align: left;">Asset likes/dislikes</th>
+                        </tr>
+                    </thead>
+                </table>
+                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; color: #4a5568;">
+                    Learners reacted to 
+                    <b>
+                    {{#if reactions.liked_items.[1]}}
+                        {{reactions.reaction_item_count}} assets
+                    {{else}}
+                        {{#if reactions.disliked_items.[1]}}
+                            {{reactions.reaction_item_count}} assets
+                        {{else}}
+                            {{#if reactions.liked_items.[0]}}
+                                {{#if reactions.disliked_items.[0]}}
+                                    {{reactions.reaction_item_count}} assets
+                                {{else}}
+                                    1 asset
+                                {{/if}}
+                            {{else}}
+                                 1 asset
+                            {{/if}}
+                        {{/if}}
+                    {{/if}}
+                    </b> 
+                    yesterday — {{reactions.likes}} likes, {{reactions.dislikes}} dislikes.
+                </p>
+                <div style="margin-bottom: 32px;">
+                    {{#if reactions.liked_items}}
+                    <p style="margin: 8px 0 4px 0; font-size: 14px; font-weight: 600; color: #4a5568;">Likes</p>
+                    <ul style="margin: 0 0 10px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #4a5568;">
+                        {{#each reactions.liked_items}}
+                        <li>{{this.asset_title}}</li>
+                        {{/each}}
+                    </ul>
+                    {{/if}}
+                    {{#if reactions.disliked_items}}
+                    <p style="margin: 8px 0 4px 0; font-size: 14px; font-weight: 600; color: #4a5568;">Dislikes</p>
+                    <ul style="margin: 0 0 10px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #4a5568;">
+                        {{#each reactions.disliked_items}}
+                        <li>{{this.asset_title}}</li>
+                        {{/each}}
+                    </ul>
+                    {{/if}}
+                </div>
+                {{/if}}
+
+                {{#if expiring_embeds}}
+                <table style="width: 100%; margin-bottom: 12px; border-collapse: collapse; border-spacing: 0;">
+                    <thead>
+                        <tr>
+                            <th style="font-size: 18px; width: 28px; vertical-align: middle; padding: 0; text-align: left;">🔗</th>
+                            <th style="font-size: 16px; font-weight: 600; color: #1a202c; vertical-align: middle; padding: 0; text-align: left;">Embedded links expiring today</th>
+                        </tr>
+                    </thead>
+                </table>
+                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; color: #4a5568;">
+                    {{#if expiring_embeds.display_items.[1]}}
+                        <b>{{expiring_embeds.expiring_link_count}} embedded links</b> are
+                    {{else}}
+                        {{#if expiring_embeds.remaining_embeds}}
+                            <b>{{expiring_embeds.expiring_link_count}} embedded links</b> are
+                        {{else}}
+                            <b>1 embedded link</b> is
+                        {{/if}}
+                    {{/if}}
+                    expiring soon. Renew or replace them to prevent access issues.
+                </p>
+                {{#if expiring_embeds.display_items}}
+                <ul style="margin: 0 0 10px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #4a5568;">
+                    {{#each expiring_embeds.display_items}}
+                    <li>{{this.title}}</li>
+                    {{/each}}
+                </ul>
+                {{/if}}
+                {{#if expiring_embeds.remaining_embeds}}
+                <p style="margin: 0 0 12px 20px; font-style: italic; font-size: 14px; color: #718096;">and {{expiring_embeds.remaining_embeds}} more</p>
+                {{/if}}
+                <p style="margin: 0 0 32px 0; font-size: 14px;"><a href="{{expiring_embeds.link}}" style="color: #2563eb; text-decoration: underline;">Click here to view all the expiring embedding links</a></p>
+                {{/if}}
+
+                {{#if completed_assignments}}
+                <table style="width: 100%; margin-bottom: 12px; border-collapse: collapse; border-spacing: 0;">
+                    <thead>
+                        <tr>
+                            <th style="font-size: 18px; width: 28px; vertical-align: middle; padding: 0; text-align: left;">✅</th>
+                            <th style="font-size: 16px; font-weight: 600; color: #1a202c; vertical-align: middle; padding: 0; text-align: left;">Assignment completed yesterday</th>
+                        </tr>
+                    </thead>
+                </table>
+                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; color: #4a5568;">
+                    Learners are making steady progress. 
+                    {{#if completed_assignments.display_items.[1]}}
+                        <b>{{completed_assignments.completed_count}} assignments</b> were
+                    {{else}}
+                        {{#if completed_assignments.remaining_completed}}
+                            <b>{{completed_assignments.completed_count}} assignments</b> were
+                        {{else}}
+                            <b>1 assignment</b> was
+                        {{/if}}
+                    {{/if}}
+                    completed yesterday
+                </p>
+                {{#if completed_assignments.display_items}}
+                <ul style="margin: 0 0 10px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #4a5568;">
+                    {{#each completed_assignments.display_items}}
+                    <li>{{this.title}} — {{this.learner_count}} learners</li>
+                    {{/each}}
+                </ul>
+                {{/if}}
+                {{#if completed_assignments.remaining_completed}}
+                <p style="margin: 0 0 12px 20px; font-style: italic; font-size: 14px; color: #718096;">and {{completed_assignments.remaining_completed}} more</p>
+                {{/if}}
+                <p style="margin: 0 0 32px 0; font-size: 14px;"><a href="{{completed_assignments.link}}" style="color: #2563eb; text-decoration: underline;">Click here to view all the completed assignments</a></p>
+                {{/if}}
+
+                {{#if overdue_assignments}}
+                <table style="width: 100%; margin-bottom: 12px; border-collapse: collapse; border-spacing: 0;">
+                    <thead>
+                        <tr>
+                            <th style="font-size: 18px; width: 28px; vertical-align: middle; padding: 0; text-align: left;">⚠️</th>
+                            <th style="font-size: 16px; font-weight: 600; color: #1a202c; vertical-align: middle; padding: 0; text-align: left;">Assignments due date today</th>
+                        </tr>
+                    </thead>
+                </table>
+                <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; color: #4a5568;">
+                    {{#if overdue_assignments.display_items.[1]}}
+                        <b>{{overdue_assignments.overdue_count}} assignments</b> are
+                    {{else}}
+                        {{#if overdue_assignments.remaining_overdue}}
+                            <b>{{overdue_assignments.overdue_count}} assignments</b> are
+                        {{else}}
+                            <b>1 assignment</b> is
+                        {{/if}}
+                    {{/if}}
+                    due today. Review and remind learners for timely completion.
+                </p>
+                {{#if overdue_assignments.display_items}}
+                <ul style="margin: 0 0 10px 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #4a5568;">
+                    {{#each overdue_assignments.display_items}}
+                    <li>{{this.title}} — {{this.learner_count}} learners</li>
+                    {{/each}}
+                </ul>
+                {{/if}}
+                {{#if overdue_assignments.remaining_overdue}}
+                <p style="margin: 0 0 12px 20px; font-style: italic; font-size: 14px; color: #718096;">and {{overdue_assignments.remaining_overdue}} more</p>
+                {{/if}}
+                <p style="margin: 0 0 32px 0; font-size: 14px;"><a href="{{overdue_assignments.link}}" style="color: #2563eb; text-decoration: underline;">Click here to view all the pending assignments</a></p>
+                {{/if}}
+            </td>
+        </tr>
+    </tbody>
+</table>
