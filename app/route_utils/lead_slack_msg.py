@@ -1,7 +1,7 @@
+from app.core.product_settings.common import SlackPurpose
 from app.core.settings import get_settings
 from app.models.lago.customer import CustomerResponse
 from app.models.product import ProductEnum
-from app.core.product_settings.common import SlackPurpose
 from app.slack_utils import send_slack_msg
 
 settings = get_settings()
@@ -40,7 +40,7 @@ def _get_leads_block_from_customer_response(text: str, customer: CustomerRespons
     ]
 
 
-def leads_otp_verified(email: str, product: ProductEnum, purpose: SlackPurpose = "default") -> None:
+def leads_otp_verified(email: str, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default) -> None:
     """
     @param email:
     send email to customer
@@ -67,7 +67,7 @@ def leads_otp_verified(email: str, product: ProductEnum, purpose: SlackPurpose =
     send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def leads_otp_sent(email: str, product: ProductEnum, purpose: SlackPurpose = "default") -> None:
+def leads_otp_sent(email: str, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default) -> None:
     """
     @param email:
     send email to customer
@@ -94,7 +94,9 @@ def leads_otp_sent(email: str, product: ProductEnum, purpose: SlackPurpose = "de
     send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def leads_form_fill(customer: CustomerResponse, product: ProductEnum, purpose: SlackPurpose = "default") -> None:
+def leads_form_fill(
+    customer: CustomerResponse, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default
+) -> None:
     """
     @param customer:
     send email to customer
@@ -105,7 +107,7 @@ def leads_form_fill(customer: CustomerResponse, product: ProductEnum, purpose: S
 
 
 def leads_add_payment_details(
-    customer: CustomerResponse, product: ProductEnum, purpose: SlackPurpose = "default"
+    customer: CustomerResponse, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default
 ) -> None:
     """
     @param customer:
@@ -116,7 +118,7 @@ def leads_add_payment_details(
     send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def portal_link_otp_request(email: str, product: ProductEnum, purpose: SlackPurpose = "default") -> None:
+def portal_link_otp_request(email: str, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default) -> None:
     """
     Notify slack: customer requested an OTP for a portal link (login flow).
     """
@@ -146,7 +148,7 @@ def portal_link_request(
     email: str,
     product: ProductEnum,
     urls: list[str] | None = None,
-    purpose: SlackPurpose = "default",
+    purpose: SlackPurpose = SlackPurpose.default,
 ) -> None:
     """
     Notify slack: customer redeemed a portal link (login flow).

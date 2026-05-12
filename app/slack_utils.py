@@ -44,20 +44,20 @@ def _resolve_channel(slack_cfg: SlackSettings, product: ProductEnum, purpose: Sl
     channel_id = slack_cfg.channels[purpose]
     if channel_id:
         return channel_id
-    if purpose != "default":
+    if purpose is not SlackPurpose.default:
         logger.warning(
             "slack purpose={} unset for product={}; falling back to default channel",
-            purpose,
+            purpose.value,
             product.value,
         )
-    return slack_cfg.channels["default"]
+    return slack_cfg.channels[SlackPurpose.default]
 
 
 def send_slack_msg(
     product: ProductEnum,
     text: str,
     blocks: list[dict],
-    purpose: SlackPurpose = "default",
+    purpose: SlackPurpose = SlackPurpose.default,
 ) -> None:
     """
     Post a slack message for the given product to the channel configured for

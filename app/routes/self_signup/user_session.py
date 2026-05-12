@@ -8,6 +8,7 @@ from pydantic import EmailStr
 from app.core.connections import get_lago_client
 from app.core.db import DBManager, database
 from app.core.oauth2 import get_oauth_scheme
+from app.core.product_settings.common import SlackPurpose
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.billing_models import OnboardingResponseModel
 from app.models.input_param_patterns import TOKEN_PATTERN
@@ -65,7 +66,7 @@ async def get_session(
             customer_record["tenant_name"] = customer_record.pop("tenantname")
             customer = customer | customer_record
 
-    leads_otp_verified(email, product, purpose="login")
+    leads_otp_verified(email, product, purpose=SlackPurpose.login)
     return OnboardingResponseModel(
         sessionToken=token,
         customer=customer,
