@@ -1,4 +1,3 @@
-from enum import Enum
 from functools import lru_cache
 
 from loguru import logger
@@ -9,11 +8,6 @@ from app.core.settings import AppSettings, get_settings
 from app.models.product import ProductEnum
 
 config: AppSettings = get_settings()
-
-
-class SlackChannel(str, Enum):
-    signup = "signup"
-    login = "login"
 
 
 @lru_cache(maxsize=10)
@@ -28,59 +22,39 @@ def get_slack_client(product: ProductEnum) -> WebClient:
             return WebClient(token=config.slack.bot_token)
 
 
-def _resolve_channel(product: ProductEnum, slack_cfg: SlackSettings, channel: SlackChannel) -> str:
+def get_slack_settings(product: ProductEnum) -> SlackSettings:
     """
-    Pick the channel id for the given kind. Login falls back to signup
-    channel when login_channel_id is unset, with a warning so misconfig
-    is visible instead of silently re-noising the signup channel.
+    Return the SlackSettings instance for the given product.
     """
-    if channel is SlackChannel.login:
-        if slack_cfg.login_channel_id:
-            return slack_cfg.login_channel_id
-        logger.warning(
-            "login_channel_id unset for product={}; routing login slack message to signup channel_id",
-            product.value,
-        )
-        return slack_cfg.channel_id
-    return slack_cfg.channel_id
-
-
-def _send_message(product: ProductEnum, text: str, blocks: list[dict], channel: SlackChannel) -> None:
-    """
-    Send message to channel
-    """
-    try:
-        client = get_slack_client(product)
-        match product:
-            case ProductEnum.veritable:
-                slack_cfg = config.veritable.slack
-            case ProductEnum.pricedx:
-                slack_cfg = config.pricedx.slack
-            case _:
-                slack_cfg = config.slack
-
-        channel_id = _resolve_channel(product, slack_cfg, channel)
-        username = slack_cfg.bot_username
-
-        client.chat_postMessage(
-            channel=channel_id,
-            text=text,
-            blocks=blocks,
-            username=username,
-        )
-    except Exception as e:
-        logger.error(f"Error sending message to slack: {e!r}")
+    match product:
+        case ProductEnum.veritable:
+            return config.veritable.slack
+        case ProductEnum.pricedx:
+            return config.pricedx.slack
+        case _:
+            return config.slack
 
 
 def send_slack_msg(
     product: ProductEnum,
     text: str,
     blocks: list[dict],
-    channel: SlackChannel = SlackChannel.signup,
+    channel_id: str | None = None,
 ) -> None:
     """
-    @param text: plain text message
-    @param blocks: blocks for msg formatting
-    @param channel: signup (default) or login
+    Post a slack message for the given product. When channel_id is provided,
+    it overrides the product's default channel; otherwise the product's
+    default channel_id is used.
     """
-    _send_message(product=product, text=text, blocks=blocks, channel=channel)
+    try:
+        slack_cfg = get_slack_settings(product)
+        target_channel = channel_id or slack_cfg.channel_id
+        client = get_slack_client(product)
+        client.chat_postMessage(
+            channel=target_channel,
+            text=text,
+            blocks=blocks,
+            username=slack_cfg.bot_username,
+        )
+    except Exception as e:
+        logger.error(f"Error sending message to slack: {e!r}")

@@ -17,6 +17,7 @@ from app.route_utils.product import validate_email_domain
 from app.route_utils.session_util import get_first_subscription_status, get_treated_email
 from app.route_utils.user_otp import UserOTP
 from app.route_utils.user_session import UserSession
+from app.slack_utils import get_slack_settings
 
 if TYPE_CHECKING:
     from app.models.lago.customer import CustomerResponse
@@ -65,7 +66,7 @@ async def get_session(
             customer_record["tenant_name"] = customer_record.pop("tenantname")
             customer = customer | customer_record
 
-    leads_otp_verified(email, product)
+    leads_otp_verified(email, product, channel_id=get_slack_settings(product).login_channel_id)
     return OnboardingResponseModel(
         sessionToken=token,
         customer=customer,
