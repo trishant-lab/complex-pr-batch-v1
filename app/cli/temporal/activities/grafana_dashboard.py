@@ -28,6 +28,9 @@ class GrafanaDashboard:
 
         Separate from create_dashboard so the substitution, naming and variable
         handling can be exercised without an HTTP call.
+
+        New JSON templates must get a branch in _classify_dashboard_kind
+        (template branch requirement) — see review discussion on silent fallback.
         """
         # Load the dashboard template from the specified path
         dashboard_json = self._get_dashboard_template()
