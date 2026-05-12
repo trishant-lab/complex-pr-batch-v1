@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Path
 from pydantic import EmailStr
 
 from app.core.db import DBManager, get_db_manager
+from app.core.product_settings.common import SlackPurpose
 from app.exceptions import errors
 from app.middleware.rate_limiter import ResilientRateLimiter
 from app.models.product import ProductEnum
@@ -36,7 +37,7 @@ async def get_otp_for_portal_link(
     email = get_treated_email(email)
     validate_email_domain(product=product, email=email)
     await UserOTP.create_portal_link_otp(email, product)
-    portal_link_otp_request(email, product)
+    portal_link_otp_request(email, product, purpose=SlackPurpose.login)
 
 
 @router.post(
@@ -71,7 +72,7 @@ async def get_portal_link(
             TenantStatusEnum=TenantStatusEnum,
         )
         urls = [x["tenantlinks"] for x in tenant_links]
-        portal_link_request(email, product, urls)
+        portal_link_request(email, product, urls, purpose=SlackPurpose.login)
         if tenant_links:
             return urls
         raise errors.CUSTOMER_NOT_FOUND.exc()

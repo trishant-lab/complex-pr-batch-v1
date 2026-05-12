@@ -1,16 +1,10 @@
+from app.core.product_settings.common import SlackPurpose
 from app.core.settings import get_settings
 from app.models.lago.customer import CustomerResponse
 from app.models.product import ProductEnum
 from app.slack_utils import send_slack_msg
 
 settings = get_settings()
-
-
-def _send_lead_msg(text: str, blocks: list[dict], product: ProductEnum) -> None:
-    """
-    Send integration msg to slack & production to marketing channel
-    """
-    send_slack_msg(product, text, blocks)
 
 
 def _get_leads_block_from_customer_response(text: str, customer: CustomerResponse) -> list[dict]:
@@ -46,7 +40,7 @@ def _get_leads_block_from_customer_response(text: str, customer: CustomerRespons
     ]
 
 
-def leads_otp_verified(email: str, product: ProductEnum) -> None:
+def leads_otp_verified(email: str, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default) -> None:
     """
     @param email:
     send email to customer
@@ -70,10 +64,10 @@ def leads_otp_verified(email: str, product: ProductEnum) -> None:
             ],
         },
     ]
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def leads_otp_sent(email: str, product: ProductEnum) -> None:
+def leads_otp_sent(email: str, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default) -> None:
     """
     @param email:
     send email to customer
@@ -97,32 +91,36 @@ def leads_otp_sent(email: str, product: ProductEnum) -> None:
             ],
         },
     ]
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def leads_form_fill(customer: CustomerResponse, product: ProductEnum) -> None:
+def leads_form_fill(
+    customer: CustomerResponse, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default
+) -> None:
     """
     @param customer:
     send email to customer
     """
     text = "Customer has filled 'Account Details' form"
     blocks = _get_leads_block_from_customer_response(text, customer)
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def leads_add_payment_details(customer: CustomerResponse, product: ProductEnum) -> None:
+def leads_add_payment_details(
+    customer: CustomerResponse, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default
+) -> None:
     """
     @param customer:
     send email to customer
     """
     text = "Customer has added 'Payment Information'"
     blocks = _get_leads_block_from_customer_response(text, customer)
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def portal_link_otp_request(email: str, product: ProductEnum) -> None:
+def portal_link_otp_request(email: str, product: ProductEnum, purpose: SlackPurpose = SlackPurpose.default) -> None:
     """
-    Send email to slack
+    Notify slack: customer requested an OTP for a portal link (login flow).
     """
     text = f"{product.value} Portal Link OTP Request"
     blocks = [
@@ -143,26 +141,29 @@ def portal_link_otp_request(email: str, product: ProductEnum) -> None:
             ],
         },
     ]
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, purpose=purpose)
 
 
-def portal_link_request(email: str, product: ProductEnum, urls: list[str] | None = None) -> None:
+def portal_link_request(
+    email: str,
+    product: ProductEnum,
+    urls: list[str] | None = None,
+    purpose: SlackPurpose = SlackPurpose.default,
+) -> None:
     """
-    Send email to slack
+    Notify slack: customer redeemed a portal link (login flow).
     """
     text = f"{product.value} Portal Link Request"
     if urls:
         _urls = ", ".join(urls)
-        url_text = f"*URLs:* {_urls}"
         url_payload = {
             "type": "mrkdwn",
-            "text": url_text,
+            "text": f"*URLs:* {_urls}",
         }
     else:
-        url_text = "Tenant doesn't exist or is no longer active"
         url_payload = {
             "type": "mrkdwn",
-            "text": url_text,
+            "text": "Tenant doesn't exist or is no longer active",
         }
     blocks = [
         {
@@ -183,4 +184,4 @@ def portal_link_request(email: str, product: ProductEnum, urls: list[str] | None
             ],
         },
     ]
-    _send_lead_msg(text, blocks, product)
+    send_slack_msg(product, text, blocks, purpose=purpose)
