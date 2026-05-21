@@ -603,6 +603,30 @@ class MuspellOnboardingWorkflow(Workflow):
                         key_value=config.cloudflare.r2_endpoint,
                     ),
                 )
+                # bucket is shared across environments; allow both integration and prod UI origins
+                await run_activity(
+                    activity=UpdateCORSForBucketActivity,
+                    arg=UpdateCORSForBucketActivityModel(
+                        bucket_name=r2_bucket_name,
+                        rules=[
+                            {
+                                "allowed": {
+                                    "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                    "origins": [base_url, f"https://{tenant}.muspell.com"],
+                                    "headers": [
+                                        "Authorization",
+                                        "content-type",
+                                        "x-amz-*",
+                                        "traceparent",
+                                        "If-Match",
+                                        "If-None-Match",
+                                    ],
+                                },
+                                "exposeHeaders": ["ETag", "Location"],
+                            }
+                        ],
+                    ),
+                )
                 # endif integration specific flow
 
             # minio_bucket_name = f"ma-{tenant}"

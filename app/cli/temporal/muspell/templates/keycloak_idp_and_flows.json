@@ -63,11 +63,10 @@
             }
         },
         {
-            "alias": "muspellappsmartonfhir",
-            "displayName": "Smart on Fhir Non Prod",
+            "alias": "muspell-epic-prod",
+            "displayName": "Muspell EPIC Prod",
             "providerId": "oidc",
             "enabled": true,
-            "updateProfileFirstLoginMode": "on",
             "trustEmail": true,
             "storeToken": true,
             "addReadTokenRoleOnCreate": true,
@@ -76,66 +75,36 @@
             "hideOnLogin": true,
             "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
             "config": {
-                "validateSignature": "true",
-                "acceptsPromptNoneForwardFromClient": "false",
-                "tokenUrl": "http://muspell-archive.<<tenant>>.svc.cluster.local:8080/public/api/v1/epicintegration/epicToken",
-                "uiLocales": "false",
-                "clientId": "3ed85e9c-c521-46d6-a6ce-a4dd35719496",
+                "tokenUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2/token",
+                "acceptsPromptNoneForwardFromClient": "true",
+                "jwksUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/api/epic/2019/Security/Open/PublicKeys/530027/OIDC",
                 "isAccessTokenJWT": "false",
                 "filteredByClaim": "false",
+                "jwtX509HeadersEnabled": "false",
                 "backchannelSupported": "false",
                 "caseSensitiveOriginalUsername": "false",
+                "issuer": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2",
+                "pkceMethod": "S256",
+                "loginHint": "false",
+                "clientAuthMethod": "private_key_jwt",
+                "clientAssertionSigningAlg": "RS256",
+                "syncMode": "IMPORT",
+                "requiresShortStateParameter": "true",
+                "allowedClockSkew": "0",
+                "defaultScope": "launch openid fhirUser",
+                "validateSignature": "true",
+                "clientId": "62c8b231-b4f6-4802-8217-8aac8c240da8",
+                "uiLocales": "false",
                 "disableNonce": "true",
                 "useJwksUrl": "true",
-                "loginHint": "false",
                 "sendClientIdOnLogout": "false",
                 "pkceEnabled": "true",
-                "clientAuthMethod": "client_secret_basic",
-                "authorizationUrl": "http://muspell-archive.<<tenant>>.svc.cluster.local:8080/public/api/v1/epicintegration/epicToken",
-                "disableUserInfo": "true",
+                "authorizationUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2/authorize?aud=https://vendorservices.epic.com/interconnect-amcurprd-oauth/api/FHIR/R4",
+                "disableUserInfo": "false",
                 "sendIdTokenOnLogout": "true",
-                "syncMode": "FORCE",
-                "clientSecret": "PLACEHOLDER",
                 "passMaxAge": "false",
-                "allowedClockSkew": "0",
-                "prompt": "none"
-            }
-        },
-        {
-            "alias": "muspellappsmartonfhirprod",
-            "displayName": "Smart on Fhir prod",
-            "providerId": "oidc",
-            "enabled": true,
-            "updateProfileFirstLoginMode": "on",
-            "trustEmail": true,
-            "storeToken": true,
-            "addReadTokenRoleOnCreate": true,
-            "authenticateByDefault": false,
-            "linkOnly": false,
-            "hideOnLogin": true,
-            "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
-            "config": {
-                "validateSignature": "false",
-                "acceptsPromptNoneForwardFromClient": "false",
-                "tokenUrl": "http://muspell-archive.<<tenant>>.svc.cluster.local:8080/public/api/v1/epicintegration/epicToken",
-                "uiLocales": "false",
-                "clientId": "3ed85e9c-c521-46d6-a6ce-a4dd35719496",
-                "isAccessTokenJWT": "false",
-                "filteredByClaim": "false",
-                "backchannelSupported": "false",
-                "caseSensitiveOriginalUsername": "false",
-                "disableNonce": "false",
-                "loginHint": "false",
-                "sendClientIdOnLogout": "false",
-                "pkceEnabled": "false",
-                "clientAuthMethod": "client_secret_basic",
-                "authorizationUrl": "http://muspell-archive.<<tenant>>.svc.cluster.local:8080/public/api/v1/epicintegration/epicToken",
-                "disableUserInfo": "true",
-                "sendIdTokenOnLogout": "true",
-                "syncMode": "FORCE",
-                "clientSecret": "PLACEHOLDER",
-                "passMaxAge": "false",
-                "allowedClockSkew": "0",
+                "disableTypeClaimCheck": "false",
+                "forwardParameters": "aud,launch",
                 "prompt": "none"
             }
         }
@@ -152,26 +121,6 @@
             }
         },
         {
-            "name": "ehr_app_name",
-            "identityProviderAlias": "muspellappsmartonfhir",
-            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
-            "config": {
-                "syncMode": "FORCE",
-                "attribute.value": "Epic",
-                "attribute": "ehr_app_name"
-            }
-        },
-        {
-            "name": "ehr_app_name",
-            "identityProviderAlias": "muspellappsmartonfhirprod",
-            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
-            "config": {
-                "syncMode": "INHERIT",
-                "attribute.value": "Epic",
-                "attribute": "ehr_app_name"
-            }
-        },
-        {
             "name": "sub_to_username",
             "identityProviderAlias": "ehrsimulatorapp",
             "identityProviderMapper": "oidc-user-attribute-idp-mapper",
@@ -182,23 +131,13 @@
             }
         },
         {
-            "name": "override_sub",
-            "identityProviderAlias": "muspellappsmartonfhirprod",
-            "identityProviderMapper": "oidc-username-idp-mapper",
+            "name": "ehr_app_name",
+            "identityProviderAlias": "muspell-epic-prod",
+            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
             "config": {
                 "syncMode": "FORCE",
-                "template": "${CLAIM.preferred_username}",
-                "target": "BROKER_ID"
-            }
-        },
-        {
-            "name": "override_sub",
-            "identityProviderAlias": "muspellappsmartonfhir",
-            "identityProviderMapper": "oidc-username-idp-mapper",
-            "config": {
-                "syncMode": "FORCE",
-                "template": "${CLAIM.preferred_username}",
-                "target": "BROKER_ID"
+                "attribute.value": "Epic",
+                "attribute": "ehr_app_name"
             }
         }
     ]
