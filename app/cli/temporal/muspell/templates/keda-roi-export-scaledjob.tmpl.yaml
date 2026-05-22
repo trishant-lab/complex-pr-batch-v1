@@ -1,0 +1,81 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: roi-export
+  namespace: <<tenant>>
+spec:
+  failedJobsHistoryLimit: 10
+  jobTargetRef:
+    backoffLimit: 0
+    completions: 1
+    parallelism: 1
+    template:
+      spec:
+        containers:
+          - name: roi
+            command:
+              - /app/roi
+            image: <<docker_image>>
+            imagePullPolicy: Always
+            env:
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: DEPLOYMENT
+                value: <<deployment>>
+              - name: DATABASE_URL
+                value: <<database_url>>
+            resources:
+              limits:
+                cpu: "8"
+                memory: 32Gi
+              requests:
+                cpu: 100m
+                memory: 500Mi
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - mountPath: /app/config/<<tenant_config>>
+                name: muspell-config
+                subPath: <<tenant_config>>
+              - mountPath: /app/config/code_systems.toml
+                name: muspell-config-system
+                subPath: code_systems.toml
+        imagePullSecrets:
+          - name: registrycred
+        nodeSelector:
+          app: 314e
+        restartPolicy: Never
+        schedulerName: volcano
+        terminationGracePeriodSeconds: 60
+        volumes:
+          - name: muspell-config
+            configMap:
+              defaultMode: 420
+              name: muspell-config
+              items:
+                - key: <<tenant_config>>
+                  path: <<tenant_config>>
+          - name: muspell-config-system
+            configMap:
+              defaultMode: 420
+              name: muspell-config-system
+              items:
+                - key: code_systems.toml
+                  path: code_systems.toml
+  maxReplicaCount: 3
+  pollingInterval: 30
+  successfulJobsHistoryLimit: 5
+  scalingStrategy:
+    strategy: accurate
+  triggers:
+    - type: redis-streams
+      authenticationRef:
+        name: redis-trigger-auth
+      metadata:
+        activationLagCount: "0"
+        address: <<cache_host>>:6379
+        consumerGroup: roi-workers
+        lagCount: "1"
+        stream: muspellarchive/queue/export/<<tenant>>

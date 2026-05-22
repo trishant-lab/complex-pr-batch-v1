@@ -5,7 +5,11 @@ from app.core.settings import AppSettings, get_settings
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
-from app.starrocks_utils import CreateStarRocksInputModel, RegisterStarrocksUserModel
+from app.starrocks_utils import (
+    CreateStarRocksInputModel,
+    GrantStarRocksReadOnlyCatalogModel,
+    RegisterStarrocksUserModel,
+)
 
 
 class CreateStarRocksCatalogActivity(Activity):
@@ -76,3 +80,34 @@ class CreateStarRocksUserActivity(Activity):
         from app.starrocks_utils import register_user
 
         await register_user(activity_input)
+
+
+class StarRocksGrantReadOnlyCatalogActivity(Activity):
+    """
+    StarRocksGrantReadOnlyCatalogActivity - grants read-only access on the catalog to a
+    pre-existing StarRocks user. Silently no-ops if the user does not exist.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="StarRocksGrantReadOnlyCatalogActivity")
+    async def defn(activity_input: GrantStarRocksReadOnlyCatalogModel) -> None:
+        """
+        Grant read-only access on the catalog to a pre-existing user.
+        """
+        from app.starrocks_utils import grant_read_only_to_catalog
+
+        await grant_read_only_to_catalog(activity_input)

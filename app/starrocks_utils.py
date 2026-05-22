@@ -122,3 +122,62 @@ class RegisterStarrocksUserError(Exception):
     """
 
     pass
+
+
+class GrantStarRocksReadOnlyCatalogModel(BaseModel):
+    muspell_config: MuspellArchiveSettings
+    user_name: str
+    catalog_name: str
+
+
+async def grant_read_only_to_catalog(starrocks_input: GrantStarRocksReadOnlyCatalogModel) -> None:
+    """
+    Grant read-only access (USAGE on catalog + SELECT on all tables) to a pre-existing
+    StarRocks user. If the user does not exist, this is a no-op.
+    """
+    muspell_config = starrocks_input.muspell_config
+    username = starrocks_input.user_name
+    catalog_name = starrocks_input.catalog_name
+
+    conn = None
+    cursor = None
+    try:
+        conn = mysql.connector.connect(
+            host=muspell_config.starrocks_host,
+            port=muspell_config.starrocks_port,
+            user=muspell_config.starrocks_user,
+            password=muspell_config.starrocks_password,
+        )
+        cursor = conn.cursor()
+
+        cursor.execute("SHOW USERS;")
+        # Each row's first column is a user identity formatted as "'<user>'@'<host>'".
+        # Extract the unquoted user portion (left of '@') and compare exactly.
+        existing_users = {str(row[0]).partition("@")[0].strip().strip("'") for row in cursor.fetchall()}
+        if username not in existing_users:
+            logger.info(f"StarRocks user '{username}' not found; skipping read-only grant on catalog '{catalog_name}'")
+            return
+
+        cursor.execute(f"GRANT USAGE ON CATALOG {catalog_name} TO USER {username};")
+        cursor.execute(f"SET CATALOG {catalog_name};")
+        cursor.execute(f"GRANT SELECT ON ALL TABLES IN ALL DATABASES TO USER {username};")
+
+        logger.info(f"Granted StarRocks user '{username}' read-only access to catalog '{catalog_name}'")
+
+    except Exception as e:
+        logger.error(f"Failed to grant read-only StarRocks access: {e!r}")
+        raise GrantStarRocksReadOnlyAccessError(f"Failed to grant read-only StarRocks access: {e!r}")
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
+
+class GrantStarRocksReadOnlyAccessError(Exception):
+    """
+    Exception raised when granting StarRocks read-only access fails (for reasons other
+    than the user simply not existing).
+    """
+
+    pass

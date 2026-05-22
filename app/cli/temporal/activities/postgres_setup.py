@@ -9,7 +9,7 @@ from temporalio.common import RetryPolicy
 from app.cli.k8s_util import get_k8s_core_v1_api_client
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
-from app.core.db import DBManager, get_super_admin_db_manager, get_super_admin_for_database
+from app.core.db import DBManager, get_super_admin_db_manager, get_super_admin_for_database, start_transaction
 from app.core.settings import AppSettings, get_settings
 from app.template_env import get_env
 
@@ -1187,3 +1187,51 @@ class PostgresGrantSupersetReadOnlyActivity(Activity):
             f"Granted {ro_user} read-only access on schema {schema} "
             f"(tables, sequences, functions, types, and future objects)"
         )
+
+
+class PostgresCheckRoleExistsActivityModel(LaunchpadCLIBaseModel):
+    """
+    PostgresCheckRoleExistsActivityModel
+    """
+
+    username: str
+    database_name: str
+
+
+class PostgresCheckRoleExistsActivity(Activity):
+    """
+    PostgresCheckRoleExistsActivity - returns True if the given role exists in postgres,
+    False otherwise. Used to gate optional grants on a user that may or may not be set up.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PostgresCheckRoleExistsActivity")
+    async def defn(activity_model: PostgresCheckRoleExistsActivityModel) -> bool:
+        """
+        Return True if a role with the given name exists.
+        """
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        async with start_transaction(db) as conn:
+            row = await conn.fetchval(
+                "SELECT 1 FROM pg_roles WHERE rolname = $1",
+                activity_model.username,
+            )
+        return row is not None
