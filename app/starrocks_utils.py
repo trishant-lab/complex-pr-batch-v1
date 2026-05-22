@@ -130,7 +130,7 @@ class GrantStarRocksReadOnlyCatalogModel(BaseModel):
     catalog_name: str
 
 
-async def grant_read_only_to_catalog(starrocks_input: GrantStarRocksReadOnlyCatalogModel) -> None:
+def grant_read_only_to_catalog(starrocks_input: GrantStarRocksReadOnlyCatalogModel) -> None:
     """
     Grant read-only access (USAGE on catalog + SELECT on all tables) to a pre-existing
     StarRocks user. If the user does not exist, this is a no-op.

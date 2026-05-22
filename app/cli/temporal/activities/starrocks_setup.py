@@ -110,4 +110,4 @@ class StarRocksGrantReadOnlyCatalogActivity(Activity):
         """
         from app.starrocks_utils import grant_read_only_to_catalog
 
-        await grant_read_only_to_catalog(activity_input)
+        grant_read_only_to_catalog(activity_input)
