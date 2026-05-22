@@ -31,6 +31,7 @@ from app.cli.k8s_util import (
     get_dynamic_client,
     get_resource,
 )
+from app.cli.temporal.activities.keycloak_setup import template_render
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 
@@ -411,9 +412,6 @@ class KedaApplyTemplatedYamlActivity(Activity):
         if activity_model.yaml_content is not None:
             yaml_text = activity_model.yaml_content
         elif activity_model.template_path and activity_model.template_name:
-            # Deferred import to avoid coupling activity modules at import time
-            from app.cli.temporal.activities.keycloak_setup import template_render
-
             yaml_text = template_render(
                 template_path=activity_model.template_path,
                 template_name=activity_model.template_name,
