@@ -86,12 +86,9 @@
                 "status",
                 "additionalAttributes"
             ]
-        }{% if not loop.last %
-        },
-        {% endif %
-        }
-        {% endfor %
-        },
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+        ,
         "auditLogs": [
             "launchType",
             "userName",
@@ -145,7 +142,6 @@
                     "location": "drawer-only"
                 }
             },
-            "AuditLog": {},
             "CarePlan": {
                 "additionalAttributes": {
                     "hideInDrawer": false,
@@ -518,8 +514,7 @@
                 }
             }
         },
-        {% for application in application_list %
-        }
+        {% for application in application_list %}
         "<<application>>": {
             "Account": {
                 "additionalAttributes": {
@@ -921,12 +916,8 @@
                     "location": "drawer-only"
                 }
             }
-        }{% if not loop.last %
-        },
-        {% endif %
-        }
-        {% endfor %
-        }
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
     },
     "splitScreenColumnDef": {}
 }

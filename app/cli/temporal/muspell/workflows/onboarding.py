@@ -11,6 +11,8 @@ from app.cli.temporal.activities.cloudflare_setup import (
     UpdateCORSForBucketActivity,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
+    KedaApplyTemplatedYamlActivity,
+    KedaApplyTemplatedYamlActivityModel,
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
 )
@@ -34,7 +36,11 @@ from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.starrocks_setup import CreateStarRocksCatalogActivity, CreateStarRocksUserActivity
+from app.cli.temporal.activities.starrocks_setup import (
+    CreateStarRocksCatalogActivity,
+    CreateStarRocksUserActivity,
+    StarRocksGrantReadOnlyCatalogActivity,
+)
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
@@ -80,12 +86,16 @@ from app.cli.temporal.activities.one_password import (
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
+    PostgresCheckRoleExistsActivity,
+    PostgresCheckRoleExistsActivityModel,
     PostgresDatabaseCreationActivity,
     PostgresDatabaseCreationActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
     PostgresGrantAllPrivilegesOnTableActivityModel,
+    PostgresGrantSupersetReadOnlyActivity,
+    PostgresGrantSupersetReadOnlyActivityModel,
     PostgresSchemaCreationActivity,
     PostgresSchemaCreationActivityModel,
     PostgresUserCreationActivity,
@@ -99,7 +109,7 @@ from app.core.ijson import ijson_dumps, ijson_loads
 
 from typing import TYPE_CHECKING
 
-from app.starrocks_utils import RegisterStarrocksUserModel
+from app.starrocks_utils import GrantStarRocksReadOnlyCatalogModel, RegisterStarrocksUserModel
 
 if TYPE_CHECKING:
     from app.core.product_settings.muspell_archive import MuspellArchiveSettings
@@ -170,6 +180,10 @@ class MuspellOnboardingWorkflow(Workflow):
             CreateMinioUserActivity.defn,
             CreateMinioBucketActivity.defn,
             AttachMinioPolicyActivity.defn,
+            KedaApplyTemplatedYamlActivity.defn,
+            PostgresCheckRoleExistsActivity.defn,
+            PostgresGrantSupersetReadOnlyActivity.defn,
+            StarRocksGrantReadOnlyCatalogActivity.defn,
         ]
 
     @classmethod
@@ -218,6 +232,12 @@ class MuspellOnboardingWorkflow(Workflow):
             postgres_database_name = muspell_config.database_name
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
+            database_url = (
+                f"postgresql://{postgres_username}:{postgres_password}"
+                f"@{config.postgres.host}:{config.postgres.port}"
+                f"/{postgres_database_name}?sslmode=disable&application_name="
+                f"{postgres_database_name}&options=-c search_path%3D{postgres_schema_name},public"
+            )
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/muspell-app:{image_tag}"
             superset_docker_image = "registry.314ecorp.tech/superset:5.0.0"
@@ -315,6 +335,29 @@ class MuspellOnboardingWorkflow(Workflow):
                     database_name=postgres_database_name,
                 ),
             )
+
+            # Optional read-only access for muspell_ro on the tenant schema (no-op if user absent)
+            muspell_ro_exists = await run_activity(
+                activity=PostgresCheckRoleExistsActivity,
+                arg=PostgresCheckRoleExistsActivityModel(
+                    username="muspell_ro",
+                    database_name=postgres_database_name,
+                ),
+            )
+            if muspell_ro_exists:
+                await run_activity(
+                    activity=PostgresGrantSupersetReadOnlyActivity,
+                    arg=PostgresGrantSupersetReadOnlyActivityModel(
+                        schema_name=postgres_schema_name,
+                        schema_owner_username=postgres_username,
+                        superset_ro_username="muspell_ro",
+                        database_name=postgres_database_name,
+                    ),
+                )
+            else:
+                log_info(
+                    f"Postgres role 'muspell_ro' not found; skipping read-only grant on schema {postgres_schema_name}"
+                )
 
             await run_activity(
                 activity=KeycloakUserMappingActivity,
@@ -560,7 +603,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 await run_activity(
                     activity=OnePasswordInsertIfNotExistsActivity,
                     arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant="INTEGRATION_COMMON_CONFIG",
+                        tenant=f"{ProductName}_{tenant}",
                         vault=OnePasswordVaultName,
                         server_item=server_item,
                         key=f"{tenant}_r2_documents_bucket_name",
@@ -572,7 +615,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 await run_activity(
                     activity=OnePasswordInsertIfNotExistsActivity,
                     arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant="INTEGRATION_COMMON_CONFIG",
+                        tenant=f"{ProductName}_{tenant}",
                         vault=OnePasswordVaultName,
                         server_item=server_item,
                         key=f"{tenant}_r2_documents_access_key",
@@ -584,7 +627,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 await run_activity(
                     activity=OnePasswordInsertIfNotExistsActivity,
                     arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant="INTEGRATION_COMMON_CONFIG",
+                        tenant=f"{ProductName}_{tenant}",
                         vault=OnePasswordVaultName,
                         server_item=server_item,
                         key=f"{tenant}_r2_documents_secret_key",
@@ -596,11 +639,35 @@ class MuspellOnboardingWorkflow(Workflow):
                 await run_activity(
                     activity=OnePasswordInsertIfNotExistsActivity,
                     arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant="INTEGRATION_COMMON_CONFIG",
+                        tenant=f"{ProductName}_{tenant}",
                         vault=OnePasswordVaultName,
                         server_item=server_item,
                         key=f"{tenant}_r2_endpoint",
                         key_value=config.cloudflare.r2_endpoint,
+                    ),
+                )
+                # bucket is shared across environments; allow both integration and prod UI origins
+                await run_activity(
+                    activity=UpdateCORSForBucketActivity,
+                    arg=UpdateCORSForBucketActivityModel(
+                        bucket_name=r2_bucket_name,
+                        rules=[
+                            {
+                                "allowed": {
+                                    "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                    "origins": [base_url, f"https://{tenant}.muspell.com"],
+                                    "headers": [
+                                        "Authorization",
+                                        "content-type",
+                                        "x-amz-*",
+                                        "traceparent",
+                                        "If-Match",
+                                        "If-None-Match",
+                                    ],
+                                },
+                                "exposeHeaders": ["ETag", "Location"],
+                            }
+                        ],
                     ),
                 )
                 # endif integration specific flow
@@ -837,6 +904,16 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # Optional read-only access for readonly_user on the tenant catalog (no-op if user absent)
+            await run_activity(
+                activity=StarRocksGrantReadOnlyCatalogActivity,
+                arg=GrantStarRocksReadOnlyCatalogModel(
+                    muspell_config=muspell_config,
+                    user_name="readonly_user",
+                    catalog_name=catalog_name,
+                ),
+            )
+
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
@@ -893,6 +970,44 @@ class MuspellOnboardingWorkflow(Workflow):
                         template_payload={"tenant": tenant, "enableMPI": enable_mpi},
                     ),
                 )
+
+            # ROI export ScaledJob: Secret holding redis password → TriggerAuthentication → ScaledJob
+            await run_activity(
+                activity=K8sSecretCreationActivity,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="redis-credentials",
+                    type="Opaque",
+                    string_data={"REDIS_PASSWORD": redis_tenant_password},
+                ),
+            )
+
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    template_path=TemplatePath,
+                    template_name="keda-redis-trigger-auth.tmpl.yaml",
+                    template_payload={"tenant": tenant},
+                ),
+            )
+
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    template_path=TemplatePath,
+                    template_name="keda-roi-export-scaledjob.tmpl.yaml",
+                    template_payload={
+                        "tenant": tenant,
+                        "deployment": config.env,
+                        "database_url": database_url,
+                        "docker_image": docker_image,
+                        "tenant_config": tenant_config,
+                        "cache_host": CACHE_HOST,
+                    },
+                ),
+            )
 
             # kubernetes service
             await run_activity(
@@ -970,15 +1085,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {
-                            "name": "DATABASE_URL",
-                            "value": (
-                                f"postgresql://{postgres_username}:{postgres_password}"
-                                f"@{config.postgres.host}:{config.postgres.port}"
-                                f"/{postgres_database_name}?sslmode=disable&application_name="
-                                f"{postgres_database_name}&options=-c search_path%3D{postgres_schema_name},public"
-                            ),
-                        },
+                        {"name": "DATABASE_URL", "value": database_url},
                     ],
                 ),
             )

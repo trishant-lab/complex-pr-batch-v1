@@ -31,6 +31,7 @@ from app.cli.k8s_util import (
     get_dynamic_client,
     get_resource,
 )
+from app.cli.temporal.activities.keycloak_setup import template_render
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 
@@ -354,16 +355,29 @@ class KubernetesDeploymentUpdateActivity(Activity):
 class KedaApplyTemplatedYamlActivityModel(LaunchpadCLIBaseModel):
     """
     Model for applying a KEDA YAML manifest that will be templated.
+
+    Callers may provide either:
+    - `yaml_content` (already-rendered YAML string), or
+    - `template_path` + `template_name` (+ optional `template_payload`) and the
+      activity will render the template internally. The latter is preferred because
+      rendering inside the activity keeps the workflow body free of disk I/O
+      (Temporal determinism).
+
+    Existing callers passing `yaml_content` continue to work unchanged.
     """
 
     namespace: str
-    yaml_content: str
+    yaml_content: str | None = None
+    template_path: str | None = None
+    template_name: str | None = None
+    template_payload: dict | None = None
 
 
 class KedaApplyTemplatedYamlActivity(Activity):
     """
     A generic Temporal activity to apply a KEDA (or any Kubernetes) YAML
-    manifest. It replaces '<<tenant>>' placeholders with the provided namespace.
+    manifest. Accepts either a pre-rendered `yaml_content` string or a
+    template_path/name/payload triple to render at activity time.
     """
 
     @staticmethod
@@ -393,13 +407,27 @@ class KedaApplyTemplatedYamlActivity(Activity):
         tenant_namespace = activity_model.namespace
         log_info(f"Preparing to apply templated YAML manifest to namespace '{tenant_namespace}'...")
 
+        # Resolve the YAML body. Prefer pre-rendered yaml_content (legacy) when present;
+        # otherwise render from template_path + template_name on the activity worker.
+        if activity_model.yaml_content is not None:
+            yaml_text = activity_model.yaml_content
+        elif activity_model.template_path and activity_model.template_name:
+            yaml_text = template_render(
+                template_path=activity_model.template_path,
+                template_name=activity_model.template_name,
+                template_payload=activity_model.template_payload or {},
+            )
+        else:
+            log_error("KedaApplyTemplatedYamlActivity requires either yaml_content or template_path + template_name")
+            return
+
         try:
             k8s_dynamic_client = get_dynamic_client()
 
             # Load the now-templated YAML content into a Python dictionary
-            body = yaml.safe_load(activity_model.yaml_content)
+            body = yaml.safe_load(yaml_text)
             if not body:
-                log_info(f"No YAML content found in '{activity_model.yaml_content}'")
+                log_info(f"No YAML content found in '{yaml_text}'")
                 return
 
             # Extract essential metadata from the YAML for logging and API discovery
