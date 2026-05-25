@@ -31,6 +31,7 @@ WHERE (
     -- e.g., abc+g@gmail.com in Keycloak matches abc@gmail.com input
     LOWER(REGEXP_REPLACE(u.email, '\+[^@]*', '')) = LOWER(REGEXP_REPLACE({{ email }}, '\+[^@]*', ''))
 )
+  AND u.enabled = true  -- exclude disabled Keycloak users
   AND LOWER(cl.client_id) = LOWER({{ product }})  -- client name = product
   AND c.product = LOWER({{ product }})
   AND ps.status = {{ TenantStatusEnum.Provisioned }}
