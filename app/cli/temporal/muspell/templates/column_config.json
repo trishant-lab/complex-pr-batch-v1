@@ -142,7 +142,6 @@
                     "location": "drawer-only"
                 }
             },
-            "AuditLog": {},
             "CarePlan": {
                 "additionalAttributes": {
                     "hideInDrawer": false,

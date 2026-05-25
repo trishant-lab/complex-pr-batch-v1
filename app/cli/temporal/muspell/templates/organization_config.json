@@ -40,7 +40,7 @@
         "fax_number": "+12544077606",
         "hide_screens": {},
         "hospital_logo_data": "",
-        "live_ehr_system_name": "{{ live_ehr_system_name }}",
+        "live_ehr_system_name": "Epic",
         "prefetch_encounter_screens": null,
         "prefetch_screens": null,
         "roi_disclosure_systems": null,
