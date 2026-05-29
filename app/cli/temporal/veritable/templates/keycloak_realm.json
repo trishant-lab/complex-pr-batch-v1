@@ -83,14 +83,28 @@
     "client": {
       "veritable": [
         {
-          "name": "VT_CUSTOMER_ADMIN",
+          "name": "VT_ANALYTICS_USER",
           "description": "",
           "composite": false,
           "clientRole": true,
           "attributes": {}
         },
         {
-          "name": "VT_CUSTOMER_USER",
+          "name": "VT_BILLING_USER",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "VT_BILLING_ADMIN",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        },
+        {
+          "name": "VT_SUPER_ADMIN",
           "description": "",
           "composite": false,
           "clientRole": true,
