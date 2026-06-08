@@ -1,65 +1,144 @@
 {
-  "identityProviders": [
-      {
-          "alias": "ehrsimulatorapp",
-          "displayName": "EHR Simulator APP",
-          "providerId": "oidc",
-          "enabled": true,
-          "updateProfileFirstLoginMode": "on",
-          "trustEmail": true,
-          "storeToken": true,
-          "addReadTokenRoleOnCreate": true,
-          "authenticateByDefault": false,
-          "linkOnly": false,
-          "hideOnLogin": true,
-          "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
-          "config": {
-              "validateSignature": "false",
-              "acceptsPromptNoneForwardFromClient": "true",
-              "tokenUrl": "http://muspell-archive.<<tenant>>.svc.cluster.local:8080/public/api/v1/epicintegration/epicToken",
-              "clientId": "simulator",
-              "uiLocales": "false",
-              "isAccessTokenJWT": "false",
-              "filteredByClaim": "false",
-              "backchannelSupported": "false",
-              "caseSensitiveOriginalUsername": "false",
-              "disableNonce": "false",
-              "useJwksUrl": "true",
-              "loginHint": "false",
-              "sendClientIdOnLogout": "false",
-              "pkceEnabled": "false",
-              "clientAuthMethod": "client_secret_basic",
-              "authorizationUrl": "http://muspell-archive.<<tenant>>.svc.cluster.local:8080/public/api/v1/epicintegration/epicToken",
-              "disableUserInfo": "true",
-              "sendIdTokenOnLogout": "true",
-              "syncMode": "FORCE",
-              "clientSecret": "PLACEHOLDER",
-              "passMaxAge": "false",
-              "allowedClockSkew": "0",
-              "prompt": "none"
-          }
-      }
-  ],
-  "identityProviderMappers": [
-      {
-          "name": "ehr_app_name",
-          "identityProviderAlias": "ehrsimulatorapp",
-          "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
-          "config": {
-              "syncMode": "FORCE",
-              "attribute.value": "Epic",
-              "attribute": "ehr_app_name"
-          }
-      },
-      {
-          "name": "sub_to_username",
-          "identityProviderAlias": "ehrsimulatorapp",
-          "identityProviderMapper": "oidc-user-attribute-idp-mapper",
-          "config": {
-              "syncMode": "FORCE",
-              "claim": "sub",
-              "user.attribute": "username"
-          }
-      }
-  ]
+    "identityProviders": [
+        {
+            "alias": "google",
+            "displayName": "",
+            "providerId": "google",
+            "enabled": true,
+            "updateProfileFirstLoginMode": "on",
+            "trustEmail": true,
+            "storeToken": true,
+            "addReadTokenRoleOnCreate": false,
+            "authenticateByDefault": false,
+            "linkOnly": false,
+            "hideOnLogin": false,
+            "firstBrokerLoginFlowAlias": "314e first broker login",
+            "config": {
+                "clientId": "946042585562-h3nto73ifb1s38n9e0hcukvups2amm7n.apps.googleusercontent.com",
+                "acceptsPromptNoneForwardFromClient": "false",
+                "disableUserInfo": "false",
+                "syncMode": "IMPORT",
+                "filteredByClaim": "false",
+                "clientSecret": "<<google_idp_secret>>",
+                "caseSensitiveOriginalUsername": "false"
+            }
+        },
+        {
+            "alias": "ehrsimulatorapp",
+            "displayName": "EHR Simulator APP",
+            "providerId": "oidc",
+            "enabled": true,
+            "updateProfileFirstLoginMode": "on",
+            "trustEmail": true,
+            "storeToken": true,
+            "addReadTokenRoleOnCreate": true,
+            "authenticateByDefault": false,
+            "linkOnly": false,
+            "hideOnLogin": true,
+            "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
+            "config": {
+                "validateSignature": "false",
+                "acceptsPromptNoneForwardFromClient": "true",
+                "tokenUrl": "http://muspell-archive.<<tenant>>.svc.cluster.local:8080/public/api/v1/epicintegration/epicToken",
+                "clientId": "simulator",
+                "uiLocales": "false",
+                "isAccessTokenJWT": "false",
+                "filteredByClaim": "false",
+                "backchannelSupported": "false",
+                "caseSensitiveOriginalUsername": "false",
+                "disableNonce": "false",
+                "useJwksUrl": "true",
+                "loginHint": "false",
+                "sendClientIdOnLogout": "false",
+                "pkceEnabled": "false",
+                "clientAuthMethod": "client_secret_basic",
+                "authorizationUrl": "http://muspell-archive.<<tenant>>.svc.cluster.local:8080/public/api/v1/epicintegration/epicToken",
+                "disableUserInfo": "true",
+                "sendIdTokenOnLogout": "true",
+                "syncMode": "FORCE",
+                "clientSecret": "PLACEHOLDER",
+                "passMaxAge": "false",
+                "allowedClockSkew": "0",
+                "prompt": "none"
+            }
+        },
+        {
+            "alias": "muspell-epic-prod",
+            "displayName": "Muspell EPIC Prod",
+            "providerId": "oidc",
+            "enabled": true,
+            "trustEmail": true,
+            "storeToken": true,
+            "addReadTokenRoleOnCreate": true,
+            "authenticateByDefault": false,
+            "linkOnly": false,
+            "hideOnLogin": true,
+            "firstBrokerLoginFlowAlias": "Smart on Fhir Login existing users only",
+            "config": {
+                "tokenUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2/token",
+                "acceptsPromptNoneForwardFromClient": "true",
+                "jwksUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/api/epic/2019/Security/Open/PublicKeys/530027/OIDC",
+                "isAccessTokenJWT": "false",
+                "filteredByClaim": "false",
+                "jwtX509HeadersEnabled": "false",
+                "backchannelSupported": "false",
+                "caseSensitiveOriginalUsername": "false",
+                "issuer": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2",
+                "pkceMethod": "S256",
+                "loginHint": "false",
+                "clientAuthMethod": "private_key_jwt",
+                "clientAssertionSigningAlg": "RS256",
+                "syncMode": "IMPORT",
+                "requiresShortStateParameter": "true",
+                "allowedClockSkew": "0",
+                "defaultScope": "launch openid fhirUser",
+                "validateSignature": "true",
+                "clientId": "62c8b231-b4f6-4802-8217-8aac8c240da8",
+                "uiLocales": "false",
+                "disableNonce": "true",
+                "useJwksUrl": "true",
+                "sendClientIdOnLogout": "false",
+                "pkceEnabled": "true",
+                "authorizationUrl": "https://vendorservices.epic.com/interconnect-amcurprd-oauth/oauth2/authorize?aud=https://vendorservices.epic.com/interconnect-amcurprd-oauth/api/FHIR/R4",
+                "disableUserInfo": "false",
+                "sendIdTokenOnLogout": "true",
+                "passMaxAge": "false",
+                "disableTypeClaimCheck": "false",
+                "forwardParameters": "aud,launch",
+                "prompt": "none"
+            }
+        }
+    ],
+    "identityProviderMappers": [
+        {
+            "name": "ehr_app_name",
+            "identityProviderAlias": "ehrsimulatorapp",
+            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
+            "config": {
+                "syncMode": "FORCE",
+                "attribute.value": "Epic",
+                "attribute": "ehr_app_name"
+            }
+        },
+        {
+            "name": "sub_to_username",
+            "identityProviderAlias": "ehrsimulatorapp",
+            "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+            "config": {
+                "syncMode": "FORCE",
+                "claim": "sub",
+                "user.attribute": "username"
+            }
+        },
+        {
+            "name": "ehr_app_name",
+            "identityProviderAlias": "muspell-epic-prod",
+            "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
+            "config": {
+                "syncMode": "FORCE",
+                "attribute.value": "Epic",
+                "attribute": "ehr_app_name"
+            }
+        }
+    ]
 }

@@ -10,7 +10,8 @@
     "_access-setting",
     "_access-assignment",
     "_access-broadcast",
-    "_access-user-list"
+    "_access-user-list",
+    "_allow-review-asset"
   ],
   "Publisher": [
     "_allow-standalone-launch",
@@ -21,7 +22,8 @@
     "_allow-publish-asset",
     "_allow-delete-asset",
     "_access-broadcast",
-    "_access-user-list"
+    "_access-user-list",
+    "_allow-review-asset"
   ],
   "Author": [
     "_allow-standalone-launch",
@@ -31,7 +33,13 @@
     "_allow-add-edit-asset",
     "_access-broadcast",
     "_allow-delete-asset",
-    "_access-user-list"
+    "_access-user-list",
+    "_allow-review-asset"
+  ],
+  "Reviewer": [
+    "_allow-standalone-launch",
+    "_allow-review-asset",
+    "_allow-view-asset"
   ],
   "Learner": [
     "_allow-standalone-launch"

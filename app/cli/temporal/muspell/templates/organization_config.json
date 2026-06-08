@@ -5,29 +5,46 @@
         "db": "",
         "systems": {
             {% for application in application_list %}
-            "<<application>>": {
-                "aux_id": null,
-                "db_name": "<<application>>",
-                "display_name": "<<application>>",
-                "patient_mrn_system_ids": [],
-                "search_identifiers": [
-                    {
-                        "value": "mrn",
-                        "label": "MRN"
-                    }
-                ]
-            }{% if not loop.last %},{% endif %}
-            {% endfor %}
+                "<<application>>": {
+                    "aux_id": null,
+                    "db_name": "<<application>>",
+                    "display_name": "<<application>>",
+                    "is_legacy": true,
+                    "mnemonic": "<<application[:3] | upper>>",
+                    "patient_mrn_system_ids": [],
+                    "search_identifiers": [
+                        {
+                            "value": "mrn",
+                            "label": "MRN"
+                        }
+                    ]
+                }{% if not loop.last %},{% endif %}
+                
+                {% endfor %}
+            }
         },
-        "mrn_type_code": "MR"
-    },
-    "date_format": "MM/DD/YYYY",
-    "time_format": "hh:mm A",
-    "prefetch_screens": null,
-    "enable_pcn_search": true,
-    "hospital_logo_data": "",
-    "live_ehr_system_name": "Epic",
-    "enable_document_search": true,
-    "roi_disclosure_systems": null,
-    "prefetch_encounter_screens": null
-}
+        "count_api": {
+            "hidden": false,
+            "parallel": false
+        },
+        "date_format": "MM/DD/YYYY",
+        "default_grid_view": {},
+        "disabled_features": [],
+        "enable_copy_text_attribution": false,
+        "enable_document_search": true,
+        "enable_fax": true,
+        "enable_mpi": true,
+        "enable_roi_requestor_form": true,
+        "exclude_analytics_domain": [],
+        "exclude_analytics_user": [],
+        "fax_number": "+12544077606",
+        "hide_screens": {},
+        "hospital_logo_data": "",
+        "live_ehr_system_name": "Epic",
+        "prefetch_encounter_screens": null,
+        "prefetch_screens": null,
+        "roi_disclosure_systems": null,
+        "time_format": "hh:mm A",
+        "timezone": "America/New_York",
+        "tracking_type": "Posthog"
+    }

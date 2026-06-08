@@ -31,6 +31,7 @@ from app.cli.k8s_util import (
     get_dynamic_client,
     get_resource,
 )
+from app.cli.temporal.activities.keycloak_setup import template_render
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 
@@ -354,16 +355,29 @@ class KubernetesDeploymentUpdateActivity(Activity):
 class KedaApplyTemplatedYamlActivityModel(LaunchpadCLIBaseModel):
     """
     Model for applying a KEDA YAML manifest that will be templated.
+
+    Callers may provide either:
+    - `yaml_content` (already-rendered YAML string), or
+    - `template_path` + `template_name` (+ optional `template_payload`) and the
+      activity will render the template internally. The latter is preferred because
+      rendering inside the activity keeps the workflow body free of disk I/O
+      (Temporal determinism).
+
+    Existing callers passing `yaml_content` continue to work unchanged.
     """
 
     namespace: str
-    yaml_content: str
+    yaml_content: str | None = None
+    template_path: str | None = None
+    template_name: str | None = None
+    template_payload: dict | None = None
 
 
 class KedaApplyTemplatedYamlActivity(Activity):
     """
     A generic Temporal activity to apply a KEDA (or any Kubernetes) YAML
-    manifest. It replaces '<<tenant>>' placeholders with the provided namespace.
+    manifest. Accepts either a pre-rendered `yaml_content` string or a
+    template_path/name/payload triple to render at activity time.
     """
 
     @staticmethod
@@ -393,13 +407,27 @@ class KedaApplyTemplatedYamlActivity(Activity):
         tenant_namespace = activity_model.namespace
         log_info(f"Preparing to apply templated YAML manifest to namespace '{tenant_namespace}'...")
 
+        # Resolve the YAML body. Prefer pre-rendered yaml_content (legacy) when present;
+        # otherwise render from template_path + template_name on the activity worker.
+        if activity_model.yaml_content is not None:
+            yaml_text = activity_model.yaml_content
+        elif activity_model.template_path and activity_model.template_name:
+            yaml_text = template_render(
+                template_path=activity_model.template_path,
+                template_name=activity_model.template_name,
+                template_payload=activity_model.template_payload or {},
+            )
+        else:
+            log_error("KedaApplyTemplatedYamlActivity requires either yaml_content or template_path + template_name")
+            return
+
         try:
             k8s_dynamic_client = get_dynamic_client()
 
             # Load the now-templated YAML content into a Python dictionary
-            body = yaml.safe_load(activity_model.yaml_content)
+            body = yaml.safe_load(yaml_text)
             if not body:
-                log_info(f"No YAML content found in '{activity_model.yaml_content}'")
+                log_info(f"No YAML content found in '{yaml_text}'")
                 return
 
             # Extract essential metadata from the YAML for logging and API discovery
@@ -419,6 +447,16 @@ class KedaApplyTemplatedYamlActivity(Activity):
             # Discover the resource API for the object
             api_resource = k8s_dynamic_client.resources.get(api_version=api_version, kind=kind)
 
+            # If the resource already exists, skip — KEDA admission webhook blocks
+            # server_side_apply on re-runs even for the same ScaledObject name
+            try:
+                existing = api_resource.get(name=name, namespace=tenant_namespace)
+                if existing:
+                    log_info(f"'{kind}/{name}' already exists in namespace '{tenant_namespace}', skipping")
+                    return
+            except NotFoundError:
+                log_info(f"'{kind}/{name}' not found, proceeding with apply")
+
             # Sanitize and apply the resource using server-side apply
             payload = k8s_dynamic_client.client.sanitize_for_serialization(body)
 
@@ -434,3 +472,60 @@ class KedaApplyTemplatedYamlActivity(Activity):
         except Exception as e:
             log_error(f"Failed to apply templated YAML in namespace '{tenant_namespace}': {e!s}")
             raise
+
+
+class FetchDeploymentImageTagActivityModel(LaunchpadCLIBaseModel):
+    """
+    Model for fetching the current image tag from a running deployment.
+    """
+
+    namespace: str
+    deployment_name: str
+
+
+class FetchDeploymentImageTagActivity(Activity):
+    """
+    Fetches the current container image tag from a running deployment in a namespace.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """Timeout for the activity."""
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """RetryPolicy for the activity."""
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=3,
+        )
+
+    @staticmethod
+    @activity.defn(name="FetchDeploymentImageTagActivity")
+    async def defn(activity_model: FetchDeploymentImageTagActivityModel) -> str:
+        """
+        Fetch the image tag from the first container of a running deployment.
+        Returns the tag portion of the image (after the last ':'), or 'production' as fallback.
+        """
+        try:
+            k8s_dynamic_client = get_dynamic_client()
+            resource = get_resource(
+                dynamic_client=k8s_dynamic_client,
+                kind=ResourceKindEnum.Deployment,
+                api_version=K8S_RESOURCE_VERSION,
+            )
+            deployment = resource.get(name=activity_model.deployment_name, namespace=activity_model.namespace)
+            image = deployment.spec.template.spec.containers[0].image
+            tag = image.rsplit(":", 1)[-1] if ":" in image else "production"
+            log_info(f"Current image tag for {activity_model.deployment_name} in {activity_model.namespace}: {tag}")
+            return tag
+        except NotFoundError:
+            log_error(
+                f"Deployment '{activity_model.deployment_name}' not found in namespace '{activity_model.namespace}'"
+            )
+            return "production"
+        except Exception as e:
+            log_error(f"Failed to fetch image tag from deployment {activity_model.deployment_name}: {e!s}")
+            return "production"

@@ -17,6 +17,8 @@ from app.cli.temporal.activities.veritable_db_migration_job import (
 from app.cli.temporal.activities.deployment import (
     DeploymentDeletionActivity,
     DeploymentDeletionActivityModel,
+    KedaScaledObjectDeletionActivity,
+    KedaScaledObjectDeletionActivityModel,
 )
 from app.cli.temporal.activities.k8s_config_map import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
@@ -50,6 +52,7 @@ from app.cli.temporal.models.cloudflare import (
     DeleteFilesFromCloudflareActivityModel,
 )
 from app.cli.temporal.models.deboard import DeboardWorkflowInput
+from app.cli.temporal.veritable import TemplatePath
 from app.core.settings import VeritableSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
@@ -88,6 +91,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             VeritableNovuDeProvisionActivity.defn,
             TenantCrdDeletionActivity.defn,
             DeploymentDeletionActivity.defn,
+            KedaScaledObjectDeletionActivity.defn,
         ]
 
     @classmethod
@@ -137,6 +141,16 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 arg=DeleteVeritableDatabaseMigrationJobActivityModel(
                     namespace=tenant,
                     job_name="veritable-tenant-provisioning-job",
+                ),
+            )
+
+            # delete KEDA ScaledObject
+            await run_activity(
+                activity=KedaScaledObjectDeletionActivity,
+                arg=KedaScaledObjectDeletionActivityModel(
+                    namespace=tenant,
+                    template_path=TemplatePath,
+                    template_name="keda-prometheus-scaledobject-server.tmpl.yaml",
                 ),
             )
 

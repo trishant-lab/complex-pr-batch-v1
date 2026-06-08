@@ -11,6 +11,8 @@ from app.cli.temporal.activities.cloudflare_setup import (
     UpdateCORSForBucketActivity,
 )
 from app.cli.temporal.activities.deployment_pod_creation import (
+    KedaApplyTemplatedYamlActivity,
+    KedaApplyTemplatedYamlActivityModel,
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
 )
@@ -20,16 +22,25 @@ from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivityModel,
 )
 from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
+from app.cli.temporal.activities.minio_setup import (
+    AttachMinioPolicyActivity,
+    CreateMinioBucketActivity,
+    CreateMinioUserActivity,
+)
 from app.cli.temporal.activities.muspell_configupdate_job import (
     MuspellConfigUpdateJobActivity,
     MuspellConfigUpdateJobActivityModel,
 )
-from app.cli.temporal.activities.redis import RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.redis import CACHE_HOST, RedisSetupActivity, RedisSetupActivityModel
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
 )
-from app.cli.temporal.activities.starrocks_setup import CreateStarRocksCatalogActivity, CreateStarRocksUserActivity
+from app.cli.temporal.activities.starrocks_setup import (
+    CreateStarRocksCatalogActivity,
+    CreateStarRocksUserActivity,
+    StarRocksGrantReadOnlyCatalogActivity,
+)
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
@@ -52,6 +63,7 @@ from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
 from app.cli.temporal.activities.keycloak_setup import (
+    JeevesKeycloakCreateIDPFlowActivity,
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
@@ -64,6 +76,8 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakRealmSetupActivityModel,
 )
 from app.cli.temporal.activities.one_password import (
+    CreatePasswordActivity,
+    CreatePasswordActivityModel,
     OnePasswordCreateOrUpdateActivity,
     OnePasswordCreateOrUpdateActivityModel,
     OnePasswordInsertIfNotExistsActivity,
@@ -72,10 +86,16 @@ from app.cli.temporal.activities.one_password import (
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
+    PostgresCheckRoleExistsActivity,
+    PostgresCheckRoleExistsActivityModel,
+    PostgresDatabaseCreationActivity,
+    PostgresDatabaseCreationActivityModel,
     PostgresGrantAccessToUserActivity,
     PostgresGrantAccessToUserActivityModel,
     PostgresGrantAllPrivilegesOnTableActivity,
     PostgresGrantAllPrivilegesOnTableActivityModel,
+    PostgresGrantSupersetReadOnlyActivity,
+    PostgresGrantSupersetReadOnlyActivityModel,
     PostgresSchemaCreationActivity,
     PostgresSchemaCreationActivityModel,
     PostgresUserCreationActivity,
@@ -89,7 +109,7 @@ from app.core.ijson import ijson_dumps, ijson_loads
 
 from typing import TYPE_CHECKING
 
-from app.starrocks_utils import RegisterStarrocksUserModel
+from app.starrocks_utils import GrantStarRocksReadOnlyCatalogModel, RegisterStarrocksUserModel
 
 if TYPE_CHECKING:
     from app.core.product_settings.muspell_archive import MuspellArchiveSettings
@@ -154,6 +174,16 @@ class MuspellOnboardingWorkflow(Workflow):
             OnePasswordInsertIfNotExistsActivity.defn,
             MuspellConfigUpdateJobActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
+            JeevesKeycloakCreateIDPFlowActivity.defn,
+            CreatePasswordActivity.defn,
+            PostgresDatabaseCreationActivity.defn,
+            CreateMinioUserActivity.defn,
+            CreateMinioBucketActivity.defn,
+            AttachMinioPolicyActivity.defn,
+            KedaApplyTemplatedYamlActivity.defn,
+            PostgresCheckRoleExistsActivity.defn,
+            PostgresGrantSupersetReadOnlyActivity.defn,
+            StarRocksGrantReadOnlyCatalogActivity.defn,
         ]
 
     @classmethod
@@ -202,9 +232,60 @@ class MuspellOnboardingWorkflow(Workflow):
             postgres_database_name = muspell_config.database_name
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
+            database_url = (
+                f"postgresql://{postgres_username}:{postgres_password}"
+                f"@{config.postgres.host}:{config.postgres.port}"
+                f"/{postgres_database_name}?sslmode=disable&application_name="
+                f"{postgres_database_name}&options=-c search_path%3D{postgres_schema_name},public"
+            )
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/muspell-app:{image_tag}"
+            superset_docker_image = "registry.314ecorp.tech/superset:5.0.0"
             server_item = "production-config" if config.env == "production" else "integration-config"
+            dicom_database_name = f"{ProductName}_dicom_{tenant}"
+            dicom_database_password = await run_activity(
+                activity=CreatePasswordActivity,
+                arg=CreatePasswordActivityModel(length=20),
+            )
+            superset_schema_name = f"{tenant}_superset"
+
+            # create postgres database for dicom
+            await run_activity(
+                activity=PostgresDatabaseCreationActivity,
+                arg=PostgresDatabaseCreationActivityModel(
+                    database_name=dicom_database_name,
+                ),
+            )
+
+            # create postgres user for dicom
+            await run_activity(
+                activity=PostgresUserCreationActivity,
+                arg=PostgresUserCreationActivityModel(
+                    username=dicom_database_name,
+                    database_name=dicom_database_name,
+                    password=dicom_database_password,
+                ),
+            )
+
+            # create one password for dicom database password
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="pg_dicom_password",
+                    secret_value=dicom_database_password,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
+                arg=PostgresGrantAccessToUserActivityModel(
+                    username=dicom_database_name,
+                    database_name=dicom_database_name,
+                ),
+            )
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
@@ -255,6 +336,29 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # Optional read-only access for muspell_ro on the tenant schema (no-op if user absent)
+            muspell_ro_exists = await run_activity(
+                activity=PostgresCheckRoleExistsActivity,
+                arg=PostgresCheckRoleExistsActivityModel(
+                    username="muspell_ro",
+                    database_name=postgres_database_name,
+                ),
+            )
+            if muspell_ro_exists:
+                await run_activity(
+                    activity=PostgresGrantSupersetReadOnlyActivity,
+                    arg=PostgresGrantSupersetReadOnlyActivityModel(
+                        schema_name=postgres_schema_name,
+                        schema_owner_username=postgres_username,
+                        superset_ro_username="muspell_ro",
+                        database_name=postgres_database_name,
+                    ),
+                )
+            else:
+                log_info(
+                    f"Postgres role 'muspell_ro' not found; skipping read-only grant on schema {postgres_schema_name}"
+                )
+
             await run_activity(
                 activity=KeycloakUserMappingActivity,
                 arg=KeycloakUserMappingActivityModel(
@@ -281,6 +385,25 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # create postgres schema and grant access for superset
+            await run_activity(
+                activity=PostgresSchemaCreationActivity,
+                arg=PostgresSchemaCreationActivityModel(
+                    schema_name=superset_schema_name,
+                    username=postgres_username,
+                    database_name=postgres_database_name,
+                ),
+            )
+
+            await run_activity(
+                activity=PostgresGrantAccessToUserActivity,
+                arg=PostgresGrantAccessToUserActivityModel(
+                    schema_name=superset_schema_name,
+                    username=postgres_username,
+                    database_name=postgres_database_name,
+                ),
+            )
+
             await run_activity(
                 activity=K8sNamespaceCreationActivity,
                 arg=K8sNamespaceCreationActivityModel(namespace=tenant),
@@ -299,17 +422,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # secret setup for redis password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="cache-secret",
-                    string_data={"REDIS_PASSWORD": config.cache_admin_password},
-                ),
-            )
-
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{ProductName}_{tenant}-{generate_password(length=20)}"
 
             await run_activity(
                 activity=RedisSetupActivity,
@@ -368,16 +481,9 @@ class MuspellOnboardingWorkflow(Workflow):
                             "allowed": {
                                 "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
                                 "origins": ["*"],
-                                "headers": [
-                                    "Authorization",
-                                    "content-type",
-                                    "x-amz-*",
-                                    "traceparent",
-                                    "x-highlight-request",
-                                    "X-LOGINSERVICEAREA",
-                                ],
+                                "headers": ["*"],
                             },
-                            "exposeHeaders": ["ETag", "Location", "Content-Disposition"],
+                            "exposeHeaders": ["ETag", "Content-Length", "Location", "Content-Disposition"],
                         }
                     ],
                 ),
@@ -418,6 +524,7 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             # cdn base url added to onepassword
+            base_url = f"https://{tenant}.{muspell_config.domain_name}"
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
                 arg=OnePasswordInsertIfNotExistsActivityModel(
@@ -425,9 +532,11 @@ class MuspellOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="base_url_cdn",
-                    key_value=f"https://{tenant}.{muspell_config.domain_name}",
+                    key_value=base_url,
                 ),
             )
+
+            auth_url = config.keycloak.auth_url
 
             await run_activity(
                 activity=OnePasswordInsertIfNotExistsActivity,
@@ -436,7 +545,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     key="keycloak_auth_url",
-                    key_value=f"https://{tenant}.{muspell_config.domain_name}",
+                    key_value=auth_url,
                 ),
             )
 
@@ -476,6 +585,166 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # only create these buckets for integration setup
+            if config.env != "production":
+                # create bucket in r2
+                r2_bucket_name = f"ma-{tenant}"
+                await run_activity(
+                    activity=CreateCloudflareBucketActivity,
+                    arg=CreateCloudflareBucketActivityModel(bucket_name=r2_bucket_name),
+                )
+
+                r2_credentials: CloudflareBucketCredentials = await run_activity(
+                    activity=CreateCloudflareBucketCredentialsActivity,
+                    arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=r2_bucket_name, read_only=False),
+                )
+
+                # r2 access key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_r2_documents_bucket_name",
+                        key_value=r2_bucket_name,
+                    ),
+                )
+
+                # r2 access key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_r2_documents_access_key",
+                        key_value=r2_credentials.access_key,
+                    ),
+                )
+
+                # r2 secret key added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_r2_documents_secret_key",
+                        key_value=r2_credentials.secret_key,
+                    ),
+                )
+
+                # r2 endpoint added to onepassword
+                await run_activity(
+                    activity=OnePasswordInsertIfNotExistsActivity,
+                    arg=OnePasswordInsertIfNotExistsActivityModel(
+                        tenant=f"{ProductName}_{tenant}",
+                        vault=OnePasswordVaultName,
+                        server_item=server_item,
+                        key=f"{tenant}_r2_endpoint",
+                        key_value=config.cloudflare.r2_endpoint,
+                    ),
+                )
+                # bucket is shared across environments; allow both integration and prod UI origins
+                await run_activity(
+                    activity=UpdateCORSForBucketActivity,
+                    arg=UpdateCORSForBucketActivityModel(
+                        bucket_name=r2_bucket_name,
+                        rules=[
+                            {
+                                "allowed": {
+                                    "methods": ["GET", "PUT", "HEAD", "POST", "DELETE"],
+                                    "origins": [base_url, f"https://{tenant}.muspell.com"],
+                                    "headers": [
+                                        "Authorization",
+                                        "content-type",
+                                        "x-amz-*",
+                                        "traceparent",
+                                        "If-Match",
+                                        "If-None-Match",
+                                    ],
+                                },
+                                "exposeHeaders": ["ETag", "Location"],
+                            }
+                        ],
+                    ),
+                )
+                # endif integration specific flow
+
+            # minio_bucket_name = f"ma-{tenant}"
+
+            # access_key = f"{tenant}_files"
+            # secret_key = generate_password(length=16)
+            # s3_config = S3Settings()
+            # s3_config.access_key = muspell_config.warehouse_access_key
+            # s3_config.secret_key = muspell_config.warehouse_secret_key
+            # s3_config.endpoint = muspell_config.s3_endpoint
+
+            # # create minio user and bucket
+            # await run_activity(
+            #     activity=CreateMinioUserActivity,
+            #     arg=CreateMinioUserActivityModel(access_key=access_key, secret_key=secret_key, s3_config=s3_config),
+            # )
+
+            # await run_activity(
+            #     activity=CreateMinioBucketActivity,
+            #     arg=CreateMinioBucketActivityModel(
+            #         bucket_name=minio_bucket_name, region_name=muspell_config.minio_region, s3_config=s3_config
+            #     ),
+            # )
+
+            # await run_activity(
+            #     activity=AttachMinioPolicyActivity,
+            #     arg=AttachMinioPolicyActivityModel(
+            #         bucket_name=minio_bucket_name, access_key=access_key, s3_config=s3_config
+            #     ),
+            # )
+
+            # await run_activity(
+            #     activity=OnePasswordInsertIfNotExistsActivity,
+            #     arg=OnePasswordInsertIfNotExistsActivityModel(
+            #         tenant="INTEGRATION_COMMON_CONFIG",
+            #         vault=OnePasswordVaultName,
+            #         server_item=server_item,
+            #         key=f"{tenant}_minio_endpoint",
+            #         key_value=muspell_config.s3_endpoint,
+            #     ),
+            # )
+
+            # await run_activity(
+            #     activity=OnePasswordInsertIfNotExistsActivity,
+            #     arg=OnePasswordInsertIfNotExistsActivityModel(
+            #         tenant="INTEGRATION_COMMON_CONFIG",
+            #         vault=OnePasswordVaultName,
+            #         server_item=server_item,
+            #         key=f"{tenant}_minio_bucket",
+            #         key_value=minio_bucket_name,
+            #     ),
+            # )
+
+            # await run_activity(
+            #     activity=OnePasswordInsertIfNotExistsActivity,
+            #     arg=OnePasswordInsertIfNotExistsActivityModel(
+            #         tenant="INTEGRATION_COMMON_CONFIG",
+            #         vault=OnePasswordVaultName,
+            #         server_item=server_item,
+            #         key=f"{tenant}_minio_access_key",
+            #         key_value=access_key,
+            #     ),
+            # )
+
+            # await run_activity(
+            #     activity=OnePasswordCreateOrUpdateActivity,
+            #     arg=OnePasswordCreateOrUpdateActivityModel(
+            #         tenant="INTEGRATION_COMMON_CONFIG",
+            #         vault=OnePasswordVaultName,
+            #         server_item=server_item,
+            #         secret_name=f"{tenant}_minio_secret_key",
+            #         secret_value=secret_key,
+            #     ),
+            # )
+
             realm_name = tenant
             # keycloak realm setup
             await run_activity(
@@ -485,6 +754,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     domain=muspell_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
+                    template_payload={"smtp_password": muspell_config.keycloak_smtp_password},
                 ),
             )
 
@@ -536,6 +806,19 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # keycloak idp setup
+            await run_activity(
+                activity=JeevesKeycloakCreateIDPFlowActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=muspell_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_idp_and_flows.json",
+                    template_payload={"google_idp_secret": muspell_config.google_idp_secret},
+                ),
+            )
+
             template_env = get_env(template_path=TemplatePath)
 
             applicationaccess = None
@@ -571,12 +854,6 @@ class MuspellOnboardingWorkflow(Workflow):
                     template_name="keycloak_tenant_internal_user.json",
                     users=[
                         {
-                            "username": "vaishnavi.sharma@314ecorp.com",
-                            "email": "vaishnavi.sharma@314ecorp.com",
-                            "firstname": "Vaishnavi",
-                            "lastname": "Sharma",
-                        },
-                        {
                             "username": "soumya.agarwal@314ecorp.com",
                             "email": "soumya.agarwal@314ecorp.com",
                             "firstname": "Soumya",
@@ -588,12 +865,14 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            catalog_name = f"{tenant}"
+
             # Create the StarRocks catalog
             await run_activity(
                 activity=CreateStarRocksCatalogActivity,
                 arg=CreateStarRocksCatalogActivityModel(
                     tenant=tenant,
-                    catalog_name=tenant,
+                    catalog_name=catalog_name,
                     warehouse_access_key=muspell_config.warehouse_access_key,
                     warehouse_secret_key=muspell_config.warehouse_secret_key,
                 ),
@@ -606,7 +885,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     vault=OnePasswordVaultName,
                     server_item=server_item,
                     secret_name="catalog",
-                    secret_value=tenant,
+                    secret_value=catalog_name,
                 ),
             )
 
@@ -619,9 +898,19 @@ class MuspellOnboardingWorkflow(Workflow):
                 arg=RegisterStarrocksUserModel(
                     muspell_config=muspell_config,
                     tenant=tenant,
-                    catalog_name=tenant,
+                    catalog_name=catalog_name,
                     user_name=starrocks_username,
                     user_password=starrocks_password,
+                ),
+            )
+
+            # Optional read-only access for readonly_user on the tenant catalog (no-op if user absent)
+            await run_activity(
+                activity=StarRocksGrantReadOnlyCatalogActivity,
+                arg=GrantStarRocksReadOnlyCatalogModel(
+                    muspell_config=muspell_config,
+                    user_name="readonly_user",
+                    catalog_name=catalog_name,
                 ),
             )
 
@@ -650,6 +939,7 @@ class MuspellOnboardingWorkflow(Workflow):
             tenant_config = f"{config.env}.toml"
             code_system_config = "code_systems.toml"
             config_dir = "app/config"
+            dicom_config = "dicom-config.json"
 
             # setup tenant configmap
             for config_map in [
@@ -662,6 +952,11 @@ class MuspellOnboardingWorkflow(Workflow):
                     "name": "muspell-config-system",
                     "key": code_system_config,
                     "template_file_name": f"{config.env}-tenant-system.tmpl.toml",
+                },
+                {
+                    "name": "muspell-dicom-config",
+                    "key": dicom_config,
+                    "template_file_name": f"{config.env}-dicom-config.tmpl.json",
                 },
             ]:
                 await run_activity(
@@ -676,6 +971,44 @@ class MuspellOnboardingWorkflow(Workflow):
                     ),
                 )
 
+            # ROI export ScaledJob: Secret holding redis password → TriggerAuthentication → ScaledJob
+            await run_activity(
+                activity=K8sSecretCreationActivity,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="redis-credentials",
+                    type="Opaque",
+                    string_data={"REDIS_PASSWORD": redis_tenant_password},
+                ),
+            )
+
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    template_path=TemplatePath,
+                    template_name="keda-redis-trigger-auth.tmpl.yaml",
+                    template_payload={"tenant": tenant},
+                ),
+            )
+
+            await run_activity(
+                activity=KedaApplyTemplatedYamlActivity,
+                arg=KedaApplyTemplatedYamlActivityModel(
+                    namespace=tenant,
+                    template_path=TemplatePath,
+                    template_name="keda-roi-export-scaledjob.tmpl.yaml",
+                    template_payload={
+                        "tenant": tenant,
+                        "deployment": config.env,
+                        "database_url": database_url,
+                        "docker_image": docker_image,
+                        "tenant_config": tenant_config,
+                        "cache_host": CACHE_HOST,
+                    },
+                ),
+            )
+
             # kubernetes service
             await run_activity(
                 activity=KubernetesServiceActivity,
@@ -687,17 +1020,15 @@ class MuspellOnboardingWorkflow(Workflow):
             )
 
             template = template_env.get_template("istio-rules.json")
-            output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
+            output = template.render(
+                tenant=tenant,
+                image_tag=image_tag,
+                env=config.env,
+                domain_name=muspell_config.domain_name,
+                kestra_basic_auth=muspell_config.kestra_basic_auth,
+            )
 
             http_list = ijson_loads(output)
-            if config.env != "production":
-                http_list.append(
-                    {
-                        "name": "redirect",
-                        "match": [{"uri": {"exact": "/"}}],
-                        "redirect": {"uri": f"/{image_tag}/"},
-                    }
-                )
 
             # kubernetes virtual service
             await run_activity(
@@ -710,7 +1041,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # statefulset pod creation for server
+            # Deployment pod creation for server
             await run_activity(
                 activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
@@ -754,16 +1085,58 @@ class MuspellOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
+                        {"name": "DATABASE_URL", "value": database_url},
+                    ],
+                ),
+            )
+
+            # Deployment pod creation for dicom
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
+                    namespace=tenant,
+                    name="muspell-dicom",
+                    docker_image="orthancteam/orthanc:24.8.1",
+                    request_resource={
+                        "cpu": pydash.get(muspell, "serverSpec.request_cpu"),
+                        "memory": pydash.get(muspell, "serverSpec.request_memory"),
+                    },
+                    limit_resource={
+                        "cpu": pydash.get(muspell, "serverSpec.limit_cpu"),
+                        "memory": pydash.get(muspell, "serverSpec.limit_memory"),
+                    },
+                    container_ports={},
+                    volume_mounts=[
                         {
-                            "name": "DATABASE_URL",
-                            "value": (
-                                f"postgresql://{postgres_username}:{postgres_password}"
-                                f"@{config.postgres.host}:{config.postgres.port}"
-                                f"/{postgres_database_name}?sslmode=disable&application_name="
-                                f"{postgres_database_name}&options=-c search_path%3D{postgres_schema_name},public"
-                            ),
+                            "name": "dicom-volume",
+                            "mount_path": "/etc/orthanc/orthanc.json",
+                            "sub_path": dicom_config,
                         },
                     ],
+                    volumes=[
+                        {
+                            "name": "dicom-volume",
+                            "config_map_name": "muspell-dicom-config",
+                            "key": dicom_config,
+                            "path": dicom_config,
+                        },
+                    ],
+                    container_envs=[
+                        {"name": "DEPLOYMENT", "value": config.env},
+                        {"name": "CLIENT_CODE", "value": tenant},
+                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
+                        {"name": "RELEASE_VERSION", "value": image_tag},
+                    ],
+                ),
+            )
+
+            # kubernetes service for dicom
+            await run_activity(
+                activity=KubernetesServiceActivity,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="muspell-dicom",
+                    ports={"http": 8042},
                 ),
             )
 
@@ -787,26 +1160,116 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # check pod running status
+            superset_password = generate_password(length=20)
+            superset_secret_name = "superset-secrets"
+            # Super setup for muspell
             await run_activity(
-                activity=CheckPodRunningStatusActivity,
-                arg=CheckPodRunningStatusActivityModel(
+                activity=K8sSecretCreationActivity,
+                arg=K8sSecretCreationActivityModel(
                     namespace=tenant,
-                    name="muspell-archive",
+                    name=superset_secret_name,
+                    type="Opaque",
+                    string_data={
+                        "SUPERSET_SECRET_KEY": superset_password,
+                        "DATABASE_PASSWORD": postgres_password,
+                    },
                 ),
-                retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
-                start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
             )
+
+            await run_activity(
+                activity=KubernetesDeploymentActivity,
+                arg=KubernetesDeploymentActivityModel(
+                    namespace=tenant,
+                    name="muspell-superset",
+                    docker_image=superset_docker_image,
+                    request_resource={
+                        "cpu": pydash.get(muspell, "serverSpec.request_cpu"),
+                        "memory": pydash.get(muspell, "serverSpec.request_memory"),
+                    },
+                    limit_resource={
+                        "cpu": pydash.get(muspell, "serverSpec.limit_cpu"),
+                        "memory": pydash.get(muspell, "serverSpec.limit_memory"),
+                    },
+                    container_ports={"http": 8088},
+                    volume_mounts=[],
+                    volumes=[],
+                    container_envs=[
+                        {
+                            "name": "SUPERSET_SECRET_KEY",
+                            "value_from": {
+                                "secret_key_ref": {"name": superset_secret_name, "key": "SUPERSET_SECRET_KEY"}
+                            },
+                        },
+                        {
+                            "name": "DATABASE_PASSWORD",
+                            "value_from": {
+                                "secret_key_ref": {"name": superset_secret_name, "key": "DATABASE_PASSWORD"}
+                            },
+                        },
+                        {"name": "REDIS_PASSWORD", "value": redis_tenant_password},
+                        {"name": "PYTHONUNBUFFERED", "value": "1"},
+                        {"name": "COMPOSE_PROJECT_NAME", "value": "superset"},
+                        {"name": "DEV_MODE", "value": "true"},
+                        {"name": "DATABASE_SCHEMA", "value": superset_schema_name},
+                        {"name": "DATABASE_DB", "value": postgres_database_name},
+                        {"name": "DATABASE_HOST", "value": config.postgres.host},
+                        {"name": "DATABASE_PORT", "value": str(config.postgres.port)},
+                        {"name": "DATABASE_DIALECT", "value": "postgresql"},
+                        {"name": "DATABASE_USER", "value": postgres_username},
+                        {"name": "REDIS_HOST", "value": CACHE_HOST},
+                        {"name": "REDIS_PORT", "value": "6379"},
+                        {"name": "KEYCLOAK_CLIENT_ID", "value": "muspell"},
+                        {"name": "KEYCLOAK_REALM", "value": tenant},
+                        {"name": "KEYCLOAK_AUTH_URL", "value": f"{auth_url}/auth/"},
+                        {"name": "SUPERSET_CONFIG_PATH", "value": "/app/superset_config.py"},
+                        {
+                            "name": "SUPERSET_BASE_URL",
+                            "value": f"https://{tenant}.api.{muspell_config.domain_name}/superset",
+                        },
+                        {"name": "SCRIPT_NAME", "value": "/superset"},
+                        {"name": "PYTHONPATH", "value": "/app/pythonpath:/app/docker/pythonpath_dev"},
+                        {"name": "FLASK_DEBUG", "value": "true"},
+                        {"name": "SUPERSET_ENV", "value": "production"},
+                        {"name": "SUPERSET_LOAD_EXAMPLES", "value": "no"},
+                        {"name": "CYPRESS_CONFIG", "value": "false"},
+                        {"name": "SUPERSET_PORT", "value": "8088"},
+                        {"name": "ENABLE_PLAYWRIGHT", "value": "false"},
+                        {"name": "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD", "value": "true"},
+                        {"name": "BUILD_SUPERSET_FRONTEND_IN_DOCKER", "value": "false"},
+                        {"name": "SUPERSET_LOG_LEVEL", "value": "info"},
+                    ],
+                ),
+            )
+
+            # kubernetes service for superset
+            await run_activity(
+                activity=KubernetesServiceActivity,
+                arg=KubernetesServiceActivityModel(
+                    namespace=tenant,
+                    service_name="muspell-superset",
+                    ports={"http": 8088},
+                ),
+            )
+
+            # check pod running status
+            for pod in ["muspell-archive", "muspell-dicom", "muspell-superset"]:
+                await run_activity(
+                    activity=CheckPodRunningStatusActivity,
+                    arg=CheckPodRunningStatusActivityModel(
+                        namespace=tenant,
+                        name=pod,
+                    ),
+                    retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+                    start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+                )
 
             if application_list:
                 # Read column config and update the same in Postgres.
                 col_template = template_env.get_template("column_config.json")
                 column_config_str = col_template.render(application_list=application_list)
-                # column_config = ijson_loads(column_config_str)
 
                 org_template = template_env.get_template("organization_config.json")
                 organization_config_str = org_template.render(application_list=application_list)
-                # organization_config = ijson_loads(organization_config_str)
 
                 # update the config in Postgres
                 await run_activity(
@@ -818,55 +1281,6 @@ class MuspellOnboardingWorkflow(Workflow):
                         database_name=postgres_database_name,
                         username=postgres_username,
                         password=postgres_password,
-                    ),
-                )
-
-            if config.env != "production":
-                # create bucket
-                r2_bucket_name = f"ma-{tenant}"
-                await run_activity(
-                    activity=CreateCloudflareBucketActivity,
-                    arg=CreateCloudflareBucketActivityModel(bucket_name=r2_bucket_name),
-                )
-
-                r2_credentials: CloudflareBucketCredentials = await run_activity(
-                    activity=CreateCloudflareBucketCredentialsActivity,
-                    arg=CreateCloudflareBucketCredentialsActivityModel(bucket_name=r2_bucket_name, read_only=False),
-                )
-
-                # r2 access key added to onepassword
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key="r2_documents_access_key",
-                        key_value=r2_credentials.access_key,
-                    ),
-                )
-
-                # r2 secret key added to onepassword
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key="r2_documents_secret_key",
-                        key_value=r2_credentials.secret_key,
-                    ),
-                )
-
-                # r2 endpoint added to onepassword
-                await run_activity(
-                    activity=OnePasswordInsertIfNotExistsActivity,
-                    arg=OnePasswordInsertIfNotExistsActivityModel(
-                        tenant=f"{ProductName}_{tenant}",
-                        vault=OnePasswordVaultName,
-                        server_item=server_item,
-                        key="r2_endpoint",
-                        key_value=config.cloudflare.r2_endpoint,
                     ),
                 )
 

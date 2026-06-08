@@ -122,6 +122,11 @@ from app.cli.temporal.activities.temporal_namespace import (
     TemporalNamespaceActivity,
     TemporalNamespaceActivityModel,
 )
+from app.cli.temporal.activities.update_space_status import (
+    CreateSpaceActivity,
+    SpaceStatusModel,
+    UpdateSpaceStatusActivity,
+)
 from app.cli.temporal.activities.update_tenant_status import (
     TenantCliStatus,
     UpdateTenantStatusActivity,
@@ -132,7 +137,14 @@ from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperActivityModel,
 )
 from app.cli.temporal.core.base import Workflow
-from app.cli.temporal.jeeves import TemplatePath
+from app.cli.temporal.jeeves import (
+    JEEVES_CLIENT_ROLES,
+    JEEVES_NON_PRODUCTION_INTERNAL_USERS,
+    JEEVES_PRODUCTION_INTERNAL_USERS,
+    OnePasswordVaultName,
+    ProductName,
+    TemplatePath,
+)
 from app.cli.temporal.jeeves.models.jeeves_spec import JeevesSpec
 from app.cli.temporal.models.cloudflare import (
     CopyArtifactsToBucketActivityModel,
@@ -152,10 +164,6 @@ from app.template_env import get_env
 
 if TYPE_CHECKING:
     from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
-
-ProductName = "jeeves"
-OnePasswordVaultName = "Jeeves"
-JeevesSystemUser = "jeeves-systemuser@314ecorp.com"
 
 
 @workflow.defn(name="JeevesOnboardingWorkflow", sandboxed=False)
@@ -223,6 +231,8 @@ class JeevesOnboardingWorkflow(Workflow):
             PostgresGrantAllPrivilegesOnTablesActivity.defn,
             PostgresGrantAllPrivilegesOnFunctionsActivity.defn,
             KedaApplyTemplatedYamlActivity.defn,
+            CreateSpaceActivity.defn,
+            UpdateSpaceStatusActivity.defn,
         ]
 
     @staticmethod
@@ -310,6 +320,18 @@ class JeevesOnboardingWorkflow(Workflow):
                     ),
                 )
                 return
+
+            # Create space record with Provisioning status
+            if not is_deployment:
+                await run_activity(
+                    activity=CreateSpaceActivity,
+                    arg=SpaceStatusModel(
+                        space_name=client_name,
+                        tenant_name=tenant,
+                        product=ProductEnum.jeeves,
+                        status=TenantStatusEnum.Provisioning,
+                    ),
+                )
 
             postgres_schema_name = space_name_config["db_schema_name"]
             postgres_database_name = ProductName
@@ -477,6 +499,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -486,6 +509,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -495,6 +519,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -504,6 +529,7 @@ class JeevesOnboardingWorkflow(Workflow):
                     posthog_username=jeeves_config.posthog_username,
                     database_name=postgres_database_name,
                     schema_name=postgres_schema_name,
+                    tenant_username=postgres_username,
                 ),
             )
 
@@ -526,18 +552,8 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # secret setup for redis password
-            await run_activity(
-                activity=K8sSecretCreationActivity,
-                arg=K8sSecretCreationActivityModel(
-                    namespace=tenant,
-                    name="cache-secret",
-                    string_data={"REDIS_PASSWORD": config.cache_admin_password},
-                ),
-            )
-
             # Redis Setup (tenant-wide)
-            redis_tenant_password = generate_password(length=20)
+            redis_tenant_password = f"{product_space_name}_{tenant}-{generate_password(length=20)}"
             await run_activity(
                 activity=RedisSetupActivity,
                 arg=RedisSetupActivityModel(
@@ -636,6 +652,8 @@ class JeevesOnboardingWorkflow(Workflow):
                                     "content-type",
                                     "x-amz-*",
                                     "traceparent",
+                                    "If-Match",
+                                    "If-None-Match",
                                 ],
                             },
                             "exposeHeaders": ["ETag", "Location"],
@@ -948,21 +966,61 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            roles = [
-                "_access-broadcast",
-                "_access-assignment",
-                "_access-analytics",
-                "_access-setting",
-                "_allow-add-edit-asset",
-                "_allow-delete-asset",
-                "_allow-publish-asset",
-                "_allow-standalone-launch",
-                "_allow-view-asset",
-                "_access-user-list",
-                "_can-manage-user",
-                "_developer",
-                "_JEEVESALL",
-            ]
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=jeeves_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_form_auth_client.json",
+                    template_payload={
+                        "chatwoot_domain": jeeves_config.chatwoot_domain,
+                        "space_name": ehr_used.capitalize(),
+                        "space": ehr_used,
+                    },
+                ),
+            )
+
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=jeeves_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_jeeves_fhircast_client.json",
+                ),
+            )
+
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=jeeves_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_form_auth_client.json",
+                    template_payload={
+                        "chatwoot_domain": jeeves_config.chatwoot_domain,
+                        "space_name": ehr_used.capitalize(),
+                        "space": ehr_used,
+                    },
+                ),
+            )
+
+            await run_activity(
+                activity=KeycloakClientSetupActivity,
+                arg=KeycloakClientSetupActivityModel(
+                    tenant=tenant,
+                    realm_name=realm_name,
+                    domain=jeeves_config.domain_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_jeeves_fhircast_client.json",
+                ),
+            )
+
+            roles = JEEVES_CLIENT_ROLES
 
             # Keycloak client roles setup
             await run_activity(
@@ -998,17 +1056,17 @@ class JeevesOnboardingWorkflow(Workflow):
             )
 
             # Create IDP mappers (for the initial EHR space)
-            await run_activity(
-                activity=JeevesKeycloakCreateIDPFlowActivity,
-                arg=KeycloakClientSetupActivityModel(  # This model is suitable for passing these parameters
-                    tenant=tenant,
-                    realm_name=realm_name,
-                    domain=jeeves_config.domain_name,
-                    template_path=TemplatePath,
-                    template_name=space_name_config["idp_template"],  # Use the idp_template from initial space config
-                    template_payload={"idp_config": jeeves_config.idp_config},
-                ),
-            )
+            # await run_activity(
+            #     activity=JeevesKeycloakCreateIDPFlowActivity,
+            #     arg=KeycloakClientSetupActivityModel(  # This model is suitable for passing these parameters
+            #         tenant=tenant,
+            #         realm_name=realm_name,
+            #         domain=jeeves_config.domain_name,
+            #         template_path=TemplatePath,
+            #         template_name=space_name_config["idp_template"],  # Use the idp_template from initial space config
+            #         template_payload={"idp_config": jeeves_config.idp_config},
+            #     ),
+            # )
 
             await run_activity(
                 activity=JeevesKeycloakCreateIDPFlowActivity,
@@ -1052,8 +1110,8 @@ class JeevesOnboardingWorkflow(Workflow):
                     lastname=last_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
-                    roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
                     group_path=f"{client_name}/Admin",
+                    attributes={"ProtectedKCGroups": f"/{client_name}/Admin"},
                 ),
             )
 
@@ -1065,48 +1123,9 @@ class JeevesOnboardingWorkflow(Workflow):
                     client_name=client_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=[
-                        {
-                            "username": "casey.post@314ecorp.com",
-                            "email": "casey.post@314ecorp.com",
-                            "firstname": "Casey",
-                            "lastname": "Post",
-                        },
-                        {
-                            "username": "nick.dejongh@314ecorp.com",
-                            "email": "nick.dejongh@314ecorp.com",
-                            "firstname": "Nick",
-                            "lastname": "DeJongh",
-                        },
-                        {
-                            "username": "ankush.govil@314ecorp.com",
-                            "email": "ankush.govil@314ecorp.com",
-                            "firstname": "Ankush",
-                            "lastname": "Govil",
-                        },
-                        {
-                            "username": JeevesSystemUser,
-                            "email": JeevesSystemUser,
-                            "firstname": "System",
-                            "lastname": "User",
-                        },
-                    ]
+                    users=JEEVES_PRODUCTION_INTERNAL_USERS
                     if config.env == "production"
-                    else [
-                        {
-                            "username": JeevesSystemUser,
-                            "email": JeevesSystemUser,
-                            "firstname": "System",
-                            "lastname": "User",
-                        },
-                        {
-                            "username": "sumanth.sm@314ecorp.com",
-                            "email": "sumanth.sm@314ecorp.com",
-                            "firstname": "Sumanth",
-                            "lastname": "S M",
-                        },
-                    ],
-                    roles=[role for role in roles if role not in ["_JEEVESALL", "_developer"]],
+                    else JEEVES_NON_PRODUCTION_INTERNAL_USERS,
                     group_path=f"{client_name}/Admin",
                 ),
             )
@@ -1346,7 +1365,7 @@ class JeevesOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # Propagate DNS Record (tenant-wide)
+            # Propagate dns Record (tenant-wide)
             await run_activity(
                 activity=PropagateDNSRecordActivity,
                 arg=PropagateDNSRecordActivityModel(
@@ -1372,7 +1391,17 @@ class JeevesOnboardingWorkflow(Workflow):
                         tenant_name=tenant,
                         status=TenantStatusEnum.Provisioned,
                         product=ProductEnum.jeeves,
-                        space_name=client_name,  # Report the initial space name
+                        space_name=client_name,
+                    ),
+                )
+                # Update space status to Provisioned
+                await run_activity(
+                    activity=UpdateSpaceStatusActivity,
+                    arg=SpaceStatusModel(
+                        space_name=client_name,
+                        tenant_name=tenant,
+                        product=ProductEnum.jeeves,
+                        status=TenantStatusEnum.Provisioned,
                     ),
                 )
             yaml_content = template_render(
@@ -1418,6 +1447,20 @@ class JeevesOnboardingWorkflow(Workflow):
                         space_name=client_name,
                     ),
                 )
+                # Update space status to ProvisioningFailed
+                try:
+                    await run_activity(
+                        activity=UpdateSpaceStatusActivity,
+                        arg=SpaceStatusModel(
+                            space_name=client_name,
+                            tenant_name=tenant,
+                            product=ProductEnum.jeeves,
+                            status=TenantStatusEnum.ProvisioningFailed,
+                            error_msg=str(e),
+                        ),
+                    )
+                except Exception:
+                    workflow.logger.error(f"Failed to update space status for {client_name}")
             await run_activity(
                 activity=SlackNotificationActivity,
                 arg=SlackNotificationActivityModel(

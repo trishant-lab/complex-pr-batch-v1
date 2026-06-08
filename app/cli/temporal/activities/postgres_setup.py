@@ -9,7 +9,7 @@ from temporalio.common import RetryPolicy
 from app.cli.k8s_util import get_k8s_core_v1_api_client
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
-from app.core.db import DBManager, get_super_admin_db_manager, get_super_admin_for_database
+from app.core.db import DBManager, get_super_admin_db_manager, get_super_admin_for_database, start_transaction
 from app.core.settings import AppSettings, get_settings
 from app.template_env import get_env
 
@@ -371,11 +371,14 @@ class RevokeKeycloakUserMappingActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
-        await db.execute_raw_sql(
-            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER keycloak_server;",
-        )
-        log_info("Revoked user mapping for keycloak database successfully.")
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(
+                query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER keycloak_server;",
+            )
+            log_info("Revoked user mapping for keycloak database successfully.")
+        except Exception as e:
+            log_error(f"Connection error while revoking user mapping for keycloak database: {e=}")
 
 
 class MatomoUserMappingActivityModel(LaunchpadCLIBaseModel):
@@ -454,11 +457,14 @@ class RevokeMatomoUserMappingActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
-        await db.execute_raw_sql(
-            query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER matomo_server;",
-        )
-        log_info("Revoked user mapping for matomo database successfully.")
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(
+                query=f"DROP USER MAPPING IF EXISTS FOR {activity_model.username} SERVER matomo_server;",
+            )
+            log_info("Revoked user mapping for matomo database successfully.")
+        except Exception as e:
+            log_error(f"Connection error while revoking user mapping for matomo database: {e=}")
 
 
 class TableSpaceActivityModel(LaunchpadCLIBaseModel):
@@ -683,6 +689,10 @@ class DeleteSupavisorTenantActivity(Activity):
                 timeout=aiohttp.ClientTimeout(total=120),
             )
 
+            if response.status == 404:
+                log_info(f"Supervisor poll user not found: {activity_model.supavisor_tenant_name}")
+                return
+
             if response.status < 200 or response.status >= 299:
                 response_json = await response.json()
                 log_error(
@@ -696,9 +706,9 @@ class DeleteSupavisorTenantActivity(Activity):
                     ),
                     history=(),
                     status=response.status,
-                    message=f"Supavisor user creation failed with status code: {response.status}",
+                    message=f"Supavisor user deletion failed with status code: {response.status}",
                 )
-        log_info(f"Supervisor poll user created: {activity_model.supavisor_tenant_name}")
+        log_info(f"Supervisor poll user deleted: {activity_model.supavisor_tenant_name}")
 
 
 class DeletePostgresUserActivityModel(LaunchpadCLIBaseModel):
@@ -774,19 +784,22 @@ class RevokeAllPrivilegesOnTableActivity(Activity):
         """
         Setup postgres
         """
-        main_db: DBManager = await get_super_admin_db_manager()
-        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        try:
+            main_db: DBManager = await get_super_admin_db_manager()
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
 
-        await main_db.execute_raw_sql(
-            query=f"REVOKE ALL ON DATABASE {activity_model.database_name} FROM {activity_model.username};"
-        )
-        await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
-        await db.execute_raw_sql(
-            query=f"REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {activity_model.username};"
-        )
-        log_info(
-            f"Revoked all privileges on all tables in schema public for user {activity_model.username} successfully."
-        )
+            await main_db.execute_raw_sql(
+                query=f"REVOKE ALL ON DATABASE {activity_model.database_name} FROM {activity_model.username};"
+            )
+            await db.execute_raw_sql(query=f"REVOKE ALL ON SCHEMA public FROM {activity_model.username};")
+            await db.execute_raw_sql(
+                query=f"REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {activity_model.username};"
+            )
+            log_info(
+                f"Revoked all privileges on all tables in schema public for user {activity_model.username} successfully"
+            )
+        except Exception as e:
+            log_error(f"Connection error while revoking all privileges on table: {e=}")
 
 
 class RevokeOwnershipOnTableActivity(Activity):
@@ -818,10 +831,16 @@ class RevokeOwnershipOnTableActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
-        await db.execute_raw_sql(query=f"REASSIGN OWNED BY {activity_model.username} TO postgres;")
-        await db.execute_raw_sql(query=f"DROP OWNED BY {activity_model.username};")
-        log_info(f"Revoked ownership on all tables in schema public for user {activity_model.username} successfully.")
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+            await db.execute_raw_sql(query=f"REASSIGN OWNED BY {activity_model.username} TO postgres;")
+            await db.execute_raw_sql(query=f"DROP OWNED BY {activity_model.username};")
+            log_info(
+                f"Revoked ownership on all tables in schema public for user {activity_model.username} \
+                        successfully."
+            )
+        except Exception as e:
+            log_error(f"Connection error while revoking ownership on table: {e=}")
 
 
 class DeletePostgresSchemaActivityModel(LaunchpadCLIBaseModel):
@@ -862,10 +881,13 @@ class DeletePostgresSchemaActivity(Activity):
         """
         Setup postgres
         """
-        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        try:
+            db: DBManager = await get_super_admin_for_database(activity_model.database_name)
 
-        await db.execute_raw_sql(query=f"DROP SCHEMA IF EXISTS {activity_model.schema_name} CASCADE;")
-        log_info(f"Deleted schema {activity_model.schema_name} successfully.")
+            await db.execute_raw_sql(query=f"DROP SCHEMA IF EXISTS {activity_model.schema_name} CASCADE;")
+            log_info(f"Deleted schema {activity_model.schema_name} successfully.")
+        except Exception as e:
+            log_error(f"Connection error while deleting schema {activity_model.schema_name}: {e=}")
 
 
 class PostgresGrantAllPrivilegesActivityModel(LaunchpadCLIBaseModel):
@@ -876,6 +898,7 @@ class PostgresGrantAllPrivilegesActivityModel(LaunchpadCLIBaseModel):
     posthog_username: str
     database_name: str
     schema_name: str
+    tenant_username: str | None = None
 
 
 class PostgresGrantAllPrivilegesOnSchemaActivity(Activity):
@@ -909,10 +932,21 @@ class PostgresGrantAllPrivilegesOnSchemaActivity(Activity):
         """
         try:
             db: DBManager = await get_super_admin_for_database(activity_model.database_name)
-            await db.execute_raw_sql(
-                query=f'GRANT ALL PRIVILEGES ON SCHEMA "{activity_model.schema_name}" '
-                f"TO {activity_model.posthog_username};",
-            )
+            if activity_model.tenant_username:
+                await db.execute_raw_sql(query=f'SET ROLE "{activity_model.tenant_username}";', db_schema_name=None)
+                try:
+                    await db.execute_raw_sql(
+                        query=f'GRANT ALL PRIVILEGES ON SCHEMA "{activity_model.schema_name}" '
+                        f"TO {activity_model.posthog_username};",
+                        db_schema_name=None,
+                    )
+                finally:
+                    await db.execute_raw_sql(query="RESET ROLE;", db_schema_name=None)
+            else:
+                await db.execute_raw_sql(
+                    query=f'GRANT ALL PRIVILEGES ON SCHEMA "{activity_model.schema_name}" '
+                    f"TO {activity_model.posthog_username};",
+                )
         except Exception as e:
             log_error(
                 f"Failed to grant schema privileges to user {activity_model.posthog_username} "
@@ -951,10 +985,21 @@ class PostgresGrantAllPrivilegesOnSequencesActivity(Activity):
         """
         try:
             db: DBManager = await get_super_admin_for_database(activity_model.database_name)
-            await db.execute_raw_sql(
-                query=f'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "{activity_model.schema_name}" '
-                f"TO {activity_model.posthog_username};",
-            )
+            if activity_model.tenant_username:
+                await db.execute_raw_sql(query=f'SET ROLE "{activity_model.tenant_username}";', db_schema_name=None)
+                try:
+                    await db.execute_raw_sql(
+                        query=f'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "{activity_model.schema_name}" '
+                        f"TO {activity_model.posthog_username};",
+                        db_schema_name=None,
+                    )
+                finally:
+                    await db.execute_raw_sql(query="RESET ROLE;", db_schema_name=None)
+            else:
+                await db.execute_raw_sql(
+                    query=f'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "{activity_model.schema_name}" '
+                    f"TO {activity_model.posthog_username};",
+                )
         except Exception as e:
             log_error(
                 f"Failed to grant sequence privileges to user {activity_model.posthog_username} "
@@ -993,10 +1038,21 @@ class PostgresGrantAllPrivilegesOnTablesActivity(Activity):
         """
         try:
             db: DBManager = await get_super_admin_for_database(activity_model.database_name)
-            await db.execute_raw_sql(
-                query=f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "{activity_model.schema_name}" '
-                f"TO {activity_model.posthog_username};",
-            )
+            if activity_model.tenant_username:
+                await db.execute_raw_sql(query=f'SET ROLE "{activity_model.tenant_username}";', db_schema_name=None)
+                try:
+                    await db.execute_raw_sql(
+                        query=f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "{activity_model.schema_name}" '
+                        f"TO {activity_model.posthog_username};",
+                        db_schema_name=None,
+                    )
+                finally:
+                    await db.execute_raw_sql(query="RESET ROLE;", db_schema_name=None)
+            else:
+                await db.execute_raw_sql(
+                    query=f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "{activity_model.schema_name}" '
+                    f"TO {activity_model.posthog_username};",
+                )
         except Exception as e:
             log_error(
                 f"Failed to grant table privileges to user {activity_model.posthog_username} "
@@ -1035,12 +1091,147 @@ class PostgresGrantAllPrivilegesOnFunctionsActivity(Activity):
         """
         try:
             db: DBManager = await get_super_admin_for_database(activity_model.database_name)
-            await db.execute_raw_sql(
-                query=f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA "{activity_model.schema_name}" '
-                f"TO {activity_model.posthog_username};",
-            )
+            if activity_model.tenant_username:
+                await db.execute_raw_sql(query=f'SET ROLE "{activity_model.tenant_username}";', db_schema_name=None)
+                try:
+                    await db.execute_raw_sql(
+                        query=f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA "{activity_model.schema_name}" '
+                        f"TO {activity_model.posthog_username};",
+                        db_schema_name=None,
+                    )
+                finally:
+                    await db.execute_raw_sql(query="RESET ROLE;", db_schema_name=None)
+            else:
+                await db.execute_raw_sql(
+                    query=f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA "{activity_model.schema_name}" '
+                    f"TO {activity_model.posthog_username};",
+                )
         except Exception as e:
             log_error(
                 f"Failed to grant function privileges to user {activity_model.posthog_username} "
                 f"on schema {activity_model.schema_name}: {e=}"
             )
+
+
+class PostgresGrantSupersetReadOnlyActivityModel(LaunchpadCLIBaseModel):
+    """
+    PostgresGrantSupersetReadonlyActivityModel
+    """
+
+    schema_name: str
+    schema_owner_username: str
+    database_name: str
+    superset_ro_username: str
+
+
+class PostgresGrantSupersetReadOnlyActivity(Activity):
+    """
+    PostgresGrantSupersetReadOnlyActivity - Grants readonly access to the schema to the superset ro user
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PostgresGrantSupersetReadOnlyActivity")
+    async def defn(activity_model: PostgresGrantSupersetReadOnlyActivityModel) -> None:
+        """
+        Grant readonly access to the schema to the superset ro user
+        """
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+
+        schema = activity_model.schema_name
+        owner = activity_model.schema_owner_username
+        ro_user = activity_model.superset_ro_username
+
+        # SET ROLE to schema owner so ALTER DEFAULT PRIVILEGES applies to future objects
+        await db.execute_raw_sql(
+            query=f'SET ROLE "{owner}";',
+            db_schema_name=None,
+        )
+
+        try:
+            # Apply all grants
+            grants = [
+                f'GRANT USAGE ON SCHEMA "{schema}" TO {ro_user};',
+                f'GRANT SELECT ON ALL TABLES IN SCHEMA "{schema}" TO {ro_user};',
+                f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema}" GRANT SELECT ON TABLES TO {ro_user};',
+                f'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA "{schema}" TO {ro_user};',
+                f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema}" GRANT EXECUTE ON FUNCTIONS TO {ro_user};',
+                f'GRANT SELECT ON ALL SEQUENCES IN SCHEMA "{schema}" TO {ro_user};',
+                f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema}" GRANT SELECT ON SEQUENCES TO {ro_user};',
+                f'GRANT USAGE ON ALL TYPES IN SCHEMA "{schema}" TO {ro_user};',
+                f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema}" GRANT USAGE ON TYPES TO {ro_user};',
+            ]
+            for grant_sql in grants:
+                await db.execute_raw_sql(query=grant_sql, db_schema_name=None)
+        finally:
+            await db.execute_raw_sql(query="RESET ROLE;", db_schema_name=None)
+
+        log_info(
+            f"Granted {ro_user} read-only access on schema {schema} "
+            f"(tables, sequences, functions, types, and future objects)"
+        )
+
+
+class PostgresCheckRoleExistsActivityModel(LaunchpadCLIBaseModel):
+    """
+    PostgresCheckRoleExistsActivityModel
+    """
+
+    username: str
+    database_name: str
+
+
+class PostgresCheckRoleExistsActivity(Activity):
+    """
+    PostgresCheckRoleExistsActivity - returns True if the given role exists in postgres,
+    False otherwise. Used to gate optional grants on a user that may or may not be set up.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        timeout for the activity
+        """
+        return timedelta(seconds=30)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=3,
+            maximum_attempts=5,
+        )
+
+    @staticmethod
+    @activity.defn(name="PostgresCheckRoleExistsActivity")
+    async def defn(activity_model: PostgresCheckRoleExistsActivityModel) -> bool:
+        """
+        Return True if a role with the given name exists.
+        """
+        db: DBManager = await get_super_admin_for_database(activity_model.database_name)
+        async with start_transaction(db) as conn:
+            row = await conn.fetchval(
+                "SELECT 1 FROM pg_roles WHERE rolname = $1",
+                activity_model.username,
+            )
+        return row is not None

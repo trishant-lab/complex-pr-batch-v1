@@ -1,36 +1,42 @@
 {
-    "clientId": "formauth",
-    "name": "formauth",
-    "description": "Jeeves application client for username-password form based login",
-    "rootUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>",
-    "adminUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>",
-    "baseUrl": "https://<<tenant>>.jeeves.314ecorp.<<domain>>/login.html",
-    "surrogateAuthRequired": false,
-    "enabled": true,
-    "alwaysDisplayInConsole": false,
-    "clientAuthenticatorType": "client-secret",
-    "redirectUris": [
-      "https://<<tenant>>.jeeves.314ecorp.<<domain>>/*"
-    ],
-    "webOrigins": [
-      "https://<<tenant>>.jeeves.314ecorp.<<domain>>"
-    ],
-    "notBefore": 0,
-    "bearerOnly": false,
-    "consentRequired": false,
-    "standardFlowEnabled": true,
-    "implicitFlowEnabled": true,
-    "directAccessGrantsEnabled": true,
-    "serviceAccountsEnabled": false,
-    "publicClient": true,
-    "frontchannelLogout": false,
-    "protocol": "openid-connect",
-    "attributes": {
-      "login_theme": "jeeves-login-theme",
+  "clientId": "formauth",
+  "name": "formauth",
+  "description": "",
+  "rootUrl": "https://<<tenant>>.<<domain>>",
+  "adminUrl": "https://<<tenant>>.<<domain>>",
+  "baseUrl": "https://<<tenant>>.<<domain>>/login.html",
+  "surrogateAuthRequired": false,
+  "enabled": true,
+  "alwaysDisplayInConsole": false,
+  "clientAuthenticatorType": "client-secret",
+  "redirectUris": [
+      "https://jeeves-agent.<<chatwoot_domain>>/*",
+      "https://<<tenant>>.<<domain>>/*",
+      "jeeves://auth-callback"
+  ],
+  "webOrigins": [
+      "https://jeeves-agent.<<chatwoot_domain>>",
+      "https://<<tenant>>.<<domain>>",
+      "https://tauri.localhost"
+  ],
+  "notBefore": 0,
+  "bearerOnly": false,
+  "consentRequired": false,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": true,
+  "directAccessGrantsEnabled": true,
+  "serviceAccountsEnabled": false,
+  "publicClient": true,
+  "frontchannelLogout": false,
+  "protocol": "openid-connect",
+  "attributes": {
+      "client.introspection.response.allow.jwt.claim.enabled": "false",
+      "login_theme": "314e-login-theme",
       "post.logout.redirect.uris": "+",
       "oauth2.device.authorization.grant.enabled": "false",
       "backchannel.logout.revoke.offline.tokens": "false",
       "use.refresh.tokens": "true",
+      "realm_client": "false",
       "oidc.ciba.grant.enabled": "false",
       "client.use.lightweight.access.token.enabled": "false",
       "backchannel.logout.session.required": "true",
@@ -41,32 +47,65 @@
       "display.on.consent.screen": "false",
       "token.response.type.bearer.lower-case": "false",
       "dpop.bound.access.tokens": "false"
-    },
-    "authenticationFlowBindingOverrides": {},
-    "fullScopeAllowed": true,
-    "nodeReRegistrationTimeout": -1,
-    "protocolMappers": [
+  },
+  "authenticationFlowBindingOverrides": {},
+  "fullScopeAllowed": true,
+  "nodeReRegistrationTimeout": -1,
+  "protocolMappers": [
       {
-        "name": "docker-v2-allow-all-mapper",
-        "protocol": "docker-v2",
-        "protocolMapper": "docker-v2-allow-all-mapper",
+          "name": "docker-v2-allow-all-mapper",
+          "protocol": "docker-v2",
+          "protocolMapper": "docker-v2-allow-all-mapper",
+          "consentRequired": false,
+          "config": {}
+      },
+      {
+          "name": "idp_name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+              "user.session.note": "identity_provider",
+              "introspection.token.claim": "true",
+              "userinfo.token.claim": "true",
+              "id.token.claim": "true",
+              "lightweight.claim": "false",
+              "access.token.claim": "true",
+              "claim.name": "idp_name",
+              "jsonType.label": "String",
+              "access.tokenResponse.claim": "false"
+          }
+      },
+      {
+        "name": "spaces",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-hardcoded-claim-mapper",
         "consentRequired": false,
-        "config": {}
+        "config": {
+          "introspection.token.claim": "true",
+          "claim.value": "{\"jeeves-<<space>>\": \"<<space_name>>\"}",
+          "userinfo.token.claim": "true",
+          "id.token.claim": "true",
+          "lightweight.claim": "false",
+          "access.token.claim": "true",
+          "claim.name": "spaces",
+          "jsonType.label": "JSON",
+          "access.tokenResponse.claim": "false"
+        }
       }
-    ],
-    "defaultClientScopes": [
+  ],
+  "defaultClientScopes": [
       "web-origins",
       "acr",
-      "openid",
-      "profile",
-      "user_attribute",
       "roles",
+      "profile",
+      "basic",
       "email"
-    ],
-    "optionalClientScopes": [
+  ],
+  "optionalClientScopes": [
       "address",
       "phone",
       "offline_access",
       "microprofile-jwt"
-    ]
+  ]
 }

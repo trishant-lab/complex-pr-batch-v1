@@ -1,5 +1,18 @@
+from enum import StrEnum
+
 from pydantic import BaseModel, PostgresDsn
 from pydantic_core import MultiHostUrl
+
+
+class SlackPurpose(StrEnum):
+    """
+    Slack message purpose used to dispatch to the matching channel id on
+    SlackSettings. `default` is the fallback target when a purpose-specific
+    channel is unset.
+    """
+
+    default = "default"
+    login = "login"
 
 
 class PostgresSettings(BaseModel):
@@ -35,8 +48,20 @@ class SlackSettings(BaseModel):
     """
 
     channel_id: str = "C076N2B1FD4"
+    login_channel_id: str = ""
     bot_token: str = ""
     bot_username: str = "Launchpad"
+
+    @property
+    def channels(self) -> dict[SlackPurpose, str]:
+        """
+        Purpose -> channel id. `SlackPurpose.default` is the fallback target
+        when a purpose-specific channel is unset.
+        """
+        return {
+            SlackPurpose.default: self.channel_id,
+            SlackPurpose.login: self.login_channel_id,
+        }
 
 
 class Lago(BaseModel):
