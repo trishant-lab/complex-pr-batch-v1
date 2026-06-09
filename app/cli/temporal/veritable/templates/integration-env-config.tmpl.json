@@ -29,7 +29,7 @@
     "stripe.api_key": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/stripe_api_key}}",
     "stripe.secret_key": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/stripe_secret_key}}",
 
-    "accounts.api_url": "http://lago-accounts.launchpad.svc.cluster.local:8000/api/v1/accounts",
+    "accounts.api_url": "http://accounts.launchpad.svc.cluster.local:8000/api/v1/accounts/",
     "accounts.auth_url": "https://auth.veritable.work",
     "accounts.client_id": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/accounts_client_id}}",
     "accounts.client_secret": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/accounts_client_secret}}",
@@ -43,6 +43,10 @@
     "payment_test_setting.stripe_api_key": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/payment_test_setting_stripe_api_key}}",
     "payment_test_setting.anet_api_login_id": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/payment_test_setting_anet_api_login_id}}",
     "payment_test_setting.anet_transaction_key": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/payment_test_setting_anet_transaction_key}}",
+
+    "superset.base_url": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/superset_base_url}}",
+    "superset.username": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/superset_username}}",
+    "superset.password": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/superset_password}}",
 
     "temporal.host": "temporal-frontend.temporal.svc.cluster.local",
     "temporal.port": "7233",
