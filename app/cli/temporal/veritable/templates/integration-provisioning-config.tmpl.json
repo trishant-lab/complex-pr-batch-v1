@@ -1,8 +1,9 @@
 
 {
     "postgres": {
-        "host": "db-cluster-ha.postgresql.svc.cluster.local",
-        "db": "veritable_integration",
+        "host": "pg-cluster.postgresql.svc.cluster.local",
+        "db": "veritable",
+        "user": "veritable_<< tenant >>",
         "schema_name": "<< tenant >>",
         "timezone": "UTC",
         "port": 5432

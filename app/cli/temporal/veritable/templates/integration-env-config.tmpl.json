@@ -3,13 +3,19 @@
     "keycloak.client_id": "installer",
     "keycloak.client_secret": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/keycloak_client_secret}}",
 
-    "postgres.port": "5432",
-    "postgres.host": "db-cluster-ha.postgresql.svc.cluster.local",
-    "postgres.db": "veritable_integration",
+    "postgres.port": "6543",
+    "postgres.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
+    "postgres.db": "veritable",
 
     "postgres_.port": "6543",
     "postgres_.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
-    "postgres_.db": "veritable_integration",
+    "postgres_.db": "veritable",
+
+    "postgres_npiregistry.port": "6543",
+    "postgres_npiregistry.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
+    "postgres_npiregistry.db": "npiregistry",
+    "postgres_npiregistry.user": "npiregistry_ro.npiregistry",
+    "postgres_npiregistry.password": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/npiregistry_ro}}",
 
     "ezapi.request_url": "http://ezapi.test1.svc.cluster.local:8000",
     "ezapi.auth_url": "https://auth.veritable.work",
@@ -41,5 +47,6 @@
     "temporal.host": "temporal-frontend.temporal.svc.cluster.local",
     "temporal.port": "7233",
 
-    "novu.url": "https://alerting.314ecorp.tech"
+    "novu.url": "https://alerting.314ecorp.tech",
+    "posthog.api_key": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/posthog_api_key}}"
 }
