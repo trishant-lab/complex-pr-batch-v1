@@ -540,7 +540,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
                     template_payload={
-                        "customerClientRoles": ijson_dumps(["VT_CUSTOMER_ADMIN"]),
+                        "customerClientRoles": ijson_dumps(["VT_SUPER_ADMIN"]),
                         "domain_org": veritable_config.domain_name.split(".")[-1],
                         "jinja_env.autoescape": False,
                     },
@@ -559,7 +559,7 @@ class VeritableOnboardingWorkflow(Workflow):
                     lastname=last_name,
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
-                    roles=["VT_CUSTOMER_ADMIN"],
+                    roles=["VT_SUPER_ADMIN"],
                 ),
             )
 
