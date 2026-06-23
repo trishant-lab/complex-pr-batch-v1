@@ -949,18 +949,6 @@ class VeritableDeploymentWorkflow(Workflow):
                 ),
             )
 
-            # vm pod scraper
-            await run_activity(
-                activity=VMPodScrapperActivity,
-                arg=VMPodScrapperActivityModel(
-                    namespace=tenant,
-                    name="veritable-cli-metrics",
-                    app="veritable-cli",
-                    path=METRICS_PATH,
-                    interval="5s",
-                ),
-            )
-
             # vm pod scraper for veritable-worker (covers both worker and worker-critical)
             await run_activity(
                 activity=VMPodScrapperActivity,
