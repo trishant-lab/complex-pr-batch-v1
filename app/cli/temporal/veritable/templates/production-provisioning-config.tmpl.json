@@ -2,7 +2,8 @@
 {
     "postgres": {
         "host": "db-cluster-ha.postgres16.svc.cluster.local",
-        "db": "veritable_production",
+        "db": "veritable",
+        "user": "veritable_<< tenant >>",
         "schema_name": "<< tenant >>",
         "timezone": "UTC",
         "port": 5432

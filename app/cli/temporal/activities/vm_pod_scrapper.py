@@ -23,6 +23,7 @@ class VMPodScrapperActivityModel(LaunchpadCLIBaseModel):
     app: str
     path: str
     interval: str
+    app_match_values: list[str] | None = None
 
 
 class VMPodScrapperActivity(Activity):
@@ -74,7 +75,15 @@ class VMPodScrapperActivity(Activity):
                 "podMetricsEndpoints": [
                     {"path": activity_model.path, "port": "http", "interval": activity_model.interval}
                 ],
-                "selector": {"matchLabels": {"app": activity_model.app}},
+                "selector": (
+                    {
+                        "matchExpressions": [
+                            {"key": "app", "operator": "In", "values": activity_model.app_match_values}
+                        ]
+                    }
+                    if activity_model.app_match_values
+                    else {"matchLabels": {"app": activity_model.app}}
+                ),
             },
         }
 
