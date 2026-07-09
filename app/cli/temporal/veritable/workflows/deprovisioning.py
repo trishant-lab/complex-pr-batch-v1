@@ -30,10 +30,7 @@ from app.cli.temporal.activities.k8s_service import (
     DeleteKubernetesServiceActivity,
     DeleteKubernetesServiceActivityModel,
 )
-from app.cli.temporal.activities.stateful_set_pod_creation import (
-    StatefulSetPodDeletionActivity,
-    StatefulSetPodDeletionActivityModel,
-)
+
 from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
@@ -77,7 +74,6 @@ class VeritableDeProvisioningWorkflow(Workflow):
         """
         return [
             DeleteKubernetesServiceActivity.defn,
-            StatefulSetPodDeletionActivity.defn,
             VMPodScrapperDeletionActivity.defn,
             DeleteTemporalNamespaceActivity.defn,
             DeleteK8sConfigMapActivity.defn,
@@ -154,16 +150,8 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 ),
             )
 
-            # delete stateful sets
-            for name in ["veritable", "veritable-cli", "veritable-worker", "veritable-worker-critical"]:
-                await run_activity(
-                    activity=StatefulSetPodDeletionActivity,
-                    arg=StatefulSetPodDeletionActivityModel(
-                        namespace=tenant,
-                        name=name,
-                    ),
-                )
-
+            # delete deployments
+            for name in ["veritable", "veritable-worker", "veritable-worker-critical"]:
                 await run_activity(
                     activity=DeploymentDeletionActivity,
                     arg=DeploymentDeletionActivityModel(
@@ -177,7 +165,6 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 "veritable-custom-config",
                 "veritable-env-config",
                 "veritable-tenant-config",
-                "veritable-cli-vector-config",
                 "veritable-provisioning-config",
             ]
             for config_map in config_maps:
@@ -249,7 +236,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             )
 
             # delete vm pod scrappers
-            for scrapper in ["veritable-metrics", "veritable-cli-metrics", "veritable-worker-metrics"]:
+            for scrapper in ["veritable-metrics", "veritable-worker-metrics"]:
                 await run_activity(
                     activity=VMPodScrapperDeletionActivity,
                     arg=VMPodScrapperDeletionActivityModel(
