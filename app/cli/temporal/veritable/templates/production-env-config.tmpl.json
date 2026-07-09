@@ -3,13 +3,19 @@
     "keycloak.client_id": "installer",
     "keycloak.client_secret": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/keycloak_client_secret}}",
 
-    "postgres.port": "5432",
-    "postgres.host": "db-cluster-ha.postgres16.svc.cluster.local",
-    "postgres.db": "veritable_production",
+    "postgres.port": "6543",
+    "postgres.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
+    "postgres.db": "veritable",
 
     "postgres_.port": "6543",
     "postgres_.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
-    "postgres_.db": "veritable_production",
+    "postgres_.db": "veritable",
+
+    "postgres_npiregistry.port": "6543",
+    "postgres_npiregistry.host": "supavisor-cluster-ha.supavisor.svc.cluster.local",
+    "postgres_npiregistry.db": "npiregistry",
+    "postgres_npiregistry.user": "npiregistry_ro.npiregistry",
+    "postgres_npiregistry.password": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/npiregistry_ro}}",
 
     "ezapi.request_url": "http://ezapi.ezapi.svc.cluster.local:8000",
     "ezapi.auth_url": "https://auth.veritable.app",
@@ -23,7 +29,7 @@
     "stripe.api_key": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/stripe_api_key}}",
     "stripe.secret_key": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/stripe_secret_key}}",
 
-    "accounts.api_url": "http://lago-accounts.launchpad.svc.cluster.local:8000/api/v1/accounts",
+    "accounts.api_url": "http://accounts.launchpad.svc.cluster.local:8000/api/v1/accounts",
     "accounts.auth_url": "https://auth.veritable.app",
     "accounts.client_id": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_client_id}}",
     "accounts.client_secret": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_client_secret}}",
@@ -31,5 +37,7 @@
     "accounts.grant_type": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_grant_type}}",
 
     "temporal.host": "temporal-frontend.temporal.svc.cluster.local",
-    "temporal.port": "7233"
+    "temporal.port": "7233",
+    "novu.url": "https://alerting.314ecorp.com",
+    "posthog.api_key": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/posthog_api_key}}"
 }

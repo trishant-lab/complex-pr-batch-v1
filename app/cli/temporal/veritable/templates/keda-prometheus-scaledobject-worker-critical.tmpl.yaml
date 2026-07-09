@@ -1,0 +1,41 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: veritable-worker-critical-autoscaler
+  namespace: <<tenant>>
+spec:
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          policies:
+          - periodSeconds: 90
+            type: Pods
+            value: 1
+          stabilizationWindowSeconds: 300
+        scaleUp:
+          policies:
+          - periodSeconds: 30
+            type: Pods
+            value: 2
+          stabilizationWindowSeconds: 0
+    scalingModifiers: {}
+  fallback:
+    failureThreshold: 3
+    replicas: 1
+  maxReplicaCount: 3
+  minReplicaCount: 1
+  pollingInterval: 10
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: veritable-worker-critical
+  triggers:
+  - type: temporal
+    metadata:
+      endpoint: temporal-frontend.temporal.svc.cluster.local:7233
+      namespace: veritable_<<tenant>>
+      taskQueue: CRITICAL
+      targetQueueSize: "10"
+      activationTargetQueueSize: "10"
+      queueTypes: workflow,activity

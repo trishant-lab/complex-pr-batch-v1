@@ -1,6 +1,14 @@
 from app.cli.temporal.models.base_spec import BaseResourceSpec, BaseSpec
 
 
+_DEFAULT_SPEC = BaseResourceSpec(
+    request_memory="400Mi",
+    request_cpu="100m",
+    limit_memory="1000Mi",
+    limit_cpu="1000m",
+)
+
+
 class VeritableSpec(BaseSpec):
     """
     VeritableSpec dataclass
@@ -10,6 +18,8 @@ class VeritableSpec(BaseSpec):
     emailSent: bool = False
     selectedApps: list[str] | None = None
     cliSpec: None | BaseResourceSpec = BaseResourceSpec()
+    serverSpec: BaseResourceSpec = _DEFAULT_SPEC
+    workerSpec: BaseResourceSpec = _DEFAULT_SPEC
 
     @property
     def novu_organization_name(self: "VeritableSpec") -> str:
