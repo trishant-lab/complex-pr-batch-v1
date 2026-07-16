@@ -39,7 +39,7 @@ dependencies = [
     "orjson==3.11.6",
     "pendulum==3.0.0,<4",
     "phonenumbers==8.13.55,<9",
-    "pillow==12.2.0,<13",
+    "pillow==12.3.0,<13",
     "psutil==7.0.0,<8",
     "psycopg2-binary==2.9.10,<3",
     "pyasn1==0.6.3",
