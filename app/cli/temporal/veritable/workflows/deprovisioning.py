@@ -36,6 +36,7 @@ from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivityModel,
 )
 from app.cli.temporal.activities.tenant_crd import TenantCrdDeletionActivity, TenantCrdDeletionActivityModel
+from app.cli.temporal.activities.update_subscription_end_date import UpdateSubscriptionEndDateActivity
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuDeProvisionActivity
 from app.cli.temporal.activities.vm_pod_scrapper import (
@@ -88,6 +89,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             TenantCrdDeletionActivity.defn,
             DeploymentDeletionActivity.defn,
             KedaScaledObjectDeletionActivity.defn,
+            UpdateSubscriptionEndDateActivity.defn,
         ]
 
     @classmethod
@@ -264,6 +266,17 @@ class VeritableDeProvisioningWorkflow(Workflow):
                     bucket_name=veritable.cloudflare_r2_ui_bucket,
                 ),
             )
+
+            # infra is deprovisioned -- set the Lago subscription end date so the
+            # tenant is no longer billed. Billing cleanup must not block or fail
+            # infra deprovisioning, so a failure here is logged and swallowed.
+            try:
+                await run_activity(
+                    activity=UpdateSubscriptionEndDateActivity,
+                    arg=veritable,
+                )
+            except Exception as lago_error:
+                workflow.logger.warning(f"Failed to update Lago subscription end date: {lago_error}")
 
             # update tenant status
             await run_activity(
