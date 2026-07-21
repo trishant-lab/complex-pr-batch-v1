@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import mimetypes
 import os
@@ -69,54 +70,61 @@ async def sync_and_verify_files(
     bucket_name: str,
     dest_dir: str,
     prefix: str | None = None,
+    concurrency: int = 16,
 ) -> None:
     """
-    Sync local files to storage and verify the file count matches
-    Args:
-        op: The OpenDAL operator
-        input_path: Path to local directory to sync
-        bucket_name: Destination bucket name
-        dest_dir: Destination directory
-        prefix: Optional prefix for file counting
-    Raises:
-        RuntimeError: If file counts don't match or on upload failure
+    Sync local files to storage and verify the file count matches.
+
+    Uploads are parallelized via asyncio.gather bounded by `concurrency` — a single
+    OpenDAL AsyncOperator is safe across concurrent tasks (Rust Operator is Send + Sync).
+    Why: sequential PUTs of 700+ bundle files were exceeding the 20-minute temporary R2
+    credential TTL (~1.5s per round-trip x 700 files = ~20 min). Bounded concurrency
+    keeps the activity well inside that window without risking Cloudflare rate limits.
     """
+    files = [p for p in Path(input_path).rglob("*") if p.is_file()]
+    if not files:
+        logger.info(f"No files to upload for {bucket_name}")
+        return
+
+    sem = asyncio.Semaphore(concurrency)
+    opendal_file_operations = get_opendal_file_client()
+
+    async def _upload_one(file_path: Path) -> None:
+        key = str(file_path.relative_to(input_path))
+        key = f"{dest_dir.split('/')[-1]}/{key}" if bucket_name in dest_dir else f"{bucket_name}/{key}"
+        try:
+            async with sem:
+                content = await opendal_file_operations.read_file(str(file_path))
+                content_type = mimetypes.guess_type(str(file_path))[0] or ""
+                await op.upload_object(
+                    path=key,
+                    file_name=key.split("/")[-1],
+                    content_type=content_type,
+                    file_content=content,
+                )
+        except Exception as e:
+            logger.error(f"Failed to upload {key}: {e}")
+            raise RuntimeError(f"Error uploading {key}: {e}") from e
+
     try:
-        # Count and upload local files
-        local_file_count = 0
-        for file_path in Path(input_path).rglob("*"):
-            if file_path.is_file():
-                # Calculate relative path for storage key
-                key = str(file_path.relative_to(input_path))
-                key = f"{dest_dir.split('/')[-1]}/{key}" if bucket_name in dest_dir else f"{bucket_name}/{key}"
-                try:
-                    # Read file content and upload
-                    opendal_file_operations = get_opendal_file_client()
-                    content = await opendal_file_operations.read_file(str(file_path))
-                    content_type = mimetypes.guess_type(str(file_path))[0] or ""
-                    await op.upload_object(
-                        path=key,
-                        file_name=key.split("/")[-1],
-                        content_type=content_type,
-                        file_content=content,
-                    )
-                    local_file_count += 1
-                except Exception as e:
-                    logger.error(f"Failed to upload {key}: {e}")
-                    raise RuntimeError(f"Error uploading {key}: {e}")
-
-        # Verify file count
-        await check_file_count(
-            storage_client=op,
-            bucket_name=bucket_name,
-            local_file_count=local_file_count,
-            prefix=prefix,
-        )
-
-    except Exception as e:
-        msg = f"Error syncing files for {bucket_name}: {e}"
+        # TaskGroup cancels in-flight siblings on the first failure (asyncio.gather
+        # would let them drain, wasting round-trips and producing follow-up log noise).
+        async with asyncio.TaskGroup() as tg:
+            for file_path in files:
+                tg.create_task(_upload_one(file_path))
+    except* Exception as eg:
+        first = eg.exceptions[0]
+        msg = f"Error syncing files for {bucket_name}: {first}"
         logger.error(msg)
-        raise RuntimeError(msg)
+        raise RuntimeError(msg) from first
+
+    # Verify file count
+    await check_file_count(
+        storage_client=op,
+        bucket_name=bucket_name,
+        local_file_count=len(files),
+        prefix=prefix,
+    )
 
 
 def copy_files_to_cloudflare(
