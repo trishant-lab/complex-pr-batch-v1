@@ -1175,8 +1175,28 @@ class PostgresGrantSupersetReadOnlyActivity(Activity):
                 f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema}" GRANT EXECUTE ON FUNCTIONS TO {ro_user};',
                 f'GRANT SELECT ON ALL SEQUENCES IN SCHEMA "{schema}" TO {ro_user};',
                 f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema}" GRANT SELECT ON SEQUENCES TO {ro_user};',
-                f'GRANT USAGE ON ALL TYPES IN SCHEMA "{schema}" TO {ro_user};',
                 f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema}" GRANT USAGE ON TYPES TO {ro_user};',
+                f"""
+                DO $$
+                DECLARE r record;
+                BEGIN
+                    FOR r IN
+                        SELECT t.typname
+                        FROM pg_type t
+                        JOIN pg_namespace n ON n.oid = t.typnamespace
+                        WHERE n.nspname = '{schema}'
+                          AND t.typtype IN ('c', 'e', 'd', 'r', 'm')
+                          AND (t.typrelid = 0
+                               OR t.typrelid NOT IN (
+                                   SELECT oid FROM pg_class
+                                   WHERE relkind IN ('r', 'v', 'm', 'p')
+                               ))
+                    LOOP
+                        EXECUTE format('GRANT USAGE ON TYPE %I.%I TO {ro_user}',
+                                       '{schema}', r.typname);
+                    END LOOP;
+                END $$;
+                """,  # noqa: S608  # nosec B608
             ]
             for grant_sql in grants:
                 await db.execute_raw_sql(query=grant_sql, db_schema_name=None)
@@ -1185,7 +1205,7 @@ class PostgresGrantSupersetReadOnlyActivity(Activity):
 
         log_info(
             f"Granted {ro_user} read-only access on schema {schema} "
-            f"(tables, sequences, functions, types, and future objects)"
+            f"(tables, sequences, functions, and future objects including types)"
         )
 
 
