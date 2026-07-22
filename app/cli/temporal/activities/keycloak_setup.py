@@ -43,17 +43,18 @@ def create_keycloak_realm(
     template_payload: dict | None = None,
 ) -> None:
     """
-    Create keycloak realm
+    Create or update a Keycloak realm.
+
+    The Keycloak `create_realm` endpoint only applies the realm JSON's `components`
+    section on initial import; if the realm already exists, the call is a no-op and
+    any template-side updates (e.g. an expanded `applicationaccess` max length in the
+    user-profile config) silently drift from the live realm. To keep retries
+    convergent, the user-profile section is pushed via the dedicated update endpoint
+    on every run, regardless of whether the realm was just created.
     """
     config: AppSettings = get_settings()
 
     keycloak_client: KeycloakAdminClient = get_keycloak_manager()
-
-    # check if realm exists
-    realms = [row["realm"] for row in keycloak_client.get_all_realms()]
-    if realm_name in realms:
-        log_info(f"Realm {realm_name} already exists")
-        return
 
     realm_config = template_render(
         template_path=template_path,
@@ -82,7 +83,33 @@ def create_keycloak_realm(
                 if mapper["identityProviderAlias"] in selected_identity_providers
             ]
 
-    keycloak_client.create_realm(realm_json, skip_exists=True)
+    realms = [row["realm"] for row in keycloak_client.get_all_realms()]
+    if realm_name in realms:
+        log_info(f"Realm {realm_name} already exists; syncing user-profile config")
+    else:
+        keycloak_client.create_realm(realm_json, skip_exists=True)
+
+    _sync_realm_user_profile(keycloak_client, realm_name, realm_json)
+
+
+def _sync_realm_user_profile(keycloak_client: KeycloakAdminClient, realm_name: str, realm_json: dict) -> None:
+    """
+    Apply the realm template's declarative user-profile config to the live realm.
+
+    Idempotent. No-op if the template has no user-profile block.
+    """
+    components = realm_json.get("components") or {}
+    profile_components = components.get("org.keycloak.userprofile.UserProfileProvider") or []
+    if not profile_components:
+        return
+    profile_provider_config = (profile_components[0] or {}).get("config") or {}
+    profile_entries = profile_provider_config.get("kc.user.profile.config") or []
+    if not profile_entries:
+        return
+    raw_profile = profile_entries[0]
+    profile_payload = ijson_loads(raw_profile) if isinstance(raw_profile, str) else raw_profile
+    keycloak_client.update_realm_users_profile(profile_payload, realm_name)
+    log_info(f"User-profile config synced for realm {realm_name}")
 
 
 def create_keycloak_client(
@@ -800,6 +827,63 @@ class KeycloakCreateInternalUsersActivity(Activity):
         log_info(f"Created {len(activity_model.users)} keycloak internal users successfully")
 
 
+class KeycloakSetUserAttributeActivityModel(LaunchpadCLIBaseModel):
+    """
+    KeycloakSetUserAttributeActivityModel
+    """
+
+    realm_name: str
+    usernames: list[str]
+    attribute_name: str
+    attribute_value: str
+
+
+class KeycloakSetUserAttributeActivity(Activity):
+    """
+    Replace a single attribute on one or more Keycloak users in a realm.
+
+    Used by the muspell onboarding workflow to re-align `applicationaccess` to the
+    DB-canonical system ids returned by MuspellConfigUpdateJobActivity, after the
+    initial Keycloak user creation step has set provisional ids minted from
+    `workflow.uuid4()`. Without this step, re-running onboarding for a tenant
+    leaves the DB's stable ids and Keycloak's applicationaccess ids drifted apart.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakSetUserAttributeActivity")
+    async def defn(activity_model: KeycloakSetUserAttributeActivityModel) -> None:
+        """
+        Set the named attribute to `attribute_value` for every listed user.
+        Missing users are skipped silently (matches the helper's no-op behavior).
+        """
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+        for username in activity_model.usernames:
+            keycloak_client.set_user_attribute(
+                realm_name=activity_model.realm_name,
+                username=username,
+                attribute_name=activity_model.attribute_name,
+                value=activity_model.attribute_value,
+            )
+        log_info(
+            f"Set {activity_model.attribute_name} for {len(activity_model.usernames)} user(s) "
+            f"in realm {activity_model.realm_name}"
+        )
+
+
 class DeleteKeycloakClientActivityModel(LaunchpadCLIBaseModel):
     """
     DeleteKeycloakClientActivityModel
@@ -1296,4 +1380,122 @@ class KeycloakUpdateClientMapperActivity(Activity):
         log_info(
             f"Keycloak client mapper updated successfully for space: {activity_model.space_name} "
             f"in client: {activity_model.client_name}"
+        )
+
+
+class KeycloakGetClientSecretActivityModel(LaunchpadCLIBaseModel):
+    """
+    Look up an existing client by its `clientId` in `realm_name` and return its
+    current secret. Returns `None` if the client doesn't exist (yet).
+    """
+
+    realm_name: str
+    client_name: str
+
+
+class KeycloakGetClientSecretActivity(Activity):
+    """
+    Fetch the current client secret Keycloak holds for `client_name`. Used to keep
+    1Password aligned with Keycloak on re-runs — if the client already exists we
+    use *its* secret rather than minting a new one, avoiding any drift between the
+    two systems and preserving whatever backend consumers are currently using.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakGetClientSecretActivity")
+    async def defn(activity_model: KeycloakGetClientSecretActivityModel) -> str | None:
+        """
+        Return the current client secret for `client_name`, or None if the client
+        doesn't exist in the realm.
+        """
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+        client_uuid = keycloak_client.get_client_id_if_exists(
+            client_name=activity_model.client_name, realm_name=activity_model.realm_name
+        )
+        if not client_uuid:
+            return None
+        return keycloak_client.get_client_secret(realm_name=activity_model.realm_name, client_uuid=client_uuid)
+
+
+class KeycloakGrantRealmManagementRolesActivityModel(LaunchpadCLIBaseModel):
+    """
+    Grants a subset of `realm-management` client roles to the service-account user
+    auto-created for `client_name` (a client with serviceAccountsEnabled=true).
+    Used so backend services can authenticate as this client and call Keycloak's
+    admin API (create user, update user attributes, etc.).
+    """
+
+    realm_name: str
+    client_name: str
+    role_names: list[str]
+
+
+class KeycloakGrantRealmManagementRolesActivity(Activity):
+    """
+    Look up the service-account user for `client_name`, resolve the requested
+    `role_names` against the realm's built-in `realm-management` client, and
+    assign them to the service-account user. Idempotent — Keycloak silently
+    accepts duplicate role assignments, so re-runs are no-ops.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakGrantRealmManagementRolesActivity")
+    async def defn(activity_model: KeycloakGrantRealmManagementRolesActivityModel) -> None:
+        """
+        Assign realm-management roles to the client's service-account user.
+        """
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+
+        client_uuid = keycloak_client.get_client_id(
+            client=activity_model.client_name, realm_name=activity_model.realm_name
+        )
+        sa_user = keycloak_client.get_client_service_account_user(
+            realm_name=activity_model.realm_name, client_uuid=client_uuid
+        )
+
+        rm_uuid = keycloak_client.get_client_id(client="realm-management", realm_name=activity_model.realm_name)
+        rm_roles = keycloak_client.get_client_roles(client_id=rm_uuid, realm_name=activity_model.realm_name)
+
+        wanted = set(activity_model.role_names)
+        selected = [r for r in rm_roles if r["name"] in wanted]
+        missing = wanted - {r["name"] for r in selected}
+        if missing:
+            raise RuntimeError(
+                f"realm-management roles not found in realm {activity_model.realm_name!r}: {sorted(missing)}"
+            )
+
+        keycloak_client.assign_client_role(
+            realm_name=activity_model.realm_name, user_id=sa_user["id"], client_id=rm_uuid, roles=selected
+        )
+        log_info(
+            f"Granted realm-management roles {activity_model.role_names} to service-account user of "
+            f"client {activity_model.client_name!r} in realm {activity_model.realm_name!r}"
         )

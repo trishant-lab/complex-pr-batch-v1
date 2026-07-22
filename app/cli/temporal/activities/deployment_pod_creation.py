@@ -1,3 +1,4 @@
+import datetime
 from datetime import timedelta
 
 import yaml
@@ -28,6 +29,7 @@ from temporalio.common import RetryPolicy
 
 from app.cli.k8s_util import (
     ResourceKindEnum,
+    api_client,
     get_dynamic_client,
     get_resource,
 )
@@ -111,8 +113,23 @@ class KubernetesDeploymentActivity(Activity):
                             V1Container(
                                 name=init_container["name"],
                                 image=init_container["image"],
-                                command=init_container["command"],
-                                args=init_container["args"],
+                                image_pull_policy=init_container.get("image_pull_policy"),
+                                command=init_container.get("command"),
+                                args=init_container.get("args"),
+                                working_dir=init_container.get("working_dir"),
+                                env=[
+                                    V1EnvVar(name=e["name"], value=e["value"])
+                                    for e in (init_container.get("env") or [])
+                                ]
+                                or None,
+                                resources=(
+                                    V1ResourceRequirements(
+                                        requests=init_container["resources"].get("requests"),
+                                        limits=init_container["resources"].get("limits"),
+                                    )
+                                    if init_container.get("resources")
+                                    else None
+                                ),
                             )
                             for init_container in activity_model.init_containers or []
                         ],
@@ -529,3 +546,57 @@ class FetchDeploymentImageTagActivity(Activity):
         except Exception as e:
             log_error(f"Failed to fetch image tag from deployment {activity_model.deployment_name}: {e!s}")
             return "production"
+
+
+class KubernetesDeploymentRestartActivityModel(LaunchpadCLIBaseModel):
+    """
+    KubernetesDeploymentRestartActivityModel
+    """
+
+    namespace: str
+    name: str
+
+
+class KubernetesDeploymentRestartActivity(Activity):
+    """
+    KubernetesDeploymentRestartActivity - triggers a rolling restart of the given Deployment
+    by patching its pod template with the kubectl.kubernetes.io/restartedAt annotation
+    (same mechanism as `kubectl rollout restart deployment/<name>`).
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=60)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(
+            initial_interval=timedelta(seconds=10),
+            backoff_coefficient=2.0,
+            maximum_attempts=3,
+        )
+
+    @staticmethod
+    @activity.defn(name="KubernetesDeploymentRestartActivity")
+    async def defn(activity_model: KubernetesDeploymentRestartActivityModel) -> None:
+        """
+        Patch the deployment's pod template to trigger a rolling restart.
+        """
+        restarted_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat() + "Z"
+        body = {
+            "spec": {"template": {"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": restarted_at}}}}
+        }
+        api_client.AppsV1Api().patch_namespaced_deployment(
+            name=activity_model.name,
+            namespace=activity_model.namespace,
+            body=body,
+        )
+        log_info(
+            f"Triggered rolling restart of deployment {activity_model.name} in namespace {activity_model.namespace}"
+        )

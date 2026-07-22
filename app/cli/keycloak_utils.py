@@ -127,6 +127,38 @@ class KeycloakAdminClient:
 
         self.kc_client.update_user(user_id=user_id, payload={"attributes": merged_attributes})
 
+    def set_user_attribute(
+        self: "KeycloakAdminClient",
+        realm_name: str,
+        username: str,
+        attribute_name: str,
+        value: str,
+    ) -> None:
+        """
+        Replace (not merge) a single attribute on a Keycloak user, preserving any
+        other attributes the user already has. Silently no-ops if the user is not
+        found in the realm.
+
+        Distinct from `update_user_attributes` which appends to comma-separated lists;
+        used here for JSON-blob attributes (e.g. `applicationaccess`) where the value
+        must replace the previous one wholesale.
+
+        Keycloak's PUT /users/{id} is a full-replace, not a merge — sending only the
+        modified `attributes` key would null out email/firstName/lastName/enabled/etc.
+        We GET the existing user, overlay our attribute, and PUT the whole thing back
+        so the rest of the profile is preserved.
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        user_id = self.kc_client.get_user_id(username=username)
+        if not user_id:
+            log_info(f"User {username} not found in realm {realm_name}; skipping {attribute_name} update")
+            return
+        existing_user = self.kc_client.get_user(user_id=user_id)
+        attributes = {**(existing_user.get("attributes") or {})}
+        attributes[attribute_name] = [value]
+        self.kc_client.update_user(user_id=user_id, payload={**existing_user, "attributes": attributes})
+
     def get_user_id(self: "KeycloakAdminClient", username: str, realm_name: str) -> str:
         """
         Returns keycloak user id
@@ -231,11 +263,38 @@ class KeycloakAdminClient:
 
     def create_identity_provider(self: "KeycloakAdminClient", idp_config: dict, realm_name: str) -> None:
         """
-        Create keycloak identity provider
+        Create keycloak identity provider.
+
+        Idempotent: silently skips if an IDP with the same alias already exists in the realm.
+        The Keycloak REST endpoint has no skip_exists flag (unlike authentication-flow create),
+        so we guard with a get_idps() lookup here.
         """
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
+        target_alias = idp_config.get("alias")
+        if target_alias and any(idp.get("alias") == target_alias for idp in self.kc_client.get_idps()):
+            return
         self.kc_client.create_idp(payload=idp_config)
+
+    def get_realm_users_profile(self: "KeycloakAdminClient", realm_name: str) -> dict:
+        """
+        Returns the realm's declarative user-profile config (attributes/groups/policy).
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_realm_users_profile()
+
+    def update_realm_users_profile(self: "KeycloakAdminClient", profile_config: dict, realm_name: str) -> dict:
+        """
+        Replace the realm's declarative user-profile config.
+
+        Used to push the user-profile section from the realm template onto an
+        already-existing realm whose initial creation skipped this update (the realm
+        JSON's `components` block only applies on realm import, not on subsequent runs).
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.update_realm_users_profile(payload=profile_config)
 
     def get_identity_providers(self: "KeycloakAdminClient", realm_name: str) -> list:
         """
@@ -319,14 +378,6 @@ class KeycloakAdminClient:
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.group_user_add(user_id=user_id, group_id=group_id)
 
-    def get_client_service_account_user(self: "KeycloakAdminClient", client_id: str) -> str:
-        """
-        Get service account user id
-        """
-        self._refresh_token(self.kc_client, self.realm)
-        res = self.kc_client.get_client_service_account_user(client_id=client_id)
-        return res["id"]
-
     def send_reset_password_link(self: "KeycloakAdminClient", user_id: str, realm_name: str, client_id: str) -> None:
         """
         Send reset Password link
@@ -401,6 +452,39 @@ class KeycloakAdminClient:
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         self.kc_client.update_client_mapper(client_id=client_id, mapper_id=mapper_id, payload=payload)
+
+    def get_client_service_account_user(self: "KeycloakAdminClient", realm_name: str, client_uuid: str) -> dict:
+        """
+        Returns the auto-created service-account user for a client that has
+        `serviceAccountsEnabled=true`. `client_uuid` is Keycloak's internal UUID
+        (from `get_client_id(client_id=<clientId>)`), not the human-readable clientId.
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_client_service_account_user(client_id=client_uuid)
+
+    def get_client_secret(self: "KeycloakAdminClient", realm_name: str, client_uuid: str) -> str | None:
+        """
+        Read a confidential client's current secret from Keycloak.
+
+        Used by the muspell onboarding workflow to re-sync 1Password with Keycloak's
+        authoritative secret when the `installer` client already exists (e.g. someone
+        regenerated the secret via the Keycloak UI, or 1Password drifted). Returns
+        None if the response carries no `value` (non-confidential client, no secret).
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        payload = self.kc_client.get_client_secrets(client_id=client_uuid) or {}
+        return payload.get("value")
+
+    def get_client_id_if_exists(self: "KeycloakAdminClient", client_name: str, realm_name: str) -> str | None:
+        """
+        Return the client's internal UUID for `clientId=client_name`, or None when
+        the client doesn't exist in the realm. Non-raising variant of `get_client_id`.
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        return next((c["id"] for c in self.kc_client.get_clients() if c.get("clientId") == client_name), None)
 
 
 @lru_cache

@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 from pydantic_core import MultiHostUrl
@@ -12,11 +13,18 @@ from app.core.settings import AppSettings, get_settings
 
 class MuspellConfigUpdateJobActivityModel(LaunchpadCLIBaseModel):
     """
-    MuspellConfigUpdateJobActivityModel
+    Seeds the new-shape muspell-archive config for a tenant:
+      * `systems` — one row per onboarded application for the `system` table
+        (each dict: system_id, name, display_name, database, mnemonic,
+        search_identifiers). The `system_id` is the same UUID used to key the
+        Keycloak `applicationaccess` attribute.
+    The schema + config rows themselves are created and default-seeded by
+    muspell-archive's dbmate baseline on first boot; everything else
+    (organization globals incl. enable_mpi, column, dataFlag, …) stays
+    baseline-default — onboarding does not touch them.
     """
 
-    column_config: str
-    organization_config: str
+    systems: list[dict]
     schema_name: str
     database_name: str
     username: str
@@ -25,7 +33,8 @@ class MuspellConfigUpdateJobActivityModel(LaunchpadCLIBaseModel):
 
 class MuspellConfigUpdateJobActivity(Activity):
     """
-    MuspellConfigUpdateJobActivity
+    Inserts the tenant's `system` rows (uuid-keyed, matching the Keycloak
+    applicationaccess). No other config is touched (baseline defaults apply).
     """
 
     @staticmethod
@@ -38,15 +47,25 @@ class MuspellConfigUpdateJobActivity(Activity):
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
         """
-        RetryPolicy for the activity
+        RetryPolicy for the activity. Also the backstop for a dbmate race: if the
+        `system` table isn't created yet, the INSERT errors and the activity
+        retries with backoff.
         """
         return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
 
     @staticmethod
     @activity.defn(name="MuspellConfigUpdateJobActivity")
-    async def defn(activity_model: MuspellConfigUpdateJobActivityModel) -> None:
+    async def defn(activity_model: MuspellConfigUpdateJobActivityModel) -> dict[str, str]:
         """
-        MuspellConfigUpdateJobActivity
+        Seed the `system` table for the tenant (one row per onboarded application)
+        and return a `{name: id}` map of the **canonical** ids the DB ended up with.
+
+        Why return the map: insert_system.sql is `ON CONFLICT (name) DO UPDATE` which
+        preserves the row's existing id. The candidate `system["system_id"]` the
+        workflow mints via `workflow.uuid4()` is therefore only authoritative for
+        rows the activity newly inserts — on conflict the existing id wins. The
+        workflow uses the returned map to keep Keycloak applicationaccess keyed by
+        the DB's stable ids across re-runs (otherwise the two drift apart).
         """
         config: AppSettings = get_settings()
 
@@ -55,18 +74,24 @@ class MuspellConfigUpdateJobActivity(Activity):
         )
         db_manager = await get_db_manager(pg_dsn)
 
-        await db_manager.execute(
-            sqlfile="muspell/update_config.sql",
-            db_schema_name=activity_model.schema_name,
-            config_value=activity_model.column_config,
-            config_type="column",
-        )
-        log_info(f"Updated column config for {activity_model.schema_name} successfully.")
+        # Each insert runs in its own transaction (no cross-row atomicity); re-run
+        # and partial-failure safety relies on insert_system.sql's
+        # `ON CONFLICT (name) DO UPDATE` (keeps the existing id) — do not drop it.
+        # `RETURNING id, name` lets us capture either the inserted candidate id or
+        # the conflict-row's preserved id without a second SELECT.
+        canonical_systems: dict[str, str] = {}
+        for system in activity_model.systems:
+            row = await db_manager.fetch_one(
+                sqlfile="muspell/insert_system.sql",
+                db_schema_name=activity_model.schema_name,
+                system_id=system["system_id"],
+                name=system["name"],
+                display=system["display_name"],
+                database=system["database"],
+                mnemonic=system["mnemonic"],
+                search_identifiers=json.dumps(system["search_identifiers"]),
+            )
+            canonical_systems[row["name"]] = str(row["id"])
 
-        await db_manager.execute(
-            sqlfile="muspell/update_config.sql",
-            db_schema_name=activity_model.schema_name,
-            config_value=activity_model.organization_config,
-            config_type="organization",
-        )
-        log_info(f"Updated organization config for {activity_model.schema_name} successfully.")
+        log_info(f"Seeded {len(canonical_systems)} system row(s) for {activity_model.schema_name}.")
+        return canonical_systems

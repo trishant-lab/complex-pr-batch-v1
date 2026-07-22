@@ -15,7 +15,7 @@ spec:
           - name: roi
             command:
               - /app/roi
-            image: <<docker_image>>
+            image: <<roi_docker_image>>
             imagePullPolicy: Always
             env:
               - name: POD_NAME
@@ -28,7 +28,7 @@ spec:
                 value: <<database_url>>
             resources:
               limits:
-                cpu: "8"
+                cpu: "2"
                 memory: 32Gi
               requests:
                 cpu: 100m
@@ -36,7 +36,7 @@ spec:
             securityContext:
               privileged: true
             volumeMounts:
-              - mountPath: /app/config/<<tenant_config>>
+              - mountPath: /app/<<tenant_config>>
                 name: muspell-config
                 subPath: <<tenant_config>>
               - mountPath: /app/config/code_systems.toml
@@ -64,17 +64,15 @@ spec:
               items:
                 - key: code_systems.toml
                   path: code_systems.toml
-  maxReplicaCount: 3
+  maxReplicaCount: 1
   pollingInterval: 30
   successfulJobsHistoryLimit: 5
-  scalingStrategy:
-    strategy: accurate
   triggers:
     - type: redis-streams
       authenticationRef:
         name: redis-trigger-auth
       metadata:
-        activationLagCount: "0"
+        activationLagCount: "1"
         address: <<cache_host>>:6379
         consumerGroup: roi-workers
         lagCount: "1"
