@@ -114,7 +114,7 @@ class PractiflyJobActivity(Activity):
         """
         Get timeout
         """
-        return timedelta(seconds=120)
+        return timedelta(seconds=300)
 
     @staticmethod
     def get_retry_policy() -> RetryPolicy:
