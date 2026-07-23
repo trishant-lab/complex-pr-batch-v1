@@ -92,11 +92,42 @@ def create_keycloak_realm(
     _sync_realm_user_profile(keycloak_client, realm_name, realm_json)
 
 
+def _merge_user_profile(current: dict, template: dict) -> dict:
+    """
+    Merge the template user-profile into the live one without dropping anything.
+
+    `attributes` and `groups` are merged by `name`: the template's definition wins on
+    a name collision, template-only entries are appended, and entries already present
+    on the live realm but absent from the template are preserved. Other top-level keys
+    from the template are overlaid. This avoids the wholesale-replace behavior of the
+    Keycloak PUT, which would wipe managed attributes added out-of-band or by other flows.
+    """
+    merged = dict(current)
+    for list_key in ("attributes", "groups"):
+        current_items = current.get(list_key) or []
+        template_items = template.get(list_key) or []
+        if not current_items and not template_items:
+            continue
+        by_name = {item["name"]: item for item in current_items}
+        order = [item["name"] for item in current_items]
+        for item in template_items:
+            if item["name"] not in by_name:
+                order.append(item["name"])
+            by_name[item["name"]] = item
+        merged[list_key] = [by_name[name] for name in order]
+    for key, value in template.items():
+        if key not in ("attributes", "groups"):
+            merged[key] = value
+    return merged
+
+
 def _sync_realm_user_profile(keycloak_client: KeycloakAdminClient, realm_name: str, realm_json: dict) -> None:
     """
-    Apply the realm template's declarative user-profile config to the live realm.
+    Merge the realm template's declarative user-profile config into the live realm.
 
-    Idempotent. No-op if the template has no user-profile block.
+    Idempotent. No-op if the template has no user-profile block. Managed attributes and
+    groups already present on the live realm that are not in the template are preserved
+    (see `_merge_user_profile`) -- a plain replace would silently remove them.
     """
     components = realm_json.get("components") or {}
     profile_components = components.get("org.keycloak.userprofile.UserProfileProvider") or []
@@ -107,9 +138,12 @@ def _sync_realm_user_profile(keycloak_client: KeycloakAdminClient, realm_name: s
     if not profile_entries:
         return
     raw_profile = profile_entries[0]
-    profile_payload = ijson_loads(raw_profile) if isinstance(raw_profile, str) else raw_profile
-    keycloak_client.update_realm_users_profile(profile_payload, realm_name)
-    log_info(f"User-profile config synced for realm {realm_name}")
+    template_profile = ijson_loads(raw_profile) if isinstance(raw_profile, str) else raw_profile
+
+    current_profile = keycloak_client.get_realm_users_profile(realm_name) or {}
+    merged_profile = _merge_user_profile(current_profile, template_profile)
+    keycloak_client.update_realm_users_profile(merged_profile, realm_name)
+    log_info(f"User-profile config synced (merged) for realm {realm_name}")
 
 
 def create_keycloak_client(
