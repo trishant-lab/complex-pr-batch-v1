@@ -294,7 +294,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 f"/{postgres_database_name}?sslmode=disable&application_name="
                 f"{postgres_database_name}&options=-c search_path%3D{postgres_schema_name},public"
             )
-            image_tag = "production" if config.env == "production" else "sprint"
+            image_tag = muspell_config.image_tag or ("production" if config.env == "production" else "sprint")
             docker_image = f"registry.314ecorp.tech/muspell-app:{image_tag}"
             # Dedicated ROI export worker image (not the main app image). The KEDA
             # ScaledJob spins one of these per queued export request; the main app

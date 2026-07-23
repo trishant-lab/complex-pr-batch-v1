@@ -34,3 +34,7 @@ class MuspellArchiveSettings(BaseModel):
 
     copy_ui_bundle: bool = True
     database_name: str = "muspell"
+
+    # Optional override for the muspell-app / muspell-roi image tag. When unset, the tag is
+    # derived from the environment ("production" in prod, otherwise "sprint").
+    image_tag: str | None = None
