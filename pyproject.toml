@@ -8,7 +8,7 @@ readme = "README.md"
 dependencies = [
     "1password==1.0.7,<2",
     "aiofiles==24.1.0,<25",
-    "aiohttp>=3.14.0",
+    "aiohttp>=3.14.3",
     "aiopath>=0.7.7",
     "async-lru==2.0.4,<3",
     "asyncpg==0.30.0,<0.31",
@@ -47,7 +47,7 @@ dependencies = [
     "pydantic-settings==2.14.2",
     "pydash==8.0.4,<9",
     "pyjwt>=2.13.0,<3",
-    "pypdf==6.13.3",
+    "pypdf==6.14.2",
     "python-digitalocean==1.17.0,<2",
     "python-http-client==3.3.7,<4",
     "python-keycloak==7.0.3",
