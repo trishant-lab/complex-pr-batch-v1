@@ -638,6 +638,7 @@ class VeritableOnboardingWorkflow(Workflow):
                         },
                     ],
                     container_envs=[
+                        {"name": "DEPLOYMENT", "value": config.env},
                         {
                             "name": "POSTGRES__PASSWORD",
                             "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
