@@ -10,6 +10,7 @@ from temporalio.common import RetryPolicy
 from app.cli.temporal.core.base import Activity
 from app.cli.temporal.core.log import log_error, log_info
 from app.cli.temporal.models.cloudflare import (
+    AddBucketsToR2TokenActivityModel,
     CloudflareBucketCredentials,
     CopyArtifactsToBucketActivityModel,
     CopyWebCoreToBucketActivityModel,
@@ -32,8 +33,8 @@ from app.s3_utils import (
     download_file_from_storage,
     sync_and_verify_files,
 )
-from app.utils.s3_operations import get_s3_client
 from app.utils.file_operations import get_opendal_file_client
+from app.utils.s3_operations import get_s3_client
 
 
 class CreateCloudflareBucketActivity(Activity):
@@ -668,4 +669,42 @@ class CreateCloudflareBucketCredentialsActivity(Activity):
         config: AppSettings = get_settings()
         return await create_cloudflare_bucket_credentials(
             bucket_name=activity_input.bucket_name, config=config, read_only=activity_input.read_only
+        )
+
+
+class AddBucketsToR2TokenActivity(Activity):
+    """
+    AddBucketsToR2TokenActivity - extend an existing R2 user token's bucket scope to grant
+    write access to additional buckets. Idempotent; no-op if the token does not exist.
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=2)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="AddBucketsToR2TokenActivity")
+    async def defn(activity_input: AddBucketsToR2TokenActivityModel) -> None:
+        """
+        Add bucket access (write by default, read-only when `read_only=True`) to an
+        existing R2 token's scope.
+        """
+        from app.cli.cloudflare_utils import add_buckets_to_token
+
+        config: AppSettings = get_settings()
+        await add_buckets_to_token(
+            config=config,
+            token_name=activity_input.token_name,
+            bucket_names=activity_input.bucket_names,
+            read_only=activity_input.read_only,
         )

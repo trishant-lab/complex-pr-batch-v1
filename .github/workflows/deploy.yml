@@ -6,7 +6,7 @@ on:
 jobs:
   deploy:
     name: Deploy to Kubernetes
-    runs-on: [self-hosted, python3.11]
+    runs-on: [self-hosted, python3.14]
     steps:
       - name: Deploy to Kubernetes SPRINT
         if: github.ref_name == 'sprint'

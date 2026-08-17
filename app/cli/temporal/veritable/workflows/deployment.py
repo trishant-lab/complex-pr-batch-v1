@@ -62,8 +62,6 @@ from app.cli.temporal.activities.redis import CACHE_HOST, RedisSetupActivity, Re
 from app.cli.temporal.activities.stateful_set_pod_creation import (
     CheckPodRunningStatusActivity,
     CheckPodRunningStatusActivityModel,
-    StatefulSetPodDeletionActivity,
-    StatefulSetPodDeletionActivityModel,
 )
 from app.cli.temporal.activities.temporal_namespace import (
     TemporalNamespaceActivity,
@@ -143,7 +141,6 @@ class VeritableDeploymentWorkflow(Workflow):
             CheckPodRunningStatusActivity.defn,
             VeritableNovuOnboardingActivity.defn,
             KubernetesDeploymentActivity.defn,
-            StatefulSetPodDeletionActivity.defn,
             OnePasswordGetActivity.defn,
             K8sSecretFetchActivity.defn,
             KedaApplyTemplatedYamlActivity.defn,
@@ -568,15 +565,6 @@ class VeritableDeploymentWorkflow(Workflow):
                 ),
             )
 
-            # delete statefulset pod
-            await run_activity(
-                activity=StatefulSetPodDeletionActivity,
-                arg=StatefulSetPodDeletionActivityModel(
-                    namespace=tenant,
-                    name="veritable",
-                ),
-            )
-
             # Deployment pod creation for server
             await run_activity(
                 activity=KubernetesDeploymentActivity,
@@ -679,117 +667,7 @@ class VeritableDeploymentWorkflow(Workflow):
                 ),
             )
 
-            await run_activity(
-                activity=StatefulSetPodDeletionActivity,
-                arg=StatefulSetPodDeletionActivityModel(
-                    namespace=tenant,
-                    name="veritable-cli",
-                ),
-            )
-
-            # Deployment pod creation for cli
-            await run_activity(
-                activity=KubernetesDeploymentActivity,
-                arg=KubernetesDeploymentActivityModel(
-                    namespace=tenant,
-                    name="veritable-cli",
-                    docker_image=docker_image,
-                    request_resource={
-                        "cpu": pydash.get(veritable, "cliSpec.request_cpu"),
-                        "memory": pydash.get(veritable, "cliSpec.request_memory"),
-                    },
-                    limit_resource={
-                        "cpu": pydash.get(veritable, "cliSpec.limit_cpu"),
-                        "memory": pydash.get(veritable, "cliSpec.limit_memory"),
-                    },
-                    container_ports={"http": 8000},
-                    volume_mounts=[
-                        {
-                            "name": "custom-volume",
-                            "mount_path": f"/{config_dir}/{custom_config}",
-                            "sub_path": custom_config,
-                        },
-                        {
-                            "name": "env-volume",
-                            "mount_path": f"/{config_dir}/{env_config}",
-                            "sub_path": env_config,
-                        },
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "mount_path": f"/{config_dir}/{provisioning_config}",
-                            "sub_path": provisioning_config,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "veritable-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
-                        },
-                        {
-                            "name": "custom-volume",
-                            "config_map_name": "veritable-custom-config",
-                            "key": custom_config,
-                            "path": custom_config,
-                        },
-                        {
-                            "name": "env-volume",
-                            "config_map_name": "veritable-env-config",
-                            "key": env_config,
-                            "path": env_config,
-                        },
-                        {
-                            "name": "provisioning-volume",
-                            "config_map_name": "veritable-provisioning-config",
-                            "key": provisioning_config,
-                            "path": provisioning_config,
-                        },
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "APP_CONFIG_DIR", "value": APP_CONFIG_DIR},
-                        {
-                            "name": "POSTGRES__PASSWORD",
-                            "value_from": {"secret_key_ref": {"name": postgres_secret_name, "key": "password"}},
-                        },
-                        {"name": "POSTGRES__USER", "value": postgres_username},
-                        {"name": "REDIS__HOST", "value": CACHE_HOST},
-                        {
-                            "name": "REDIS__PASSWORD",
-                            "value_from": {"secret_key_ref": {"name": redis_secret_name, "key": "password"}},
-                        },
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "IS_CLI", "value": "TRUE"},
-                        {"name": "ORG_NAME", "value": pydash.get(veritable, "organization")},
-                        {"name": "PROVISIONING_CONFIG", "value": f"/{config_dir}/{provisioning_config}"},
-                        {
-                            "name": "NOVU__API_KEY",
-                            "value_from": {"secret_key_ref": {"name": novu_secret_name, "key": "api-key"}},
-                        },
-                        {
-                            "name": "TENANT_S3__ACCESS_KEY",
-                            "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "access-key"}},
-                        },
-                        {
-                            "name": "TENANT_S3__SECRET_KEY",
-                            "value_from": {"secret_key_ref": {"name": "veritable-cloudflare-r2", "key": "secret-key"}},
-                        },
-                    ]
-                    + (
-                        [{"name": "SELECTED_APPS", "value": ijson_dumps(pydash.get(veritable, "selectedApps"))}]
-                        if pydash.get(veritable, "selectedApps")
-                        else []
-                    ),
-                ),
-            )
-
-            # Common env vars for worker deployments (same as veritable-cli)
+            # Common env vars for worker deployments
             worker_base_envs = [
                 {"name": "DEPLOYMENT", "value": config.env},
                 {"name": "APP_CONFIG_DIR", "value": APP_CONFIG_DIR},
@@ -995,7 +873,7 @@ class VeritableDeploymentWorkflow(Workflow):
             )
 
             # check pod running status
-            for pod in ["veritable", "veritable-cli", "veritable-worker", "veritable-worker-critical"]:
+            for pod in ["veritable", "veritable-worker", "veritable-worker-critical"]:
                 await run_activity(
                     activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(

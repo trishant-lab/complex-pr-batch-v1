@@ -127,3 +127,16 @@ class UpdateCORSForBucketActivityModel(LaunchpadCLIBaseModel):
 
     bucket_name: str
     rules: list[dict]
+
+
+class AddBucketsToR2TokenActivityModel(LaunchpadCLIBaseModel):
+    """
+    AddBucketsToR2TokenActivityModel
+
+    Set `read_only=True` to extend the token's read-permission-group policy instead of
+    the write one — used to grant a shared reader token access to a new tenant bucket.
+    """
+
+    token_name: str
+    bucket_names: list[str]
+    read_only: bool = False

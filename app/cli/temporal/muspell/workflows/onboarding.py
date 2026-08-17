@@ -1,7 +1,11 @@
+import asyncio
 from collections.abc import Callable
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
+from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.cloudflare_setup import (
+    AddBucketsToR2TokenActivity,
     CopyArtifactsToBucketActivity,
     CreateCloudflareBucketActivity,
     CreateCloudflareBucketCredentialsActivity,
@@ -15,53 +19,17 @@ from app.cli.temporal.activities.deployment_pod_creation import (
     KedaApplyTemplatedYamlActivityModel,
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
+    KubernetesDeploymentRestartActivity,
+    KubernetesDeploymentRestartActivityModel,
 )
 from app.cli.temporal.activities.k8s_config_map import K8sConfigMapCreationActivity, K8sConfigMapCreationActivityModel
 from app.cli.temporal.activities.k8s_istio_virtual_service import (
     KubernetesIstioVirtualServiceActivity,
     KubernetesIstioVirtualServiceActivityModel,
 )
-from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
-from app.cli.temporal.activities.minio_setup import (
-    AttachMinioPolicyActivity,
-    CreateMinioBucketActivity,
-    CreateMinioUserActivity,
-)
-from app.cli.temporal.activities.muspell_configupdate_job import (
-    MuspellConfigUpdateJobActivity,
-    MuspellConfigUpdateJobActivityModel,
-)
-from app.cli.temporal.activities.redis import CACHE_HOST, RedisSetupActivity, RedisSetupActivityModel
-from app.cli.temporal.activities.send_mail import (
-    SendAfterProvisioningMailActivity,
-    SendAfterProvisioningMailActivityModel,
-)
-from app.cli.temporal.activities.starrocks_setup import (
-    CreateStarRocksCatalogActivity,
-    CreateStarRocksUserActivity,
-    StarRocksGrantReadOnlyCatalogActivity,
-)
-from app.cli.temporal.activities.stateful_set_pod_creation import (
-    CheckPodRunningStatusActivity,
-    CheckPodRunningStatusActivityModel,
-)
-from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
-from app.cli.temporal.core.log import log_info
-from app.cli.temporal.models.cloudflare import (
-    CloudflareBucketCredentials,
-    CopyArtifactsToBucketActivityModel,
-    CreateCloudflareBucketActivityModel,
-    CreateCloudflareBucketCredentialsActivityModel,
-    CreateCloudflareDNSRecordActivityModel,
-    LinkBucketToDomainActivityModel,
-    PropagateDNSRecordActivityModel,
-    UpdateCORSForBucketActivityModel,
-)
-from app.cli.temporal.models.starrocks import CreateStarRocksCatalogActivityModel
-from app.cli.temporal.muspell import TemplatePath
-from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.k8s_namespace import K8sNamespaceCreationActivity, K8sNamespaceCreationActivityModel
 from app.cli.temporal.activities.k8s_secret import K8sSecretCreationActivity, K8sSecretCreationActivityModel
+from app.cli.temporal.activities.k8s_service import KubernetesServiceActivity, KubernetesServiceActivityModel
 from app.cli.temporal.activities.keycloak_setup import (
     JeevesKeycloakCreateIDPFlowActivity,
     KeycloakClientSetupActivity,
@@ -72,8 +40,25 @@ from app.cli.temporal.activities.keycloak_setup import (
     KeycloakCreateInternalUsersActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
+    KeycloakGetClientSecretActivity,
+    KeycloakGetClientSecretActivityModel,
+    KeycloakGrantRealmManagementRolesActivity,
+    KeycloakGrantRealmManagementRolesActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
+    KeycloakServiceAccountSetupActivity,
+    KeycloakServiceAccountSetupActivityModel,
+    KeycloakSetUserAttributeActivity,
+    KeycloakSetUserAttributeActivityModel,
+)
+from app.cli.temporal.activities.minio_setup import (
+    AttachMinioPolicyActivity,
+    CreateMinioBucketActivity,
+    CreateMinioUserActivity,
+)
+from app.cli.temporal.activities.muspell_configupdate_job import (
+    MuspellConfigUpdateJobActivity,
+    MuspellConfigUpdateJobActivityModel,
 )
 from app.cli.temporal.activities.one_password import (
     CreatePasswordActivity,
@@ -101,28 +86,71 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
 )
+from app.cli.temporal.activities.redis import CACHE_HOST, RedisSetupActivity, RedisSetupActivityModel
+from app.cli.temporal.activities.send_mail import (
+    SendAfterProvisioningMailActivity,
+    SendAfterProvisioningMailActivityModel,
+)
+from app.cli.temporal.activities.starrocks_setup import (
+    CreateStarRocksCatalogActivity,
+    CreateStarRocksUserActivity,
+    StarRocksGrantReadOnlyCatalogActivity,
+)
+from app.cli.temporal.activities.stateful_set_pod_creation import (
+    CheckPodRunningStatusActivity,
+    CheckPodRunningStatusActivityModel,
+)
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
+from app.cli.temporal.activities.vm_pod_scrapper import VMPodScrapperActivity, VMPodScrapperActivityModel
 from app.cli.temporal.core.base import Workflow
+from app.cli.temporal.core.log import log_info
+from app.cli.temporal.models.cloudflare import (
+    AddBucketsToR2TokenActivityModel,
+    CloudflareBucketCredentials,
+    CopyArtifactsToBucketActivityModel,
+    CreateCloudflareBucketActivityModel,
+    CreateCloudflareBucketCredentialsActivityModel,
+    CreateCloudflareDNSRecordActivityModel,
+    LinkBucketToDomainActivityModel,
+    PropagateDNSRecordActivityModel,
+    UpdateCORSForBucketActivityModel,
+)
+from app.cli.temporal.models.starrocks import CreateStarRocksCatalogActivityModel
+from app.cli.temporal.muspell import TemplatePath
 from app.cli.temporal.muspell.models.muspellSpec import MuspellArchiveSpec
 from app.common import generate_password
 from app.core.ijson import ijson_dumps, ijson_loads
-
-from typing import TYPE_CHECKING
-
 from app.starrocks_utils import GrantStarRocksReadOnlyCatalogModel, RegisterStarrocksUserModel
 
 if TYPE_CHECKING:
     from app.core.product_settings.muspell_archive import MuspellArchiveSettings
-from app.core.settings import AppSettings, get_settings
-from app.models.product import ProductEnum
-from app.models.tenant import TenantStatusEnum
 import pydash
 from temporalio import workflow
 
+from app.core.settings import AppSettings, get_settings
+from app.models.product import ProductEnum
+from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 ProductName = "muspell"
 OnePasswordVaultName = "Muspell Archive"
+
+# Grace period after the muspell-archive pod reports "Running" before seeding the
+# `system` table, so its dbmate baseline (schema + config seed) has completed.
+MUSPELL_DBMATE_SETTLE_SECONDS = 30
+
+# Internal users provisioned into every muspell tenant realm. Single source of truth:
+# the create-internal-users activity reads the full dicts; the post-seed Keycloak
+# applicationaccess sync reads just the usernames. Add new entries here and both
+# call sites pick them up automatically.
+MUSPELL_INTERNAL_USERS: list[dict] = [
+    {
+        "username": "soumya.agarwal@314ecorp.com",
+        "email": "soumya.agarwal@314ecorp.com",
+        "firstname": "Soumya",
+        "lastname": "Agrawal",
+    },
+]
 
 
 @workflow.defn(name="MuspellOnboardingWorkflow", sandboxed=False)
@@ -152,6 +180,9 @@ class MuspellOnboardingWorkflow(Workflow):
             KeycloakRealmSetupActivity.defn,
             KeycloakClientSetupActivity.defn,
             KeycloakCreateClientRolesActivity.defn,
+            KeycloakServiceAccountSetupActivity.defn,
+            KeycloakGetClientSecretActivity.defn,
+            KeycloakGrantRealmManagementRolesActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
             CreateStarRocksCatalogActivity.defn,
             KubernetesDeploymentActivity.defn,
@@ -171,9 +202,12 @@ class MuspellOnboardingWorkflow(Workflow):
             RedisSetupActivity.defn,
             UpdateCORSForBucketActivity.defn,
             CreateCloudflareBucketCredentialsActivity.defn,
+            AddBucketsToR2TokenActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
             MuspellConfigUpdateJobActivity.defn,
+            KubernetesDeploymentRestartActivity.defn,
             KeycloakCreateInternalUsersActivity.defn,
+            KeycloakSetUserAttributeActivity.defn,
             JeevesKeycloakCreateIDPFlowActivity.defn,
             CreatePasswordActivity.defn,
             PostgresDatabaseCreationActivity.defn,
@@ -193,6 +227,31 @@ class MuspellOnboardingWorkflow(Workflow):
         """
         return f"muspell_onboarding_workflow_{pydash.get(muspell, 'tenant')}"
 
+    @staticmethod
+    def _build_app_systems(application_list_str: str | None) -> tuple[list[str], list[dict]]:
+        """
+        Parse the comma-separated `applicationList` spec input and mint one deterministic
+        system UUID per application via `workflow.uuid4()` (replay-safe inside a workflow
+        context — never use `uuid.uuid4`). The same UUIDs are threaded to BOTH the Keycloak
+        `applicationaccess` attribute (keyed by system id) and the system-table seed activity,
+        so the two agree on each system's UUID.
+        """
+        application_list = (
+            [item.strip() for item in application_list_str.split(",") if item.strip()] if application_list_str else []
+        )
+        app_systems = [
+            {
+                "system_id": str(workflow.uuid4()),
+                "name": name,
+                "display_name": name,
+                "database": name,
+                "mnemonic": name[:3].upper(),
+                "search_identifiers": [{"value": "mrn", "label": "MRN"}],
+            }
+            for name in application_list
+        ]
+        return application_list, app_systems
+
     @workflow.run
     async def run(self: "Workflow", muspell: MuspellArchiveSpec) -> None:
         """
@@ -205,11 +264,8 @@ class MuspellOnboardingWorkflow(Workflow):
         last_name = pydash.get(muspell, "lastName")
         email = pydash.get(muspell, "email")
         tenant = pydash.get(muspell, "tenant")
-        application_list_str = pydash.get(muspell, "applicationList")
         enable_mpi = pydash.get(muspell, "enableMpi")
-        application_list = (
-            [item.strip() for item in application_list_str.split(",") if item.strip()] if application_list_str else []
-        )
+        application_list, app_systems = self._build_app_systems(pydash.get(muspell, "applicationList"))
         log_info(f"Application list: {application_list}")
 
         try:
@@ -238,8 +294,12 @@ class MuspellOnboardingWorkflow(Workflow):
                 f"/{postgres_database_name}?sslmode=disable&application_name="
                 f"{postgres_database_name}&options=-c search_path%3D{postgres_schema_name},public"
             )
-            image_tag = "production" if config.env == "production" else "sprint"
+            image_tag = muspell_config.image_tag or ("production" if config.env == "production" else "sprint")
             docker_image = f"registry.314ecorp.tech/muspell-app:{image_tag}"
+            # Dedicated ROI export worker image (not the main app image). The KEDA
+            # ScaledJob spins one of these per queued export request; the main app
+            # server continues to run muspell-app.
+            roi_docker_image = f"registry.314ecorp.tech/muspell-roi:{image_tag}"
             superset_docker_image = "registry.314ecorp.tech/superset:5.0.0"
             server_item = "production-config" if config.env == "production" else "integration-config"
             dicom_database_name = f"{ProductName}_dicom_{tenant}"
@@ -670,80 +730,36 @@ class MuspellOnboardingWorkflow(Workflow):
                         ],
                     ),
                 )
+
+                # Grant the shared read-only worker token access to this tenant's ma-<tenant>
+                # bucket. Only in integration since ma-<tenant> only exists there. The activity
+                # is idempotent and set-union-only — never removes buckets from the token's
+                # existing scope.
+                await run_activity(
+                    activity=AddBucketsToR2TokenActivity,
+                    arg=AddBucketsToR2TokenActivityModel(
+                        token_name="muspell-zsc-worker-readonly-token",
+                        bucket_names=[r2_bucket_name],
+                        read_only=True,
+                    ),
+                )
                 # endif integration specific flow
 
-            # minio_bucket_name = f"ma-{tenant}"
-
-            # access_key = f"{tenant}_files"
-            # secret_key = generate_password(length=16)
-            # s3_config = S3Settings()
-            # s3_config.access_key = muspell_config.warehouse_access_key
-            # s3_config.secret_key = muspell_config.warehouse_secret_key
-            # s3_config.endpoint = muspell_config.s3_endpoint
-
-            # # create minio user and bucket
-            # await run_activity(
-            #     activity=CreateMinioUserActivity,
-            #     arg=CreateMinioUserActivityModel(access_key=access_key, secret_key=secret_key, s3_config=s3_config),
-            # )
-
-            # await run_activity(
-            #     activity=CreateMinioBucketActivity,
-            #     arg=CreateMinioBucketActivityModel(
-            #         bucket_name=minio_bucket_name, region_name=muspell_config.minio_region, s3_config=s3_config
-            #     ),
-            # )
-
-            # await run_activity(
-            #     activity=AttachMinioPolicyActivity,
-            #     arg=AttachMinioPolicyActivityModel(
-            #         bucket_name=minio_bucket_name, access_key=access_key, s3_config=s3_config
-            #     ),
-            # )
-
-            # await run_activity(
-            #     activity=OnePasswordInsertIfNotExistsActivity,
-            #     arg=OnePasswordInsertIfNotExistsActivityModel(
-            #         tenant="INTEGRATION_COMMON_CONFIG",
-            #         vault=OnePasswordVaultName,
-            #         server_item=server_item,
-            #         key=f"{tenant}_minio_endpoint",
-            #         key_value=muspell_config.s3_endpoint,
-            #     ),
-            # )
-
-            # await run_activity(
-            #     activity=OnePasswordInsertIfNotExistsActivity,
-            #     arg=OnePasswordInsertIfNotExistsActivityModel(
-            #         tenant="INTEGRATION_COMMON_CONFIG",
-            #         vault=OnePasswordVaultName,
-            #         server_item=server_item,
-            #         key=f"{tenant}_minio_bucket",
-            #         key_value=minio_bucket_name,
-            #     ),
-            # )
-
-            # await run_activity(
-            #     activity=OnePasswordInsertIfNotExistsActivity,
-            #     arg=OnePasswordInsertIfNotExistsActivityModel(
-            #         tenant="INTEGRATION_COMMON_CONFIG",
-            #         vault=OnePasswordVaultName,
-            #         server_item=server_item,
-            #         key=f"{tenant}_minio_access_key",
-            #         key_value=access_key,
-            #     ),
-            # )
-
-            # await run_activity(
-            #     activity=OnePasswordCreateOrUpdateActivity,
-            #     arg=OnePasswordCreateOrUpdateActivityModel(
-            #         tenant="INTEGRATION_COMMON_CONFIG",
-            #         vault=OnePasswordVaultName,
-            #         server_item=server_item,
-            #         secret_name=f"{tenant}_minio_secret_key",
-            #         secret_value=secret_key,
-            #     ),
-            # )
+            # Extend the ma-{tenant} R2 token's scope to include this env's UI bucket (just created
+            # above by CreateCloudflareBucketActivity). The token itself was created with only the
+            # ma-{tenant} bucket in its policy by CreateCloudflareBucketCredentialsActivity inside
+            # the non-prod block above; this call adds the UI bucket on top of that.
+            #   Integration's call appends <tenant>-muspell-tech.
+            #   Production's later call appends <tenant>-muspell-com on the same token.
+            # The activity is idempotent and uses set-union, so prod's call preserves the
+            # integration-appended entry while adding its own.
+            await run_activity(
+                activity=AddBucketsToR2TokenActivity,
+                arg=AddBucketsToR2TokenActivityModel(
+                    token_name=f"ma-{tenant}-app-token",
+                    bucket_names=[bucket_name],
+                ),
+            )
 
             realm_name = tenant
             # keycloak realm setup
@@ -806,6 +822,81 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # `installer` service-account client. The muspell-archive server exchanges the
+            # client_credentials for a token and calls Keycloak's admin API (create user,
+            # update user attributes, etc.).
+            #
+            # Idempotency: Keycloak is the source of truth for the client secret. Ask
+            # Keycloak first — if the `installer` client already exists we read its
+            # current secret and mirror it into 1Password (CreateOrUpdate, so any
+            # UI-side rotation propagates through). If the client doesn't exist yet we
+            # mint a fresh 32-char secret and create the client with it. Either way,
+            # 1Password and Keycloak end the step in lockstep.
+            existing_installer_secret = await run_activity(
+                activity=KeycloakGetClientSecretActivity,
+                arg=KeycloakGetClientSecretActivityModel(
+                    realm_name=realm_name,
+                    client_name="installer",
+                ),
+            )
+            installer_client_secret = existing_installer_secret or await run_activity(
+                activity=CreatePasswordActivity,
+                arg=CreatePasswordActivityModel(length=32),
+            )
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    secret_name="installer_client_secret",
+                    secret_value=installer_client_secret,
+                ),
+            )
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=f"{ProductName}_{tenant}",
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    secret_name="installer_client_id",
+                    secret_value="installer",
+                ),
+            )
+            await run_activity(
+                activity=KeycloakServiceAccountSetupActivity,
+                arg=KeycloakServiceAccountSetupActivityModel(
+                    tenant=tenant,
+                    domain=muspell_config.domain_name,
+                    secret=installer_client_secret,
+                    realm_name=realm_name,
+                    template_path=TemplatePath,
+                    template_name="keycloak_service_account.json",
+                ),
+            )
+            # Grant the service-account user the realm-management roles the backend needs
+            # to create/update users. Idempotent — Keycloak silently accepts duplicate
+            # role assignments on re-runs.
+            await run_activity(
+                activity=KeycloakGrantRealmManagementRolesActivity,
+                arg=KeycloakGrantRealmManagementRolesActivityModel(
+                    realm_name=realm_name,
+                    client_name="installer",
+                    # view-clients: client_uuid + role resolution
+                    # view-users: user reads, search, role-mapping reads (superset of query-users)
+                    # manage-users: create/update/delete, password email, logout, role assign/remove
+                    # view-identity-providers: /auth/idpHint + cdshook iss/aud validation
+                    # view-realm: user-federation components
+                    role_names=[
+                        "view-clients",
+                        "view-users",
+                        "manage-users",
+                        "view-identity-providers",
+                        "view-realm",
+                    ],
+                ),
+            )
+
             # keycloak idp setup
             await run_activity(
                 activity=JeevesKeycloakCreateIDPFlowActivity,
@@ -825,7 +916,8 @@ class MuspellOnboardingWorkflow(Workflow):
 
             if application_list:
                 applicationaccess_template = template_env.get_template("applicationaccess.json")
-                applicationaccess_json = applicationaccess_template.render(application_list=application_list)
+                # Keyed by system UUID (muspell-archive matches access by system id).
+                applicationaccess_json = applicationaccess_template.render(app_systems=app_systems)
                 applicationaccess = ijson_dumps(applicationaccess_json)
 
             # keycloak tenant customer admin user setup
@@ -852,14 +944,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     client_name="muspell",
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_internal_user.json",
-                    users=[
-                        {
-                            "username": "soumya.agarwal@314ecorp.com",
-                            "email": "soumya.agarwal@314ecorp.com",
-                            "firstname": "Soumya",
-                            "lastname": "Agrawal",
-                        },
-                    ],
+                    users=MUSPELL_INTERNAL_USERS,
                     template_payload={"applicationaccess": applicationaccess} if applicationaccess else None,
                     roles=[role for role in roles if role != "_developer"],
                 ),
@@ -936,7 +1021,7 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            tenant_config = f"{config.env}.toml"
+            tenant_config = "config.toml"
             code_system_config = "code_systems.toml"
             config_dir = "app/config"
             dicom_config = "dicom-config.json"
@@ -1002,7 +1087,7 @@ class MuspellOnboardingWorkflow(Workflow):
                         "tenant": tenant,
                         "deployment": config.env,
                         "database_url": database_url,
-                        "docker_image": docker_image,
+                        "roi_docker_image": roi_docker_image,
                         "tenant_config": tenant_config,
                         "cache_host": CACHE_HOST,
                     },
@@ -1041,7 +1126,9 @@ class MuspellOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # Deployment pod creation for server
+            # Deployment pod creation for server. dbmate migrations run in a dedicated init
+            # container so the main container's image entrypoint no longer needs DATABASE_URL
+            # in its environment (it reads postgres creds from config.toml at runtime).
             await run_activity(
                 activity=KubernetesDeploymentActivity,
                 arg=KubernetesDeploymentActivityModel(
@@ -1060,7 +1147,7 @@ class MuspellOnboardingWorkflow(Workflow):
                     volume_mounts=[
                         {
                             "name": "muspell-config",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
+                            "mount_path": f"/app/{tenant_config}",
                             "sub_path": tenant_config,
                         },
                         {
@@ -1085,7 +1172,20 @@ class MuspellOnboardingWorkflow(Workflow):
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "DATABASE_URL", "value": database_url},
+                    ],
+                    init_containers=[
+                        {
+                            "name": "migrate",
+                            "image": docker_image,
+                            "image_pull_policy": "Always",
+                            "command": ["/usr/local/bin/dbmate", "--no-dump-schema", "migrate"],
+                            "working_dir": "/app",
+                            "env": [{"name": "DATABASE_URL", "value": database_url}],
+                            "resources": {
+                                "requests": {"cpu": "100m", "memory": "128Mi"},
+                                "limits": {"cpu": "1", "memory": "512Mi"},
+                            },
+                        },
                     ],
                 ),
             )
@@ -1263,24 +1363,71 @@ class MuspellOnboardingWorkflow(Workflow):
                     start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
                 )
 
-            if application_list:
-                # Read column config and update the same in Postgres.
-                col_template = template_env.get_template("column_config.json")
-                column_config_str = col_template.render(application_list=application_list)
+            if app_systems:
+                # The pod reports "Running" the moment the container starts —
+                # before muspell-archive finishes its dbmate baseline (which
+                # creates the `system` table + seeds config). Wait so those exist
+                # before we seed the tenant's systems. The seed activity also
+                # retries on failure as a backstop.
+                await asyncio.sleep(MUSPELL_DBMATE_SETTLE_SECONDS)
 
-                org_template = template_env.get_template("organization_config.json")
-                organization_config_str = org_template.render(application_list=application_list)
-
-                # update the config in Postgres
-                await run_activity(
+                # Seed the `system` table (uuid-keyed, matching the Keycloak
+                # applicationaccess). Everything else — organization globals incl.
+                # enable_mpi, column, dataFlag, … — stays dbmate-baseline-default;
+                # onboarding does not touch it. The activity returns the DB's
+                # canonical {name: id} map — the existing id on conflict, the new
+                # id on insert — used immediately below to re-align Keycloak.
+                canonical_systems: dict[str, str] | None = await run_activity(
                     activity=MuspellConfigUpdateJobActivity,
                     arg=MuspellConfigUpdateJobActivityModel(
-                        column_config=column_config_str,
-                        organization_config=organization_config_str,
+                        systems=app_systems,
                         schema_name=postgres_schema_name,
                         database_name=postgres_database_name,
                         username=postgres_username,
                         password=postgres_password,
+                    ),
+                )
+
+                # Self-heal applicationaccess. The initial Keycloak user creation
+                # (~line :807, :823) keyed applicationaccess by candidate ids
+                # minted from workflow.uuid4(); insert_system.sql ON CONFLICT
+                # keeps the DB's existing id, so on a re-run the two diverge. Push
+                # the canonical map into Keycloak now — DB is the authority.
+                # `None` guard: in-flight workflows recorded `None` from the
+                # pre-fix activity; they skip this step gracefully and the next
+                # re-run heals them.
+                if canonical_systems:
+                    canonical_app_systems = [
+                        {**system, "system_id": canonical_systems.get(system["name"], system["system_id"])}
+                        for system in app_systems
+                    ]
+                    # Pass the raw object string the template renders to. The
+                    # python-keycloak SDK JSON-encodes the request payload once on
+                    # the wire — wrapping in `ijson_dumps` here (as the initial-
+                    # create path at :803-804 needs to for *template* substitution
+                    # into keycloak_tenant_customer_admin.json) would double-encode
+                    # and the stored attribute would require json.loads twice.
+                    canonical_applicationaccess = template_env.get_template("applicationaccess.json").render(
+                        app_systems=canonical_app_systems
+                    )
+                    await run_activity(
+                        activity=KeycloakSetUserAttributeActivity,
+                        arg=KeycloakSetUserAttributeActivityModel(
+                            realm_name=realm_name,
+                            usernames=[email, *(u["username"] for u in MUSPELL_INTERNAL_USERS)],
+                            attribute_name="applicationaccess",
+                            attribute_value=canonical_applicationaccess,
+                        ),
+                    )
+
+                # Restart muspell-archive so its in-memory `systems` snapshot
+                # reloads with the new rows (direct Postgres inserts don't fire
+                # the app's CONFIG_CHANNEL refresh).
+                await run_activity(
+                    activity=KubernetesDeploymentRestartActivity,
+                    arg=KubernetesDeploymentRestartActivityModel(
+                        namespace=tenant,
+                        name="muspell-archive",
                     ),
                 )
 

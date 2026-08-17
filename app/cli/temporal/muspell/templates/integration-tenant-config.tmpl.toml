@@ -1,3 +1,6 @@
+# Deployment environment (required by muspell-archive; missing -> boot panic).
+env = "integration"
+
 [server]
 host = "0.0.0.0:8080"
 docs_path = "./static/swagger"

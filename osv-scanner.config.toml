@@ -1,13 +1,3 @@
 [[IgnoredVulns]]
-id = "GHSA-5239-wwwm-4pmq"
-reason = "pygments: no fix version available (Low severity, CVSS 3.3)"
-
-
-[[IgnoredVulns]]
-id = "GHSA-vfmq-68hx-4jfw"
-reason = "Vuln ignore for lxml"
-
-
-[[IgnoredVulns]]
-id = "PYSEC-2025-183"
-reason = "pyjwt 2.12.0: no fix version available upstream; revisit when a patched release ships"
+id = "PYSEC-2026-3447"
+reason = "setuptools 83.0.0 fix removes pkg_resources, required at runtime by supervisor==4.2.5, novu==1.14.0, and clearml (none have a fixed release without pkg_resources). Build-time sdist/MANIFEST.in issue not exploitable for this deployed app. Revisit if these deps drop pkg_resources."

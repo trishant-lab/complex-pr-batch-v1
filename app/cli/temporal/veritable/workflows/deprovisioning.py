@@ -30,15 +30,13 @@ from app.cli.temporal.activities.k8s_service import (
     DeleteKubernetesServiceActivity,
     DeleteKubernetesServiceActivityModel,
 )
-from app.cli.temporal.activities.stateful_set_pod_creation import (
-    StatefulSetPodDeletionActivity,
-    StatefulSetPodDeletionActivityModel,
-)
+
 from app.cli.temporal.activities.temporal_namespace import (
     DeleteTemporalNamespaceActivity,
     DeleteTemporalNamespaceActivityModel,
 )
 from app.cli.temporal.activities.tenant_crd import TenantCrdDeletionActivity, TenantCrdDeletionActivityModel
+from app.cli.temporal.activities.update_subscription_end_date import UpdateSubscriptionEndDateActivity
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.veritable_novu_setup import VeritableNovuDeProvisionActivity
 from app.cli.temporal.activities.vm_pod_scrapper import (
@@ -77,7 +75,6 @@ class VeritableDeProvisioningWorkflow(Workflow):
         """
         return [
             DeleteKubernetesServiceActivity.defn,
-            StatefulSetPodDeletionActivity.defn,
             VMPodScrapperDeletionActivity.defn,
             DeleteTemporalNamespaceActivity.defn,
             DeleteK8sConfigMapActivity.defn,
@@ -92,6 +89,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             TenantCrdDeletionActivity.defn,
             DeploymentDeletionActivity.defn,
             KedaScaledObjectDeletionActivity.defn,
+            UpdateSubscriptionEndDateActivity.defn,
         ]
 
     @classmethod
@@ -154,16 +152,8 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 ),
             )
 
-            # delete stateful sets
-            for name in ["veritable", "veritable-cli", "veritable-worker", "veritable-worker-critical"]:
-                await run_activity(
-                    activity=StatefulSetPodDeletionActivity,
-                    arg=StatefulSetPodDeletionActivityModel(
-                        namespace=tenant,
-                        name=name,
-                    ),
-                )
-
+            # delete deployments
+            for name in ["veritable", "veritable-worker", "veritable-worker-critical"]:
                 await run_activity(
                     activity=DeploymentDeletionActivity,
                     arg=DeploymentDeletionActivityModel(
@@ -177,7 +167,6 @@ class VeritableDeProvisioningWorkflow(Workflow):
                 "veritable-custom-config",
                 "veritable-env-config",
                 "veritable-tenant-config",
-                "veritable-cli-vector-config",
                 "veritable-provisioning-config",
             ]
             for config_map in config_maps:
@@ -249,7 +238,7 @@ class VeritableDeProvisioningWorkflow(Workflow):
             )
 
             # delete vm pod scrappers
-            for scrapper in ["veritable-metrics", "veritable-cli-metrics", "veritable-worker-metrics"]:
+            for scrapper in ["veritable-metrics", "veritable-worker-metrics"]:
                 await run_activity(
                     activity=VMPodScrapperDeletionActivity,
                     arg=VMPodScrapperDeletionActivityModel(
@@ -277,6 +266,17 @@ class VeritableDeProvisioningWorkflow(Workflow):
                     bucket_name=veritable.cloudflare_r2_ui_bucket,
                 ),
             )
+
+            # infra is deprovisioned -- set the Lago subscription end date so the
+            # tenant is no longer billed. Billing cleanup must not block or fail
+            # infra deprovisioning, so a failure here is logged and swallowed.
+            try:
+                await run_activity(
+                    activity=UpdateSubscriptionEndDateActivity,
+                    arg=veritable,
+                )
+            except Exception as lago_error:
+                workflow.logger.warning(f"Failed to update Lago subscription end date: {lago_error}")
 
             # update tenant status
             await run_activity(

@@ -9,6 +9,7 @@ from app.cli.temporal.starter import trigger_workflow
 from app.core.cli_settings import WorkerQueues
 from app.core.connections import get_lago_webhook_public_key
 from app.core.ijson import ijson_loads
+from app.core.settings import APP_CONFIG
 from app.models.product import ProductEnum
 
 router = APIRouter()
@@ -20,11 +21,16 @@ def get_issuers(product: ProductEnum) -> list[str]:
     """
     Get the issuer for the product
     """
-    app_config = ProductEnum.get_product_settings(product)
-    parsed_api_url = urlparse(app_config.lago.api_url)
+    product_config = ProductEnum.get_product_settings(product)
 
-    base_url = f"{parsed_api_url.scheme}://{parsed_api_url.netloc}"
-    return [parsed_api_url.netloc, base_url, LAGO_INTERNAL_URL, f"http://{LAGO_INTERNAL_URL}"]
+    issuers = []
+    for url in (product_config.lago.api_url, APP_CONFIG.billing_url):
+        if url:
+            parsed_url = urlparse(url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            issuers.extend([parsed_url.netloc, base_url])
+    issuers.extend([LAGO_INTERNAL_URL, f"http://{LAGO_INTERNAL_URL}"])
+    return list(dict.fromkeys(issuers))
 
 
 def validate_issuer(request: Request, issuers: list[str], pub_key: bytes) -> dict:

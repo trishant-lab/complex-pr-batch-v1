@@ -10,6 +10,9 @@ from loguru import logger
 from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
 from app.core.settings import APP_CONFIG, AppSettings, get_settings
 
+# Cloudflare user-tokens management API endpoint (relative to API base).
+R2_TOKENS_API_PATH = "user/tokens"
+
 
 def get_cloudflare_sdk_client(config: AppSettings) -> AsyncCloudflare:
     """
@@ -246,7 +249,7 @@ async def create_cloudflare_bucket_credentials(
         permission_group_id = config.cloudflare.bucket_write_permission_group_id
         permission_group_name = config.cloudflare.bucket_write_permission_group_name
     async with await get_async_cloudflare_client() as client:
-        token_list_response = await client.get("user/tokens", params={"per_page": "1000"})
+        token_list_response = await client.get(R2_TOKENS_API_PATH, params={"per_page": "1000"})
 
         if token_list_response.status != 200:
             raise RuntimeError(f"Failed to fetch Cloudflare tokens. Status code: {token_list_response.status}")
@@ -267,7 +270,7 @@ async def create_cloudflare_bucket_credentials(
                 # need to do manually incase credentials are not found in OnePassword
                 return CloudflareBucketCredentials(exists=True)
         response = await client.post(
-            url="user/tokens",
+            url=R2_TOKENS_API_PATH,
             json={
                 "name": f"{bucket_name}-app-token",
                 "policies": [
@@ -293,3 +296,101 @@ async def create_cloudflare_bucket_credentials(
         secret_key = hashlib.sha256(secret_sha_key.encode()).hexdigest()
 
         return CloudflareBucketCredentials(access_key=access_key, secret_key=secret_key, exists=False)
+
+
+async def _find_active_token_by_name(client: aiohttp.ClientSession, token_name: str) -> dict | None:
+    """
+    Fetch the user tokens list from Cloudflare and return the first active token matching
+    `token_name`, or None if none is found. Raises on transport / API-reported failure.
+    """
+    list_resp = await client.get(R2_TOKENS_API_PATH, params={"per_page": "1000"})
+    if list_resp.status != 200:
+        raise RuntimeError(f"Failed to list R2 tokens. Status code: {list_resp.status}")
+    list_payload = await list_resp.json()
+    if not list_payload.get("success"):
+        errors = list_payload.get("errors") or []
+        raise RuntimeError(f"Failed to list R2 tokens (Cloudflare reported failure): {errors}")
+    tokens = list_payload.get("result") or []
+    return next((t for t in tokens if t.get("name") == token_name and t.get("status") == "active"), None)
+
+
+def _find_policy_by_permission_group(policies: list[dict], pg_id: str) -> dict | None:
+    """
+    Find the first policy whose permission_groups carries `pg_id`. Returns the policy dict
+    by reference (so callers can mutate it in place) or None if no such policy exists.
+    """
+    for policy in policies:
+        for pg in policy.get("permission_groups") or []:
+            if pg.get("id") == pg_id:
+                return policy
+    return None
+
+
+async def add_buckets_to_token(
+    config: AppSettings,
+    token_name: str,
+    bucket_names: list[str],
+    read_only: bool = False,
+) -> None:
+    """
+    Extend an existing R2 user token's bucket scope to grant the requested buckets access.
+
+    Behaviour:
+    - Looks up the token by name. If not found, **logs a warning and returns** (no-op).
+      Existing access is never affected.
+    - Set `read_only=True` to extend the policy carrying the read permission group (used to
+      grant a shared reader token, e.g. `muspell-zsc-worker-readonly-token`, access to a new
+      tenant bucket). Default `False` extends the write-permission-group policy — the
+      original behaviour used by the `ma-{tenant}-app-token` UI-bucket extension.
+    - Performs a read-modify-write that ONLY ADDS the requested bucket resources into the
+      matching policy. All other resources, policies, conditions, and token-level fields are
+      preserved verbatim. This activity never removes existing access.
+    - Idempotent: buckets already in scope are skipped.
+    """
+    pg_id = (
+        config.cloudflare.bucket_read_permission_group_id
+        if read_only
+        else config.cloudflare.bucket_write_permission_group_id
+    )
+    scope_label = "read" if read_only else "write"
+    new_resources = {
+        f"com.cloudflare.edge.r2.bucket.{config.cloudflare.account_id}_default_{b}": "*" for b in bucket_names
+    }
+
+    async with await get_async_cloudflare_client() as client:
+        token = await _find_active_token_by_name(client, token_name)
+        if token is None:
+            logger.warning(
+                f"R2 token '{token_name}' not found; skipping bucket-scope extension. "
+                f"Existing access (if any) is preserved."
+            )
+            return
+
+        policies = list(token.get("policies") or [])
+        target = _find_policy_by_permission_group(policies, pg_id)
+        if target is None:
+            # Defensive: the token exists but carries no policy with the requested permission
+            # group. Adding one here would be a silent privilege escalation, which the "never
+            # alter existing access" invariant disallows. Warn and skip instead.
+            logger.warning(
+                f"R2 token '{token_name}' has no policy with the {scope_label} permission group; "
+                f"skipping bucket-scope extension to avoid granting unintended {scope_label} access."
+            )
+            return
+
+        existing = dict(target.get("resources") or {})
+        # Set-union: never overwrites — only appends entries that aren't already present.
+        merged = {**existing, **new_resources}
+        if merged == existing:
+            logger.info(f"R2 token '{token_name}' already has all requested buckets in scope; skipping")
+            return
+        target["resources"] = merged
+
+        # PUT replaces the entire token body; preserve all original fields and only mutate `policies`.
+        put_body = {**token, "policies": policies}
+        put_resp = await client.put(url=f"{R2_TOKENS_API_PATH}/{token['id']}", json=put_body)
+        if put_resp.status != 200:
+            text = await put_resp.text()
+            raise RuntimeError(f"Failed to extend R2 token '{token_name}': status={put_resp.status} body={text[:200]}")
+
+        logger.info(f"Extended R2 token '{token_name}' {scope_label}-scope to include {bucket_names}")
