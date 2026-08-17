@@ -47,7 +47,7 @@ dependencies = [
     "pydantic-settings==2.14.2",
     "pydash==8.0.4,<9",
     "pyjwt>=2.13.0,<3",
-    "pypdf==6.14.2",
+    "pypdf==6.15.0",
     "python-digitalocean==1.17.0,<2",
     "python-http-client==3.3.7,<4",
     "python-keycloak==7.0.3",
