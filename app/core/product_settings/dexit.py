@@ -3,23 +3,47 @@ from pydantic_settings import BaseSettings
 
 from app.core.product_settings.common import Lago, PostgresSettings
 
-class ClearMLSettings(BaseSettings):
-    """Settings for ClearML"""
 
-    access_key: str = ""
-    secret_key: str = ""
+class CloudflareWorkerSettings(BaseSettings):
+    """Settings for Cloudflare Worker"""
+
+    workers_kv_namespace_id: str = ""
+    cf_queue_id: str = ""
+    cloudflare_r2_access_key: str = ""
+    cloudflare_r2_secret_key: str = ""
+    cloudflare_r2_endpoint: str = "https://4b92451476ed49bcf987231b504ca149.r2.cloudflarestorage.com"
 
 
-class DexitModelDeploymentSettings(BaseSettings):
-    """Settings for Model Deployment"""
+class SupersetSettings(BaseModel):
+    """Settings for Superset"""
 
-    clearml: ClearMLSettings = ClearMLSettings()
-    classification_source_repo: str = ""
-    entity_source_repo: str = ""
-    destination_revision: str = "v1.0.0"
-    hf_token: str = ""
-    classification_source_revision: str = ""
-    entity_source_revision: str = ""
+    base_url: str = ""
+    admin_username: str = ""
+    admin_password: str = ""
+
+
+class IdpCredentials(BaseModel):
+    """OAuth client credentials for a brokered identity provider."""
+
+    client_id: str = ""
+    client_secret: str = ""
+
+
+class DexitIdpConfig(BaseModel):
+    """Per-provider credentials consumed by the Dexit Keycloak templates.
+
+    Field names are the identity provider aliases used in `dexit_idp_configs.tmpl.json`;
+    `default` is the dexithelp broker. Every provider defaults to blank credentials so an
+    unconfigured environment still renders. Providers share one credential model until one
+    of them actually needs a different field -- splitting later needs no config migration,
+    since the config shape and the templates key off the field names, not the class.
+    """
+
+    default: IdpCredentials = IdpCredentials()
+    google: IdpCredentials = IdpCredentials()
+    dexittestappsmartonfhir: IdpCredentials = IdpCredentials()
+    ehrsimulatorapp: IdpCredentials = IdpCredentials()
+
 
 class DexitSettings(BaseModel):
     """
@@ -32,11 +56,11 @@ class DexitSettings(BaseModel):
     zone_id: str = ""
     # grafana: GrafanaSettings = GrafanaSettings()
 
-    sender_email: str = "developer@314ecorp.com"
+    sender_email: str = "support@dexit.us"
     sender_name: str = "314e Support"
 
-    novu_url: str = "https://alerting.314ecorp.tech"
-    novu_admin_user: str = "dexit.assistant@314ecorp.com"
+    novu_url: str = ""
+    novu_admin_user: str = ""
     novu_admin_password: str = ""
 
     keycloak_db_password: str = ""
@@ -46,14 +70,30 @@ class DexitSettings(BaseModel):
     slack_client_id: str = ""
     slack_channel_secret_key: str = ""
 
-    FaxAccountId: str = ""
-    FaxApiToken: str = ""
+    sinch_project_id: str = ""
+    sinch_username: str = ""
+    sinch_password: str = ""
+
+    superset: SupersetSettings = SupersetSettings()
 
     lago: Lago = Lago()
 
-    idp_config: dict = {}
+    idp_config: DexitIdpConfig = DexitIdpConfig()
 
-    tika_server_endpoint: str = "http://tika-server.tika.svc.cluster.local:9998"  # NOSONAR
     email_domains_exclusions: list[str] = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"]
 
-    dexit_model_deployment: DexitModelDeploymentSettings = DexitModelDeploymentSettings()
+    cloudflare_worker_settings: CloudflareWorkerSettings = CloudflareWorkerSettings()
+
+    # Worker scaling configuration
+    worker_max_replica_count: int = 4
+    worker_min_replica_count: int = 1
+
+    def get_vm_metrics_server_address(self: "DexitSettings", env: str) -> str:
+        """
+        Returns the VM metrics server address based on environment
+        """
+        if env == "production":
+            return "http://vmselect-vmcluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus"
+        return "http://vmselect-vm-cluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus"
+
+    runpod_api_key: str = ""

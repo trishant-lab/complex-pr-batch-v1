@@ -2,6 +2,7 @@ from .commonOnboardingScript import DexitCommonOnboardingWorkflow
 from temporalio import workflow
 from app.cli.temporal.dexit.models.dexit_spec import DexitSpec
 
+
 @workflow.defn(name="DexitOnboardingWorkflow", sandboxed=False)
 class DexitOnboardingWorkflow(DexitCommonOnboardingWorkflow):
     """

@@ -1,4 +1,17 @@
+from enum import StrEnum
+
 from app.cli.temporal.core.base import LaunchpadCLIBaseModel
+
+
+class QueueConsumerType(StrEnum):
+    """
+    Consumer types supported by a Cloudflare queue. A queue can have only one consumer.
+    """
+
+    # Push-based: Cloudflare invokes a Worker's queue() handler with batches of messages.
+    WORKER = "worker"
+    # Pull-based: the consumer polls the queue for a batch and acknowledges the messages itself.
+    HTTP_PULL = "http_pull"
 
 
 class CreateCloudflareBucketCredentialsActivityModel(LaunchpadCLIBaseModel):
@@ -129,6 +142,22 @@ class UpdateCORSForBucketActivityModel(LaunchpadCLIBaseModel):
     rules: list[dict]
 
 
+class WorkersKVConfigUploadActivityModel(LaunchpadCLIBaseModel):
+    """
+    WorkersKVConfigUploadActivityModel
+
+    Fetches the template from `cloudflare_r2_folder_path` in the launchpad-config-templates
+    bucket on R2, renders Jinja with `template_payload`, injects 1Password secrets
+    (`{{op://...}}` refs), and uploads the result to the named Workers KV namespace under `key`.
+    """
+
+    namespace_id: str
+    key: str
+    template_file_name: str
+    template_payload: dict
+    cloudflare_r2_folder_path: str
+
+
 class AddBucketsToR2TokenActivityModel(LaunchpadCLIBaseModel):
     """
     AddBucketsToR2TokenActivityModel
@@ -140,3 +169,45 @@ class AddBucketsToR2TokenActivityModel(LaunchpadCLIBaseModel):
     token_name: str
     bucket_names: list[str]
     read_only: bool = False
+
+
+class CreateCloudflareQueueActivityModel(LaunchpadCLIBaseModel):
+    """
+    CreateCloudflareQueueActivityModel
+    """
+
+    queue_name: str
+    # When None the queue keeps Cloudflare's default retention.
+    message_retention_period: int | None = None
+    consumer_type: QueueConsumerType = QueueConsumerType.HTTP_PULL
+
+
+class DeleteCloudflareQueueActivityModel(LaunchpadCLIBaseModel):
+    """
+    DeleteCloudflareQueueActivityModel
+    """
+
+    queue_names: list[str]
+
+
+class WorkersKVDeleteKeysActivityModel(LaunchpadCLIBaseModel):
+    """
+    WorkersKVDeleteKeysActivityModel
+
+    Deletes `keys` from the Cloudflare Workers KV namespace.
+    """
+
+    namespace_id: str
+    keys: list[str]
+
+
+class WorkersKVPutActivityModel(LaunchpadCLIBaseModel):
+    """
+    WorkersKVPutActivityModel
+
+    Writes `value` (JSON-serialized) to the Cloudflare Workers KV namespace under `key`.
+    """
+
+    namespace_id: str
+    key: str
+    value: dict

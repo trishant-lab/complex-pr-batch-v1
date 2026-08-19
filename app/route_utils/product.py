@@ -101,6 +101,8 @@ TYPE_MAPPING = {
     "multi_select": (list[str],),
     "checkbox": (bool,),
     "textarea": (str,),
+    "radio-group": (str,),
+    "checkbox-group": (list[str],),
     "null": (None,),
 }
 

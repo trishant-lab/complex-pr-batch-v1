@@ -11,6 +11,8 @@ from lago_python_client.exceptions import LagoApiError
 from lago_python_client.models import Customer, Subscription
 from app.cli.temporal.core.log import log_info, log_error
 
+LIVE_SUBSCRIPTION_STATUSES = frozenset({"active", "pending"})
+
 
 class LagoProperties(LaunchpadCLIBaseModel):
     tenant: str
@@ -51,6 +53,24 @@ def create_new_customer(properties: LagoProperties) -> bool:
         log_error(f"Failed to create customer '{properties.tenant}': Status Code {e.status_code}")
         log_error(f"API Response: {e.response}")
         return False
+
+
+def find_existing_subscription(properties: LagoProperties) -> str | None:
+    """Return the external id of a subscription the customer already holds, if any.
+
+    Onboarding is a one-time setup and tenant names cannot be reused, so a customer that
+    already carries a subscription means this is a retry of an earlier run rather than a
+    plan change. Creating a second one would bill the tenant twice.
+
+    A Lago failure is left to propagate: retrying the activity is safe, whereas treating an
+    unreachable API as "no subscription exists" is exactly how the duplicates appear.
+    """
+    client = get_lago_client(properties)
+    response = client.subscriptions().find_all({"external_customer_id": str(properties.customer_id)})
+    for subscription in response.get("subscriptions", []):
+        if subscription.status in LIVE_SUBSCRIPTION_STATUSES:
+            return subscription.external_id
+    return None
 
 
 def create_subscription(properties: LagoProperties) -> bool:
@@ -110,14 +130,27 @@ class LagoSetupActivity(Activity):
         customer_created = create_new_customer(properties)
         if not customer_created:
             log_error(f"Failed to create customer '{properties.customer_id}' for tenant '{properties.tenant}'")
-            return
-        # Step 2: Create subscription for the customer
-        subscription_created = create_subscription(properties)
-        if not subscription_created:
-            log_error(
-                f"Failed to create subscription '{properties.subscription_id}' for customer '{properties.customer_id}'"
+            raise RuntimeError(
+                f"Lago customer creation failed for customer '{properties.customer_id}' on tenant '{properties.tenant}'"
             )
-            return
+        # Step 2: Create subscription for the customer, unless one is already in place
+        existing_subscription = find_existing_subscription(properties)
+        if existing_subscription:
+            log_info(
+                f"Customer '{properties.customer_id}' already holds subscription '{existing_subscription}'; "
+                f"skipping subscription creation"
+            )
+        else:
+            subscription_created = create_subscription(properties)
+            if not subscription_created:
+                log_error(
+                    f"Failed to create subscription '{properties.subscription_id}' "
+                    f"for customer '{properties.customer_id}'"
+                )
+                raise RuntimeError(
+                    f"Lago subscription creation failed for subscription '{properties.subscription_id}' "
+                    f"on customer '{properties.customer_id}'"
+                )
         log_info(
             f"Lago setup completed successfully for tenant '{properties.tenant}' "
             f"with customer ID '{properties.customer_id}'"

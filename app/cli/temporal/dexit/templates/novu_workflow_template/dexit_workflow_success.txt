@@ -1,51 +1,54 @@
 {
-    "name": "dexit-workflow-success",
-    "description": "Workflow execution success",
-    "tags": [],
-    "steps": [
-      {
-        "template": {
-          "content": "Workflow execution success for << '{{workflow.name}}' >>",
-          "type": "in_app",
-          "cta": {
-              "type": "redirect",
-              "data": {
-                "url": "/workflow-logs/<< '{{workflow.dexit_workflow_id}}' >>/<< '{{workflow.run_id}}' >>"
-              }
-            }
-        },
-        "active": true,
-        "should_stop_on_fail": false
-      },
-      {
-        "template": {
-          "content": "Workflow execution success for << '{{workflow.name}}' >>",
-          "type": "email",
-          "senderName":"DexIt",
-          "subject":"Workflow execution success",
-          "contentType":"customHtml"
-        },
-        "active": true,
-        "should_stop_on_fail": false
-      },
-      {
-        "template": {
-          "content": "Workflow execution success for << '{{workflow.name}}' >>",
-          "type": "chat"
-        },
-        "active": true,
-        "should_stop_on_fail": false
+  "name": "dexit-workflow-success",
+  "workflowId": "dexit-workflow-success",
+  "description": "Notifies subscribers when a DSL workflow run succeeds.",
+  "tags": [],
+  "active": true,
+  "__source": "dashboard",
+  "steps": [
+    {
+      "name": "In-App",
+      "type": "in_app",
+      "stepId": "in-app-step",
+      "controlValues": {
+        "body": "Workflow execution success for {{payload.workflow.name}}",
+        "redirect": {
+          "url": "/settings/workflows/workflow-logs/{{payload.workflow.dexit_workflow_id}}/{{payload.workflow.run_id}}",
+          "target": "_self"
+        }
       }
-    ],
-    "active": true,
-    "notificationGroupId": "<< notification.notification_grp_id >>",
-    "critical": false,
-    "draft": false,
-    "preference_settings": {
-      "email": true,
-      "sms": true,
-      "in_app": true,
-      "chat": true,
-      "push": true
+    },
+    {
+      "name": "Email",
+      "type": "email",
+      "stepId": "email-step",
+      "controlValues": {
+        "subject": "Workflow execution success",
+        "editorType": "html",
+        "from": { "name": "DexIt" },
+        "body": "<p>Workflow execution success for {{payload.workflow.name}}</p><p><a href=\"{{payload.redirecturl}}/settings/workflows/workflow-logs/{{payload.workflow.dexit_workflow_id}}/{{payload.workflow.run_id}}\">View run</a></p>"
+      }
+    },
+    {
+      "name": "Slack",
+      "type": "chat",
+      "stepId": "chat-step",
+      "controlValues": {
+        "body": "Workflow execution success for {{payload.workflow.name}} {{payload.redirecturl}}/settings/workflows/workflow-logs/{{payload.workflow.dexit_workflow_id}}/{{payload.workflow.run_id}}"
+      }
     }
+  ],
+  "preferences": {
+    "workflow": {
+      "all": { "enabled": true, "readOnly": false },
+      "channels": {
+        "in_app": { "enabled": true },
+        "email": { "enabled": true },
+        "chat": { "enabled": true },
+        "sms": { "enabled": true },
+        "push": { "enabled": true }
+      }
+    },
+    "user": null
+  }
 }
