@@ -130,7 +130,9 @@ class LagoSetupActivity(Activity):
         customer_created = create_new_customer(properties)
         if not customer_created:
             log_error(f"Failed to create customer '{properties.customer_id}' for tenant '{properties.tenant}'")
-            return
+            raise RuntimeError(
+                f"Lago customer creation failed for customer '{properties.customer_id}' on tenant '{properties.tenant}'"
+            )
         # Step 2: Create subscription for the customer, unless one is already in place
         existing_subscription = find_existing_subscription(properties)
         if existing_subscription:
@@ -145,7 +147,10 @@ class LagoSetupActivity(Activity):
                     f"Failed to create subscription '{properties.subscription_id}' "
                     f"for customer '{properties.customer_id}'"
                 )
-                return
+                raise RuntimeError(
+                    f"Lago subscription creation failed for subscription '{properties.subscription_id}' "
+                    f"on customer '{properties.customer_id}'"
+                )
         log_info(
             f"Lago setup completed successfully for tenant '{properties.tenant}' "
             f"with customer ID '{properties.customer_id}'"
