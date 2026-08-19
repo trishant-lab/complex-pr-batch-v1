@@ -1,19 +1,18 @@
 {
   "tenant": {
-    "allow_list": [
-      "0.0.0.0/0",
-      "::/0"
-    ],
+    "allow_list": ["0.0.0.0/0", "::/0"],
     "db_host": "db-cluster-ha.postgres16.svc.cluster.local",
-    "db_database": "<< DATABASE >>",
+    "db_database": "<<DATABASE>>",
     "db_port": 5432,
     "enforce_ssl": false,
     "ip_version": "auto",
     "require_user": true,
     "users": [
       {
-        "db_password": "<< DB_PASSWORD >>",
-        "db_user": "<< DB_USER >>",
+        "db_password": "<<DB_PASSWORD>>",
+        "db_user": "<<DB_USER>>",
+        "db_user_alias": "<<DB_USER>>",
+        "is_manager": false,
         "max_clients": 10000,
         "mode_type": "transaction",
         "pool_checkout_timeout": 10000,

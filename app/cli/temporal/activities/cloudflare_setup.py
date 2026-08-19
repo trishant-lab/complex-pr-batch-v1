@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import socket
 import zipfile
@@ -17,13 +18,18 @@ from app.cli.temporal.models.cloudflare import (
     CreateCloudflareBucketActivityModel,
     CreateCloudflareBucketCredentialsActivityModel,
     CreateCloudflareDNSRecordActivityModel,
+    CreateCloudflareQueueActivityModel,
     DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivityModel,
+    DeleteCloudflareQueueActivityModel,
     DeleteFilesFromCloudflareActivityModel,
     LinkBucketToDomainActivityModel,
     PenknifeCopyArtifactsToBucketActivityModel,
     PropagateDNSRecordActivityModel,
     UpdateCORSForBucketActivityModel,
+    WorkersKVConfigUploadActivityModel,
+    WorkersKVDeleteKeysActivityModel,
+    WorkersKVPutActivityModel,
 )
 from app.core.settings import AppSettings, get_settings
 from app.s3_utils import (
@@ -33,6 +39,8 @@ from app.s3_utils import (
     download_file_from_storage,
     sync_and_verify_files,
 )
+from app.one_password_util import secret_inject_drop_empty
+from app.template_env import get_env
 from app.utils.file_operations import get_opendal_file_client
 from app.utils.s3_operations import get_s3_client
 
@@ -73,6 +81,178 @@ class CreateCloudflareBucketActivity(Activity):
         )
 
         log_info(f"Created bucket {activity_input.bucket_name}")
+
+
+class CreateCloudflareQueueActivity(Activity):
+    """
+    CreateCloudflareQueueActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="CreateCloudflareQueueActivity")
+    async def defn(activity_input: CreateCloudflareQueueActivityModel) -> str:
+        """
+        Create a Cloudflare queue and attach a consumer of the requested type to it (all
+        idempotent), then return the queue id. The message retention period is only applied
+        when one is supplied, otherwise the queue keeps Cloudflare's default.
+        """
+        from app.cli.cloudflare_utils import create_queue, create_queue_consumer, set_queue_message_retention
+
+        config: AppSettings = get_settings()
+
+        queue_id = await create_queue(
+            config=config,
+            queue_name=activity_input.queue_name,
+        )
+        if not queue_id:
+            # Never hand a falsy id back to the workflow -- downstream steps would persist it as null.
+            raise RuntimeError(f"Cloudflare returned no queue id for {activity_input.queue_name}")
+
+        log_info(f"Created queue {activity_input.queue_name} with id {queue_id}")
+
+        if activity_input.message_retention_period:
+            await set_queue_message_retention(
+                config=config,
+                queue_id=queue_id,
+                message_retention_period=activity_input.message_retention_period,
+            )
+
+        consumer_id = await create_queue_consumer(
+            config=config,
+            queue_id=queue_id,
+            consumer_type=activity_input.consumer_type,
+        )
+
+        log_info(f"Attached {activity_input.consumer_type} consumer {consumer_id} to queue {activity_input.queue_name}")
+        return queue_id
+
+
+class DeleteCloudflareQueueActivity(Activity):
+    """
+    DeleteCloudflareQueueActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="DeleteCloudflareQueueActivity")
+    async def defn(activity_input: DeleteCloudflareQueueActivityModel) -> None:
+        """
+        Delete the given Cloudflare queues (idempotent).
+        """
+        from app.cli.cloudflare_utils import delete_queue, get_queues
+
+        config: AppSettings = get_settings()
+
+        # queues that no longer exist are left out, so only the ones that resolved are deleted
+        queues = await get_queues(config=config, queue_names=activity_input.queue_names)
+
+        for queue in queues:
+            await delete_queue(config=config, queue_id=queue.queue_id)
+            log_info(f"Deleted queue {queue.queue_id}")
+
+
+class WorkersKVDeleteKeysActivity(Activity):
+    """
+    WorkersKVDeleteKeysActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="WorkersKVDeleteKeysActivity")
+    async def defn(activity_input: WorkersKVDeleteKeysActivityModel) -> None:
+        """
+        Delete the given keys from a Cloudflare Workers KV namespace.
+        """
+        from app.cli.cloudflare_utils import workers_kv_delete_key
+
+        config: AppSettings = get_settings()
+
+        for key in activity_input.keys:
+            await workers_kv_delete_key(
+                config=config,
+                namespace_id=activity_input.namespace_id,
+                key=key,
+            )
+            log_info(f"Deleted KV key {key} from namespace {activity_input.namespace_id}")
+
+
+class WorkersKVPutActivity(Activity):
+    """
+    WorkersKVPutActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="WorkersKVPutActivity")
+    async def defn(activity_input: WorkersKVPutActivityModel) -> None:
+        """
+        Write a JSON value to a Cloudflare Workers KV namespace under `key`.
+        """
+        from app.cli.cloudflare_utils import workers_kv_config_upload
+
+        config: AppSettings = get_settings()
+
+        await workers_kv_config_upload(
+            config=config,
+            namespace_id=activity_input.namespace_id,
+            key=activity_input.key,
+            value=json.dumps(activity_input.value),
+        )
+
+        log_info(f"Wrote KV key {activity_input.key} to namespace {activity_input.namespace_id}")
 
 
 class CreateCloudflareDNSRecordActivity(Activity):
@@ -669,6 +849,74 @@ class CreateCloudflareBucketCredentialsActivity(Activity):
         config: AppSettings = get_settings()
         return await create_cloudflare_bucket_credentials(
             bucket_name=activity_input.bucket_name, config=config, read_only=activity_input.read_only
+        )
+
+
+class WorkersKVConfigUploadActivity(Activity):
+    """
+    WorkersKVConfigUploadActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(minutes=10)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), maximum_attempts=5, backoff_coefficient=3)
+
+    @staticmethod
+    @activity.defn(name="WorkersKVConfigUploadActivity")
+    async def defn(activity_input: WorkersKVConfigUploadActivityModel) -> None:
+        """
+        Fetch the Workers KV template from R2, render Jinja with `template_payload`, inject
+        1Password secrets, then upload the resulting string to Cloudflare Workers KV.
+        """
+        from app.cli.cloudflare_utils import workers_kv_config_upload
+
+        config: AppSettings = get_settings()
+        # Same bucket the K8sConfigMapCreationActivity R2 path reads from, so a product keeps all
+        # of its templates under one prefix.
+        s3_client = get_s3_client(
+            access_key=config.cloudflare.r2_access_key,
+            secret_key=config.cloudflare.r2_secret_key,
+            endpoint=config.cloudflare.r2_endpoint,
+            bucket_name="launchpad-config-templates",
+        )
+
+        opendal_file_operations = get_opendal_file_client()
+        async with opendal_file_operations.temp_dir() as temp_dir:
+            temp_dir_path = os.path.join(opendal_file_operations.tempdir_root, temp_dir)
+            template_path = os.path.join(temp_dir_path, activity_input.template_file_name)
+
+            await download_file_from_storage(
+                object_name=f"{activity_input.cloudflare_r2_folder_path}/{activity_input.template_file_name}",
+                file_path=template_path,
+                storage_client=s3_client,
+            )
+
+            template_env = get_env(template_path=temp_dir_path)
+            template = template_env.get_template(activity_input.template_file_name)
+            rendered = template.render(**activity_input.template_payload)
+
+            await opendal_file_operations.write_file(template_path, rendered)
+
+            injected_path = os.path.join(temp_dir_path, f"injected_{activity_input.template_file_name}")
+            await secret_inject_drop_empty(source_file_path=template_path, destination_path=injected_path)
+
+            value = await opendal_file_operations.read_file_str(injected_path)
+
+        await workers_kv_config_upload(
+            config=config,
+            namespace_id=activity_input.namespace_id,
+            key=activity_input.key,
+            value=value,
         )
 
 

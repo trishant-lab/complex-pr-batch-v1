@@ -23,3 +23,6 @@ class DexitSpec(BaseSpec):
     organization: str | None = None
     cliSpec: BaseResourceSpec | None = BaseResourceSpec()
     planName: str = "Basic"
+    identityProviders: list[str] | None = None
+    zsegmentProvisioning: str | None = "false"
+    deployDicomServer: str | None = "false"

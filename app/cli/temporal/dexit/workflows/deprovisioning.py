@@ -6,16 +6,14 @@ from temporalio import workflow
 
 from app.cli.activity_util import run_activity
 from app.cli.temporal.activities.cloudflare_setup import (
-    DeleteCloudflareBucketActivity,
     DeleteCloudflareDNSRecordActivity,
-)
-from app.cli.temporal.activities.database_migration_job import (
-    DeleteDatabaseMigrationJobActivity,
-    DeleteDatabaseMigrationJobActivityModel,
 )
 from app.cli.temporal.activities.deployment import DeploymentDeletionActivity, DeploymentDeletionActivityModel
 from app.cli.temporal.activities.k8s_config_map import DeleteK8sConfigMapActivity, DeleteK8sConfigMapActivityModel
-
+from app.cli.temporal.activities.k8s_istio_virtual_service import (
+    DeleteKubernetesIstioVirtualServiceActivity,
+    DeleteKubernetesIstioVirtualServiceActivityModel,
+)
 from app.cli.temporal.activities.k8s_service import (
     DeleteKubernetesServiceActivity,
     DeleteKubernetesServiceActivityModel,
@@ -23,34 +21,8 @@ from app.cli.temporal.activities.k8s_service import (
 from app.cli.temporal.activities.keycloak_setup import (
     DeleteIdpFromHelpinstanceActivity,
     DeleteIdpFromHelpinstanceActivityModel,
-    DeleteKeycloakClientActivity,
-    DeleteKeycloakClientActivityModel,
-    # DeleteKeycloakRealmActivity,
-    # DeleteKeycloakRealmActivityModel,
 )
-from app.cli.temporal.activities.postgres_setup import (
-    DeletePostgresSchemaActivity,
-    DeletePostgresSchemaActivityModel,
-    DeletePostgresUserActivity,
-    DeletePostgresUserActivityModel,
-    DeleteSupavisorTenantActivity,
-    DeleteSupavisorTenantActivityModel,
-    RevokeAllPrivilegesOnTableActivity,
-    RevokeKeycloakUserMappingActivity,
-    RevokeMatomoUserMappingActivity,
-    KeycloakUserMappingActivityModel,
-    MatomoUserMappingActivityModel,
-    RevokeOwnershipOnTableActivity,
-)
-
-# from app.cli.temporal.activities.temporal_namespace import (
-#     DeleteTemporalNamespaceActivity,
-#     DeleteTemporalNamespaceActivityModel,
-# )
-from app.cli.temporal.activities.k8s_istio_virtual_service import (
-    DeleteKubernetesIstioVirtualServiceActivity,
-    DeleteKubernetesIstioVirtualServiceActivityModel,
-)
+from app.cli.temporal.activities.redis import RedisDeleteNamespaceActivity, RedisDeleteNamespaceActivityModel
 from app.cli.temporal.activities.update_tenant_status import TenantCliStatus, UpdateTenantStatusActivity
 from app.cli.temporal.activities.vm_pod_scrapper import (
     VMPodScrapperDeletionActivity,
@@ -58,15 +30,15 @@ from app.cli.temporal.activities.vm_pod_scrapper import (
 )
 from app.cli.temporal.core.base import Workflow
 from app.cli.temporal.models.cloudflare import (
-    DeleteCloudflareBucketActivityModel,
     DeleteCloudflareDNSRecordActivityModel,
 )
 from app.cli.temporal.models.deboard import DeboardWorkflowInput
-from app.core.settings import DexitSettings, get_settings
+from app.core.settings import AppSettings, DexitSettings, get_settings
 from app.models.product import ProductEnum
 from app.models.tenant import TenantStatusEnum
 
 ProductName = "dexit"
+config: AppSettings = get_settings()
 
 
 @workflow.defn(name="DexitDeProvisioningWorkflow")
@@ -85,26 +57,15 @@ class DexitDeProvisioningWorkflow(Workflow):
         Return list of activities used in the workflow
         """
         return [
-            # DeleteTemporalNamespaceActivity.defn,
             DeleteKubernetesServiceActivity.defn,
             VMPodScrapperDeletionActivity.defn,
             DeleteK8sConfigMapActivity.defn,
-            DeleteCloudflareBucketActivity.defn,
             DeleteCloudflareDNSRecordActivity.defn,
             DeleteKubernetesIstioVirtualServiceActivity.defn,
             UpdateTenantStatusActivity.defn,
-            DeleteSupavisorTenantActivity.defn,
-            DeletePostgresUserActivity.defn,
-            DeletePostgresSchemaActivity.defn,
-            DeleteKeycloakClientActivity.defn,
-            # DeleteKeycloakRealmActivity.defn,
             DeleteIdpFromHelpinstanceActivity.defn,
             DeploymentDeletionActivity.defn,
-            DeleteDatabaseMigrationJobActivity.defn,
-            RevokeAllPrivilegesOnTableActivity.defn,
-            RevokeKeycloakUserMappingActivity.defn,
-            RevokeMatomoUserMappingActivity.defn,
-            RevokeOwnershipOnTableActivity.defn,
+            RedisDeleteNamespaceActivity.defn,
         ]
 
     @classmethod
@@ -169,7 +130,14 @@ class DexitDeProvisioningWorkflow(Workflow):
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
             )
-            dexit_worker_pods = ["dexit-worker-all", "dexit-worker-dsl", "dexit-worker-dslp", "dexit-worker-event"]
+            dexit_worker_pods = [
+                "dexit-worker-all",
+                "dexit-worker-dsl",
+                "dexit-worker-dslp",
+                "dexit-worker-event",
+                "dexit-worker-ml",
+                "dexit-training-worker",
+            ]
             for pod in dexit_worker_pods:
                 await run_activity(
                     activity=VMPodScrapperDeletionActivity,
@@ -209,13 +177,10 @@ class DexitDeProvisioningWorkflow(Workflow):
                     start_to_close_timeout=timedelta(seconds=120),
                 )
 
-            # delete config map
+            # delete config map (dexit-dicom-config kept for tenants provisioned with a DICOM server)
             for config_map in [
-                "dexit-env-config",
-                "dexit-tenant-config",
-                "dexit-mlops-config",
+                "dexit-app-config",
                 "dexit-dicom-config",
-                "dexit-cli-vector-config",
             ]:
                 await run_activity(
                     activity=DeleteK8sConfigMapActivity,
@@ -226,140 +191,15 @@ class DexitDeProvisioningWorkflow(Workflow):
                     start_to_close_timeout=timedelta(seconds=120),
                 )
 
-            # await run_activity(
-            #     activity=DeleteTemporalNamespaceActivity,
-            #     arg=DeleteTemporalNamespaceActivityModel(
-            #         namespace=f"dexit_{tenant}",
-            #     ),
-            #     start_to_close_timeout=timedelta(seconds=120),
-            # )
-
-            # delete database migration job
+            # delete the tenant's KVRocks namespace from the shared cache (created by RedisSetupActivity)
             await run_activity(
-                activity=DeleteDatabaseMigrationJobActivity,
-                arg=DeleteDatabaseMigrationJobActivityModel(
+                activity=RedisDeleteNamespaceActivity,
+                arg=RedisDeleteNamespaceActivityModel(
                     namespace=tenant,
-                    job_name="dexit-atlas-migration-job",
+                    product=ProductName,
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
             )
-
-            await run_activity(
-                activity=DeleteSupavisorTenantActivity,
-                arg=DeleteSupavisorTenantActivityModel(
-                    supavisor_tenant_name=f"dexit_{tenant}",
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            await run_activity(
-                activity=DeletePostgresSchemaActivity,
-                arg=DeletePostgresSchemaActivityModel(
-                    schema_name=tenant,
-                    database_name="dexit",
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            await run_activity(
-                activity=DeletePostgresSchemaActivity,
-                arg=DeletePostgresSchemaActivityModel(
-                    schema_name=tenant,
-                    database_name=f"{ProductName}_dicom_{tenant}",
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            await run_activity(
-                activity=RevokeKeycloakUserMappingActivity,
-                arg=KeycloakUserMappingActivityModel(
-                    username=f"dexit_dicom_{tenant}",
-                    database_name=f"dexit_dicom_{tenant}",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeKeycloakUserMappingActivity,
-                arg=KeycloakUserMappingActivityModel(
-                    username=f"dexit_{tenant}",
-                    database_name="dexit",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeMatomoUserMappingActivity,
-                arg=MatomoUserMappingActivityModel(
-                    username=f"dexit_{tenant}",
-                    database_name="dexit",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeMatomoUserMappingActivity,
-                arg=MatomoUserMappingActivityModel(
-                    username=f"dexit_dicom_{tenant}",
-                    database_name=f"dexit_dicom_{tenant}",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeAllPrivilegesOnTableActivity,
-                arg=DeletePostgresUserActivityModel(
-                    username=f"dexit_dicom_{tenant}",
-                    database_name=f"dexit_dicom_{tenant}",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeAllPrivilegesOnTableActivity,
-                arg=DeletePostgresUserActivityModel(
-                    username=f"dexit_{tenant}",
-                    database_name="dexit",
-                ),
-            )
-
-            await run_activity(
-                activity=RevokeOwnershipOnTableActivity,
-                arg=DeletePostgresUserActivityModel(
-                    username=f"dexit_dicom_{tenant}",
-                    database_name=f"dexit_dicom_{tenant}",
-                ),
-            )
-            await run_activity(
-                activity=DeletePostgresUserActivity,
-                arg=DeletePostgresUserActivityModel(
-                    username=f"dexit_{tenant}",
-                    database_name="dexit",
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            await run_activity(
-                activity=DeletePostgresUserActivity,
-                arg=DeletePostgresUserActivityModel(
-                    username=f"dexit_dicom_{tenant}",  # From onboarding line 257
-                    database_name=f"dexit_dicom_{tenant}",  # From onboarding line 228
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            await run_activity(
-                activity=DeleteKeycloakClientActivity,
-                arg=DeleteKeycloakClientActivityModel(
-                    client_name="dexit",
-                    realm_name=tenant,
-                ),
-                start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # await run_activity(
-            #     activity=DeleteKeycloakRealmActivity,
-            #     arg=DeleteKeycloakRealmActivityModel(
-            #         client_name="dexit",
-            #         realm_name=tenant,
-            #     ),
-            #     start_to_close_timeout=timedelta(seconds=120),
-            # )
 
             await run_activity(
                 activity=DeleteIdpFromHelpinstanceActivity,
@@ -368,15 +208,6 @@ class DexitDeProvisioningWorkflow(Workflow):
                     is_prod=True,
                 ),
                 start_to_close_timeout=timedelta(seconds=120),
-            )
-
-            # delete bucket
-            bucket_name = f"{tenant}-{dexit_config.domain_name.replace('.', '-')}"
-            await run_activity(
-                activity=DeleteCloudflareBucketActivity,
-                arg=DeleteCloudflareBucketActivityModel(
-                    bucket_name=bucket_name,
-                ),
             )
 
             # delete dns record

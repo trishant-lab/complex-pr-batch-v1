@@ -1,0 +1,141 @@
+{
+    "identityProviders": [
+        {
+          "alias": "dexittestappsmartonfhir",
+          "providerId": "oidc",
+          "enabled": true,
+          "updateProfileFirstLoginMode": "on",
+          "trustEmail": true,
+          "storeToken": true,
+          "addReadTokenRoleOnCreate": true,
+          "authenticateByDefault": false,
+          "linkOnly": false,
+          "firstBrokerLoginFlowAlias": "Epic Smart on Fhir Login",
+          "config": {
+            "hideOnLoginPage": "true",
+            "acceptsPromptNoneForwardFromClient": "true",
+            "clientId": "<< idp_config.dexittestappsmartonfhir.client_id >>",
+            "tokenUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
+            "authorizationUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
+            "clientAuthMethod": "client_secret_basic",
+            "disableUserInfo": "true",
+            "syncMode": "IMPORT",
+            "clientSecret": "<< idp_config.dexittestappsmartonfhir.client_secret >>",
+            "prompt": "none",
+            "useJwksUrl": "true"
+          }
+        },
+        {
+          "alias": "ehrsimulatorapp",
+          "providerId": "oidc",
+          "enabled": true,
+          "updateProfileFirstLoginMode": "on",
+          "trustEmail": true,
+          "storeToken": true,
+          "addReadTokenRoleOnCreate": true,
+          "authenticateByDefault": false,
+          "linkOnly": false,
+          "firstBrokerLoginFlowAlias": "Epic Smart on Fhir Login",
+          "config": {
+            "hideOnLoginPage": "true",
+            "acceptsPromptNoneForwardFromClient": "true",
+            "clientId": "<< idp_config.ehrsimulatorapp.client_id >>",
+            "tokenUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
+            "authorizationUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
+            "clientAuthMethod": "client_secret_basic",
+            "disableUserInfo": "true",
+            "syncMode": "IMPORT",
+            "clientSecret": "<< idp_config.ehrsimulatorapp.client_secret >>",
+            "prompt": "none",
+            "useJwksUrl": "true"
+          }
+        },
+        {
+          "alias": "google",
+          "displayName": "Google",
+          "providerId": "oidc",
+          "enabled": true,
+          "updateProfileFirstLoginMode": "on",
+          "trustEmail": true,
+          "storeToken": true,
+          "addReadTokenRoleOnCreate": true,
+          "authenticateByDefault": false,
+          "linkOnly": false,
+          "firstBrokerLoginFlowAlias": "New 314e first broker login",
+          "config": {
+            "validateSignature": "true",
+            "userInfoUrl": "https://openidconnect.googleapis.com/v1/userinfo",
+            "tokenUrl": "https://oauth2.googleapis.com/token",
+            "clientId": "<< idp_config.google.client_id >>",
+            "jwksUrl": "https://www.googleapis.com/oauth2/v3/certs",
+            "issuer": "https://accounts.google.com",
+            "useJwksUrl": "true",
+            "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline",
+            "clientAuthMethod": "client_secret_basic",
+            "syncMode": "IMPORT",
+            "clientSecret": "<< idp_config.google.client_secret >>",
+            "prompt": "consent",
+            "defaultScope": "openid profile email"
+          }
+        }
+      ],
+      "identityProviderMappers": [
+        {
+          "name": "view-realm",
+          "identityProviderAlias": "google",
+          "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
+          "config": {
+            "syncMode": "INHERIT",
+            "role": "realm-management.view-realm"
+          }
+        },
+        {
+          "name": "view-users",
+          "identityProviderAlias": "google",
+          "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
+          "config": {
+            "syncMode": "INHERIT",
+            "claims": "[]",
+            "role": "realm-management.view-users"
+          }
+        },
+        {
+          "name": "read-token",
+          "identityProviderAlias": "google",
+          "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
+          "config": {
+            "syncMode": "INHERIT",
+            "role": "broker.read-token"
+          }
+        },
+        {
+          "name": "offline_access",
+          "identityProviderAlias": "google",
+          "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
+          "config": {
+            "syncMode": "INHERIT",
+            "role": "offline_access"
+          }
+        },
+        {
+          "name": "ehr_app_name",
+          "identityProviderAlias": "dexittestappsmartonfhir",
+          "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
+          "config": {
+            "syncMode": "FORCE",
+            "attribute.value": "Epic",
+            "attribute": "ehr_app_name"
+          }
+        },
+        {
+          "name": "ehr_app_name",
+          "identityProviderAlias": "ehrsimulatorapp",
+          "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
+          "config": {
+            "syncMode": "FORCE",
+            "attribute.value": "Epic",
+            "attribute": "ehr_app_name"
+          }
+        }
+      ]
+}

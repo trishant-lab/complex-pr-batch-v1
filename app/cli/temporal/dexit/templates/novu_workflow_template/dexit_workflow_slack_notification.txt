@@ -1,0 +1,31 @@
+{
+  "name": "dexit-workflow-slack-notification",
+  "workflowId": "dexit-workflow-slack-notification",
+  "description": "Slack message raised by a notification step in the workflow builder. Triggered against the organization subscriber rather than a user, and the trigger carries a chat override with the Slack blocks, so this body is the fallback text.",
+  "tags": [],
+  "active": true,
+  "__source": "dashboard",
+  "steps": [
+    {
+      "name": "Slack",
+      "type": "chat",
+      "stepId": "chat-step",
+      "controlValues": {
+        "body": "{{payload.workflow.content}}"
+      }
+    }
+  ],
+  "preferences": {
+    "workflow": {
+      "all": { "enabled": true, "readOnly": false },
+      "channels": {
+        "in_app": { "enabled": false },
+        "email": { "enabled": false },
+        "chat": { "enabled": true },
+        "sms": { "enabled": false },
+        "push": { "enabled": false }
+      }
+    },
+    "user": null
+  }
+}

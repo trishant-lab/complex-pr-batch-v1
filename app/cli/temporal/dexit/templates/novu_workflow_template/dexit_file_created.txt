@@ -1,7 +1,7 @@
 {
-  "name": "dexit-task-assigned",
-  "workflowId": "dexit-task-assigned",
-  "description": "Notifies assignees when a workflow task is assigned to them.",
+  "name": "dexit-file-created",
+  "workflowId": "dexit-file-created",
+  "description": "Notifies subscribers when a file finishes processing. The body is deliberately generic: dexit-app raises this event with a file key, but EventProcessingWorkflow only forwards document/fax/hl7/workflow/task/form, so no per-file field reaches the template.",
   "tags": [],
   "active": true,
   "__source": "dashboard",
@@ -11,8 +11,8 @@
       "type": "in_app",
       "stepId": "in-app-step",
       "controlValues": {
-        "body": "Task assigned for Workflow - {{payload.task.workflow_name}} with task - {{payload.task.name}}",
-        "redirect": { "url": "/tasks/{{payload.task.id}}", "target": "_self" }
+        "body": "A new file was created.",
+        "redirect": { "url": "{{payload.redirecturl}}", "target": "_self" }
       }
     },
     {
@@ -20,10 +20,10 @@
       "type": "email",
       "stepId": "email-step",
       "controlValues": {
-        "subject": "Task assigned",
+        "subject": "A File Got Created",
         "editorType": "html",
         "from": { "name": "DexIt" },
-        "body": "<p>Task assigned for Workflow - {{payload.task.workflow_name}} with task - {{payload.task.name}}</p><p><a href=\"{{payload.redirecturl}}/tasks/{{payload.task.id}}\">View task</a></p>"
+        "body": "<p>A new file was created.</p><p><a href=\"{{payload.redirecturl}}\">Open DexIt</a></p>"
       }
     },
     {
@@ -31,7 +31,7 @@
       "type": "chat",
       "stepId": "chat-step",
       "controlValues": {
-        "body": "Task assigned for Workflow - {{payload.task.workflow_name}} with task - {{payload.task.name}} {{payload.redirecturl}}/tasks/{{payload.task.id}}"
+        "body": "A new file was created. {{payload.redirecturl}}"
       }
     }
   ],

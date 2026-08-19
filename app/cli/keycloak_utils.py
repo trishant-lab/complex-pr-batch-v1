@@ -235,6 +235,26 @@ class KeycloakAdminClient:
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_realm_roles()
 
+    def get_client_role(self: "KeycloakAdminClient", client_id: str, role_name: str, realm_name: str) -> dict:
+        """
+        Returns a single keycloak client role representation
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_client_role(client_id=client_id, role_name=role_name)
+
+    def add_composite_client_roles(
+        self: "KeycloakAdminClient", client_id: str, role_name: str, child_roles: list, realm_name: str
+    ) -> None:
+        """
+        Associate child client roles with a composite client role
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        self.kc_client.add_composite_client_roles_to_role(
+            client_role_id=client_id, role_name=role_name, roles=child_roles
+        )
+
     def assign_client_role(
         self: "KeycloakAdminClient", realm_name: str, user_id: str, client_id: str, roles: list
     ) -> None:

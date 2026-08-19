@@ -13,23 +13,21 @@ from app.cli.temporal.activities.cloudflare_setup import (
     LinkBucketToDomainActivity,
     PropagateDNSRecordActivity,
     UpdateCORSForBucketActivity,
+    WorkersKVConfigUploadActivity,
+    WorkersKVConfigUploadActivityModel,
 )
 from app.cli.temporal.activities.database_migration_job import (
     DatabaseMigrationJobActivity,
     DatabaseMigrationJobActivityModel,
 )
-from app.cli.temporal.activities.dexit_model_deployment import (
-    ClassificationModelDeploymentActivity,
-    EntityModelDeploymentActivity,
-    StoreClearMLTasksActivity,
-    ModelDeploymentActivityModel,
-)
 from app.cli.temporal.activities.deployment_pod_creation import (
     KubernetesDeploymentActivity,
     KubernetesDeploymentActivityModel,
+    KedaApplyTemplatedYamlActivity,
+    KedaApplyTemplatedYamlActivityModel,
 )
-from app.cli.temporal.activities.dexit_novu_setup import DexitNovuSetupActivity
 from app.cli.temporal.activities.dexit_zsegment_creation import ZSegmentSetupActivity
+from app.cli.temporal.activities.dexit_novu_setup import DexitNovuSetupActivity
 from app.cli.temporal.activities.fax_setup import FaxSetupActivity
 from app.cli.temporal.activities.insert_subscription_details import (
     InsertSubscriptionDetailsActivity,
@@ -54,16 +52,20 @@ from app.cli.temporal.activities.k8s_service import (
 )
 from app.cli.temporal.activities.keycloak_setup import (
     DexitKeycloakCreateIDPFlowActivity,
-    KeycloakClientSetupActivity,
+    KeycloakAssignServiceAccountRoleActivity,
+    KeycloakAssignServiceAccountRoleActivityModel,
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
     KeycloakCreateClientRolesActivityModel,
+    KeycloakCreateCompositeRolesActivity,
+    KeycloakCreateCompositeRolesActivityModel,
     KeycloakCreateTenantCustomerAdminUserActivity,
     KeycloakCreateTenantCustomerAdminUserActivityModel,
     KeycloakRealmSetupActivity,
     KeycloakRealmSetupActivityModel,
     KeycloakServiceAccountSetupActivity,
     KeycloakServiceAccountSetupActivityModel,
+    template_render,
 )
 
 from app.cli.temporal.activities.lago_service import LagoProperties, LagoSetupActivity
@@ -75,11 +77,15 @@ from app.cli.temporal.activities.one_password import (
     CreatePasswordActivity,
     CreatePasswordActivityModel,
 )
+from app.cli.temporal.activities.redis import (
+    CACHE_HOST,
+    CACHE_PORT,
+    RedisSetupActivity,
+    RedisSetupActivityModel,
+)
 from app.cli.temporal.activities.postgres_setup import (
     KeycloakUserMappingActivity,
     KeycloakUserMappingActivityModel,
-    MatomoUserMappingActivity,
-    MatomoUserMappingActivityModel,
     PostgresDatabaseCreationActivity,
     PostgresDatabaseCreationActivityModel,
     PostgresGrantAccessToUserActivity,
@@ -92,6 +98,12 @@ from app.cli.temporal.activities.postgres_setup import (
     PostgresSupavisorPollUserActivityModel,
     PostgresUserCreationActivity,
     PostgresUserCreationActivityModel,
+    PostgresGrantSupersetReadOnlyActivity,
+    PostgresGrantSupersetReadOnlyActivityModel,
+)
+from app.cli.temporal.activities.superset_setup import (
+    SupersetTenantSetupActivity,
+    SupersetTenantSetupActivityModel,
 )
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
@@ -138,7 +150,41 @@ from app.models.tenant import TenantStatusEnum
 from app.template_env import get_env
 
 ProductName = "dexit"
-OnePasswordVaultName = "Dexit"
+OnePasswordVaultName = "Dexit"  # NOSONAR - This is a constant variable used for OnePassword vault name
+
+# ConfigMap / Workers KV templates live under this prefix in the shared
+# launchpad-config-templates bucket on R2, alongside the other products. The environment is a
+# further level down so a production publish cannot overwrite what integration reads.
+ConfigTemplateFolder = "dexit-config"
+
+
+class DexitRole:
+    """Keycloak client role names for the dexit product.
+
+    Defined once here so the composite (system role) definitions reference the same
+    identifiers as the atomic role list -- a typo fails at definition time instead of
+    silently creating an orphan role or a composite that points at a non-existent child.
+    """
+
+    FAX_VIEW = "_fax-view"
+    FAX_SEND = "_fax-send"
+    FAX_BULK = "_fax-bulk"
+    FILE_VIEW = "_file-view"
+    DOCUMENT_VIEW = "_document-view"
+    DOCUMENT_EDIT = "_document-edit"
+    DOCUMENT_DELETE = "_document-delete"
+    DOCUMENT_BULK_DELETE = "_document-bulk-delete"
+    DOCUMENT_BULK_EXPORT = "_document-bulk-export"
+    TASK_VIEW_ALL = "_task-view-all"
+    TASK_ACTION = "_task-action"
+    TASK_BULK = "_task-bulk"
+    ANALYTICS_VIEW = "_analytics-view"
+    AUDIT_VIEW = "_audit-view"
+    SETTINGS_ACCOUNT = "_settings-account"
+    SETTINGS_FAX_SETUP = "_settings-fax-setup"
+    SETTINGS_WORKFLOW = "_settings-workflow"
+    SETTINGS_USAGE = "_settings-usage"
+    INTERNAL_ADMIN = "_internal-admin"
 
 
 class DexitCommonOnboardingWorkflow(Workflow):
@@ -163,20 +209,18 @@ class DexitCommonOnboardingWorkflow(Workflow):
             PostgresSchemaCreationActivity.defn,
             PostgresGrantAccessToUserActivity.defn,
             KeycloakUserMappingActivity.defn,
-            MatomoUserMappingActivity.defn,
             PostgresGrantAllPrivilegesOnTableActivity.defn,
             K8sNamespaceCreationActivity.defn,
             K8sSecretCreationActivity.defn,
             DatabaseMigrationJobActivity.defn,
-            ClassificationModelDeploymentActivity.defn,
-            EntityModelDeploymentActivity.defn,
-            StoreClearMLTasksActivity.defn,
             DexitNovuSetupActivity.defn,
             KeycloakRealmSetupActivity.defn,
-            KeycloakClientSetupActivity.defn,
             KeycloakCreateClientRolesActivity.defn,
+            KeycloakCreateCompositeRolesActivity.defn,
+            KeycloakAssignServiceAccountRoleActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
             KubernetesDeploymentActivity.defn,
+            KedaApplyTemplatedYamlActivity.defn,
             VMPodScrapperActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
             KubernetesServiceActivity.defn,
@@ -191,6 +235,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
             KeycloakServiceAccountSetupActivity.defn,
             CheckPodRunningStatusActivity.defn,
             CreateCloudflareBucketActivity.defn,
+            WorkersKVConfigUploadActivity.defn,
             CreateCloudflareDNSRecordActivity.defn,
             LinkBucketToDomainActivity.defn,
             PropagateDNSRecordActivity.defn,
@@ -202,6 +247,9 @@ class DexitCommonOnboardingWorkflow(Workflow):
             UpdateCORSForBucketActivity.defn,
             OnePasswordInsertIfNotExistsActivity.defn,
             CreatePasswordActivity.defn,
+            PostgresGrantSupersetReadOnlyActivity.defn,
+            SupersetTenantSetupActivity.defn,
+            RedisSetupActivity.defn,
         ]
 
     @classmethod
@@ -233,6 +281,176 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 return True
         return False
 
+    async def _prepare_identity_provider_template_payload(
+        self: "Workflow",
+        tenant: str,
+        domain_name: str,
+        identity_providers: list[str] | None = None,
+    ) -> dict:
+        """
+        Prepare identity provider template payload
+        """
+        if not identity_providers or len(identity_providers) == 0:
+            return {"selectedIdentityProviders": [], "selectedIdentityProviderMappers": []}
+
+        selected_idps = []
+        selected_idps_mappers = []
+
+        all_idps_configs = template_render(
+            template_path=TemplatePath,
+            template_name="dexit_idp_configs.tmpl.json",
+            template_payload={
+                "tenant": tenant,
+                "domain": domain_name,
+                "idp_config": get_settings().dexit.idp_config,
+            },
+        )
+        all_idps_config_dict = ijson_loads(all_idps_configs)
+
+        selected_idps = [idp for idp in all_idps_config_dict["identityProviders"] if idp["alias"] in identity_providers]
+
+        selected_idps_mappers = [
+            mapper
+            for mapper in all_idps_config_dict["identityProviderMappers"]
+            if mapper["identityProviderAlias"] in identity_providers
+        ]
+
+        return {
+            "selectedIdentityProviders": selected_idps,
+            "selectedIdentityProviderMappers": selected_idps_mappers,
+        }
+
+    async def _deploy_dicom_server(
+        self: "Workflow",
+        tenant: str,
+        dexit: DexitSpec,
+        config: AppSettings,
+        server_item: str,
+        config_dir: str,
+    ) -> None:
+        """
+        Deploy DICOM server (Orthanc) for the tenant.
+        Handles database creation, K8s deployment, service, and pod status check.
+        """
+        dicom_config = "dicom-config.json"
+        dicom_database_name = f"{ProductName}_dicom_{tenant}"
+        dicom_database_password = await run_activity(
+            activity=CreatePasswordActivity,
+            arg=CreatePasswordActivityModel(length=20),
+        )
+
+        # create postgres database for dicom
+        await run_activity(
+            activity=PostgresDatabaseCreationActivity,
+            arg=PostgresDatabaseCreationActivityModel(
+                database_name=dicom_database_name,
+            ),
+        )
+
+        # create postgres user for dicom
+        await run_activity(
+            activity=PostgresUserCreationActivity,
+            arg=PostgresUserCreationActivityModel(
+                username=dicom_database_name,
+                database_name=dicom_database_name,
+                password=dicom_database_password,
+            ),
+        )
+
+        # create one password for dicom database password
+        await run_activity(
+            activity=OnePasswordCreateOrUpdateActivity,
+            arg=OnePasswordCreateOrUpdateActivityModel(
+                tenant=tenant,
+                server_item=server_item,
+                vault=OnePasswordVaultName,
+                secret_name="pg_dicom_password",
+                secret_value=dicom_database_password,
+            ),
+        )
+
+        await run_activity(
+            activity=PostgresGrantAccessToUserActivity,
+            arg=PostgresGrantAccessToUserActivityModel(
+                username=dicom_database_name,
+                database_name=dicom_database_name,
+            ),
+        )
+
+        # dicom configmap (per-env template under dexit-config on R2)
+        await run_activity(
+            activity=K8sConfigMapCreationActivity,
+            arg=K8sConfigMapCreationActivityModel(
+                namespace=tenant,
+                name="dexit-dicom-config",
+                template_file_name="dexit-dicom-config.tmpl.json",
+                destination_file_name=dicom_config,
+                cloudflare_r2_folder_path=f"{ConfigTemplateFolder}/{config.env}",
+                template_payload={"tenant": tenant, "env": config.env},
+                drop_empty_secrets=True,
+            ),
+        )
+
+        # statefulset pod creation for dicom
+        await run_activity(
+            activity=KubernetesDeploymentActivity,
+            arg=KubernetesDeploymentActivityModel(
+                namespace=tenant,
+                name="dexit-dicom",
+                docker_image="orthancteam/orthanc:24.8.1",
+                request_resource={
+                    "cpu": pydash.get(dexit, "serverSpec.request_cpu"),
+                    "memory": pydash.get(dexit, "serverSpec.request_memory"),
+                },
+                limit_resource={
+                    "cpu": pydash.get(dexit, "serverSpec.limit_cpu"),
+                    "memory": pydash.get(dexit, "serverSpec.limit_memory"),
+                },
+                container_ports={},
+                volume_mounts=[
+                    {
+                        "name": "dicom-volume",
+                        "mount_path": "/etc/orthanc/orthanc.json",
+                        "sub_path": dicom_config,
+                    },
+                ],
+                volumes=[
+                    {
+                        "name": "dicom-volume",
+                        "config_map_name": "dexit-dicom-config",
+                        "key": dicom_config,
+                        "path": dicom_config,
+                    },
+                ],
+                container_envs=[
+                    {"name": "DEPLOYMENT", "value": config.env},
+                    {"name": "WEB_CONCURRENCY", "value": "5"},
+                    {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
+                ],
+            ),
+        )
+
+        # kubernetes service for dicom
+        await run_activity(
+            activity=KubernetesServiceActivity,
+            arg=KubernetesServiceActivityModel(
+                namespace=tenant,
+                service_name="dexit-dicom",
+                ports={"http": 8042},
+            ),
+        )
+
+        # check dicom pod running status
+        await run_activity(
+            activity=CheckPodRunningStatusActivity,
+            arg=CheckPodRunningStatusActivityModel(
+                namespace=tenant,
+                name="dexit-dicom",
+            ),
+            retry_policy=CheckPodRunningStatusActivity.get_retry_policy(),
+            start_to_close_timeout=CheckPodRunningStatusActivity.get_timeout(),
+        )
+
     async def run(self: "Workflow", dexit: DexitSpec) -> None:
         """
         Run workflow
@@ -244,7 +462,10 @@ class DexitCommonOnboardingWorkflow(Workflow):
         last_name = pydash.get(dexit, "lastName")
         email = pydash.get(dexit, "email")
         tenant = pydash.get(dexit, "tenant")
-
+        identity_providers = pydash.get(dexit, "identityProviders")
+        zsegment_provisioning = pydash.get(dexit, "zsegmentProvisioning", "").lower() == "true"
+        deploy_dicom_server = pydash.get(dexit, "deployDicomServer").lower() == "true"
+        dexit_superset_ro_username = "dexit_superset_ro"
         try:
             if await self.starting_onboarding_activity(dexit):
                 return
@@ -252,55 +473,15 @@ class DexitCommonOnboardingWorkflow(Workflow):
             postgres_schema_name = tenant
             postgres_database_name = "dexit"
             postgres_username = f"{ProductName}_{tenant}"
+
             postgres_password = await run_activity(
                 activity=CreatePasswordActivity,
                 arg=CreatePasswordActivityModel(length=20),
             )
-            dicom_database_name = f"{ProductName}_dicom_{tenant}"
-            dicom_database_password = await run_activity(
-                activity=CreatePasswordActivity,
-                arg=CreatePasswordActivityModel(length=20),
-            )
+
             image_tag = "production" if config.env == "production" else "sprint"
             docker_image = f"registry.314ecorp.tech/dexit-app:{image_tag}"
-            server_item = "production-config" if config.env == "production" else "integration-config"
-
-            # create postgres database for dicom
-            await run_activity(
-                activity=PostgresDatabaseCreationActivity,
-                arg=PostgresDatabaseCreationActivityModel(
-                    database_name=dicom_database_name,
-                ),
-            )
-
-            # create postgres user for dicom
-            await run_activity(
-                activity=PostgresUserCreationActivity,
-                arg=PostgresUserCreationActivityModel(
-                    username=dicom_database_name,
-                    database_name=dicom_database_name,
-                    password=dicom_database_password,
-                ),
-            )
-
-            # create one password for dicom database password
-            await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=tenant,
-                    server_item=server_item,
-                    vault=OnePasswordVaultName,
-                    secret_name="pg_dicom_password",
-                    secret_value=dicom_database_password,
-                ),
-            )
-            await run_activity(
-                activity=PostgresGrantAccessToUserActivity,
-                arg=PostgresGrantAccessToUserActivityModel(
-                    username=dicom_database_name,
-                    database_name=dicom_database_name,
-                ),
-            )
+            server_item = f"{config.env}-config"
 
             await run_activity(
                 activity=PostgresUserCreationActivity,
@@ -350,17 +531,63 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # Superset tenant user provisioning
+            superset_tenant_password = await run_activity(
+                activity=CreatePasswordActivity,
+                arg=CreatePasswordActivityModel(length=20),
+            )
+
             await run_activity(
-                activity=KeycloakUserMappingActivity,
-                arg=KeycloakUserMappingActivityModel(
-                    username=postgres_username,
-                    database_name=postgres_database_name,
+                activity=SupersetTenantSetupActivity,
+                arg=SupersetTenantSetupActivityModel(
+                    tenant=tenant,
+                    first_name=ProductName.capitalize(),
+                    last_name=tenant,
+                    email=email,
+                    superset_base_url=dexit_config.superset.base_url,
+                    superset_admin_username=dexit_config.superset.admin_username,
+                    superset_admin_password=dexit_config.superset.admin_password,
+                    tenant_password=superset_tenant_password,
+                    product_group="Dexit",
                 ),
             )
 
             await run_activity(
-                activity=MatomoUserMappingActivity,
-                arg=MatomoUserMappingActivityModel(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="superset_base_url",
+                    secret_value=f"https://{tenant}.{dexit_config.domain_name}/insights",
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="superset_username",
+                    secret_value=tenant,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="superset_password",
+                    secret_value=superset_tenant_password,
+                ),
+            )
+
+            await run_activity(
+                activity=KeycloakUserMappingActivity,
+                arg=KeycloakUserMappingActivityModel(
                     username=postgres_username,
                     database_name=postgres_database_name,
                 ),
@@ -373,14 +600,11 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     username=postgres_username,
                     tables=[
                         "user_entity",
+                        "user_required_action",
                         "realm",
                         "user_attribute",
                         "keycloak_role",
                         "user_role_mapping",
-                        "matomo_log_visit",
-                        "matomo_log_action",
-                        "matomo_log_media",
-                        "matomo_log_link_visit_action",
                     ],
                 ),
             )
@@ -404,12 +628,13 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # setup subscription
+            lago_plan_code = pydash.get(dexit, "planName", "Basic")
             subscription_result = await run_activity(
                 activity=InsertSubscriptionDetailsActivity,
                 arg=InsertSubscriptionDetailsActivityModel(
                     tenant_name=tenant,
                     product=ProductEnum.dexit,
-                    plancode=pydash.get(dexit, "planName", "Basic"),
+                    plancode=lago_plan_code,
                     name="Active Subscription",
                 ),
             )
@@ -417,7 +642,6 @@ class DexitCommonOnboardingWorkflow(Workflow):
             # setup lago
             external_customer_id = subscription_result.customer_id
             lago_subscription_id = subscription_result.subscription_id
-            lago_plan_code = pydash.get(dexit, "planName", "Basic")
             lago_api_key = dexit_config.lago.api_key
             lago_api_url = dexit_config.lago.api_url
 
@@ -460,10 +684,32 @@ class DexitCommonOnboardingWorkflow(Workflow):
             # setup novu
             await run_activity(activity=DexitNovuSetupActivity, arg=dexit)
 
+            fax_webhook_secret = await run_activity(
+                activity=CreatePasswordActivity,
+                arg=CreatePasswordActivityModel(length=32),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=tenant,
+                    vault=OnePasswordVaultName,
+                    server_item=server_item,
+                    key="webhook_secret",
+                    key_value=fax_webhook_secret,
+                ),
+            )
+
             # fax setup
             await run_activity(activity=FaxSetupActivity, arg=dexit)
 
             realm_name = tenant
+            template_payload = await self._prepare_identity_provider_template_payload(
+                tenant=tenant,
+                identity_providers=identity_providers,
+                domain_name=dexit_config.domain_name,
+            )
+
             # keycloak realm setup
             await run_activity(
                 activity=KeycloakRealmSetupActivity,
@@ -472,49 +718,69 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     domain=dexit_config.domain_name,
                     template_path=TemplatePath,
                     template_name="keycloak_realm.json",
-                ),
-            )
-
-            # keycloak client setup
-            await run_activity(
-                activity=KeycloakClientSetupActivity,
-                arg=KeycloakClientSetupActivityModel(
-                    tenant=tenant,
-                    realm_name=realm_name,
-                    domain=dexit_config.domain_name,
-                    template_path=TemplatePath,
-                    template_name="keycloak_dexit_client.json",
+                    template_payload=template_payload,
                 ),
             )
 
             roles = [
-                "_standalone-launch",
-                "_document-read",
-                "_delete-document",
-                "_document-indexing",
-                "_document-commit",
-                "_manage-document-type",
-                "_manage-deficiency",
-                "_manage-users",
-                "_manage-organisation",
-                "_manage-queues",
-                "_manage-subscription",
-                "_manage-faxes",
-                "_manage-bulk-import",
-                "_roi",
-                "_reports",
-                "_document-review",
-                "_manage-workflow",
-                "_internal-admin",
+                DexitRole.FAX_VIEW,
+                DexitRole.FAX_SEND,
+                DexitRole.FAX_BULK,
+                DexitRole.FILE_VIEW,
+                DexitRole.DOCUMENT_VIEW,
+                DexitRole.DOCUMENT_EDIT,
+                DexitRole.DOCUMENT_DELETE,
+                DexitRole.DOCUMENT_BULK_DELETE,
+                DexitRole.DOCUMENT_BULK_EXPORT,
+                DexitRole.TASK_VIEW_ALL,
+                DexitRole.TASK_ACTION,
+                DexitRole.TASK_BULK,
+                DexitRole.ANALYTICS_VIEW,
+                DexitRole.AUDIT_VIEW,
+                DexitRole.SETTINGS_ACCOUNT,
+                DexitRole.SETTINGS_FAX_SETUP,
+                DexitRole.SETTINGS_WORKFLOW,
+                DexitRole.SETTINGS_USAGE,
             ]
+
+            composites = {
+                "Admin": roles,
+                "Member": [
+                    DexitRole.FAX_VIEW,
+                    DexitRole.FAX_SEND,
+                    DexitRole.FILE_VIEW,
+                    DexitRole.DOCUMENT_VIEW,
+                    DexitRole.DOCUMENT_EDIT,
+                    DexitRole.TASK_VIEW_ALL,
+                    DexitRole.TASK_ACTION,
+                    DexitRole.ANALYTICS_VIEW,
+                ],
+                "Viewer": [
+                    DexitRole.FAX_VIEW,
+                    DexitRole.FILE_VIEW,
+                    DexitRole.DOCUMENT_VIEW,
+                    DexitRole.TASK_VIEW_ALL,
+                    DexitRole.ANALYTICS_VIEW,
+                ],
+            }
 
             # keycloak client roles setup
             await run_activity(
                 activity=KeycloakCreateClientRolesActivity,
                 arg=KeycloakCreateClientRolesActivityModel(
-                    client_name="dexit",
+                    client_name=ProductName,
                     realm_name=realm_name,
-                    roles=roles,
+                    roles=[*roles, DexitRole.INTERNAL_ADMIN],
+                ),
+            )
+
+            # keycloak composite (system) roles setup
+            await run_activity(
+                activity=KeycloakCreateCompositeRolesActivity,
+                arg=KeycloakCreateCompositeRolesActivityModel(
+                    client_name=ProductName,
+                    realm_name=realm_name,
+                    composites=composites,
                 ),
             )
 
@@ -547,6 +813,18 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            # grant the shared service account the dexit Admin composite (broad access;
+            # used cross-product, e.g. zsegment authenticates through it)
+            await run_activity(
+                activity=KeycloakAssignServiceAccountRoleActivity,
+                arg=KeycloakAssignServiceAccountRoleActivityModel(
+                    sa_client_name="service-account",
+                    target_client_name=ProductName,
+                    role_name="Admin",
+                    realm_name=realm_name,
+                ),
+            )
+
             # Create IDP mappers
             await workflow.execute_activity(
                 activity=DexitKeycloakCreateIDPFlowActivity.defn,
@@ -568,12 +846,13 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 activity=KeycloakCreateTenantCustomerAdminUserActivity.defn,
                 arg=KeycloakCreateTenantCustomerAdminUserActivityModel(
                     realm_name=realm_name,
-                    client_name="dexit",
+                    client_name=ProductName,
                     username=email,
                     email=email,
                     firstname=first_name,
                     lastname=last_name,
                     template_path=TemplatePath,
+                    roles=roles,
                     template_name="keycloak_user.json",
                 ),
                 retry_policy=KeycloakCreateTenantCustomerAdminUserActivity.get_retry_policy(),
@@ -640,15 +919,10 @@ class DexitCommonOnboardingWorkflow(Workflow):
             )
 
             # ui setup
-            image_tag = "production" if config.env == "production" else "sprint"
             repo_name = "dexit-ui"
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
             bundle_path = "bundle/dist/admin"
-            if config.env == "production":
-                dest_dir = f"{bucket_name}/"
-            else:
-                dest_dir = f"{bucket_name}/{image_tag}"
-
+            dest_dir = f"{bucket_name}/" if config.env == "production" else f"{bucket_name}/{image_tag}"
             # copy artifacts to bucket
             await run_activity(
                 activity=CopyArtifactsToBucketActivity,
@@ -705,165 +979,181 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            app_config_file = "app-config.json"
+            config_dir = "config"
+
+            redis_tenant_password = await run_activity(
+                activity=CreatePasswordActivity,
+                arg=CreatePasswordActivityModel(length=20),
+            )
+
             await run_activity(
-                activity=OnePasswordInsertIfNotExistsActivity,
-                arg=OnePasswordInsertIfNotExistsActivityModel(
-                    tenant=tenant,
-                    vault=OnePasswordVaultName,
-                    server_item=server_item,
-                    key="fax_sentstatus_url",
-                    key_value="default",
+                activity=K8sSecretCreationActivity,
+                arg=K8sSecretCreationActivityModel(
+                    namespace=tenant,
+                    name="dexit-redis",
+                    string_data={"password": redis_tenant_password},
                 ),
             )
 
-            tenant_config = "tenant-config.json"
-            mlops_config = "mlops-config.json"
-            env_config = "env-config.json"
-            dicom_config = "dicom-config.json"
-            vector_config = "vector-config.toml"
-            config_dir = "config"
+            await run_activity(
+                activity=RedisSetupActivity,
+                arg=RedisSetupActivityModel(
+                    namespace=tenant,
+                    product=ProductName,
+                    redis_tenant_password=redis_tenant_password,
+                ),
+            )
 
-            # setup tenant configmap
-            for config_map in [
-                {
-                    "name": "dexit-tenant-config",
-                    "key": tenant_config,
-                    "template_file_name": f"{config.env}-tenant-config.tmpl.json",
-                },
-                {
-                    "name": "dexit-mlops-config",
-                    "key": mlops_config,
-                    "template_file_name": f"{config.env}-mlops-config.tmpl.json",
-                },
-                {
-                    "name": "dexit-env-config",
-                    "key": env_config,
-                    "template_file_name": f"{config.env}-env-config.tmpl.json",
-                },
-                {
-                    "name": "dexit-dicom-config",
-                    "key": dicom_config,
-                    "template_file_name": f"{config.env}-dicom-config.tmpl.json",
-                },
-                {
-                    "name": "dexit-cli-vector-config",
-                    "key": vector_config,
-                    "template_file_name": f"{config.env}-vector-config.tmpl.toml",
-                },
-            ]:
-                await run_activity(
-                    activity=K8sConfigMapCreationActivity,
-                    arg=K8sConfigMapCreationActivityModel(
-                        namespace=tenant,
-                        name=config_map["name"],
-                        template_file_name=config_map["template_file_name"],
-                        destination_file_name=config_map["key"],
-                        bucket_name="dexit-config",
-                        template_payload={"tenant": tenant},
-                    ),
-                )
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="redis_dns",
+                    secret_value=f"redis://:{redis_tenant_password}@{CACHE_HOST}:{CACHE_PORT}",
+                ),
+            )
 
-            # atlas job
+            # Worker user (referenced by configmap and by Workers KV template below)
+            worker_user_password = await run_activity(
+                activity=CreatePasswordActivity,
+                arg=CreatePasswordActivityModel(length=20),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="worker_username",
+                    secret_value=f"{tenant}fax",
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="worker_password",
+                    secret_value=worker_user_password,
+                ),
+            )
+
+            # Cloudflare per-tenant pointers (sourced from settings, not generated)
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="cf_api_token",
+                    secret_value=config.cloudflare.api_token,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="cf_account_id",
+                    secret_value=config.cloudflare.account_id,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="cf_kv_namespace_id",
+                    secret_value=dexit_config.cloudflare_worker_settings.workers_kv_namespace_id,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordCreateOrUpdateActivity,
+                arg=OnePasswordCreateOrUpdateActivityModel(
+                    tenant=tenant,
+                    server_item=server_item,
+                    vault=OnePasswordVaultName,
+                    secret_name="cf_queue_id",
+                    secret_value=dexit_config.cloudflare_worker_settings.cf_queue_id,
+                ),
+            )
+
+            # setup tenant configmap — single app-config covers server, CLI workers, dbmate job
+            await run_activity(
+                activity=K8sConfigMapCreationActivity,
+                arg=K8sConfigMapCreationActivityModel(
+                    namespace=tenant,
+                    name="dexit-app-config",
+                    template_file_name="dexit-app-config.tmpl.json",
+                    destination_file_name=app_config_file,
+                    cloudflare_r2_folder_path=f"{ConfigTemplateFolder}/{config.env}",
+                    template_payload={
+                        "tenant": tenant,
+                        "env": config.env,
+                        "domain": dexit_config.domain_name,
+                    },
+                    drop_empty_secrets=True,
+                ),
+            )
+
+            # dbmate job — migrations first, then seed the initial model rows into the tenant schema
+            # (dexit-app resolves the schema from db_schema_name in the mounted app-config)
             await run_activity(
                 activity=DatabaseMigrationJobActivity,
                 arg=DatabaseMigrationJobActivityModel(
                     namespace=tenant,
-                    job_name="dexit-atlas-migration-job",
+                    job_name="dexit-dbmate-migration-job",
                     docker_image=docker_image,
                     volume_mounts=[
                         {
-                            "name": "dexit-env-config",
-                            "mount_path": f"/{config_dir}/{env_config}",
-                            "sub_path": env_config,
-                        },
-                        {
-                            "name": "dexit-tenant-config",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
-                        },
-                        {
-                            "name": "dexit-mlops-config",
-                            "mount_path": f"/{config_dir}/{mlops_config}",
-                            "sub_path": mlops_config,
+                            "name": "dexit-app-config",
+                            "mount_path": f"/{config_dir}/{app_config_file}",
+                            "sub_path": app_config_file,
                         },
                     ],
                     volumes=[
                         {
-                            "name": "dexit-env-config",
-                            "config_map_name": "dexit-env-config",
-                            "key": env_config,
-                            "path": env_config,
-                        },
-                        {
-                            "name": "dexit-tenant-config",
-                            "config_map_name": "dexit-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
-                        },
-                        {
-                            "name": "dexit-mlops-config",
-                            "config_map_name": "dexit-mlops-config",
-                            "key": mlops_config,
-                            "path": mlops_config,
+                            "name": "dexit-app-config",
+                            "config_map_name": "dexit-app-config",
+                            "key": app_config_file,
+                            "path": app_config_file,
                         },
                     ],
                     container_envs=[
                         {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
+                        {"name": "POSTGRES_USER", "value": f"{postgres_username}.{postgres_username}"},
                     ],
-                    argument="python3 /app/provisioning/atlas_migration.py",
-                    job_type="atlas",
+                    argument=(
+                        "python3 /app/provisioning/dbmate_migration.py"
+                        " && python3 -m app.mlopshelper.deployinitialmodels"
+                    ),
+                    job_type="dbmate",
                     product=ProductName,
                 ),
             )
 
-            task_ids = []
-
-            # Model deployment - Classification
-            task_ids.append(
-                await run_activity(
-                    activity=ClassificationModelDeploymentActivity,
-                    arg=ModelDeploymentActivityModel(
-                        tenant=tenant,
-                        storage_access_key=credentials.access_key,
-                        storage_secret_key=credentials.secret_key,
-                        storage_bucket_name=bucket_name,
-                    ),
-                    retry_policy=ClassificationModelDeploymentActivity.get_retry_policy(),
-                    start_to_close_timeout=ClassificationModelDeploymentActivity.get_timeout(),
-                )
-            )
-
-            # Model deployment - Entity
-            task_ids.append(
-                await run_activity(
-                    activity=EntityModelDeploymentActivity,
-                    arg=ModelDeploymentActivityModel(
-                        tenant=tenant,
-                        storage_access_key=credentials.access_key,
-                        storage_secret_key=credentials.secret_key,
-                        storage_bucket_name=bucket_name,
-                    ),
-                    retry_policy=EntityModelDeploymentActivity.get_retry_policy(),
-                    start_to_close_timeout=EntityModelDeploymentActivity.get_timeout(),
-                )
-            )
-
-            # Store task IDs in S3
             await run_activity(
-                activity=StoreClearMLTasksActivity,
-                arg=ModelDeploymentActivityModel(
-                    tenant=tenant,
-                    storage_access_key=credentials.access_key,
-                    storage_secret_key=credentials.secret_key,
-                    storage_bucket_name=bucket_name,
-                    task_ids=task_ids,
+                activity=PostgresGrantSupersetReadOnlyActivity,
+                arg=PostgresGrantSupersetReadOnlyActivityModel(
+                    schema_name=postgres_schema_name,
+                    schema_owner_username=postgres_username,
+                    database_name=postgres_database_name,
+                    superset_ro_username=dexit_superset_ro_username,
                 ),
-                retry_policy=StoreClearMLTasksActivity.get_retry_policy(),
-                start_to_close_timeout=StoreClearMLTasksActivity.get_timeout(),
             )
 
             # kubernetes service
@@ -881,6 +1171,9 @@ class DexitCommonOnboardingWorkflow(Workflow):
             output = template.render(tenant=tenant, image_tag=image_tag, env=config.env)
 
             http_list = ijson_loads(output)
+
+            if not deploy_dicom_server:
+                http_list = [rule for rule in http_list if rule.get("name") != "dexit-dicom"]
 
             if config.env != "production":
                 http_list.append(
@@ -902,6 +1195,21 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
+            await run_activity(
+                activity=WorkersKVConfigUploadActivity,
+                arg=WorkersKVConfigUploadActivityModel(
+                    namespace_id=dexit_config.cloudflare_worker_settings.workers_kv_namespace_id,
+                    key=tenant,
+                    template_file_name="dexit-worker-kv-config.tmpl.json",
+                    template_payload={
+                        "tenant": tenant,
+                        "env": config.env,
+                        "domain": dexit_config.domain_name,
+                    },
+                    cloudflare_r2_folder_path=f"{ConfigTemplateFolder}/{config.env}",
+                ),
+            )
+
             # statefulset pod creation for server
             await run_activity(
                 activity=KubernetesDeploymentActivity,
@@ -920,52 +1228,43 @@ class DexitCommonOnboardingWorkflow(Workflow):
                     container_ports={"http": 8000},
                     volume_mounts=[
                         {
-                            "name": "env-volume",
-                            "mount_path": f"/{config_dir}/{env_config}",
-                            "sub_path": env_config,
-                        },
-                        {
-                            "name": "tenant-volume",
-                            "mount_path": f"/{config_dir}/{tenant_config}",
-                            "sub_path": tenant_config,
-                        },
-                        {
-                            "name": "mlops-volume",
-                            "mount_path": f"/{config_dir}/{mlops_config}",
-                            "sub_path": mlops_config,
+                            "name": "dexit-app-config",
+                            "mount_path": f"/{config_dir}/{app_config_file}",
+                            "sub_path": app_config_file,
                         },
                     ],
                     volumes=[
                         {
-                            "name": "env-volume",
-                            "config_map_name": "dexit-env-config",
-                            "key": env_config,
-                            "path": env_config,
-                        },
-                        {
-                            "name": "tenant-volume",
-                            "config_map_name": "dexit-tenant-config",
-                            "key": tenant_config,
-                            "path": tenant_config,
-                        },
-                        {
-                            "name": "mlops-volume",
-                            "config_map_name": "dexit-mlops-config",
-                            "key": mlops_config,
-                            "path": mlops_config,
+                            "name": "dexit-app-config",
+                            "config_map_name": "dexit-app-config",
+                            "key": app_config_file,
+                            "path": app_config_file,
                         },
                     ],
                     container_envs=[
                         {"name": "DEPLOYMENT", "value": config.env},
                         {"name": "WEB_CONCURRENCY", "value": "5"},
-                        {"name": "CLIENT_CODE", "value": tenant},
                         {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                         {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                        {"name": "POSTGRES_USER", "value": postgres_username},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                        {"name": "TIKA_SERVER_ENDPOINT", "value": dexit_config.tika_server_endpoint},
+                        {"name": "POSTGRES_USER", "value": f"{postgres_username}.{postgres_username}"},
                         {"name": "CLI", "value": "FALSE"},
                     ],
+                ),
+            )
+
+            # temporal namespace creation (must be before worker pods so they can connect on startup)
+            await run_activity(
+                activity=TemporalNamespaceActivity,
+                arg=TemporalNamespaceActivityModel(
+                    namespace=f"dexit_{tenant}",
+                ),
+            )
+
+            # temporal search attributes creation
+            await run_activity(
+                activity=TemporalSearchAttributesCreationActivity,
+                arg=TemporalSearchAttributesCreationActivityModel(
+                    namespace=f"dexit_{tenant}",
                 ),
             )
 
@@ -976,6 +1275,7 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 "dexit-worker-dslp": "dsl_processing_worker_priority",
                 "dexit-worker-event": "event_processing_worker",
                 "dexit-worker-ml": "ml_workers",
+                "dexit-training-worker": "training_worker",
             }
 
             for key, value in cli_pods.items():
@@ -996,112 +1296,29 @@ class DexitCommonOnboardingWorkflow(Workflow):
                         container_ports={"http": 8000},
                         volume_mounts=[
                             {
-                                "name": "env-volume",
-                                "mount_path": f"/{config_dir}/{env_config}",
-                                "sub_path": env_config,
+                                "name": "dexit-app-config",
+                                "mount_path": f"/{config_dir}/{app_config_file}",
+                                "sub_path": app_config_file,
                             },
-                            {
-                                "name": "tenant-volume",
-                                "mount_path": f"/{config_dir}/{tenant_config}",
-                                "sub_path": tenant_config,
-                            },
-                            {
-                                "name": "mlops-volume",
-                                "mount_path": f"/{config_dir}/{mlops_config}",
-                                "sub_path": mlops_config,
-                            },
-                            {"name": "vector-volume", "mount_path": "/vector", "read_only": True},
                         ],
                         volumes=[
                             {
-                                "name": "env-volume",
-                                "config_map_name": "dexit-env-config",
-                                "key": env_config,
-                                "path": env_config,
-                            },
-                            {
-                                "name": "tenant-volume",
-                                "config_map_name": "dexit-tenant-config",
-                                "key": tenant_config,
-                                "path": tenant_config,
-                            },
-                            {
-                                "name": "mlops-volume",
-                                "config_map_name": "dexit-mlops-config",
-                                "key": mlops_config,
-                                "path": mlops_config,
-                            },
-                            {
-                                "name": "vector-volume",
-                                "config_map_name": "dexit-cli-vector-config",
-                                "key": vector_config,
-                                "path": vector_config,
+                                "name": "dexit-app-config",
+                                "config_map_name": "dexit-app-config",
+                                "key": app_config_file,
+                                "path": app_config_file,
                             },
                         ],
                         container_envs=[
                             {"name": "DEPLOYMENT", "value": config.env},
-                            {"name": "CLIENT_CODE", "value": tenant},
                             {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
                             {"name": "POSTGRES_PASSWORD", "value": postgres_password},
-                            {"name": "POSTGRES_USER", "value": postgres_username},
-                            {"name": "RELEASE_VERSION", "value": image_tag},
-                            {"name": "TIKA_SERVER_ENDPOINT", "value": dexit_config.tika_server_endpoint},
+                            {"name": "POSTGRES_USER", "value": f"{postgres_username}.{postgres_username}"},
                             {"name": "CLI", "value": "TRUE"},
                             {"name": "WORKER_TYPE", "value": value},
                         ],
                     ),
                 )
-
-            # statefulset pod creation for dicom
-            await run_activity(
-                activity=KubernetesDeploymentActivity,
-                arg=KubernetesDeploymentActivityModel(
-                    namespace=tenant,
-                    name="dexit-dicom",
-                    docker_image="orthancteam/orthanc:24.8.1",
-                    request_resource={
-                        "cpu": pydash.get(dexit, "serverSpec.request_cpu"),
-                        "memory": pydash.get(dexit, "serverSpec.request_memory"),
-                    },
-                    limit_resource={
-                        "cpu": pydash.get(dexit, "serverSpec.limit_cpu"),
-                        "memory": pydash.get(dexit, "serverSpec.limit_memory"),
-                    },
-                    container_ports={},
-                    volume_mounts=[
-                        {
-                            "name": "dicom-volume",
-                            "mount_path": "/etc/orthanc/orthanc.json",
-                            "sub_path": dicom_config,
-                        },
-                    ],
-                    volumes=[
-                        {
-                            "name": "dicom-volume",
-                            "config_map_name": "dexit-dicom-config",
-                            "key": dicom_config,
-                            "path": dicom_config,
-                        },
-                    ],
-                    container_envs=[
-                        {"name": "DEPLOYMENT", "value": config.env},
-                        {"name": "WEB_CONCURRENCY", "value": "5"},
-                        {"name": "CLIENT_CODE", "value": tenant},
-                        {"name": "APP_CONFIG_DIR", "value": f"/{config_dir}"},
-                        {"name": "RELEASE_VERSION", "value": image_tag},
-                    ],
-                ),
-            )
-
-            # kubernetes service for dicom
-            await run_activity(
-                activity=KubernetesServiceActivity,
-                arg=KubernetesServiceActivityModel(
-                    namespace=tenant,
-                    service_name="dexit-dicom",
-                    ports={"http": 8042},
-                ),
-            )
 
             # vm pod scraper
             await run_activity(
@@ -1115,24 +1332,8 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 ),
             )
 
-            # temporal namespace creation
-            await run_activity(
-                activity=TemporalNamespaceActivity,
-                arg=TemporalNamespaceActivityModel(
-                    namespace=f"dexit_{tenant}",
-                ),
-            )
-
-            # temporal search attributes creation
-            await run_activity(
-                activity=TemporalSearchAttributesCreationActivity,
-                arg=TemporalSearchAttributesCreationActivityModel(
-                    namespace=f"dexit_{tenant}",
-                ),
-            )
-
             # check pod running status
-            for pod in ["dexit", "dexit-dicom", *list(cli_pods.keys())]:
+            for pod in ["dexit", *list(cli_pods.keys())]:
                 await run_activity(
                     activity=CheckPodRunningStatusActivity,
                     arg=CheckPodRunningStatusActivityModel(
@@ -1144,10 +1345,49 @@ class DexitCommonOnboardingWorkflow(Workflow):
                 )
 
             # zsegment onboarding
-            await run_activity(
-                activity=ZSegmentSetupActivity,
-                arg=ZSegmentSpec(tenant=tenant, email=email, firstName=first_name, lastName=last_name),
-            )
+            if zsegment_provisioning:
+                await run_activity(
+                    activity=ZSegmentSetupActivity,
+                    arg=ZSegmentSpec(tenant=tenant, email=email, firstName=first_name, lastName=last_name),
+                )
+                workflow.logger.info(f"Created new Zsegment tenant: {tenant}")
+
+            # Apply worker scaling templates
+            scaling_templates = [
+                "temporal-worker-all-scaling.yaml",
+                "temporal-worker-dsl-scaling.yaml",
+                "temporal-worker-dslp-scaling.yaml",
+                "temporal-worker-event-scaling.yaml",
+            ]
+            for template_name in scaling_templates:
+                yaml_content = template_render(
+                    template_path=TemplatePath,
+                    template_name=template_name,
+                    template_payload={
+                        "tenant": tenant,
+                        "max_replica_count": dexit_config.worker_max_replica_count,
+                        "min_replica_count": dexit_config.worker_min_replica_count,
+                        "vm_metrics_server_address": dexit_config.get_vm_metrics_server_address(config.env),
+                    },
+                )
+                await run_activity(
+                    activity=KedaApplyTemplatedYamlActivity,
+                    arg=KedaApplyTemplatedYamlActivityModel(
+                        namespace=tenant,
+                        yaml_content=yaml_content,
+                    ),
+                )
+
+            # deploy dicom server if enabled
+            if deploy_dicom_server:
+                await self._deploy_dicom_server(
+                    tenant=tenant,
+                    dexit=dexit,
+                    config=config,
+                    server_item=server_item,
+                    config_dir=config_dir,
+                )
+
             if self.is_onboarding:
                 # update tenant status
                 await run_activity(

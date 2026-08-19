@@ -4,10 +4,11 @@ from datetime import datetime
 
 import aiohttp
 from cloudflare import AsyncCloudflare
+from cloudflare.types.queues import Queue
 from cloudflare.types.r2 import TemporaryCredentialCreateResponse
 from loguru import logger
 
-from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials
+from app.cli.temporal.models.cloudflare import CloudflareBucketCredentials, QueueConsumerType
 from app.core.settings import APP_CONFIG, AppSettings, get_settings
 
 # Cloudflare user-tokens management API endpoint (relative to API base).
@@ -82,6 +83,84 @@ async def delete_bucket(config: AppSettings, bucket_name: str) -> dict:
     """
     client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
     return await client.r2.buckets.delete(account_id=config.cloudflare.account_id, bucket_name=bucket_name)
+
+
+async def get_queues(config: AppSettings, queue_names: list[str]) -> list[Queue]:
+    """
+    Return the queues with the given names.
+    Names without a queue are left out, so an empty list means none of them exist. Resolving the
+    whole list costs a single listing of the account's queues rather than one listing per name.
+    """
+    queues: list[Queue] = []
+
+    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
+    async for queue in client.queues.list(account_id=config.cloudflare.account_id):
+        if queue.queue_name in queue_names:
+            queues.append(queue)
+
+    return queues
+
+
+async def get_queue_consumer(config: AppSettings, queue_id: str, consumer_type: QueueConsumerType) -> str | None:
+    """
+    Return the id of the queue's consumer of the given type, or None if it has no such consumer.
+    """
+    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
+    async for consumer in client.queues.consumers.get(queue_id, account_id=config.cloudflare.account_id):
+        if consumer.type == consumer_type:
+            return consumer.consumer_id
+    return None
+
+
+async def create_queue_consumer(config: AppSettings, queue_id: str, consumer_type: QueueConsumerType) -> str | None:
+    """
+    Attach a consumer of the given type to the queue and return its id.
+    Idempotent: returns the existing consumer's id if the queue already has one of that type.
+    """
+    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
+    consumer_id = await get_queue_consumer(config=config, queue_id=queue_id, consumer_type=consumer_type)
+    if consumer_id:
+        logger.info(f"Queue {queue_id} already has a {consumer_type} consumer")
+        return consumer_id
+    consumer = await client.queues.consumers.create(
+        queue_id, account_id=config.cloudflare.account_id, type=consumer_type.value
+    )
+    return consumer.consumer_id
+
+
+async def create_queue(config: AppSettings, queue_name: str) -> str | None:
+    """
+    Create a Cloudflare queue if it does not already exist and return its id.
+    Idempotent: returns the existing queue's id if a queue with the same name is already present.
+    """
+    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
+    queues = await get_queues(config=config, queue_names=[queue_name])
+    if queues:
+        return queues[0].queue_id
+    queue = await client.queues.create(account_id=config.cloudflare.account_id, queue_name=queue_name)
+    return queue.queue_id if queue else None
+
+
+async def set_queue_message_retention(config: AppSettings, queue_id: str, message_retention_period: int) -> None:
+    """
+    Set how long an unconsumed message is retained on the queue.
+    The create endpoint takes no settings, so retention has to be applied with a follow-up call.
+    This patches just the one setting and leaves the queue's other settings untouched.
+    """
+    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
+    await client.queues.edit(
+        queue_id,
+        account_id=config.cloudflare.account_id,
+        settings={"message_retention_period": message_retention_period},
+    )
+
+
+async def delete_queue(config: AppSettings, queue_id: str) -> None:
+    """
+    Delete the queue with the given id along with its consumers.
+    """
+    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
+    await client.queues.delete(queue_id, account_id=config.cloudflare.account_id)
 
 
 async def get_dns_record(config: AppSettings, fqdn: str, zone_id: str) -> list:
@@ -296,6 +375,40 @@ async def create_cloudflare_bucket_credentials(
         secret_key = hashlib.sha256(secret_sha_key.encode()).hexdigest()
 
         return CloudflareBucketCredentials(access_key=access_key, secret_key=secret_key, exists=False)
+
+
+async def workers_kv_config_upload(
+    config: AppSettings,
+    namespace_id: str,
+    key: str,
+    value: str,
+    content_type: str = "application/json",
+) -> None:
+    """
+    Upload a value to a Cloudflare Storage KV namespace.
+    Uses PUT with multipart/form-data and a single field "value".
+    """
+    data = aiohttp.FormData()
+    data.add_field("value", value, content_type=content_type)
+
+    async with await get_async_cloudflare_client() as client:
+        response = await client.put(
+            url=f"accounts/{config.cloudflare.account_id}/storage/kv/namespaces/{namespace_id}/values/{key}",
+            data=data,
+        )
+        response.raise_for_status()
+
+
+async def workers_kv_delete_key(config: AppSettings, namespace_id: str, key: str) -> None:
+    """
+    Delete a key from a Cloudflare Storage KV namespace.
+    """
+    client: AsyncCloudflare = get_cloudflare_sdk_client(config=config)
+    await client.kv.namespaces.values.delete(
+        key,
+        account_id=config.cloudflare.account_id,
+        namespace_id=namespace_id,
+    )
 
 
 async def _find_active_token_by_name(client: aiohttp.ClientSession, token_name: str) -> dict | None:

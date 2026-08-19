@@ -1,51 +1,51 @@
 {
-    "name": "dexit-inbound-fax",
-    "description": "",
-    "tags": [],
-    "steps": [
-      {
-        "template": {
-          "content": "A fax from << '{{fax.fromnumber}}' >> received.",
-          "type": "in_app",
-          "cta": {
-              "type": "redirect",
-              "data": {
-                "url": "/faxes"
-              }
-            }
-        },
-        "active": true,
-        "shouldStopOnFail": false
-      },
-      {
-        "template": {
-          "content": "A fax from << '{{fax.fromnumber}}' >> received.",
-          "type": "email",
-          "senderName":"DexIt",
-          "subject":"A Fax Got Received",
-          "contentType":"customHtml"
-        },
-        "active": true,
-        "shouldStopOnFail": false
-      },
-      {
-        "template": {
-          "content": "A fax from << '{{fax.fromnumber}}' >> received.",
-          "type": "chat"
-        },
-        "active": true,
-        "shouldStopOnFail": false
+  "name": "dexit-inbound-fax",
+  "workflowId": "dexit-inbound-fax",
+  "description": "Notifies subscribers when an inbound fax is received.",
+  "tags": [],
+  "active": true,
+  "__source": "dashboard",
+  "steps": [
+    {
+      "name": "In-App",
+      "type": "in_app",
+      "stepId": "in-app-step",
+      "controlValues": {
+        "body": "A fax from {{payload.fax.fromnumber}} received.",
+        "redirect": { "url": "/faxes", "target": "_self" }
       }
-    ],
-    "active": true,
-    "notificationGroupId": "<<notification.notification_grp_id>>",
-    "critical": false,
-    "draft": false,
-    "preferenceSettings": {
-      "email": true,
-      "sms": true,
-      "in_app": true,
-      "chat": true,
-      "push": true
+    },
+    {
+      "name": "Email",
+      "type": "email",
+      "stepId": "email-step",
+      "controlValues": {
+        "subject": "A Fax Got Received",
+        "editorType": "html",
+        "from": { "name": "DexIt" },
+        "body": "<p>A fax from {{payload.fax.fromnumber}} received.</p><p><a href=\"{{payload.redirecturl}}/faxes\">View faxes</a></p>"
+      }
+    },
+    {
+      "name": "Slack",
+      "type": "chat",
+      "stepId": "chat-step",
+      "controlValues": {
+        "body": "A fax from {{payload.fax.fromnumber}} received. {{payload.redirecturl}}/faxes"
+      }
     }
+  ],
+  "preferences": {
+    "workflow": {
+      "all": { "enabled": true, "readOnly": false },
+      "channels": {
+        "in_app": { "enabled": true },
+        "email": { "enabled": true },
+        "chat": { "enabled": true },
+        "sms": { "enabled": true },
+        "push": { "enabled": true }
+      }
+    },
+    "user": null
+  }
 }

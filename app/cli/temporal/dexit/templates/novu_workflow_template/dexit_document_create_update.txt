@@ -1,0 +1,51 @@
+{
+  "name": "dexit-document-create-update",
+  "workflowId": "dexit-document-create-update",
+  "description": "Notifies subscribers when a document is created or updated. Replaces the separate dexit-document-create and dexit-document-edit workflows; payload.document.action carries create or update.",
+  "tags": [],
+  "active": true,
+  "__source": "dashboard",
+  "steps": [
+    {
+      "name": "In-App",
+      "type": "in_app",
+      "stepId": "in-app-step",
+      "controlValues": {
+        "body": "A {{payload.document.documenttype.name}} document {{payload.document.name}} was {{payload.document.action}}d.",
+        "redirect": { "url": "/retrieval/{{payload.document.id}}", "target": "_self" }
+      }
+    },
+    {
+      "name": "Email",
+      "type": "email",
+      "stepId": "email-step",
+      "controlValues": {
+        "subject": "Document Created Or Updated",
+        "editorType": "html",
+        "from": { "name": "DexIt" },
+        "body": "<p>A {{payload.document.documenttype.name}} document {{payload.document.name}} was {{payload.document.action}}d.</p><p><a href=\"{{payload.redirecturl}}/retrieval/{{payload.document.id}}\">View document</a></p>"
+      }
+    },
+    {
+      "name": "Slack",
+      "type": "chat",
+      "stepId": "chat-step",
+      "controlValues": {
+        "body": "A {{payload.document.documenttype.name}} document {{payload.document.name}} was {{payload.document.action}}d. {{payload.redirecturl}}/retrieval/{{payload.document.id}}"
+      }
+    }
+  ],
+  "preferences": {
+    "workflow": {
+      "all": { "enabled": true, "readOnly": false },
+      "channels": {
+        "in_app": { "enabled": true },
+        "email": { "enabled": true },
+        "chat": { "enabled": true },
+        "sms": { "enabled": true },
+        "push": { "enabled": true }
+      }
+    },
+    "user": null
+  }
+}
