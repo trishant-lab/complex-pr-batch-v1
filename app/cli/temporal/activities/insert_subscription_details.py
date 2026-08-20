@@ -1,7 +1,6 @@
 from datetime import timedelta
 from uuid import UUID
 
-from app.core.oauth2 import logger
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
@@ -28,6 +27,7 @@ class InsertSubscriptionDetailsActivityResult(LaunchpadCLIBaseModel):
 
     customer_id: UUID
     subscription_id: UUID
+
 
 class InsertSubscriptionDetailsActivity(Activity):
     """
@@ -61,36 +61,51 @@ class InsertSubscriptionDetailsActivity(Activity):
         """
         db = await get_db_manager()
 
+        # Resolved outside the try below: a missing customer is a caller error, not something the
+        # generic handler should log as an insert failure -- and raising inside that try would just
+        # be caught and re-raised by it (ruff TRY301).
+        customer = await db.fetch_one(
+            sqlfile="get_tenant_by_name.sql",
+            tenant_name=activity_model.tenant_name,
+            product=activity_model.product.lower(),
+        )
+
+        if not customer:
+            raise ValueError(f"Customer not found for tenant: {activity_model.tenant_name}")
+
+        customer_id = customer["id"]
+
         try:
-            # First, get customer by email and product
-            customer = await db.fetch_one(
-                sqlfile="get_tenant_by_name.sql",
-                tenant_name=activity_model.tenant_name,
-                product=activity_model.product.lower(),
-            )
-
-            if not customer:
-                logger.error(f"Customer not found for email: {activity_model.email}")
-
-            customer_id = customer["id"]
-
-            # Insert subscription details
-            subscription = await db.fetch_one(
-                sqlfile="insert_subscription_details.sql",
+            # Reuse the existing subscription rather than inserting a second one. The row id
+            # becomes the Lago subscription's external_id, and Lago creates a new subscription
+            # for every external_id it has not seen -- so a fresh id on each retry bills the
+            # tenant again. Nothing enforces uniqueness at the table level, so the check lives here.
+            existing = await db.fetch_one(
+                sqlfile="get_subscription_by_customer.sql",
                 customer_id=str(customer_id),
-                name=activity_model.name,
-                plancode=activity_model.plancode,
                 product=activity_model.product.lower(),
+                name=activity_model.name,
             )
 
-            subscription_id = subscription["id"]
+            if existing:
+                subscription_id = existing["id"]
+                log_info(f"Reusing existing subscription {subscription_id} for customer {customer_id}")
+            else:
+                subscription = await db.fetch_one(
+                    sqlfile="insert_subscription_details.sql",
+                    customer_id=str(customer_id),
+                    name=activity_model.name,
+                    plancode=activity_model.plancode,
+                    product=activity_model.product.lower(),
+                )
 
-            log_info(f"Successfully inserted subscription for customer {customer_id}, subscription {subscription_id}")
+                subscription_id = subscription["id"]
 
-            return InsertSubscriptionDetailsActivityResult(
-                customer_id=customer_id,
-                subscription_id=subscription_id
-            )
+                log_info(
+                    f"Successfully inserted subscription for customer {customer_id}, subscription {subscription_id}"
+                )
+
+            return InsertSubscriptionDetailsActivityResult(customer_id=customer_id, subscription_id=subscription_id)
         except Exception as e:
             log_info(f"Failed to insert subscription details: {e!s}")
             raise e

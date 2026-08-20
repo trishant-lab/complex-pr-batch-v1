@@ -21,7 +21,7 @@
   "accessCodeLifespan": 60,
   "accessCodeLifespanUserAction": 300,
   "accessCodeLifespanLogin": 1800,
-  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByAdminLifespan": 86400,
   "actionTokenGeneratedByUserLifespan": 3600,
   "oauth2DeviceCodeLifespan": 600,
   "oauth2DevicePollingInterval": 600,
@@ -260,148 +260,6 @@
       ],
       "security-admin-console": [],
       "admin-cli": [],
-      "dexit": [
-        {
-          "name": "_batch-scan",
-          "description": "able to scan from the scanner.",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_dexit-admin",
-          "description": "all admin previliges",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_document-read",
-          "description": "read indexed documents.",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_document-write",
-          "description": "working with batches, drafts, uploading, separating and indexing documents",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-attributes",
-          "description": "create, edit and delete attributes and attribute groups.",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-document-type",
-          "description": "Manage Document Types",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-list-of-values",
-          "description": "create, edit, delete list of values.",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-organisation",
-          "description": "Workspace Settings",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-users",
-          "description": "Manage Users",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_document-review",
-          "description": "Review Documents",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_reports",
-          "description": "Analytics",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-faxes",
-          "description": "Manage Fax Numbers",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_access-zsegment-screen",
-          "description": "Access ZSegment's Interfaces and Messages screens",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_delete-document",
-          "description": "",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_internal-admin",
-          "description": "314e admin",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-deficiency",
-          "description": "Signature Deficiency",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-subscription",
-          "description": "",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_manage-workflow",
-          "description": "Manage Workflow",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_roi",
-          "description": "Release of Information",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        },
-        {
-          "name": "_standalone-launch",
-          "description": "Allow Standalone Launch",
-          "composite": false,
-          "clientRole": true,
-          "attributes": {}
-        }
-      ],
       "account-console": [],
       "broker": [
         {
@@ -1610,8 +1468,8 @@
     "password": "<<sendgrid_api_key>>",
     "port": "587",
     "host": "smtp.sendgrid.net",
-    "replyTo": "developer@314ecorp.com",
-    "from": "developer@314ecorp.com",
+    "replyTo": "support@dexit.us",
+    "from": "support@dexit.us",
     "fromDisplayName": "Dexit Support",
     "user": "apikey"
   },
@@ -1622,145 +1480,8 @@
   "enabledEventTypes": [],
   "adminEventsEnabled": false,
   "adminEventsDetailsEnabled": false,
-  "identityProviders": [
-    {
-      "alias": "dexittestappsmartonfhir",
-      "providerId": "oidc",
-      "enabled": true,
-      "updateProfileFirstLoginMode": "on",
-      "trustEmail": true,
-      "storeToken": true,
-      "addReadTokenRoleOnCreate": true,
-      "authenticateByDefault": false,
-      "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "Epic Smart on Fhir Login",
-      "config": {
-        "hideOnLoginPage": "true",
-        "acceptsPromptNoneForwardFromClient": "true",
-        "clientId": "<<dexittestappsmartonfhirclientid>>",
-        "tokenUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
-        "authorizationUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
-        "clientAuthMethod": "client_secret_basic",
-        "disableUserInfo": "true",
-        "syncMode": "IMPORT",
-        "clientSecret": "<<dexittestappsmartonfhirsecret>>",
-        "prompt": "none",
-        "useJwksUrl": "true"
-      }
-    },
-    {
-      "alias": "ehrsimulatorapp",
-      "providerId": "oidc",
-      "enabled": true,
-      "updateProfileFirstLoginMode": "on",
-      "trustEmail": true,
-      "storeToken": true,
-      "addReadTokenRoleOnCreate": true,
-      "authenticateByDefault": false,
-      "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "Epic Smart on Fhir Login",
-      "config": {
-        "hideOnLoginPage": "true",
-        "acceptsPromptNoneForwardFromClient": "true",
-        "clientId": "<<ehrsimulatorappclientid>>",
-        "tokenUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
-        "authorizationUrl": "https://<<tenant>>.<<domain>>/api/v1/epicintegration/epicToken",
-        "clientAuthMethod": "client_secret_basic",
-        "disableUserInfo": "true",
-        "syncMode": "IMPORT",
-        "clientSecret": "<<ehrsimulatorappsecret>>",
-        "prompt": "none",
-        "useJwksUrl": "true"
-      }
-    },
-    {
-      "alias": "google",
-      "displayName": "Google",
-      "providerId": "oidc",
-      "enabled": true,
-      "updateProfileFirstLoginMode": "on",
-      "trustEmail": true,
-      "storeToken": true,
-      "addReadTokenRoleOnCreate": true,
-      "authenticateByDefault": false,
-      "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "New 314e first broker login",
-      "config": {
-        "validateSignature": "true",
-        "userInfoUrl": "https://openidconnect.googleapis.com/v1/userinfo",
-        "tokenUrl": "https://oauth2.googleapis.com/token",
-        "clientId": "<<googleclientid>>",
-        "jwksUrl": "https://www.googleapis.com/oauth2/v3/certs",
-        "issuer": "https://accounts.google.com",
-        "useJwksUrl": "true",
-        "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline",
-        "clientAuthMethod": "client_secret_basic",
-        "syncMode": "IMPORT",
-        "clientSecret": "<<googlesecret>>",
-        "prompt": "consent",
-        "defaultScope": "openid profile email"
-      }
-    }
-  ],
-  "identityProviderMappers": [
-    {
-      "name": "view-realm",
-      "identityProviderAlias": "google",
-      "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "role": "realm-management.view-realm"
-      }
-    },
-    {
-      "name": "view-users",
-      "identityProviderAlias": "google",
-      "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "claims": "[]",
-        "role": "realm-management.view-users"
-      }
-    },
-    {
-      "name": "read-token",
-      "identityProviderAlias": "google",
-      "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "role": "broker.read-token"
-      }
-    },
-    {
-      "name": "offline_access",
-      "identityProviderAlias": "google",
-      "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "role": "offline_access"
-      }
-    },
-    {
-      "name": "ehr_app_name",
-      "identityProviderAlias": "dexittestappsmartonfhir",
-      "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
-      "config": {
-        "syncMode": "FORCE",
-        "attribute.value": "Epic",
-        "attribute": "ehr_app_name"
-      }
-    },
-    {
-      "name": "ehr_app_name",
-      "identityProviderAlias": "ehrsimulatorapp",
-      "identityProviderMapper": "hardcoded-user-session-attribute-idp-mapper",
-      "config": {
-        "syncMode": "FORCE",
-        "attribute.value": "Epic",
-        "attribute": "ehr_app_name"
-      }
-    }
-  ],
+  "identityProviders": <<selectedIdentityProviders | tojson>>,
+  "identityProviderMappers": <<selectedIdentityProviderMappers | tojson>>,
   "components": {
     "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy": [
       {
@@ -3090,6 +2811,9 @@
   "resetCredentialsFlow": "reset credentials",
   "clientAuthenticationFlow": "clients",
   "dockerAuthenticationFlow": "docker auth",
+  "firstBrokerLoginFlow": "314e first broker login",
+  "loginTheme": "314e-login-theme",
+  "emailTheme": "dexit-email-theme",
   "attributes": {
     "cibaBackchannelTokenDeliveryMode": "poll",
     "cibaExpiresIn": "120",

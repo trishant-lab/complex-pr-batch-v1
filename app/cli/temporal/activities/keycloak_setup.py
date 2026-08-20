@@ -213,6 +213,60 @@ def create_client_roles(
         keycloak_client.create_client_role(client_id=client_uuid, role_config={"name": role}, realm_name=realm_name)
 
 
+def create_composite_client_roles(
+    client_name: str,
+    realm_name: str,
+    composites: dict[str, list[str]],
+) -> None:
+    """
+    Create composite client roles and associate their child roles.
+
+    composites maps each composite role name to the child client-role names it
+    bundles. The child roles must already exist (create them first).
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    client_uuid = keycloak_client.get_client_id(client=client_name, realm_name=realm_name)
+
+    role_by_name = {
+        role["name"]: role for role in keycloak_client.get_client_roles(client_id=client_uuid, realm_name=realm_name)
+    }
+
+    for composite_name, child_names in composites.items():
+        keycloak_client.create_client_role(
+            client_id=client_uuid,
+            role_config={"name": composite_name, "composite": True},
+            realm_name=realm_name,
+        )
+        child_roles = [role_by_name[name] for name in child_names]
+        keycloak_client.add_composite_client_roles(
+            client_id=client_uuid,
+            role_name=composite_name,
+            child_roles=child_roles,
+            realm_name=realm_name,
+        )
+
+
+def assign_service_account_role(
+    sa_client_name: str,
+    target_client_name: str,
+    role_name: str,
+    realm_name: str,
+) -> None:
+    """
+    Assign a target-client role to a client's service-account user.
+
+    Used to grant the shared service-account client the dexit `Admin` composite, so the
+    service account (used cross-product, e.g. by zsegment) keeps broad access.
+    """
+    keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+    sa_client_uuid = keycloak_client.get_client_id(client=sa_client_name, realm_name=realm_name)
+    sa_user = keycloak_client.get_client_service_account_user(client_uuid=sa_client_uuid, realm_name=realm_name)
+    sa_user_id = sa_user["id"]
+    target_uuid = keycloak_client.get_client_id(client=target_client_name, realm_name=realm_name)
+    role = keycloak_client.get_client_role(client_id=target_uuid, role_name=role_name, realm_name=realm_name)
+    keycloak_client.assign_client_role(realm_name=realm_name, user_id=sa_user_id, client_id=target_uuid, roles=[role])
+
+
 def create_keycloak_user(
     realm_name: str,
     client_name: str,
@@ -743,6 +797,96 @@ class KeycloakCreateClientRolesActivity(Activity):
         )
 
         log_info(f"Keycloak client roles {activity_model.client_name} created successfully")
+
+
+class KeycloakCreateCompositeRolesActivityModel(LaunchpadCLIBaseModel):
+    """
+    KeycloakCreateCompositeRolesActivityModel
+    """
+
+    client_name: str
+    realm_name: str
+    composites: dict[str, list[str]]
+
+
+class KeycloakCreateCompositeRolesActivity(Activity):
+    """
+    KeycloakCreateCompositeRolesActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakCreateCompositeRolesActivity")
+    async def defn(activity_model: KeycloakCreateCompositeRolesActivityModel) -> None:
+        """
+        Create keycloak composite client roles
+        """
+        create_composite_client_roles(
+            client_name=activity_model.client_name,
+            realm_name=activity_model.realm_name,
+            composites=activity_model.composites,
+        )
+
+        log_info(f"Keycloak composite roles {activity_model.client_name} created successfully")
+
+
+class KeycloakAssignServiceAccountRoleActivityModel(LaunchpadCLIBaseModel):
+    """
+    KeycloakAssignServiceAccountRoleActivityModel
+    """
+
+    sa_client_name: str
+    target_client_name: str
+    role_name: str
+    realm_name: str
+
+
+class KeycloakAssignServiceAccountRoleActivity(Activity):
+    """
+    KeycloakAssignServiceAccountRoleActivity
+    """
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Get timeout
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        Get retry policy
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    @activity.defn(name="KeycloakAssignServiceAccountRoleActivity")
+    async def defn(activity_model: KeycloakAssignServiceAccountRoleActivityModel) -> None:
+        """
+        Assign a target-client role to a service-account user
+        """
+        assign_service_account_role(
+            sa_client_name=activity_model.sa_client_name,
+            target_client_name=activity_model.target_client_name,
+            role_name=activity_model.role_name,
+            realm_name=activity_model.realm_name,
+        )
+
+        log_info(f"Assigned {activity_model.role_name} to {activity_model.sa_client_name} service account")
 
 
 class KeycloakCreateTenantCustomerAdminUserActivityModel(LaunchpadCLIBaseModel):

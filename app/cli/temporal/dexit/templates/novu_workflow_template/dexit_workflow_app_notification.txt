@@ -1,7 +1,7 @@
 {
-  "name": "dexit-reports-export",
-  "workflowId": "dexit-reports-export",
-  "description": "Notifies a user when a CSV report is ready. The redirect carries the presigned download link.",
+  "name": "dexit-workflow-app-notification",
+  "workflowId": "dexit-workflow-app-notification",
+  "description": "Generic in-app message raised by a notification step in the workflow builder. The text is composed by the workflow, so the template only renders it.",
   "tags": [],
   "active": true,
   "__source": "dashboard",
@@ -11,8 +11,7 @@
       "type": "in_app",
       "stepId": "in-app-step",
       "controlValues": {
-        "body": "{{payload.report.name}} is ready to download.",
-        "redirect": { "url": "{{payload.report.url}}", "target": "_blank" }
+        "body": "{{payload.workflow.content}}"
       }
     }
   ],

@@ -27,7 +27,7 @@
                 "clientAuthMethod": "private_key_jwt",
                 "clientAssertionSigningAlg": "RS256",
                 "syncMode": "IMPORT",
-                "clientSecret": "<< idp_config['default']['client_secret'] >>",
+                "clientSecret": "<< idp_config.default.client_secret >>",
                 "allowedClockSkew": "0",
                 "userInfoUrl": "<< auth_url >>/auth/realms/<<tenant>>/protocol/openid-connect/userinfo",
                 "validateSignature": "true",

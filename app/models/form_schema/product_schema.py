@@ -223,6 +223,88 @@ class DexitSchema(BaseFormSchema):
             "order": 4,
         },
     )
+    identityProviders: list[str] | None = Field(
+        default=None,
+        json_schema_extra={
+            "name": "identityProviders",
+            "type": "checkbox-group",
+            "label": "Identity Providers",
+            "other": False,
+            "inline": False,
+            "toggle": False,
+            "values": [
+                {
+                    "label": "Google",
+                    "value": "google",
+                    "selected": False,
+                },
+                {
+                    "label": "EHR Simulator app",
+                    "value": "ehrsimulatorapp",
+                    "selected": False,
+                },
+                {
+                    "label": "Epic Smart on FHIR integration",
+                    "value": "dexittestappsmartonfhir",
+                    "selected": False,
+                },
+            ],
+            "required": False,
+            "isHiddenField": False,
+            "mapTo": "identityProviders",
+            "order": 6,
+        },
+    )
+    zsegmentProvisioning: str = Field(
+        json_schema_extra={
+            "name": "zsegmentProvisioning",
+            "type": "radio-group",
+            "label": "zsegment provisioning",
+            "other": False,
+            "inline": False,
+            "values": [
+                {
+                    "label": "Yes",
+                    "value": "true",
+                    "selected": False,
+                },
+                {
+                    "label": "No",
+                    "value": "false",
+                    "selected": False,
+                },
+            ],
+            "required": True,
+            "isHiddenField": False,
+            "mapTo": "zsegmentProvisioning",
+            "order": 7,
+        },
+    )
+    deployDicomServer: str = Field(
+        json_schema_extra={
+            "name": "deployDicomServer",
+            "type": "radio-group",
+            "label": "Deploy Dicom Server",
+            "other": False,
+            "inline": False,
+            "values": [
+                {
+                    "label": "Yes",
+                    "value": "true",
+                    "selected": False,
+                },
+                {
+                    "label": "No",
+                    "value": "false",
+                    "selected": False,
+                },
+            ],
+            "required": True,
+            "isHiddenField": False,
+            "mapTo": "deployDicomServer",
+            "order": 7,
+        },
+    )
 
 
 class HDPSchema(BaseFormSchema):

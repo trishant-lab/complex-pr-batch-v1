@@ -1,7 +1,7 @@
 {
-  "name": "dexit-task-assigned",
-  "workflowId": "dexit-task-assigned",
-  "description": "Notifies assignees when a workflow task is assigned to them.",
+  "name": "dexit-outbound-fax",
+  "workflowId": "dexit-outbound-fax",
+  "description": "Notifies subscribers when an outbound fax is delivered.",
   "tags": [],
   "active": true,
   "__source": "dashboard",
@@ -11,8 +11,8 @@
       "type": "in_app",
       "stepId": "in-app-step",
       "controlValues": {
-        "body": "Task assigned for Workflow - {{payload.task.workflow_name}} with task - {{payload.task.name}}",
-        "redirect": { "url": "/tasks/{{payload.task.id}}", "target": "_self" }
+        "body": "A fax to {{payload.fax.tonumber}} was delivered.",
+        "redirect": { "url": "/faxes", "target": "_self" }
       }
     },
     {
@@ -20,10 +20,10 @@
       "type": "email",
       "stepId": "email-step",
       "controlValues": {
-        "subject": "Task assigned",
+        "subject": "A Fax Got Delivered",
         "editorType": "html",
         "from": { "name": "DexIt" },
-        "body": "<p>Task assigned for Workflow - {{payload.task.workflow_name}} with task - {{payload.task.name}}</p><p><a href=\"{{payload.redirecturl}}/tasks/{{payload.task.id}}\">View task</a></p>"
+        "body": "<p>A fax to {{payload.fax.tonumber}} was delivered.</p><p><a href=\"{{payload.redirecturl}}/faxes\">View faxes</a></p>"
       }
     },
     {
@@ -31,7 +31,7 @@
       "type": "chat",
       "stepId": "chat-step",
       "controlValues": {
-        "body": "Task assigned for Workflow - {{payload.task.workflow_name}} with task - {{payload.task.name}} {{payload.redirecturl}}/tasks/{{payload.task.id}}"
+        "body": "A fax to {{payload.fax.tonumber}} was delivered. {{payload.redirecturl}}/faxes"
       }
     }
   ],

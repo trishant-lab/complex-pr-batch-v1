@@ -10,7 +10,7 @@ from app.cli.k8s_util import ResourceKindEnum, get_dynamic_client, get_resource
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_error, log_info
 from app.core.settings import AppSettings, get_settings
-from app.one_password_util import secret_inject
+from app.one_password_util import secret_inject, secret_inject_drop_empty
 from app.s3_utils import download_file_from_storage
 from app.template_env import get_env
 from app.utils.file_operations import get_opendal_file_client
@@ -31,6 +31,7 @@ class K8sConfigMapCreationActivityModel(LaunchpadCLIBaseModel):
     bucket_name: str | None = None
     cloudflare_r2_folder_path: str | None = None
     template_payload: dict
+    drop_empty_secrets: bool = False
 
 
 class K8sConfigMapCreationActivity(Activity):
@@ -112,7 +113,8 @@ class K8sConfigMapCreationActivity(Activity):
                 await opendal_file_operations.write_file(os.path.join(temp_dir_path, template_file_name), output)
 
                 # inject secret into tenant-config.json from 1Password
-                await secret_inject(
+                inject = secret_inject_drop_empty if activity_model.drop_empty_secrets else secret_inject
+                await inject(
                     source_file_path=os.path.join(temp_dir_path, template_file_name),
                     destination_path=os.path.join(temp_dir_path, activity_model.destination_file_name),
                 )

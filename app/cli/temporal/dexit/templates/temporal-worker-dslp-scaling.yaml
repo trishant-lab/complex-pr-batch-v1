@@ -1,0 +1,38 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: dexit-worker-autoscaler-dslp
+  namespace: <<tenant>>
+spec:
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          policies:
+          - periodSeconds: 90
+            type: Pods
+            value: 1
+          stabilizationWindowSeconds: 300
+        scaleUp:
+          policies:
+          - periodSeconds: 30
+            type: Pods
+            value: 1
+          stabilizationWindowSeconds: 0
+    scalingModifiers: {}
+  maxReplicaCount: <<max_replica_count>>
+  minReplicaCount: <<min_replica_count>>
+  pollingInterval: 15
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dexit-worker-dslp
+  triggers:
+  - metadata:
+      activationThreshold: "20"
+      metricName: approximate_backlog_count
+      query: sum(approximate_backlog_count{exported_namespace="dexit_<<tenant>>", taskqueue="dsl_task_queue_priority"})
+      serverAddress: <<vm_metrics_server_address>>
+      threshold: "25"
+    metricType: Value
+    type: prometheus
