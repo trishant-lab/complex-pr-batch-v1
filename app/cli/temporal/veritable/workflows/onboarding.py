@@ -507,7 +507,7 @@ class VeritableOnboardingWorkflow(Workflow):
             )
 
             repo_name = "veritable-ui"
-            image_tag = "production" if config.env == "production" else "sprint"
+            image_tag = "veritable-latest" if config.env == "production" else "sprint"
 
             src_object_name = f"{repo_name}/{image_tag}/bundle.zip"
 
