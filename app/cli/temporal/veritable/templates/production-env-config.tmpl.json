@@ -36,6 +36,13 @@
     "accounts.realm": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_realm}}",
     "accounts.grant_type": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/accounts_grant_type}}",
 
+    "superset.base_url": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/superset_base_url}}",
+    "superset.username": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/superset_username}}",
+    "superset.password": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/superset_password}}",
+    "superset.dashboard_id": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/superset_dashboard_id}}",
+
+    "slack.webhook_url": "{{op://Practifly/veritable-config/PRODUCTION-CONFIG/slack_webhook_url}}",
+
     "temporal.host": "temporal-frontend.temporal.svc.cluster.local",
     "temporal.port": "7233",
     "novu.url": "https://alerting.314ecorp.com",

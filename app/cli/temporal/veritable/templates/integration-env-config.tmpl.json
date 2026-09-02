@@ -47,6 +47,9 @@
     "superset.base_url": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/superset_base_url}}",
     "superset.username": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/superset_username}}",
     "superset.password": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/superset_password}}",
+    "superset.dashboard_id": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/superset_dashboard_id}}",
+
+    "slack.webhook_url": "{{op://Practifly/veritable-config/INTEGRATION-CONFIG/slack_webhook_url}}",
 
     "temporal.host": "temporal-frontend.temporal.svc.cluster.local",
     "temporal.port": "7233",
