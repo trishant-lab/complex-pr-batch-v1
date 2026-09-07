@@ -160,7 +160,7 @@
       }
     }
   ],
-  "defaultClientScopes": ["web-origins", "roles", "profile", "email"],
+  "defaultClientScopes": ["web-origins", "roles", "profile", "basic", "email"],
   "optionalClientScopes": [
     "address",
     "phone",

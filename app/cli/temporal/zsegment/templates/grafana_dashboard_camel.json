@@ -31,7 +31,7 @@
         "collapsed": false,
         "datasource": {
           "type": "prometheus",
-          "uid": "${datasource}"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "gridPos": {
           "h": 1,
@@ -45,7 +45,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "refId": "A"
           }
@@ -56,7 +56,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "Shows completed exchanges of the camel context in the time range for given interface",
         "fieldConfig": {
@@ -141,11 +141,11 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "exemplar": false,
-            "expr": "sum(\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "expr": "sum(\n    max_over_time(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[180d]\n    )\n) or vector(0)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -161,7 +161,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "",
         "fieldConfig": {
@@ -242,10 +242,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "expr": "sum (\n    max_over_time(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[180d]\n    )\n) or vector(0)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -257,10 +257,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)*100",
+            "expr": "clamp_max(sum (\n    max_over_time(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[180d])\n    ) \n/ \nsum (\n    max_over_time(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[180d]\n    )\n)*100, 100)",
             "hide": false,
             "legendFormat": "Success %",
             "range": true,
@@ -273,7 +273,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "Average execution time for an interface",
         "fieldConfig": {
@@ -332,7 +332,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "exemplar": false,
@@ -352,7 +352,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "",
         "fieldConfig": {
@@ -433,10 +433,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)",
+            "expr": "sum (\n    max_over_time(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[180d]\n    )\n) or vector(0)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -448,10 +448,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    )\n)*100",
+            "expr": "clamp_max(sum (\n    max_over_time(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[180d])\n    ) \n/ \nsum (\n    max_over_time(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[180d]\n    )\n)*100, 100)",
             "hide": false,
             "legendFormat": "Failure %",
             "range": true,
@@ -477,7 +477,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "Shows completed exchanges of the camel context in the time range for given route",
         "fieldConfig": {
@@ -557,10 +557,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum(\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "expr": "sum(\n    max_over_time(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[180d]\n    )\n) or vector(0)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -576,7 +576,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "",
         "fieldConfig": {
@@ -657,10 +657,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "expr": "sum (\n    max_over_time(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[180d]\n    )\n) or vector(0)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -672,10 +672,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)*100",
+            "expr": "clamp_max(sum (\n    max_over_time(\n        zsegment_messages_success_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[180d])\n    ) \n/ \nsum (\n    max_over_time(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[180d]\n    )\n)*100, 100)",
             "hide": false,
             "legendFormat": "Success %",
             "range": true,
@@ -688,7 +688,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "Average execution time for a route",
         "fieldConfig": {
@@ -748,7 +748,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "exemplar": false,
@@ -768,7 +768,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "",
         "fieldConfig": {
@@ -849,10 +849,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)",
+            "expr": "sum (\n    max_over_time(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[180d]\n    )\n) or vector(0)",
             "format": "time_series",
             "instant": false,
             "interval": "",
@@ -864,10 +864,10 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
-            "expr": "sum (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range])\n    ) \n/ \nsum (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[$__range]\n    )\n)*100",
+            "expr": "clamp_max(sum (\n    max_over_time(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[180d])\n    ) \n/ \nsum (\n    max_over_time(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n            route_id=\"$route\"\n        }[180d]\n    )\n)*100, 100)",
             "hide": false,
             "legendFormat": "Failure %",
             "range": true,
@@ -893,7 +893,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "description": "",
         "fieldConfig": {
@@ -947,7 +947,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "exemplar": false,
@@ -967,7 +967,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -1026,11 +1026,11 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "${datasource}"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "exemplar": false,
-            "expr": "sum by (route_id) (\n    increase(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n        }[$__range]\n    )\n) \n/ \nsum by (route_id) (\n    increase(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[$__range]\n    ) > 0\n)",
+            "expr": "clamp_max(sum by (route_id) (\n    max_over_time(\n        zsegment_messages_failure_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\",\n        }[180d]\n    )\n) \n/ \nsum by (route_id) (\n    max_over_time(\n        zsegment_messages_inbound_total{\n            tenant=\"<<dynamic_variable_tenant>>\",\n            interface_name=\"$interface\"\n        }[180d]\n    ) > 0\n), 1) or vector(0)",
             "instant": true,
             "legendFormat": "{{routeId}}",
             "range": false,
@@ -1054,7 +1054,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "fec8h5fj8a2o0a"
+            "uid": "<<dynamic_variable_datasource>>"
           },
           "definition": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_variable_tenant>>\"},interface_name)",
           "hide": 0,
@@ -1082,7 +1082,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "fec8h5fj8a2o0a"
+            "uid": "<<dynamic_variable_datasource>>"
           },
           "definition": "label_values(zsegment_messages_inbound_total{tenant=\"<<dynamic_variable_tenant>>\", interface_name=\"$interface\"},route_id)",
           "hide": 0,
@@ -1137,6 +1137,5 @@
     "timezone": "",
     "title": "<<dynamic_variable_tenant>> - Apache Camel - Context view",
     "uid": "apache-camel-micrometer-<<dynamic_variable_tenant>>",
-    "version": 6,
     "weekStart": ""
   }

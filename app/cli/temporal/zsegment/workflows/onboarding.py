@@ -22,7 +22,6 @@ from app.cli.temporal.activities.droplet_setup import (
 )
 from app.cli.temporal.activities.gitea_service import (
     GiteaProperties,
-    GiteaService,
     GiteaSetupActivity,
 )
 from app.cli.temporal.activities.k8s_config_map import (
@@ -46,6 +45,8 @@ from app.cli.temporal.activities.k8s_service import (
     KubernetesServiceActivityModel,
 )
 from app.cli.temporal.activities.keycloak_setup import (
+    KeycloakAssignServiceAccountRoleActivity,
+    KeycloakAssignServiceAccountRoleActivityModel,
     KeycloakClientSetupActivity,
     KeycloakClientSetupActivityModel,
     KeycloakCreateClientRolesActivity,
@@ -75,7 +76,7 @@ from app.cli.temporal.activities.redis import (
     RedisSetupActivity,
     RedisSetupActivityModel,
 )
-from app.cli.temporal.activities.redpanda_service import RedpandaProperties, RedpandaSetupActivity
+from app.cli.temporal.activities.rocketmq_service import RocketMQProperties, RocketMQTopicSetupActivity
 from app.cli.temporal.activities.send_mail import (
     SendAfterProvisioningMailActivity,
     SendAfterProvisioningMailActivityModel,
@@ -106,7 +107,7 @@ from app.cli.temporal.models.cloudflare import (
     LinkBucketToDomainActivityModel,
     PropagateDNSRecordActivityModel,
 )
-from app.cli.temporal.zsegment import TemplatePath
+from app.cli.temporal.zsegment import GrafanaDatasourceUids, RocketMQEndpoints, TemplatePath
 from app.cli.temporal.zsegment.models.zsegment_spec import ZSegmentSpec
 from app.core.ijson import ijson_loads
 from app.models.product import ProductEnum
@@ -119,6 +120,7 @@ with workflow.unsafe.imports_passed_through():
 
 # Import the GrafanaDashboard components
 from app.cli.temporal.activities.grafana_dashboard import GrafanaDashboardActivity, GrafanaDashboardProperties
+from app.cli.temporal.activities.zsegmentFetchLatestTag import ZsegmentFetchLatestTagActivity
 
 ProductName = "zsegment"
 OnePasswordVaultName = "zsegment"
@@ -142,10 +144,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
         return [
             GiteaSetupActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
-            RedpandaSetupActivity.defn,
+            RocketMQTopicSetupActivity.defn,
             SendAfterProvisioningMailActivity.defn,
             SendBeforeProvisioningMailActivity.defn,
             KubernetesIstioVirtualServiceActivity.defn,
+            KeycloakAssignServiceAccountRoleActivity.defn,
             KeycloakClientSetupActivity.defn,
             KeycloakCreateClientRolesActivity.defn,
             KeycloakCreateTenantCustomerAdminUserActivity.defn,
@@ -173,6 +176,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
             CheckPodRunningStatusActivity.defn,
             CreateDropletActivity.defn,
             GrafanaDashboardActivity.defn,
+            ZsegmentFetchLatestTagActivity.defn,
         ]
 
     @classmethod
@@ -234,9 +238,26 @@ class ZSegmentOnboardingWorkflow(Workflow):
             postgres_database_name = "zsegment"
             postgres_username = f"{ProductName}_{tenant}"
             postgres_password = generate_password(length=20)
-            image_tag = "production" if config.env == "production" else "sprint"
+            # ci.yml only builds on sprint, and the release pipeline publishes
+            # :<version> plus :latest - so nothing maintains :production for
+            # zsegment-api/engine any more and a new production tenant pinned to
+            # it would come up on an unmaintained image.
+            if config.env == "production":
+                # run_activity always forwards an arg, and this activity takes
+                # none - same reason jeeves calls execute_activity directly.
+                image_tag = zsegment_config.image_tag or await workflow.execute_activity(
+                    activity=ZsegmentFetchLatestTagActivity.defn,
+                    retry_policy=ZsegmentFetchLatestTagActivity.get_retry_policy(),
+                    start_to_close_timeout=ZsegmentFetchLatestTagActivity.get_timeout(),
+                )
+            else:
+                image_tag = zsegment_config.image_tag or "sprint"
             api_docker_image = f"registry.314ecorp.tech/zsegment-api:{image_tag}"
             engine_docker_image = f"registry.314ecorp.tech/zsegment-engine:{image_tag}"
+            # code-server publishes :latest from sprint and :production from production.
+            code_server_image_tag = zsegment_config.code_server_image_tag or (
+                "production" if config.env == "production" else "latest"
+            )
 
             await run_activity(
                 activity=OnePasswordCreateOrUpdateActivity,
@@ -338,6 +359,17 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 ),
             )
 
+            for realm_management_role in ("manage-users", "view-clients", "query-clients"):
+                await run_activity(
+                    activity=KeycloakAssignServiceAccountRoleActivity,
+                    arg=KeycloakAssignServiceAccountRoleActivityModel(
+                        sa_client_name="installer",
+                        target_client_name="realm-management",
+                        role_name=realm_management_role,
+                        realm_name=realm_name,
+                    ),
+                )
+
             roles = [
                 "_admin",
                 "_default-users",
@@ -370,6 +402,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     email=email,
                     firstname=first_name,
                     lastname=last_name,
+                    roles=["_admin"],
                     template_path=TemplatePath,
                     template_name="keycloak_tenant_customer_admin.json",
                 ),
@@ -418,30 +451,15 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 ),
             )
 
-            ## setup redpanda
-            redpanda_tenant_password = generate_password(length=20)
+            ## setup rocketmq
+            rocketmq_endpoints = RocketMQEndpoints[config.env]
 
             await run_activity(
-                activity=OnePasswordCreateOrUpdateActivity,
-                arg=OnePasswordCreateOrUpdateActivityModel(
-                    tenant=f"{ProductName}_{tenant}",
-                    server_item="application-config",
-                    vault=OnePasswordVaultName,
-                    secret_name="redpanda_password",
-                    secret_value=redpanda_tenant_password,
-                ),
-            )
-
-            await run_activity(
-                activity=RedpandaSetupActivity,
-                arg=RedpandaProperties(
+                activity=RocketMQTopicSetupActivity,
+                arg=RocketMQProperties(
                     tenant=tenant,
-                    environment=config.env,
-                    broker=zsegment_config.redpanda_broker,
-                    admin_username=zsegment_config.redpanda_admin_username,
-                    admin_password=zsegment_config.redpanda_admin_password,
-                    tenant_password=redpanda_tenant_password,
-                    admin_api_base_url=zsegment_config.redpanda_admin_api_base_url,
+                    namespace=tenant,
+                    name_server=rocketmq_endpoints["name_server"],
                 ),
             )
 
@@ -496,12 +514,12 @@ class ZSegmentOnboardingWorkflow(Workflow):
                 ),
             )
 
-            gitea_username = GiteaService.extract_username(email)
             gitea_repo_url = f"/repos/{zsegment_config.gitea_admin_username}/{tenant}/"
             # setup api-dev-config
             api_config = "api-config.json"
             engine_config = "engine-config.json"
             config_dir = "config"
+            grafana_datasource_uid = zsegment_config.grafana_datasource_uid or GrafanaDatasourceUids[config.env]
 
             await run_activity(
                 activity=K8sConfigMapCreationActivity,
@@ -517,11 +535,11 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "keycloakRealm": realm_name,
                         "KeycloakAuthServerUrl": zsegment_config.keycloak_auth_server_url,
                         "keycloakSecret": installer_secret,
-                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,
-                        "redpandaPassword": redpanda_tenant_password,
+                        "rocketmqNameServer": rocketmq_endpoints["proxy"],
                         "lagoUrl": zsegment_config.lago.api_url,
                         "lagoKey": zsegment_config.lago.api_key,
                         "lagoCustomerId": lago_customer_id,
+                        "lagoPlanCode": lago_plan_code,
                         "lokiPushUrl": "http://loki.monitoring-system.svc.cluster.local:3100",  # NOSONAR
                         "victoriaMetricsUrl": zsegment_config.victoria_metrics_url,
                         "postgresUrl": zsegment_config.postgres_url,
@@ -531,17 +549,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
-                        "matomoAuthToken": zsegment_config.matomo_auth_token,
-                        "giteaUserName": gitea_username,
                         "dockerSecret": "registrycred",
                         "codeServerHost": f"{tenant}.cs.{zsegment_config.domain_name}",
                         "codeServerAlllowedOrigin": f"https://{tenant}.{zsegment_config.domain_name}",
+                        "codeServerImageTag": code_server_image_tag,
                         "webhookSecret": "abcdefghijkl",
                         "jgitApiServiceUrl": (
                             f"http://zsegment-api.{tenant}.svc.cluster.local:8090/api/v1/git/webhook"  # NOSONAR
                         ),
-                        "digitaloceanToken": zsegment_config.digital_ocean_token,
-                        "omniflowServerUrl": zsegment_config.omniflow_server_url,
+                        "omniflowServerUrl": zsegment_config.omniflow_base_url,
+                        "grafanaDatasourceUid": grafana_datasource_uid,
                     },
                 ),
             )
@@ -557,8 +574,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     bucket_name="zsegment-config",
                     template_payload={
                         "tenantName": tenant,
-                        "redpandaBrokerUrl": zsegment_config.redpanda_broker,
-                        "redpandaPassword": redpanda_tenant_password,
+                        "rocketmqNameServer": rocketmq_endpoints["proxy"],
                         "lagoUrl": zsegment_config.lago.api_url,
                         "lagoKey": zsegment_config.lago.api_key,
                         "lagoCustomerId": lago_customer_id,
@@ -567,7 +583,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                         "gitea_admin_username": zsegment_config.gitea_admin_username,
                         "gitea_admin_password": zsegment_config.gitea_admin_password,
                         "redisPassword": redis_tenant_password,
-                        "giteaUserName": gitea_username,
+                        "omniflowServerUrl": zsegment_config.omniflow_base_url,
                     },
                 ),
             )
@@ -626,9 +642,9 @@ class ZSegmentOnboardingWorkflow(Workflow):
             else:
                 dest_dir = f"{bucket_name}/{image_tag}"
 
-            src_object_name = f"{repo_name}/{image_tag}/dist.zip"
+            src_object_name = f"{repo_name}/{image_tag}/ui.zip"
 
-            bundle_path = "bundle/dist"
+            bundle_path = "bundle"
 
             # copy artifacts to bucket
             await run_activity(
@@ -638,16 +654,16 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     src_object_name=src_object_name,
                     dest_dir=dest_dir,
                     bundle_path=bundle_path,
-                    bundle_name="bundle.zip",
+                    bundle_name="ui.zip",
                     tenant=tenant,
                 ),
             )
 
             # docs
             docs_dest_dir = f"{bucket_name}/docs"
-            docs_src_object_name = f"{repo_name}/docs/dist.zip"
+            docs_src_object_name = f"{repo_name}/{image_tag}/docs.zip"
 
-            docs_bundle_path = "bundle/dist"
+            docs_bundle_path = "bundle"
             await run_activity(
                 activity=CopyArtifactsToBucketActivity,
                 arg=CopyArtifactsToBucketActivityModel(
@@ -655,7 +671,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     src_object_name=docs_src_object_name,
                     dest_dir=docs_dest_dir,
                     bundle_path=docs_bundle_path,
-                    bundle_name="dist.zip",
+                    bundle_name="docs.zip",
                     tenant=tenant,
                 ),
             )
@@ -914,6 +930,7 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     grafana_url=zsegment_config.grafana_api_url,
                     api_key=zsegment_config.grafana_api_key,
                     template_path=grafana_template_path,
+                    datasource_uid=grafana_datasource_uid,
                 ),
             )
             grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_camel.json")
@@ -925,6 +942,19 @@ class ZSegmentOnboardingWorkflow(Workflow):
                     grafana_url=zsegment_config.grafana_api_url,
                     api_key=zsegment_config.grafana_api_key,
                     template_path=grafana_template_path,
+                    datasource_uid=grafana_datasource_uid,
+                ),
+            )
+            grafana_template_path = os.path.join(TemplatePath, "grafana_dashboard_connector.json")
+
+            await run_activity(
+                activity=GrafanaDashboardActivity,
+                arg=GrafanaDashboardProperties(
+                    tenant=tenant,
+                    grafana_url=zsegment_config.grafana_api_url,
+                    api_key=zsegment_config.grafana_api_key,
+                    template_path=grafana_template_path,
+                    datasource_uid=grafana_datasource_uid,
                 ),
             )
             # update tenant status

@@ -130,7 +130,7 @@ class GiteaService:
             config: AppSettings = get_settings()
             zsegment_config: ZSegmentSettings = config.zsegment
             url = f"{self.base_url}/repos/{zsegment_config.gitea_admin_username}/{self.template_repo}/generate"
-            payload = {"name": repo_name, "owner": username, "git_content": True}
+            payload = {"name": repo_name, "owner": username, "git_content": True, "private": True}
             async with aiohttp.ClientSession() as session:
                 response = await session.post(
                     url, json=payload, auth=self.auth, timeout=aiohttp.ClientTimeout(total=30)

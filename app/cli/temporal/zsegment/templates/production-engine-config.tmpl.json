@@ -6,26 +6,18 @@
 
   "APPLICATION.NAME": "zsegment-engine",
 
-  "REDPANDA.BROKER.URL": "<<redpandaBrokerUrl>>",
-  "REDPANDA.PASSWORD": "<<redpandaPassword>>",
-  "REDPANDA.USER.SASL.MECHANISM": "SCRAM-SHA-256",
+  "ROCKETMQ.NAME-SERVER": "<<rocketmqNameServer>>",
 
   "JGIT.LFS.URL": "",
   "JGIT.TENANT": "<<tenantName>>",
   "JGIT.GIT.DIR.PARENT": "/data",
-  "JGIT.GIT.URL": "http://gitea-http.gitea.svc.cluster.local:3000/<<giteaUserName>>/<<tenantName>>",
+  "JGIT.GIT.URL": "http://gitea-http.gitea.svc.cluster.local:3000/<<gitea_admin_username>>/<<tenantName>>",
 
   "CAMEL.ERROR-HANDLER.BACKOFF-MULTIPLIER": "0.75",
-  "CAMEL.ERROR-HANDLER.MAXIMUM-REDELIVERIES": "2",s
+  "CAMEL.ERROR-HANDLER.MAXIMUM-REDELIVERIES": "2",
   "CAMEL.ERROR-HANDLER.REDELIVERY-DELAY": "1000",
 
   "LOGGING.LEVEL.ROOT": "INFO",
-  "LOGGING.LEVEL.ENGINE": "DEBUG",
-  "LOGGING.LEVEL.KAFKA": "WARN",
-  "LOGGING.LEVEL.CAMEL": "WARN",
-  "LOGGING.LEVEL.SPRING.WEB": "INFO",
-  "LOGGING.LEVEL.ECLIPSE.AETHER": "INFO",
-  "LOGGING.LEVEL.MAVEN": "INFO",
 
   "ZSEGMENT.LAGO.BASEURL": "<<lagoUrl>>/api/v1",
   "ZSEGMENT.LAGO.KEY": "<<lagoKey>>",
@@ -35,15 +27,16 @@
   "DB.PASSWORD": "<<postgresSecret>>",
 
   "VICTORIA.METRICS.SELECT.URL": "http://vmselect-vmcluster.monitoring-system.svc.cluster.local:8481/select/0/prometheus",
-  "VICTORIA.METRICS.INSERT.URL": "http://vminsert-vmcluster.monitoring-system.svc.cluster.local:8480/insert/0/prometheus",
+  "VICTORIA.METRICS.INSERT.URL": "vminsert-vmcluster.monitoring-system.svc.cluster.local:8480/insert/0/prometheus",
 
   "GITEA.ADMIN.USERNAME": "<<gitea_admin_username>>",
   "GITEA.ADMIN.PASSWORD": "<<gitea_admin_password>>",
 
+  "OMNIFLOW.URL": "<<omniflowServerUrl>>",
+
   "INSTANCE.ID": "engine1",
 
-  "REDIS.HOST": "cache.cache.svc.cluster.local",
+  "REDIS.HOST": "cache.<<tenantName>>.svc.cluster.local",
   "REDIS.PORT": "6379",
-  "REDIS.USERNAME": "zsegment_<<tenantName>>",
   "REDIS.PASSWORD": "<<redisPassword>>"
 }

@@ -14,21 +14,16 @@
   "KEYCLOAK.RESOURCE": "zsegment",
   "KEYCLOAK.AUTH.CLIENT.SECRET": "<<keycloakSecret>>",
 
-  "REDPANDA.BROKER.URL": "<<redpandaBrokerUrl>>",
-  "REDPANDA.PASSWORD": "<<redpandaPassword>>",
-  "REDPANDA.USER.SASL.MECHANISM": "SCRAM-SHA-256",
+  "ROCKETMQ.NAME-SERVER": "<<rocketmqNameServer>>",
 
   "ZSEGMENT-ENGINE.URL": "http://zsegment-engine.<<tenantName>>.svc.cluster.local:8089",
 
   "ZSEGMENT.LAGO.BASEURL": "<<lagoUrl>>/api/v1",
   "ZSEGMENT.LAGO.KEY": "<<lagoKey>>",
   "ZSEGMENT.LAGO.CUSTOMER_ID": "<<lagoCustomerId>>",
+  "ZSEGMENT.LAGO.PLAN_NAME": "<<lagoPlanCode>>",
 
   "LOGGING.LEVEL.ROOT": "INFO",
-  "LOGGING.LEVEL.API": "DEBUG",
-  "LOGGING.LEVEL.METRICS": "INFO",
-  "LOGGING.LEVEL.CAMEL": "WARN",
-  "LOGGING.LEVEL.SPRING.WEB": "INFO",
 
   "LOKI.PUSH.URL": "<<lokiPushUrl>>",
 
@@ -43,26 +38,48 @@
   "JGIT.LFS.URL": "",
   "JGIT.TENANT": "<<tenantName>>",
   "JGIT.GIT.DIR.PARENT": "/data",
-  "JGIT.GIT.URL": "http://gitea-http.gitea.svc.cluster.local:3000/<<giteaUserName>>/<<tenantName>>",
+  "JGIT.GIT.URL": "http://gitea-http.gitea.svc.cluster.local:3000/<<gitea_admin_username>>/<<tenantName>>",
+  "JGIT.GIT.LSP.URL": "http://gitea-http.gitea.svc.cluster.local:3000/<<gitea_admin_username>>/pre-packaged-libs",
 
   "GITEA.API.BASE.URL": "<<gitea_api_base_url>>",
   "GITEA.API.REPO.URL": "<<gitea_api_repo_url>>",
   "GITEA.ADMIN.USERNAME": "<<gitea_admin_username>>",
   "GITEA.ADMIN.PASSWORD": "<<gitea_admin_password>>",
 
-  "REDIS.HOST": "cache.cache.svc.cluster.local",
+  "REDIS.HOST": "cache.<<tenantName>>.svc.cluster.local",
   "REDIS.PORT": "6379",
-  "REDIS.USERNAME": "zsegment_<<tenantName>>",
   "REDIS.PASSWORD": "<<redisPassword>>",
 
   "DOCKER.SECRET.NAME": "<<dockerSecret>>",
   "CODE-SERVER.HOST": "<<codeServerHost>>",
   "CODE-SERVER.ALLOWED-ORIGIN": "<<codeServerAlllowedOrigin>>",
+  "CODE-SERVER.IMAGE.TAG": "<<codeServerImageTag>>",
 
   "JGIT.WEBHOOK.SECRET": "<<webhookSecret>>",
   "JGIT.API.SERVICE_URL": "<<jgitApiServiceUrl>>",
 
-  "MATOMO.AUTH.TOKEN": "<<matomoAuthToken>>",
-  "MATOMO.BASE.URL": "https://analytics.314ecorp.com/index.php",
-  "MATOMO.SITE.ID": 15
+  "CONNECTOR.SSH.PORT": "2022",
+
+  "CASBIN.PUSH.ENABLED": "false",
+
+  "ZSEGMENT.CERT.MANAGER.ENABLED": "true",
+
+  "OMNIFLOW.BASE.URL": "<<omniflowServerUrl>>",
+
+  "ALERT.GRAFANA_URL": "http://grafana-service.appgrafana.svc.cluster.local:3000",
+  "ALERT.GRAFANA_AUTH": "Bearer {{ op://zsegment/zsegment-appgrafana-production-sa/password }}",
+  "ALERT.GRAFANA_FOLDER_UID": "zsegment",
+  "ALERT.GRAFANA_RULE_GROUP": "zsegment-alerts-<<tenantName>>",
+  "ALERT.GRAFANA_DATASOURCE_UID": "<<grafanaDatasourceUid>>",
+  "ALERT.GRAFANA_WEBHOOK_URL": "http://zsegment-api.<<tenantName>>.svc.cluster.local:8090/api/v1/alerts/webhook",
+
+  "ALERT.TOPIC_RETENTION_HOURS": 168,
+  "ALERT.RULE_INTERVAL": "2m",
+  "ALERT.FOR_DURATION": "2m",
+  "ALERT.RULE_RECONCILE_INTERVAL_MS": "300000",
+
+  "ALERT.NOTIFICATION_GROUP_BY": "alert_id",
+  "ALERT.NOTIFICATION_GROUP_WAIT": "0s",
+  "ALERT.NOTIFICATION_GROUP_INTERVAL": "10s",
+  "ALERT.NOTIFICATION_REPEAT_INTERVAL": "5m"
 }

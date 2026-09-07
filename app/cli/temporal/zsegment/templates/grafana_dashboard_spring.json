@@ -33,7 +33,7 @@
         "collapsed": false,
         "datasource": {
           "type": "prometheus",
-          "uid": "W0lFOlOVk"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "gridPos": {
           "h": 1,
@@ -47,7 +47,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "W0lFOlOVk"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "refId": "A"
           }
@@ -58,7 +58,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -123,7 +123,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "process_uptime_seconds{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -142,7 +142,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -212,7 +212,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "sum(jvm_memory_used_bytes{application_server=\"$application\", instance=\"$instance\", area=\"heap\", namespace=\"<<dynamic_variable_tenant>>\"})*100/sum(jvm_memory_max_bytes{application_server=\"$application\",instance=\"$instance\", area=\"heap\", namespace=\"<<dynamic_variable_tenant>>\"})",
@@ -230,7 +230,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -310,7 +310,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "sum(jvm_memory_used_bytes{application_server=\"$application\", instance=\"$instance\", area=\"nonheap\", namespace=\"<<dynamic_variable_tenant>>\"})*100/sum(jvm_memory_max_bytes{application_server=\"$application\",instance=\"$instance\", area=\"nonheap\", namespace=\"<<dynamic_variable_tenant>>\"})",
@@ -328,7 +328,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -411,7 +411,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "process_files_open_files{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -428,7 +428,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -492,7 +492,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "process_start_time_seconds{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_variable_tenant>>\"}*1000",
@@ -511,7 +511,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -598,7 +598,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "system_cpu_usage{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -611,7 +611,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "process_cpu_usage{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -628,7 +628,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -715,7 +715,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "system_load_average_1m{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -728,7 +728,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "system_cpu_count{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -746,7 +746,7 @@
         "collapsed": false,
         "datasource": {
           "type": "prometheus",
-          "uid": "W0lFOlOVk"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "gridPos": {
           "h": 1,
@@ -760,7 +760,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "W0lFOlOVk"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "refId": "A"
           }
@@ -771,7 +771,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -860,7 +860,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "disableTextWrap": false,
             "editorMode": "code",
@@ -877,7 +877,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "disableTextWrap": false,
             "editorMode": "code",
@@ -894,7 +894,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_memory_max_bytes{instance=\"$instance\", application_server=\"$application\", id=\"$memory_pool_heap\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -911,7 +911,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -999,7 +999,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1013,7 +1013,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_memory_committed_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1027,7 +1027,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_memory_max_bytes{instance=\"$instance\", application_server=\"$application\", id=\"${memory_pool_nonheap:raw}\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1045,7 +1045,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -1131,7 +1131,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_threads_daemon_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1144,7 +1144,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_threads_live_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1157,7 +1157,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_threads_peak_threads{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1174,7 +1174,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -1255,7 +1255,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_buffer_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"direct\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1268,7 +1268,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_buffer_total_capacity_bytes{instance=\"$instance\", application_server=\"$application\", id=\"direct\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1285,7 +1285,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -1366,7 +1366,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_buffer_memory_used_bytes{instance=\"$instance\", application_server=\"$application\", id=\"mapped\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1379,7 +1379,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "jvm_buffer_total_capacity_bytes{instance=\"$instance\", application_server=\"$application\", id=\"mapped\", namespace=\"<<dynamic_variable_tenant>>\"}",
@@ -1396,7 +1396,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -1477,7 +1477,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(jvm_gc_memory_allocated_bytes_total{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -1490,7 +1490,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(jvm_gc_memory_promoted_bytes_total{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -1508,7 +1508,7 @@
         "collapsed": false,
         "datasource": {
           "type": "prometheus",
-          "uid": "W0lFOlOVk"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "gridPos": {
           "h": 1,
@@ -1522,7 +1522,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "W0lFOlOVk"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "refId": "A"
           }
@@ -1533,7 +1533,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -1619,7 +1619,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(jvm_gc_pause_seconds_count{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -1636,7 +1636,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -1722,7 +1722,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(jvm_gc_pause_seconds_sum{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -1740,616 +1740,7 @@
         "collapsed": false,
         "datasource": {
           "type": "prometheus",
-          "uid": "W0lFOlOVk"
-        },
-        "gridPos": {
-          "h": 1,
-          "w": 24,
-          "x": 0,
-          "y": 65
-        },
-        "id": 34,
-        "panels": [],
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "W0lFOlOVk"
-            },
-            "refId": "A"
-          }
-        ],
-        "title": "Database Connection Pool HikariCP  Statistics",
-        "type": "row"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "mappings": [
-              {
-                "options": {
-                  "match": "null",
-                  "result": {
-                    "text": "N/A"
-                  }
-                },
-                "type": "special"
-              }
-            ],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green"
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            },
-            "unit": "none"
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 4,
-          "x": 0,
-          "y": 66
-        },
-        "id": 44,
-        "maxDataPoints": 100,
-        "options": {
-          "colorMode": "none",
-          "graphMode": "none",
-          "justifyMode": "auto",
-          "orientation": "horizontal",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "showPercentChange": false,
-          "textMode": "auto",
-          "wideLayout": true
-        },
-        "pluginVersion": "11.0.0",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
-            },
-            "editorMode": "code",
-            "expr": "hikaricp_connections{instance=\"$instance\", application_server=\"$application\", namespace=\"<<dynamic_variable_tenant>>\"}",
-            "format": "time_series",
-            "intervalFactor": 1,
-            "legendFormat": "",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Connections Size",
-        "type": "stat"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 10,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "never",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "normal"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green"
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            },
-            "unit": "short"
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 20,
-          "x": 4,
-          "y": 66
-        },
-        "id": 36,
-        "options": {
-          "legend": {
-            "calcs": [
-              "mean",
-              "lastNotNull",
-              "max",
-              "min"
-            ],
-            "displayMode": "table",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "maxHeight": 600,
-            "mode": "multi",
-            "sort": "none"
-          }
-        },
-        "pluginVersion": "9.5.1",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
-            },
-            "editorMode": "code",
-            "expr": "hikaricp_connections_active{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\", namespace=\"<<dynamic_variable_tenant>>\"}",
-            "format": "time_series",
-            "intervalFactor": 1,
-            "legendFormat": "Active",
-            "range": true,
-            "refId": "B"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
-            },
-            "editorMode": "code",
-            "expr": "hikaricp_connections_idle{instance=\"$instance\", application=\"$application\", pool=\"$hikaricp\", namespace=\"<<dynamic_variable_tenant>>\"}",
-            "format": "time_series",
-            "intervalFactor": 1,
-            "legendFormat": "Idle",
-            "range": true,
-            "refId": "A"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
-            },
-            "editorMode": "code",
-            "expr": "hikaricp_connections_pending{instance=\"$instance\", application=\"$application\", pool=\"$hikaricp\", namespace=\"<<dynamic_variable_tenant>>\"}",
-            "format": "time_series",
-            "intervalFactor": 1,
-            "legendFormat": "Pending",
-            "range": true,
-            "refId": "C"
-          }
-        ],
-        "title": "Connections",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "mappings": [
-              {
-                "options": {
-                  "match": "null",
-                  "result": {
-                    "text": "N/A"
-                  }
-                },
-                "type": "special"
-              }
-            ],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green"
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            },
-            "unit": "none"
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 4,
-          "x": 0,
-          "y": 70
-        },
-        "id": 46,
-        "maxDataPoints": 100,
-        "options": {
-          "colorMode": "none",
-          "graphMode": "none",
-          "justifyMode": "auto",
-          "orientation": "horizontal",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "showPercentChange": false,
-          "textMode": "auto",
-          "wideLayout": true
-        },
-        "pluginVersion": "11.0.0",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
-            },
-            "editorMode": "code",
-            "expr": "hikaricp_connections_timeout_total{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\", namespace=\"<<dynamic_variable_tenant>>\"}",
-            "format": "time_series",
-            "intervalFactor": 1,
-            "legendFormat": "",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Connection Timeout Count",
-        "type": "stat"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 10,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "never",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green"
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            },
-            "unit": "s"
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 6,
-          "w": 8,
-          "x": 0,
-          "y": 74
-        },
-        "id": 38,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "maxHeight": 600,
-            "mode": "multi",
-            "sort": "none"
-          }
-        },
-        "pluginVersion": "9.5.1",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
-            },
-            "editorMode": "code",
-            "expr": "hikaricp_connections_creation_seconds_sum{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_creation_seconds_count{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\"}",
-            "format": "time_series",
-            "intervalFactor": 1,
-            "legendFormat": "Creation Time",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Connection Creation Time",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 10,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "never",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green"
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            },
-            "unit": "s"
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 6,
-          "w": 8,
-          "x": 8,
-          "y": 74
-        },
-        "id": 42,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "maxHeight": 600,
-            "mode": "multi",
-            "sort": "none"
-          }
-        },
-        "pluginVersion": "9.5.1",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
-            },
-            "editorMode": "code",
-            "expr": "hikaricp_connections_usage_seconds_sum{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_usage_seconds_count{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\"}",
-            "format": "time_series",
-            "intervalFactor": 1,
-            "legendFormat": "Usage Time",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Connection Usage Time",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "drawStyle": "line",
-              "fillOpacity": 10,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "never",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green"
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            },
-            "unit": "s"
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 6,
-          "w": 8,
-          "x": 16,
-          "y": 74
-        },
-        "id": 40,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "maxHeight": 600,
-            "mode": "multi",
-            "sort": "none"
-          }
-        },
-        "pluginVersion": "9.5.1",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
-            },
-            "editorMode": "code",
-            "expr": "hikaricp_connections_acquire_seconds_sum{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_acquire_seconds_count{instance=\"$instance\", application_server=\"$application\", pool=\"$hikaricp\"}",
-            "format": "time_series",
-            "intervalFactor": 1,
-            "legendFormat": "Acquire Time",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Connection Acquire Time",
-        "type": "timeseries"
-      },
-      {
-        "collapsed": false,
-        "datasource": {
-          "type": "prometheus",
-          "uid": "W0lFOlOVk"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "gridPos": {
           "h": 1,
@@ -2363,7 +1754,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "W0lFOlOVk"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "refId": "A"
           }
@@ -2374,7 +1765,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -2462,7 +1853,7 @@
             "alias": "",
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"info\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -2476,7 +1867,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "logback_events_total{instance=\"$instance\", application_server=\"$application\"}",
@@ -2492,7 +1883,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -2580,7 +1971,7 @@
             "alias": "",
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"error\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -2598,7 +1989,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -2686,7 +2077,7 @@
             "alias": "",
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"warn\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -2704,7 +2095,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -2792,7 +2183,7 @@
             "alias": "",
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"debug\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -2810,7 +2201,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "fec8h5fj8a2o0a"
+          "uid": "<<dynamic_variable_datasource>>"
         },
         "fieldConfig": {
           "defaults": {
@@ -2898,7 +2289,7 @@
             "alias": "",
             "datasource": {
               "type": "prometheus",
-              "uid": "fec8h5fj8a2o0a"
+              "uid": "<<dynamic_variable_datasource>>"
             },
             "editorMode": "code",
             "expr": "irate(logback_events_total{instance=\"$instance\", application_server=\"$application\", level=\"trace\", namespace=\"<<dynamic_variable_tenant>>\"}[$__rate_interval])",
@@ -2929,7 +2320,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "fec8h5fj8a2o0a"
+            "uid": "<<dynamic_variable_datasource>>"
           },
           "definition": "label_values(jvm_info,application_server)",
           "hide": 0,
@@ -2960,7 +2351,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "fec8h5fj8a2o0a"
+            "uid": "<<dynamic_variable_datasource>>"
           },
           "definition": "query_result((up{namespace=\"<<dynamic_variable_tenant>>\", container=\"$application\"} == 1))",
           "hide": 0,
@@ -2991,7 +2382,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "fec8h5fj8a2o0a"
+            "uid": "<<dynamic_variable_datasource>>"
           },
           "definition": "label_values(jvm_memory_used_bytes{instance=\"$instance\", area=\"heap\", application_server=\"$application\"},id)",
           "hide": 0,
@@ -3022,7 +2413,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "fec8h5fj8a2o0a"
+            "uid": "<<dynamic_variable_datasource>>"
           },
           "definition": "label_values(jvm_memory_used_bytes{instance=\"$instance\", area=\"nonheap\", application_server=\"$application\"},id)",
           "hide": 0,
@@ -3044,33 +2435,6 @@
           "tagsQuery": "",
           "type": "query",
           "useTags": false
-        },
-        {
-          "current": {
-            "selected": false,
-            "text": "HikariPool-1",
-            "value": "HikariPool-1"
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "fec8h5fj8a2o0a"
-          },
-          "definition": "label_values(hikaricp_connections{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_variable_tenant>>\"},pool)",
-          "hide": 0,
-          "includeAll": false,
-          "multi": false,
-          "name": "hikaricp",
-          "options": [],
-          "query": {
-            "qryType": 1,
-            "query": "label_values(hikaricp_connections{application_server=\"$application\", instance=\"$instance\", namespace=\"<<dynamic_variable_tenant>>\"},pool)",
-            "refId": "PrometheusVariableQueryEditor-VariableQuery"
-          },
-          "refresh": 1,
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": 0,
-          "type": "query"
         }
       ]
     },
@@ -3106,7 +2470,6 @@
     },
     "timezone": "",
     "title": "<<dynamic_variable_tenant>> - Spring Boot 3.x Statistics",
-    "uid": "spring_boot_21_<<dynamic_variable_tenant>>",
-    "version": 3,
+    "uid": "spring_boot_<<dynamic_variable_tenant>>",
     "weekStart": ""
   }

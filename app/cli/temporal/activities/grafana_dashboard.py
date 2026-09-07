@@ -15,11 +15,63 @@ class GrafanaDashboardProperties(LaunchpadCLIBaseModel):
     grafana_url: str
     api_key: str
     template_path: str  # Path to the dashboard template JSON file
+    datasource_uid: str  # uid of the metrics datasource in the target Grafana instance
 
 
 class GrafanaDashboard:
     def __init__(self, properties: GrafanaDashboardProperties) -> None:
         self.properties = properties
+
+    def prepare_dashboard(self, tenant_name: str) -> dict:
+        """
+        Renders a template into the dashboard that will be sent to Grafana.
+
+        Separate from create_dashboard so the substitution, naming and variable
+        handling can be exercised without an HTTP call.
+        """
+        # Load the dashboard template from the specified path
+        dashboard_json = self._get_dashboard_template()
+
+        # Replace the dynamic tenant variable - fix the typo in variable name
+        dashboard_json = dashboard_json.replace("<<dynamic_variable_tenant>>", tenant_name)
+
+        dashboard_json = dashboard_json.replace("<<dynamic_variable_datasource>>", self.properties.datasource_uid)
+
+        # Parse the JSON to a dictionary
+        dashboard_dict = json.loads(dashboard_json)
+
+        # More reliable detection of dashboard type based on filename.
+        # Each template needs its own branch: the final else is a fallback, so a
+        # template added without one is silently published under another
+        # dashboard's title and uid, overwriting it.
+        template_path_lower = self.properties.template_path.lower()
+        if "spring" in template_path_lower or "springboot" in template_path_lower:
+            dashboard_dict["title"] = f"{tenant_name} - Spring Boot 3.x Statistics"
+            dashboard_dict["uid"] = f"spring_boot_{tenant_name}"
+        elif "connector" in template_path_lower:
+            dashboard_dict["title"] = f"{tenant_name} - Connector"
+            dashboard_dict["uid"] = f"zsegment-connector-{tenant_name}"
+        else:
+            dashboard_dict["title"] = f"{tenant_name} - Apache Camel - Context view"
+            dashboard_dict["uid"] = f"apache-camel-micrometer-{tenant_name}"
+
+        self._hide_variables(dashboard_dict)
+
+        return dashboard_dict
+
+    @staticmethod
+    def _hide_variables(dashboard_dict: dict) -> None:
+        """
+        Hides the variable pickers that Grafana would otherwise draw above the dashboard.
+
+        The ZSegment UI embeds these dashboards and selects variables through
+        var-* URL parameters, so Grafana's own dropdowns are a redundant second
+        control that can disagree with the surrounding page. hide=2 is the
+        "Nothing" option under a variable's "Show on dashboard" setting; the
+        variables still resolve and still respond to the URL.
+        """
+        for variable in dashboard_dict.get("templating", {}).get("list", []):
+            variable["hide"] = 2
 
     async def create_dashboard(self, tenant_name: str) -> dict:
         """
@@ -27,23 +79,7 @@ class GrafanaDashboard:
         """
         url = f"{self.properties.grafana_url}/api/dashboards/db"
 
-        # Load the dashboard template from the specified path
-        dashboard_json = self._get_dashboard_template()
-
-        # Replace the dynamic tenant variable - fix the typo in variable name
-        dashboard_json = dashboard_json.replace("<<dynamic_variable_tenant>>", tenant_name)
-
-        # Parse the JSON to a dictionary
-        dashboard_dict = json.loads(dashboard_json)
-
-        # More reliable detection of dashboard type based on filename
-        template_path_lower = self.properties.template_path.lower()
-        if "spring" in template_path_lower or "springboot" in template_path_lower:
-            dashboard_dict["title"] = f"{tenant_name} - Spring Boot 3.x Statistics"
-            dashboard_dict["uid"] = f"spring_boot_21_{tenant_name}"
-        else:
-            dashboard_dict["title"] = f"{tenant_name} - Apache Camel - Context view"
-            dashboard_dict["uid"] = f"apache-camel-micrometer-{tenant_name}"
+        dashboard_dict = self.prepare_dashboard(tenant_name)
 
         # Prepare the payload
         payload = {
