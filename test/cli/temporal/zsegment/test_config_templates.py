@@ -56,6 +56,16 @@ def test_renders_to_valid_json(template_file_name: str) -> None:
     assert render(template_file_name)
 
 
+@pytest.mark.parametrize("template_file_name", TEMPLATES)
+def test_redis_points_at_the_shared_cache(template_file_name: str) -> None:
+    """
+    RedisSetupActivity adds a KVRocks namespace on the single instance in the
+    cache namespace and provisions no per-tenant service, so a per-tenant host
+    would name a service that does not exist.
+    """
+    assert render(template_file_name)["REDIS.HOST"] == "cache.cache.svc.cluster.local"
+
+
 @pytest.mark.parametrize("template_file_name", API_TEMPLATES)
 def test_api_templates_carry_the_alert_keys(template_file_name: str) -> None:
     """A key absent here silently falls back to the api default."""
