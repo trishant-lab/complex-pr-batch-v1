@@ -566,6 +566,7 @@ class PostgresSupavisorPollUserActivityModel(LaunchpadCLIBaseModel):
     database_name: str
     db_password: str
     template_path: str
+    db_host: str | None = None
 
 
 class PostgresSupavisorPollUserActivity(Activity):
@@ -607,6 +608,7 @@ class PostgresSupavisorPollUserActivity(Activity):
             DATABASE=activity_model.database_name.lower(),
             DB_USER=activity_model.username,
             DB_PASSWORD=activity_model.db_password,
+            DB_HOST=activity_model.db_host or "",
         )
 
         async with httpx.AsyncClient() as session:
@@ -993,6 +995,11 @@ class PostgresGrantAllPrivilegesOnSequencesActivity(Activity):
                         f"TO {activity_model.posthog_username};",
                         db_schema_name=None,
                     )
+                    await db.execute_raw_sql(
+                        query=f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{activity_model.schema_name}" '
+                        f"GRANT ALL PRIVILEGES ON SEQUENCES TO {activity_model.posthog_username};",
+                        db_schema_name=None,
+                    )
                 finally:
                     await db.execute_raw_sql(query="RESET ROLE;", db_schema_name=None)
             else:
@@ -1046,6 +1053,11 @@ class PostgresGrantAllPrivilegesOnTablesActivity(Activity):
                         f"TO {activity_model.posthog_username};",
                         db_schema_name=None,
                     )
+                    await db.execute_raw_sql(
+                        query=f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{activity_model.schema_name}" '
+                        f"GRANT ALL PRIVILEGES ON TABLES TO {activity_model.posthog_username};",
+                        db_schema_name=None,
+                    )
                 finally:
                     await db.execute_raw_sql(query="RESET ROLE;", db_schema_name=None)
             else:
@@ -1097,6 +1109,11 @@ class PostgresGrantAllPrivilegesOnFunctionsActivity(Activity):
                     await db.execute_raw_sql(
                         query=f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA "{activity_model.schema_name}" '
                         f"TO {activity_model.posthog_username};",
+                        db_schema_name=None,
+                    )
+                    await db.execute_raw_sql(
+                        query=f'ALTER DEFAULT PRIVILEGES IN SCHEMA "{activity_model.schema_name}" '
+                        f"GRANT ALL PRIVILEGES ON FUNCTIONS TO {activity_model.posthog_username};",
                         db_schema_name=None,
                     )
                 finally:

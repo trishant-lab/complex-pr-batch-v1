@@ -12,6 +12,11 @@ class JeevesSettings(BaseModel):
     domain_name: str = "okjeeves.tech"
     # zone_name: str = "e314ecorptech"
     zone_id: str = ""
+    kv_namespace_id: str = ""
+    queue_message_retention_period: int = 14 * 24 * 60 * 60  # seconds; 14 days, Cloudflare's maximum
+    queue_consumer_max_retries: int = 10  # delivery attempts before a message is dropped; Cloudflare allows at most 100
+    outbound_queue_name_template: str = "jeeves-{tenant}-{space}-outbound"
+    workers_kv_key_template: str = "{tenant}-{space}"
     # grafana: GrafanaSettings = GrafanaSettings()
 
     sender_email: str = "support@okjeeves.com"
@@ -53,10 +58,10 @@ class JeevesSettings(BaseModel):
 
     reporting_site_id: str = "1"
 
-    pg_dsn_template: str = "postgresql://jeeves_{tenant}.jeeves_{tenant}:{password}@supavisor-cluster-ha.supavisor.svc.cluster.local:6543/jeeves"
-    atlas_pg_dsn_template: str = (
-        "postgresql://jeeves_{tenant}:{password}@db-cluster-ha.postgresql.svc.cluster.local/jeeves"
-    )
+    pg_dsn_template: str = "postgresql://jeeves_{tenant}.jeeves_{tenant}:{password}@{supavisor_host}/jeeves"
+    supavisor_host: str = "supavisor-cluster-ha.supavisor.svc.cluster.local:6543"
+    atlas_pg_dsn_template: str = "postgresql://jeeves_{tenant}:{password}@{atlas_pg_host}/jeeves"
+    atlas_pg_host: str = "db-cluster-ha.postgres16.svc.cluster.local"
     redis_dsn_template: str = "redis://redis:@cache.{tenant}.svc.cluster.local"
     base_ui_url: str = "https://{tenant}.okjeeves.tech"
     s3_mpd_api: str = "https://{tenant}.api.okjeeves.app/public/api/v1/recording/getMPDFile"

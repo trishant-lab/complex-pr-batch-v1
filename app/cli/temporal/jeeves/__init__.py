@@ -10,18 +10,36 @@ ProductName = "jeeves"
 OnePasswordVaultName = "Jeeves"
 JeevesSystemUser = "jeeves-systemuser@314ecorp.com"
 
+JEEVES_PUBLIC_TABLES: list[str] = [
+    "user_entity",
+    "realm",
+    "user_attribute",
+    "keycloak_role",
+    "keycloak_group",
+    "user_role_mapping",
+    "federated_identity",
+    "user_group_membership",
+]
+
 JEEVES_CLIENT_ROLES: list[str] = [
     "_access-broadcast",
     "_access-assignment",
     "_access-analytics",
+    "_access-learning-path",
     "_access-setting",
+    "_access-survey",
+    "_access-user-list",
     "_allow-add-edit-asset",
+    "_allow-console-launch",
     "_allow-delete-asset",
+    "_allow-learner-profile",
     "_allow-publish-asset",
     "_allow-review-asset",
+    "_allow-review-feedcard",
+    "_allow-setting",
     "_allow-standalone-launch",
     "_allow-view-asset",
-    "_access-user-list",
+    "_access-support-agent",
     "_can-manage-user",
     "_developer",
     "_JEEVESALL",

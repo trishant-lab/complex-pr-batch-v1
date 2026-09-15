@@ -16,6 +16,23 @@ IGNORED_CLIENT_LIST: list = [
     "security-admin-console",
 ]
 
+# Fields Keycloak's GET /users/{id} returns but PUT /users/{id} treats as
+# read-only/server-managed (or that we simply never want to round-trip, e.g.
+# credential hashes) — dropped before re-PUTting a user so set_user_attribute
+# sends a smaller, more PATCH-like body instead of blindly echoing the full GET.
+USER_READ_ONLY_FIELDS: set = {
+    "id",
+    "createdTimestamp",
+    "access",
+    "notBefore",
+    "federationLink",
+    "serviceAccountClientId",
+    "credentials",
+    "disableableCredentialTypes",
+    "totp",
+    "federatedIdentities",
+}
+
 
 class KeycloakAdminClient:
     def __init__(self: "KeycloakAdminClient", config: KeycloakSettings) -> None:
@@ -143,10 +160,12 @@ class KeycloakAdminClient:
         used here for JSON-blob attributes (e.g. `applicationaccess`) where the value
         must replace the previous one wholesale.
 
-        Keycloak's PUT /users/{id} is a full-replace, not a merge — sending only the
-        modified `attributes` key would null out email/firstName/lastName/enabled/etc.
-        We GET the existing user, overlay our attribute, and PUT the whole thing back
-        so the rest of the profile is preserved.
+        Keycloak's PUT /users/{id} is a full-replace, not a merge — omitting a field
+        like `enabled` or `attributes` would reset it, so some merge is unavoidable.
+        We GET the existing user, drop the read-only/server-managed fields Keycloak
+        returns but doesn't expect back (so we're not round-tripping credential
+        hashes or other server state we never touch), overlay our attribute, and
+        PUT the rest back — closer to a PATCH than blindly echoing the full GET.
         """
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
@@ -155,9 +174,10 @@ class KeycloakAdminClient:
             log_info(f"User {username} not found in realm {realm_name}; skipping {attribute_name} update")
             return
         existing_user = self.kc_client.get_user(user_id=user_id)
+        writable_user = {key: val for key, val in existing_user.items() if key not in USER_READ_ONLY_FIELDS}
         attributes = {**(existing_user.get("attributes") or {})}
         attributes[attribute_name] = [value]
-        self.kc_client.update_user(user_id=user_id, payload={**existing_user, "attributes": attributes})
+        self.kc_client.update_user(user_id=user_id, payload={**writable_user, "attributes": attributes})
 
     def get_user_id(self: "KeycloakAdminClient", username: str, realm_name: str) -> str:
         """
@@ -234,6 +254,14 @@ class KeycloakAdminClient:
         self._refresh_token(self.kc_client, self.realm)
         self.kc_client.connection.realm_name = realm_name
         return self.kc_client.get_realm_roles()
+
+    def get_realm_keys(self: "KeycloakAdminClient", realm_name: str) -> list:
+        """
+        Returns keycloak realm signing keys
+        """
+        self._refresh_token(self.kc_client, self.realm)
+        self.kc_client.connection.realm_name = realm_name
+        return self.kc_client.get_keys().get("keys", [])
 
     def get_client_role(self: "KeycloakAdminClient", client_id: str, role_name: str, realm_name: str) -> dict:
         """

@@ -1,0 +1,33 @@
+{
+    "clientId": "jeeves-integration",
+    "name": "Jeeves Integration",
+    "description": "This is Client used to validate API requests on integration with Jeeves.",
+    "enabled": true,
+    "clientAuthenticatorType": "client-secret",
+    "protocol": "openid-connect",
+    "publicClient": false,
+    "serviceAccountsEnabled": true,
+    "standardFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
+    "attributes": {
+        "access.token.lifespan": "3600"
+    },
+    "defaultClientScopes": [
+        "service_account",
+        "web-origins",
+        "acr",
+        "openid",
+        "user_attribute",
+        "profile",
+        "roles",
+        "groups",
+        "basic",
+        "email"
+    ],
+    "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+    ]
+}

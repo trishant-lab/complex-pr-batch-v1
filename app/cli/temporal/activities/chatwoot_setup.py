@@ -8,6 +8,8 @@ from loguru import logger
 from temporalio import activity
 from temporalio.common import RetryPolicy
 
+from app.cli.keycloak_utils import KeycloakAdminClient, get_keycloak_manager
+from app.cli.temporal.activities.keycloak_setup import template_render
 from app.cli.temporal.core.base import Activity, LaunchpadCLIBaseModel
 from app.cli.temporal.core.log import log_info
 from app.core.ijson import ijson_loads
@@ -17,18 +19,52 @@ from app.utils.file_operations import get_opendal_file_client
 
 CONTENT_TYPE = "application/json"
 
+LIVE_AGENT_INBOX_NAME = "Live Agent"
+BUSINESS_HOURS_OPEN_HOUR = 9
+BUSINESS_HOURS_CLOSE_HOUR = 17
+BUSINESS_HOURS_OPEN_DAYS = (1, 2, 3, 4, 5)  # Rails wday: 0=Sunday .. 6=Saturday
+
+
+def _pem_wrap_certificate(certificate_base64: str) -> str:
+    """
+    Keycloak's realm keys endpoint returns a bare base64 blob; Chatwoot needs PEM armor.
+    """
+    lines = [certificate_base64[i : i + 64] for i in range(0, len(certificate_base64), 64)]
+    return "-----BEGIN CERTIFICATE-----\n" + "\n".join(lines) + "\n-----END CERTIFICATE-----\n"
+
+
+def _working_hours_day(day_of_week: int) -> dict:
+    is_open = day_of_week in BUSINESS_HOURS_OPEN_DAYS
+    return {
+        "day_of_week": day_of_week,
+        "closed_all_day": not is_open,
+        "open_all_day": False,
+        "open_hour": BUSINESS_HOURS_OPEN_HOUR if is_open else None,
+        "open_minutes": 0 if is_open else None,
+        "close_hour": BUSINESS_HOURS_CLOSE_HOUR if is_open else None,
+        "close_minutes": 0 if is_open else None,
+    }
+
 
 class ChatwootSetup:
     def __init__(
-        self: "ChatwootSetup", tenant_space_name: str, tenant: str, product: str, config: JeevesSettings
+        self: "ChatwootSetup",
+        tenant_space_name: str,
+        tenant: str,
+        product: str,
+        config: JeevesSettings,
+        realm_name: str | None = None,
     ) -> None:
         self.tenant_space_name: str = tenant_space_name
         self.tenant: str = tenant
         self.config = config
         self.product: str = product
+        self.realm_name: str | None = realm_name
         self.chatwoot_base_url = config.chatwoot_base_url
         self.chatwoot_platform_api_token = config.chatwoot_platform_api_token
         self.chatwoot_default_user_password = config.chatwoot_default_user_password
+        self.external_base_url = f"https://jeeves-agent.{config.chatwoot_domain}"
+        self.keycloak_auth_url = f"https://{tenant}.{config.domain_name}"
 
         self.onepassword_util = OnePasswordUtil(
             tenant=f"{self.tenant_space_name}",
@@ -320,7 +356,9 @@ class ChatwootSetup:
         )
 
         for attr in data:
-            attr["attribute_key"] = re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
+            attr["attribute_key"] = (
+                attr.get("attribute_key") or re.sub("[^a-zA-Z0-9]", "", attr.get("attribute_display_name")).lower()
+            )
             if attr["attribute_key"] in existing_keys:
                 logger.info(f"Custom attribute {attr['attribute_key']} already exists, skipping...")
                 continue
@@ -332,6 +370,177 @@ class ChatwootSetup:
                     logger.error(f"Failed to create custom attribute with status code: {response.status}")
                     raise HTTPException(f"Failed to create custom attribute with status code: {response.status}")
         logger.info(f"chatwoot custom attributes created successfully : {self.tenant}")
+
+    async def enable_saml_feature(self: "ChatwootSetup", account_id: int) -> None:
+        """
+        Toggle the per-account `saml` feature flag via Chatwoot's Platform API.
+        """
+        headers = {
+            "api_access_token": self.chatwoot_platform_api_token,
+            "Content-Type": CONTENT_TYPE,
+        }
+        url = f"{self.chatwoot_base_url}/platform/api/v1/accounts/{account_id}"
+        async with aiohttp.ClientSession() as session:
+            response = await session.patch(
+                url=url, headers=headers, json={"features": {"saml": True}}, timeout=aiohttp.ClientTimeout(total=20)
+            )
+            if response.status >= 400:
+                response_json = await response.json()
+                logger.error(f"Failed to enable saml feature for account {account_id} : {response_json}")
+                raise RuntimeError(f"Failed to enable saml feature for account {account_id} : {response_json}")
+        log_info(f"chatwoot saml feature enabled successfully : {self.tenant}")
+
+    def ensure_keycloak_saml_client(self: "ChatwootSetup", account_id: int, template_path: str) -> tuple:
+        """
+        Create the Keycloak SAML client for this tenant's Chatwoot account, idempotently.
+
+        Returns (sp_entity_id, acs_url).
+        """
+        sp_entity_id = f"{self.external_base_url}/saml/sp/{account_id}"
+        acs_url = f"{self.external_base_url}/omniauth/saml/callback?account_id={account_id}"
+
+        client_config = template_render(
+            template_path=template_path,
+            template_name="keycloak_chatwoot_saml_client.json",
+            template_payload={
+                "sp_entity_id": sp_entity_id,
+                "acs_url": acs_url,
+                "base_url": self.external_base_url,
+                "account_id": account_id,
+            },
+        )
+
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+        keycloak_client.create_client(ijson_loads(client_config), self.realm_name)
+        log_info(f"keycloak saml client ready for chatwoot : {sp_entity_id}")
+        return sp_entity_id, acs_url
+
+    def fetch_signing_certificate(self: "ChatwootSetup") -> str:
+        """
+        Fetch the realm's active RS256 signing certificate, PEM-armored for Chatwoot.
+        """
+        keycloak_client: KeycloakAdminClient = get_keycloak_manager()
+        keys = keycloak_client.get_realm_keys(realm_name=self.realm_name)
+        signing_key = next(
+            (
+                key
+                for key in keys
+                if key.get("use") == "SIG" and key.get("algorithm") == "RS256" and key.get("certificate")
+            ),
+            None,
+        )
+        if not signing_key:
+            raise RuntimeError(f"No active RS256 signing key found for realm {self.realm_name}")
+        return _pem_wrap_certificate(signing_key["certificate"])
+
+    async def configure_saml_sso(
+        self: "ChatwootSetup", account_id: int, api_key: str, certificate_pem: str, sp_entity_id: str
+    ) -> None:
+        """
+        Push SSO URL / IdP Entity ID / certificate / SP entity ID into Chatwoot's
+        account-scoped SAML settings.
+        """
+        sso_url = f"{self.keycloak_auth_url}/auth/realms/{self.realm_name}/protocol/saml"
+        idp_entity_id = f"{self.keycloak_auth_url}/auth/realms/{self.realm_name}"
+
+        headers = {"api_access_token": api_key, "Content-Type": CONTENT_TYPE}
+        url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/saml_settings"
+        payload = {
+            "saml_settings": {
+                "sso_url": sso_url,
+                "idp_entity_id": idp_entity_id,
+                "certificate": certificate_pem,
+                "sp_entity_id": sp_entity_id,
+            }
+        }
+        async with aiohttp.ClientSession() as session:
+            response = await session.patch(
+                url=url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=20)
+            )
+            if response.status >= 400:
+                response_json = await response.json()
+                logger.error(f"Failed to configure chatwoot saml settings for account {account_id} : {response_json}")
+                raise HTTPException(
+                    f"Failed to configure chatwoot saml settings for account {account_id} : {response_json}"
+                )
+        log_info(f"chatwoot saml sso configured successfully : {self.tenant}")
+
+    async def create_live_agent_inbox(self: "ChatwootSetup", account_id: int, api_key: str) -> None:
+        """
+        Create the API-channel "Live Agent" inbox with business hours + CSAT enabled, idempotently.
+        """
+        headers = {"api_access_token": api_key, "Content-Type": CONTENT_TYPE}
+        inboxes_url = f"{self.chatwoot_base_url}/api/v1/accounts/{account_id}/inboxes"
+
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url=inboxes_url, headers=headers, timeout=aiohttp.ClientTimeout(total=20))
+            existing_inboxes = await response.json()
+            if response.status >= 400:
+                logger.error(f"Failed to list chatwoot inboxes for account {account_id} : {existing_inboxes}")
+                raise HTTPException(f"Failed to list chatwoot inboxes for account {account_id} : {existing_inboxes}")
+            existing_match = next(
+                (inbox for inbox in existing_inboxes.get("payload", []) if inbox.get("name") == LIVE_AGENT_INBOX_NAME),
+                None,
+            )
+            if existing_match:
+                log_info(f"chatwoot inbox {LIVE_AGENT_INBOX_NAME!r} already exists, skipping creation")
+                inbox_id = existing_match["id"]
+            else:
+                create_response = await session.post(
+                    url=inboxes_url,
+                    headers=headers,
+                    json={"name": LIVE_AGENT_INBOX_NAME, "channel": {"type": "api"}},
+                    timeout=aiohttp.ClientTimeout(total=20),
+                )
+                inbox = await create_response.json()
+                if create_response.status >= 400:
+                    logger.error(f"Failed to create chatwoot inbox for account {account_id} : {inbox}")
+                    raise HTTPException(f"Failed to create chatwoot inbox for account {account_id} : {inbox}")
+                inbox_id = inbox["id"]
+
+            business_hours_payload = {
+                "working_hours_enabled": True,
+                "csat_survey_enabled": True,
+                "timezone": "UTC",
+                "working_hours": [_working_hours_day(day_of_week) for day_of_week in range(7)],
+            }
+            update_response = await session.patch(
+                url=f"{inboxes_url}/{inbox_id}",
+                headers=headers,
+                json=business_hours_payload,
+                timeout=aiohttp.ClientTimeout(total=20),
+            )
+            if update_response.status >= 400:
+                response_json = await update_response.json()
+                logger.error(f"Failed to configure business hours for inbox {inbox_id} : {response_json}")
+                raise HTTPException(f"Failed to configure business hours for inbox {inbox_id} : {response_json}")
+        log_info(f"chatwoot live agent inbox ready : {self.tenant}")
+
+    async def setup_saml_and_live_agent_inbox(self: "ChatwootSetup", template_path: str) -> None:
+        """
+        Enable SAML SSO for this tenant's Chatwoot account and create the Live Agent inbox.
+
+        Requires chatwoot_account_id/chatwoot_api_key already in 1Password —
+        i.e. ChatwootSetupActivity must run before ChatwootSamlSetupActivity.
+        """
+        account_id = await self.onepassword_util.get_key("chatwoot_account_id")
+        api_key = await self.onepassword_util.get_key("chatwoot_api_key")
+        if not account_id or not api_key:
+            raise RuntimeError(
+                f"chatwoot_account_id/chatwoot_api_key not found in 1Password for {self.tenant_space_name} "
+                "- ChatwootSetupActivity must run before ChatwootSamlSetupActivity"
+            )
+        account_id = int(account_id)
+
+        await self.enable_saml_feature(account_id=account_id)
+
+        sp_entity_id, _ = self.ensure_keycloak_saml_client(account_id=account_id, template_path=template_path)
+        certificate_pem = self.fetch_signing_certificate()
+        await self.configure_saml_sso(
+            account_id=account_id, api_key=api_key, certificate_pem=certificate_pem, sp_entity_id=sp_entity_id
+        )
+
+        await self.create_live_agent_inbox(account_id=account_id, api_key=api_key)
 
     async def setup(self: "ChatwootSetup") -> None:
         """
@@ -433,6 +642,54 @@ class ChatwootSetupActivity(Activity):
             tenant=activity_model.tenant,
         )
         await chatwoot_setup.setup()
+
+
+class ChatwootSamlSetupActivityModel(LaunchpadCLIBaseModel):
+    """
+    ChatwootSamlSetupActivityModel
+    """
+
+    tenant_space_name: str
+    tenant: str
+    product: str
+    realm_name: str
+    template_path: str
+    config: JeevesSettings
+
+
+class ChatwootSamlSetupActivity(Activity):
+    """
+    ChatwootSamlSetupActivity
+    """
+
+    @staticmethod
+    def get_retry_policy() -> RetryPolicy:
+        """
+        RetryPolicy for the activity
+        """
+        return RetryPolicy(initial_interval=timedelta(seconds=10), backoff_coefficient=3, maximum_attempts=5)
+
+    @staticmethod
+    def get_timeout() -> timedelta:
+        """
+        Timeout for the activity
+        """
+        return timedelta(seconds=120)
+
+    @staticmethod
+    @activity.defn(name="ChatwootSamlSetupActivity")
+    async def defn(activity_model: ChatwootSamlSetupActivityModel) -> None:
+        """
+        Callable for the activity
+        """
+        chatwoot_setup = ChatwootSetup(
+            tenant_space_name=activity_model.tenant_space_name,
+            tenant=activity_model.tenant,
+            product=activity_model.product,
+            config=activity_model.config,
+            realm_name=activity_model.realm_name,
+        )
+        await chatwoot_setup.setup_saml_and_live_agent_inbox(template_path=activity_model.template_path)
 
 
 class DeleteChatwootAccountActivityModel(LaunchpadCLIBaseModel):
