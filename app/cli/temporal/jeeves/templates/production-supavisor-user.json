@@ -1,7 +1,7 @@
 {
   "tenant": {
     "allow_list": ["0.0.0.0/0", "::/0"],
-    "db_host": "db-cluster-ha.postgres16.svc.cluster.local",
+    "db_host": "<<DB_HOST>>",
     "db_database": "<<DATABASE>>",
     "db_port": 5432,
     "enforce_ssl": false,

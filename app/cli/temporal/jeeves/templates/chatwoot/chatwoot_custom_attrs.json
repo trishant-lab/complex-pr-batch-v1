@@ -16,6 +16,7 @@
   {
     "attribute_description": "EHR Service Area",
     "attribute_display_name": "Service Area",
+    "attribute_key": "service_area",
     "attribute_display_type": "text",
     "attribute_model": "contact_attribute",
     "attribute_values": []
@@ -30,8 +31,17 @@
   {
     "attribute_description": "EHR Provider Type",
     "attribute_display_name": "Provider Type",
+    "attribute_key": "provider_type",
     "attribute_display_type": "text",
     "attribute_model": "contact_attribute",
+    "attribute_values": []
+  },
+  {
+    "attribute_description": "Jeeves conversation identifier",
+    "attribute_display_name": "Jeeves Conversation Id",
+    "attribute_key": "jeeves_conversation_id",
+    "attribute_display_type": "text",
+    "attribute_model": "conversation_attribute",
     "attribute_values": []
   }
 ]

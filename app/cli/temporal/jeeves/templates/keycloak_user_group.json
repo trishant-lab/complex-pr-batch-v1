@@ -11,7 +11,14 @@
     "_access-assignment",
     "_access-broadcast",
     "_access-user-list",
-    "_allow-review-asset"
+    "_access-learning-path",
+    "_access-survey",
+    "_allow-console-launch",
+    "_allow-learner-profile",
+    "_allow-review-asset",
+    "_allow-review-feedcard",
+    "_allow-setting",
+    "_access-support-agent"
   ],
   "Publisher": [
     "_allow-standalone-launch",
@@ -23,7 +30,13 @@
     "_allow-delete-asset",
     "_access-broadcast",
     "_access-user-list",
-    "_allow-review-asset"
+    "_access-learning-path",
+    "_access-survey",
+    "_allow-console-launch",
+    "_allow-learner-profile",
+    "_allow-review-asset",
+    "_allow-review-feedcard",
+    "_allow-setting"
   ],
   "Author": [
     "_allow-standalone-launch",
@@ -34,7 +47,13 @@
     "_access-broadcast",
     "_allow-delete-asset",
     "_access-user-list",
-    "_allow-review-asset"
+    "_access-learning-path",
+    "_access-survey",
+    "_allow-console-launch",
+    "_allow-learner-profile",
+    "_allow-review-asset",
+    "_allow-review-feedcard",
+    "_allow-setting"
   ],
   "Reviewer": [
     "_allow-standalone-launch",
@@ -42,6 +61,11 @@
     "_allow-view-asset"
   ],
   "Learner": [
+    "_allow-standalone-launch"
+  ],
+  "Live Agent": [
+    "_access-support-agent",
+    "_allow-learner-profile",
     "_allow-standalone-launch"
   ]
 }
