@@ -44,6 +44,8 @@ from app.cli.temporal.activities.one_password import (
     OnePasswordCreateOrUpdateActivityModel,
     OnePasswordGetActivity,
     OnePasswordGetActivityModel,
+    OnePasswordInsertIfNotExistsActivity,
+    OnePasswordInsertIfNotExistsActivityModel,
 )
 from app.cli.temporal.activities.postgres_setup import (
     PostgresGrantAccessToUserActivity,
@@ -117,6 +119,7 @@ class JeevesSpaceCreationWorkflow(Workflow):
             KeycloakUpdateClientMapperActivity.defn,
             VespaJobActivity.defn,
             OnePasswordCreateOrUpdateActivity.defn,
+            OnePasswordInsertIfNotExistsActivity.defn,
             SlackNotificationActivity.defn,
             K8sConfigMapCreationActivity.defn,
             DatabaseMigrationJobActivity.defn,
@@ -246,6 +249,17 @@ class JeevesSpaceCreationWorkflow(Workflow):
                     tenant=tenant,
                     product=ProductName,
                     config=jeeves_config,
+                ),
+            )
+
+            await run_activity(
+                activity=OnePasswordInsertIfNotExistsActivity,
+                arg=OnePasswordInsertIfNotExistsActivityModel(
+                    tenant=product_space_name,
+                    vault=OnePasswordVaultName,
+                    server_item="application-config",
+                    key="outbound_queue_id",
+                    key_value=" ",
                 ),
             )
 
