@@ -26,6 +26,15 @@ class ZSegmentSettings(BaseModel):
     grafana_api_key: str = ""
     # Empty falls back to the uid for the environment.
     grafana_datasource_uid: str = ""
+
+    def resolved_grafana_datasource_uid(self, env_default: str) -> str:
+        """Prefer the explicit setting; empty string means use env_default.
+
+        Integration and production wire different VictoriaMetrics datasource
+        uids. Keeping the empty-means-default rule here stops activities from
+        hardcoding environment names.
+        """
+        return self.grafana_datasource_uid or env_default
     # integration and production name this key differently in their config files
     omniflow_base_url: str = Field("", validation_alias=AliasChoices("omniflow_base_url", "omniflow_server_url"))
     # Empty falls back to the tag for the environment.
